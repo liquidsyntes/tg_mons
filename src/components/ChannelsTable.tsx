@@ -1,0 +1,516 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import {
+  Crown,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ExternalLink,
+  Power,
+  Trash2,
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  Layers
+} from 'lucide-react';
+import { ChannelMetrics } from '@/lib/types';
+import { DeltaBadge } from './DeltaBadge';
+import { StatusBadge } from './StatusBadge';
+import { formatNumber, formatPercent } from '@/lib/utils';
+
+type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share';
+type SortOrder = 'asc' | 'desc';
+
+interface ChannelsTableProps {
+  channels: ChannelMetrics[];
+  myChannel: ChannelMetrics | null;
+  onRefresh: () => Promise<void>;
+}
+
+export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<SortField>('members');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const handleSetMine = async (channelId: number) => {
+    setActionLoadingId(channelId);
+    try {
+      const res = await fetch(`/api/channels/${channelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isMine: true }),
+      });
+      if (res.ok) await onRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleToggleActive = async (channelId: number, currentActive: boolean) => {
+    setActionLoadingId(channelId);
+    try {
+      const res = await fetch(`/api/channels/${channelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentActive }),
+      });
+      if (res.ok) await onRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleDelete = async (channelId: number, title: string) => {
+    if (!confirm(`Отключить мониторинг канала «${title}»? История будет сохранена.`)) return;
+
+    setActionLoadingId(channelId);
+    try {
+      const res = await fetch(`/api/channels/${channelId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) await onRefresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Filter and Sort
+  const processedChannels = useMemo(() => {
+    let list = [...channels];
+
+    // Filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (c) =>
+          c.title.toLowerCase().includes(q) ||
+          (c.username && c.username.toLowerCase().includes(q))
+      );
+    }
+
+    // Extract My Channel so it stays pinned at the top
+    const myCh = list.find((c) => c.isMine);
+    const competitors = list.filter((c) => !c.isMine);
+
+    // Sort competitors
+    competitors.sort((a, b) => {
+      let valA: any = 0;
+      let valB: any = 0;
+
+      switch (sortField) {
+        case 'title':
+          return sortOrder === 'asc'
+            ? a.title.localeCompare(b.title)
+            : b.title.localeCompare(a.title);
+        case 'members':
+          valA = a.currentMembers ?? -1;
+          valB = b.currentMembers ?? -1;
+          break;
+        case 'delta24h':
+          valA = a.delta24h.percent ?? (a.delta24h.abs !== null ? a.delta24h.abs : -999999);
+          valB = b.delta24h.percent ?? (b.delta24h.abs !== null ? b.delta24h.abs : -999999);
+          break;
+        case 'delta7d':
+          valA = a.delta7d.percent ?? (a.delta7d.abs !== null ? a.delta7d.abs : -999999);
+          valB = b.delta7d.percent ?? (b.delta7d.abs !== null ? b.delta7d.abs : -999999);
+          break;
+        case 'delta30d':
+          valA = a.delta30d.percent ?? (a.delta30d.abs !== null ? a.delta30d.abs : -999999);
+          valB = b.delta30d.percent ?? (b.delta30d.abs !== null ? b.delta30d.abs : -999999);
+          break;
+        case 'posts7d':
+          valA = a.posts7d;
+          valB = b.posts7d;
+          break;
+        case 'share':
+          valA = a.comparison?.audienceSharePercent ?? -1;
+          valB = b.comparison?.audienceSharePercent ?? -1;
+          break;
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    // Pinned My Channel is always index 0
+    return myCh ? [myCh, ...competitors] : competitors;
+  }, [channels, searchQuery, sortField, sortOrder]);
+
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 opacity-40 ml-1 inline" />;
+    }
+    return sortOrder === 'asc' ? (
+      <ArrowUp className="w-3 h-3 text-accent ml-1 inline" />
+    ) : (
+      <ArrowDown className="w-3 h-3 text-accent ml-1 inline" />
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Table Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface p-3.5 rounded-2xl border border-border">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по названию или @username..."
+            className="w-full bg-slate-900/90 border border-border/80 rounded-xl pl-9 pr-3.5 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-accent"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span>Всего каналов: <strong className="text-white font-mono">{channels.length}</strong></span>
+        </div>
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-border bg-slate-900/70 text-slate-400 font-medium select-none">
+                <th
+                  onClick={() => handleSort('title')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors"
+                >
+                  Канал {renderSortIcon('title')}
+                </th>
+                <th
+                  onClick={() => handleSort('members')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-right"
+                >
+                  Подписчики {renderSortIcon('members')}
+                </th>
+                <th
+                  onClick={() => handleSort('delta24h')}
+                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
+                >
+                  Δ 24ч {renderSortIcon('delta24h')}
+                </th>
+                <th
+                  onClick={() => handleSort('delta7d')}
+                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
+                >
+                  Δ 7д {renderSortIcon('delta7d')}
+                </th>
+                <th
+                  onClick={() => handleSort('delta30d')}
+                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
+                >
+                  Δ 30д {renderSortIcon('delta30d')}
+                </th>
+                <th
+                  onClick={() => handleSort('posts7d')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                >
+                  Посты (7д / 30д) {renderSortIcon('posts7d')}
+                </th>
+                <th
+                  onClick={() => handleSort('share')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                >
+                  % от моего {renderSortIcon('share')}
+                </th>
+                <th className="py-3.5 px-4 text-center">Статус</th>
+                <th className="py-3.5 px-4 text-right">Действия</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {processedChannels.map((channel) => {
+                const isMineRow = channel.isMine;
+                return (
+                  <tr
+                    key={channel.id}
+                    className={`transition-colors duration-150 ${
+                      isMineRow
+                        ? 'bg-accent/[0.06] hover:bg-accent/[0.1] border-l-2 border-l-accent'
+                        : channel.isActive
+                        ? 'hover:bg-slate-800/40'
+                        : 'opacity-60 bg-slate-950/40 hover:bg-slate-900/50'
+                    }`}
+                  >
+                    {/* Title & Username */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2.5">
+                        {isMineRow ? (
+                          <div className="w-7 h-7 rounded-lg bg-accent/20 border border-accent/40 flex items-center justify-center text-accent flex-shrink-0">
+                            <Crown className="w-3.5 h-3.5" />
+                          </div>
+                        ) : (
+                          <div className="w-7 h-7 rounded-lg bg-slate-800 border border-border flex items-center justify-center text-slate-400 flex-shrink-0 font-mono text-xs">
+                            {channel.type === 'group' ? 'Г' : 'К'}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/channel/${channel.id}`}
+                              className="font-semibold text-slate-100 hover:text-accent transition-colors truncate max-w-[180px] inline-block"
+                              title={channel.title}
+                            >
+                              {channel.title}
+                            </Link>
+                            {isMineRow && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-accent/20 text-accent font-semibold">
+                                Мой
+                              </span>
+                            )}
+                          </div>
+                          {channel.username && (
+                            <a
+                              href={`https://t.me/${channel.username}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-slate-400 hover:text-accent font-mono inline-flex items-center gap-1 transition-colors"
+                            >
+                              @{channel.username}
+                              <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Members Count */}
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-white tabular-nums text-sm">
+                      {formatNumber(channel.currentMembers)}
+                    </td>
+
+                    {/* Delta 24h */}
+                    <td className="py-3.5 px-3 text-center">
+                      <DeltaBadge
+                        abs={channel.delta24h.abs}
+                        percent={channel.delta24h.percent}
+                        size="sm"
+                      />
+                    </td>
+
+                    {/* Delta 7d */}
+                    <td className="py-3.5 px-3 text-center">
+                      <DeltaBadge
+                        abs={channel.delta7d.abs}
+                        percent={channel.delta7d.percent}
+                        size="sm"
+                      />
+                    </td>
+
+                    {/* Delta 30d */}
+                    <td className="py-3.5 px-3 text-center">
+                      <DeltaBadge
+                        abs={channel.delta30d.abs}
+                        percent={channel.delta30d.percent}
+                        size="sm"
+                      />
+                    </td>
+
+                    {/* Posts Counts */}
+                    <td className="py-3.5 px-4 text-center font-mono tabular-nums">
+                      <span className="font-semibold text-slate-200">{channel.posts7d}</span>
+                      <span className="text-slate-500 mx-1">/</span>
+                      <span className="text-slate-400">{channel.posts30d}</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        ({channel.avgPostsPerDay}/д)
+                      </span>
+                    </td>
+
+                    {/* Comparison with My Channel */}
+                    <td className="py-3.5 px-4 text-center font-mono tabular-nums">
+                      {isMineRow ? (
+                        <span className="text-accent font-semibold text-xs">100% (база)</span>
+                      ) : channel.comparison?.audienceSharePercent !== null &&
+                        channel.comparison?.audienceSharePercent !== undefined ? (
+                        <div>
+                          <span className="font-semibold text-slate-200">
+                            {channel.comparison.audienceSharePercent}%
+                          </span>
+                          {channel.comparison.growthRateDiff7d !== null && (
+                            <span
+                              className={`text-[10px] block ${
+                                channel.comparison.growthRateDiff7d > 0
+                                  ? 'text-emerald-400'
+                                  : channel.comparison.growthRateDiff7d < 0
+                                  ? 'text-rose-400'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              {channel.comparison.growthRateDiff7d > 0 ? '+' : ''}
+                              {channel.comparison.growthRateDiff7d}% темп
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-500">н/д</span>
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-3.5 px-4 text-center">
+                      <StatusBadge
+                        status={channel.status}
+                        lastCollectedAt={channel.lastCollectedAt}
+                        lastError={channel.lastError}
+                      />
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        {!isMineRow && (
+                          <button
+                            onClick={() => handleSetMine(channel.id)}
+                            disabled={actionLoadingId === channel.id}
+                            className="p-1.5 text-slate-400 hover:text-accent hover:bg-slate-800 rounded-lg transition-colors"
+                            title="Сделать «Моим каналом»"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleToggleActive(channel.id, channel.isActive)}
+                          disabled={actionLoadingId === channel.id}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            channel.isActive
+                              ? 'text-slate-400 hover:text-amber-400 hover:bg-slate-800'
+                              : 'text-amber-400 hover:text-emerald-400 hover:bg-slate-800'
+                          }`}
+                          title={channel.isActive ? 'Поставить на паузу' : 'Возобновить сбор'}
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(channel.id, channel.title)}
+                          disabled={actionLoadingId === channel.id}
+                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                          title="Отключить мониторинг"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Mobile Cards View */}
+      <div className="block md:hidden space-y-3">
+        {processedChannels.map((channel) => {
+          const isMineRow = channel.isMine;
+          return (
+            <div
+              key={channel.id}
+              className={`p-4 rounded-2xl border ${
+                isMineRow
+                  ? 'bg-accent/[0.07] border-accent/40 shadow-sm'
+                  : 'bg-surface border-border'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    {isMineRow && <Crown className="w-3.5 h-3.5 text-accent" />}
+                    <Link
+                      href={`/channel/${channel.id}`}
+                      className="font-bold text-white text-sm hover:text-accent"
+                    >
+                      {channel.title}
+                    </Link>
+                  </div>
+                  {channel.username && (
+                    <a
+                      href={`https://t.me/${channel.username}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-slate-400 font-mono inline-flex items-center gap-1"
+                    >
+                      @{channel.username}
+                      <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                    </a>
+                  )}
+                </div>
+
+                <div className="text-right">
+                  <div className="text-base font-extrabold font-mono text-white tabular-nums">
+                    {formatNumber(channel.currentMembers)}
+                  </div>
+                  <div className="text-[10px] text-slate-400">подписчиков</div>
+                </div>
+              </div>
+
+              {/* Deltas & Posts */}
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60 text-center">
+                <div className="bg-slate-900/60 p-2 rounded-lg">
+                  <div className="text-[10px] text-slate-400 mb-1">Δ 24ч</div>
+                  <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="sm" />
+                </div>
+                <div className="bg-slate-900/60 p-2 rounded-lg">
+                  <div className="text-[10px] text-slate-400 mb-1">Δ 7д</div>
+                  <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="sm" />
+                </div>
+                <div className="bg-slate-900/60 p-2 rounded-lg">
+                  <div className="text-[10px] text-slate-400 mb-1">Посты (7д)</div>
+                  <div className="text-xs font-mono font-semibold text-white">
+                    {channel.posts7d}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Footer Actions */}
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/60 text-xs">
+                <StatusBadge
+                  status={channel.status}
+                  lastCollectedAt={channel.lastCollectedAt}
+                  lastError={channel.lastError}
+                />
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/channel/${channel.id}`}
+                    className="px-2.5 py-1 rounded bg-slate-800 text-slate-200 text-[11px]"
+                  >
+                    График
+                  </Link>
+                  {!isMineRow && (
+                    <button
+                      onClick={() => handleSetMine(channel.id)}
+                      className="px-2.5 py-1 rounded bg-accent/10 text-accent text-[11px]"
+                    >
+                      Сделать моим
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,50 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Channel {
+  id              Int        @id @default(autoincrement())
+  username        String?    @unique
+  tgId            BigInt?    @unique
+  title           String
+  type            String     // "channel" | "group"
+  isMine          Boolean    @default(false)
+  isActive        Boolean    @default(true)
+  lastMessageId   BigInt?
+  lastError       String?
+  lastCollectedAt DateTime?
+  createdAt       DateTime   @default(now())
+  snapshots       Snapshot[]
+  posts           Post[]
+
+  @@map("channels")
+}
+
+model Snapshot {
+  id           Int      @id @default(autoincrement())
+  channelId    Int      @map("channel_id")
+  membersCount Int      @map("members_count")
+  collectedAt  DateTime @default(now()) @map("collected_at")
+  channel      Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, collectedAt])
+  @@map("snapshots")
+}
+
+model Post {
+  id          Int      @id @default(autoincrement())
+  channelId   Int      @map("channel_id")
+  messageId   BigInt   @map("message_id")
+  publishedAt DateTime @map("published_at")
+  views       Int?
+  channel     Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, messageId])
+  @@index([channelId, publishedAt])
+  @@map("posts")
+}

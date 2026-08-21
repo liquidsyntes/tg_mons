@@ -1,0 +1,378 @@
+'use client';
+
+import React, { useEffect, useState, use, useCallback } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  ExternalLink,
+  Crown,
+  Calendar,
+  Layers,
+  BarChart2,
+  TrendingUp,
+  FileText,
+  Clock,
+  Eye
+} from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend
+} from 'recharts';
+import { ChannelDetailStats } from '@/lib/types';
+import { DeltaBadge } from '@/components/DeltaBadge';
+import { StatusBadge } from '@/components/StatusBadge';
+import { DetailSkeleton } from '@/components/SkeletonLoader';
+import { formatNumber, formatPercent } from '@/lib/utils';
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function ChannelDetailPage({ params }: PageProps) {
+  const resolvedParams = use(params);
+  const channelId = resolvedParams.id;
+
+  const [period, setPeriod] = useState<'24h' | '7d' | '30d'>('7d');
+  const [showMyChannelOverlay, setShowMyChannelOverlay] = useState(true);
+  const [data, setData] = useState<ChannelDetailStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchChannelData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/stats/channel/${channelId}?period=${period}`);
+      if (!res.ok) {
+        throw new Error('Не удалось загрузить данные канала');
+      }
+      const json: ChannelDetailStats = await res.json();
+      setData(json);
+      setError(null);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Ошибка загрузки');
+    } finally {
+      setLoading(false);
+    }
+  }, [channelId, period]);
+
+  useEffect(() => {
+    fetchChannelData();
+  }, [fetchChannelData]);
+
+  const channel = data?.channel;
+  const myChannel = data?.myChannel;
+  const isMine = channel?.isMine;
+
+  // Prepare subscriber chart data
+  const subscriberChartData = (data?.membersHistory || []).map((item) => {
+    const d = new Date(item.collectedAt);
+    const dateFormatted =
+      period === '24h'
+        ? d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+        : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+
+    return {
+      time: dateFormatted,
+      fullTime: d.toLocaleString('ru-RU'),
+      members: item.membersCount,
+      myMembers: item.myMembersCount ?? undefined,
+    };
+  });
+
+  // Prepare post chart data
+  const postsChartData = (data?.postsDistribution || []).map((item) => {
+    let dateFormatted = item.date;
+    if (period !== '24h') {
+      const parts = item.date.split('-');
+      if (parts.length === 3) {
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        dateFormatted = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+      }
+    }
+
+    return {
+      date: dateFormatted,
+      posts: item.postsCount,
+      viewsAvg: item.viewsAvg ?? 0,
+    };
+  });
+
+  return (
+    <div className="min-h-screen bg-background text-slate-100 flex flex-col">
+      {/* Top Bar */}
+      <div className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Назад ко всем каналам</span>
+          </Link>
+
+          {/* Period selector */}
+          <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-border">
+            {(['24h', '7d', '30d'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1 text-xs font-mono font-medium rounded-lg transition-all ${
+                  period === p
+                    ? 'bg-accent text-slate-950 font-bold shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {p === '24h' ? '24ч' : p === '7d' ? '7 дней' : '30 дней'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {loading ? (
+          <DetailSkeleton />
+        ) : error || !channel ? (
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-8 text-center space-y-3">
+            <h3 className="text-base font-semibold text-white">Канал не найден или произошла ошибка</h3>
+            <p className="text-xs text-rose-300/80">{error}</p>
+            <Link
+              href="/"
+              className="inline-block px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold"
+            >
+              Вернуться на главную
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Channel Hero Header */}
+            <div className="bg-surface border border-border rounded-2xl p-6 relative overflow-hidden shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isMine && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-accent/20 text-accent font-semibold border border-accent/30">
+                        <Crown className="w-3.5 h-3.5" />
+                        Мой канал
+                      </span>
+                    )}
+                    <StatusBadge
+                      status={channel.status}
+                      lastCollectedAt={channel.lastCollectedAt}
+                      lastError={channel.lastError}
+                    />
+                  </div>
+
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    {channel.title}
+                  </h1>
+
+                  {channel.username && (
+                    <a
+                      href={`https://t.me/${channel.username}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-slate-400 hover:text-accent font-mono inline-flex items-center gap-1 transition-colors"
+                    >
+                      @{channel.username}
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="text-left md:text-right">
+                    <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tabular-nums">
+                      {formatNumber(channel.currentMembers)}
+                    </div>
+                    <div className="text-xs text-slate-400">текущих подписчиков</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI Cards Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-border/70">
+                <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
+                  <span className="text-[11px] text-slate-400 block mb-1">Δ 24 часа</span>
+                  <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="md" />
+                </div>
+                <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
+                  <span className="text-[11px] text-slate-400 block mb-1">Δ 7 дней</span>
+                  <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="md" />
+                </div>
+                <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
+                  <span className="text-[11px] text-slate-400 block mb-1">Δ 30 дней</span>
+                  <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} size="md" />
+                </div>
+                <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
+                  <span className="text-[11px] text-slate-400 block mb-1">Публикаций (30д)</span>
+                  <div className="text-xs font-mono font-semibold text-white">
+                    {channel.posts30d}{' '}
+                    <span className="text-slate-400 font-normal">({channel.avgPostsPerDay}/д)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Subscriber Dynamics Chart */}
+            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-accent" />
+                    Динамика участников
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    История изменения числа подписчиков по снапшотам
+                  </p>
+                </div>
+
+                {!isMine && myChannel && (
+                  <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-900/80 px-3 py-1.5 rounded-xl border border-border hover:border-slate-700 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={showMyChannelOverlay}
+                      onChange={(e) => setShowMyChannelOverlay(e.target.checked)}
+                      className="rounded border-slate-700 text-accent focus:ring-accent bg-slate-800"
+                    />
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-violet-400"></span>
+                      Наложить кривую «{myChannel.title}»
+                    </span>
+                  </label>
+                )}
+              </div>
+
+              <div className="h-72 w-full pt-4">
+                {subscriberChartData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-500 font-mono">
+                    Нет накопленных снапшотов за выбранный период
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={subscriberChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                      <XAxis
+                        dataKey="time"
+                        stroke="#64748b"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={{ stroke: '#1e293b' }}
+                      />
+                      <YAxis
+                        stroke="#64748b"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={{ stroke: '#1e293b' }}
+                        domain={['auto', 'auto']}
+                        tickFormatter={(v) => formatNumber(v)}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#0f172a',
+                          border: '1px solid #334155',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          color: '#f8fafc',
+                        }}
+                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                      <Line
+                        type="monotone"
+                        dataKey="members"
+                        name={channel.title}
+                        stroke="#38bdf8"
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: '#38bdf8' }}
+                        activeDot={{ r: 5 }}
+                      />
+                      {!isMine && showMyChannelOverlay && myChannel && (
+                        <Line
+                          type="monotone"
+                          dataKey="myMembers"
+                          name={`Мой: ${myChannel.title}`}
+                          stroke="#a855f7"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={{ r: 2, fill: '#a855f7' }}
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Posts Activity Chart */}
+            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <BarChart2 className="w-4 h-4 text-emerald-400" />
+                  Публикационная активность
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Распределение опубликованных постов по дням / часам
+                </p>
+              </div>
+
+              <div className="h-64 w-full pt-4">
+                {postsChartData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-500 font-mono">
+                    Нет постов за выбранный период
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={postsChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        stroke="#64748b"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={{ stroke: '#1e293b' }}
+                      />
+                      <YAxis
+                        stroke="#64748b"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={{ stroke: '#1e293b' }}
+                        allowDecimals={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#0f172a',
+                          border: '1px solid #334155',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          color: '#f8fafc',
+                        }}
+                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                      />
+                      <Bar
+                        dataKey="posts"
+                        name="Количество постов"
+                        fill="#10b981"
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={40}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+    </div>
+  );
+}

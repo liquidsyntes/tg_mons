@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tgmon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: tg_monitor
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tg_monitor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: tgmon-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/tg_monitor?schema=public
+      TG_API_ID: ${TG_API_ID}
+      TG_API_HASH: ${TG_API_HASH}
+      TG_SESSION: ${TG_SESSION}
+      COLLECT_API_TOKEN: ${COLLECT_API_TOKEN:-supersecrettoken}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: tgmon-worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/tg_monitor?schema=public
+      TG_API_ID: ${TG_API_ID}
+      TG_API_HASH: ${TG_API_HASH}
+      TG_SESSION: ${TG_SESSION}
+      COLLECT_CRON: ${COLLECT_CRON:-0 * * * *}
+      COLLECT_ON_STARTUP: ${COLLECT_ON_STARTUP:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
