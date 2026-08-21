@@ -12,7 +12,8 @@ import {
   TrendingUp,
   FileText,
   Clock,
-  Eye
+  Eye,
+  Sparkles
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -31,6 +32,7 @@ import { DeltaBadge } from '@/components/DeltaBadge';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DetailSkeleton } from '@/components/SkeletonLoader';
 import { formatNumber, formatPercent } from '@/lib/utils';
+import { HeatmapChart } from '@/components/HeatmapChart';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -45,6 +47,14 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const [data, setData] = useState<ChannelDetailStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const [aiCompareSummary, setAiCompareSummary] = useState<string | null>(null);
+  const [aiCompareLoading, setAiCompareLoading] = useState(false);
+  const [aiCompareError, setAiCompareError] = useState<string | null>(null);
 
   const fetchChannelData = useCallback(async () => {
     setLoading(true);
@@ -67,6 +77,46 @@ export default function ChannelDetailPage({ params }: PageProps) {
   useEffect(() => {
     fetchChannelData();
   }, [fetchChannelData]);
+
+  const fetchAiSummary = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await fetch('/api/ai/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId, days: period === '30d' ? 30 : period === '7d' ? 7 : 1 }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
+      setAiSummary(json.summary);
+    } catch (err: any) {
+      console.error(err);
+      setAiError(err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const fetchAiCompare = async () => {
+    setAiCompareLoading(true);
+    setAiCompareError(null);
+    try {
+      const res = await fetch('/api/ai/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId, days: period === '30d' ? 30 : period === '7d' ? 7 : 1 }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
+      setAiCompareSummary(json.summary);
+    } catch (err: any) {
+      console.error(err);
+      setAiCompareError(err.message);
+    } finally {
+      setAiCompareLoading(false);
+    }
+  };
 
   const channel = data?.channel;
   const myChannel = data?.myChannel;
@@ -367,6 +417,108 @@ export default function ChannelDetailPage({ params }: PageProps) {
                       />
                     </BarChart>
                   </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* AI Summary Section */}
+            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    AI-анализ контента
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Нейросеть проанализирует посты канала и сделает выжимку
+                  </p>
+                </div>
+                <button
+                  onClick={fetchAiSummary}
+                  disabled={aiLoading}
+                  className="px-4 py-2 rounded-xl bg-accent hover:bg-accent-hover text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {aiLoading ? 'Анализирую...' : 'Сгенерировать саммари'}
+                </button>
+              </div>
+
+              {aiError && (
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                  {aiError}
+                </div>
+              )}
+
+              {aiSummary && (
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-border/60 prose prose-invert prose-sm max-w-none text-slate-300">
+                  <div dangerouslySetInnerHTML={{ 
+                    __html: aiSummary
+                      .replace(/\n/g, '<br />')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                  }} />
+                </div>
+              )}
+            </div>
+
+            {/* AI Comparative Summary Section */}
+            {!isMine && myChannel && (
+              <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-violet-400" />
+                      Сравнительный AI-анализ
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Сравнить контент этого канала с вашим («{myChannel.title}»)
+                    </p>
+                  </div>
+                  <button
+                    onClick={fetchAiCompare}
+                    disabled={aiCompareLoading}
+                    className="px-4 py-2 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {aiCompareLoading ? 'Сравниваю...' : 'Сравнить каналы'}
+                  </button>
+                </div>
+
+                {aiCompareError && (
+                  <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                    {aiCompareError}
+                  </div>
+                )}
+
+                {aiCompareSummary && (
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-border/60 prose prose-invert prose-sm max-w-none text-slate-300">
+                    <div dangerouslySetInnerHTML={{ 
+                      __html: aiCompareSummary
+                        .replace(/\n/g, '<br />')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    }} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Heatmap Chart */}
+            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 overflow-hidden">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-violet-400" />
+                  Тепловая карта публикаций
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  В какие дни недели и часы выходит больше всего постов (за выбранный период)
+                </p>
+              </div>
+              <div className="pt-4">
+                {data.heatmapData && data.heatmapData.length > 0 ? (
+                  <HeatmapChart data={data.heatmapData} />
+                ) : (
+                  <div className="h-32 flex items-center justify-center text-xs text-slate-500 font-mono">
+                    Нет данных для тепловой карты
+                  </div>
                 )}
               </div>
             </div>

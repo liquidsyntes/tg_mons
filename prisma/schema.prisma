@@ -42,6 +42,7 @@ model Post {
   messageId   BigInt   @map("message_id")
   publishedAt DateTime @map("published_at")
   views       Int?
+  text        String?
   channel     Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   @@unique([channelId, messageId])

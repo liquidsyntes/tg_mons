@@ -4,6 +4,30 @@ import { getTelegramClient } from './client';
 
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
+async function sendTelegramAlert(channelTitle: string, diff: number, diffPercent: number, currentMembers: number) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+
+  const sign = diff > 0 ? '+' : '';
+  const emoji = diff > 0 ? '🚀' : '🔻';
+  const text = `${emoji} <b>Аномалия в канале "${channelTitle}"!</b>\n\nИзменение: ${sign}${diff} подписчиков (${sign}${diffPercent.toFixed(2)}%)\nТекущая аудитория: ${currentMembers}`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+      }),
+    });
+  } catch (err) {
+    console.error('[Alert] Telegram alert failed:', err);
+  }
+}
+
 export async function withRateLimitAndRetry<T>(
   fn: () => Promise<T>,
   maxRetries = 3
@@ -182,6 +206,21 @@ export async function collectChannelData(
 
   let snapshotsAdded = 0;
   if (participantsCount !== null && participantsCount !== undefined) {
+    const previousSnapshot = await prisma.snapshot.findFirst({
+      where: { channelId: channel.id },
+      orderBy: { collectedAt: 'desc' },
+    });
+
+    if (previousSnapshot && previousSnapshot.membersCount > 0) {
+      const diff = participantsCount - previousSnapshot.membersCount;
+      const diffPercent = (diff / previousSnapshot.membersCount) * 100;
+      
+      // Аномалия: изменение больше 1% или больше 500 человек за один цикл сбора
+      if (Math.abs(diffPercent) >= 1 || Math.abs(diff) >= 500) {
+        await sendTelegramAlert(channel.title, diff, diffPercent, participantsCount);
+      }
+    }
+
     await prisma.snapshot.create({
       data: {
         channelId: channel.id,
@@ -228,6 +267,7 @@ export async function collectChannelData(
 
       const publishedAt = new Date(msgDateSec * 1000);
       const views = typeof msg.views === 'number' ? msg.views : null;
+      const text = msg.message || null;
 
       await prisma.post.upsert({
         where: {
@@ -238,12 +278,14 @@ export async function collectChannelData(
         },
         update: {
           views: views ?? undefined,
+          text: text ?? undefined,
         },
         create: {
           channelId: channel.id,
           messageId,
           publishedAt,
           views,
+          text,
         },
       });
 

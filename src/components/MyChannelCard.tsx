@@ -98,12 +98,12 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
       </div>
 
       {/* Grid of Key Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-5 border-t border-border/80">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mt-6 pt-5 border-t border-border/80">
         {/* Delta 24h */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-slate-500" />
-            <span>Динамика 24ч</span>
+            <span>Дин. 24ч</span>
           </div>
           <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="md" />
         </div>
@@ -112,7 +112,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-slate-500" />
-            <span>Динамика 7д</span>
+            <span>Дин. 7д</span>
           </div>
           <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="md" />
         </div>
@@ -121,7 +121,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-slate-500" />
-            <span>Динамика 30д</span>
+            <span>Дин. 30д</span>
           </div>
           <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} size="md" />
         </div>
@@ -130,17 +130,43 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
             <FileText className="w-3.5 h-3.5 text-slate-500" />
-            <span>Постов (24ч / 7д / 30д)</span>
+            <span>Посты 7д/30д</span>
           </div>
           <div className="text-xs font-mono text-white tabular-nums font-semibold flex items-center gap-1.5">
-            <span>{channel.posts24h}</span>
-            <span className="text-slate-500">/</span>
             <span>{channel.posts7d}</span>
             <span className="text-slate-500">/</span>
             <span>{channel.posts30d}</span>
             <span className="text-[10px] text-slate-400 font-normal">
               ({channel.avgPostsPerDay}/д)
             </span>
+          </div>
+        </div>
+
+        {/* Avg Views */}
+        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-slate-500" />
+            <span>Просмотры (7д)</span>
+          </div>
+          <div className="text-xs font-mono text-white tabular-nums font-semibold flex items-center gap-1.5">
+            <span>{channel.avgViews7d ? formatNumber(channel.avgViews7d) : 'н/д'}</span>
+          </div>
+        </div>
+
+        {/* ERR */}
+        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-slate-500" />
+            <span>ERR (7д)</span>
+          </div>
+          <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
+            {channel.err7d !== null ? (
+              <span className={channel.err7d > 20 ? 'text-emerald-400' : channel.err7d > 10 ? 'text-amber-400' : 'text-slate-300'}>
+                {channel.err7d}%
+              </span>
+            ) : (
+              <span className="text-slate-500">н/д</span>
+            )}
           </div>
         </div>
       </div>

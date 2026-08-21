@@ -23,6 +23,8 @@ export interface ChannelMetrics {
   posts7d: number;
   posts30d: number;
   avgPostsPerDay: number;
+  avgViews7d: number | null;
+  err7d: number | null;
   status: ChannelStatus;
 
   // Comparison with "My Channel"
@@ -62,5 +64,10 @@ export interface ChannelDetailStats {
     date: string;
     postsCount: number;
     viewsAvg?: number | null;
+  }[];
+  heatmapData: {
+    day: number; // 0 (Sunday) to 6 (Saturday)
+    hour: number; // 0 to 23
+    count: number;
   }[];
 }

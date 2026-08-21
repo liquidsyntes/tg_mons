@@ -15,14 +15,15 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
-  Layers
+  Layers,
+  Download
 } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
 import { DeltaBadge } from './DeltaBadge';
 import { StatusBadge } from './StatusBadge';
 import { formatNumber, formatPercent } from '@/lib/utils';
 
-type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share';
+type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'err';
 type SortOrder = 'asc' | 'desc';
 
 interface ChannelsTableProps {
@@ -94,6 +95,56 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
     }
   };
 
+  const handleExportCSV = () => {
+    const headers = [
+      'Название',
+      'Username',
+      'Подписчики',
+      'Δ 24ч (чел)',
+      'Δ 24ч (%)',
+      'Δ 7д (чел)',
+      'Δ 7д (%)',
+      'Δ 30д (чел)',
+      'Δ 30д (%)',
+      'Постов (7д)',
+      'Постов (30д)',
+      'Просм. (avg 7д)',
+      'ERR (7д, %)',
+      'Моя доля (%)'
+    ];
+
+    const rows = processedChannels.map(c => [
+      `"${c.title.replace(/"/g, '""')}"`,
+      c.username ? `@${c.username}` : '',
+      c.currentMembers ?? '',
+      c.delta24h.abs ?? '',
+      c.delta24h.percent ?? '',
+      c.delta7d.abs ?? '',
+      c.delta7d.percent ?? '',
+      c.delta30d.abs ?? '',
+      c.delta30d.percent ?? '',
+      c.posts7d,
+      c.posts30d,
+      c.avgViews7d ?? '',
+      c.err7d ?? '',
+      c.comparison?.audienceSharePercent ?? ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `tg-monitor-export-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Filter and Sort
   const processedChannels = useMemo(() => {
     let list = [...channels];
@@ -146,6 +197,14 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
           valA = a.comparison?.audienceSharePercent ?? -1;
           valB = b.comparison?.audienceSharePercent ?? -1;
           break;
+        case 'views':
+          valA = a.avgViews7d ?? -1;
+          valB = b.avgViews7d ?? -1;
+          break;
+        case 'err':
+          valA = a.err7d ?? -1;
+          valB = b.err7d ?? -1;
+          break;
       }
 
       if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
@@ -183,8 +242,16 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
           />
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span>Всего каналов: <strong className="text-white font-mono">{channels.length}</strong></span>
+        <div className="flex items-center gap-4 text-xs text-slate-400">
+          <span>Всего: <strong className="text-white font-mono">{channels.length}</strong></span>
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600"
+            title="Выгрузить данные в CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-accent" />
+            <span className="hidden sm:inline">Экспорт</span>
+          </button>
         </div>
       </div>
 
@@ -229,6 +296,18 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
                 >
                   Посты (7д / 30д) {renderSortIcon('posts7d')}
+                </th>
+                <th
+                  onClick={() => handleSort('views')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                >
+                  Просм. (avg 7д) {renderSortIcon('views')}
+                </th>
+                <th
+                  onClick={() => handleSort('err')}
+                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
+                >
+                  ERR {renderSortIcon('err')}
                 </th>
                 <th
                   onClick={() => handleSort('share')}
@@ -336,6 +415,22 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                       <span className="text-[10px] text-slate-500 block">
                         ({channel.avgPostsPerDay}/д)
                       </span>
+                    </td>
+
+                    {/* Views & ERR */}
+                    <td className="py-3.5 px-4 text-center font-mono tabular-nums">
+                      <span className="font-semibold text-slate-200">
+                        {channel.avgViews7d ? formatNumber(channel.avgViews7d) : 'н/д'}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                      {channel.err7d !== null ? (
+                        <span className={`font-semibold ${channel.err7d > 20 ? 'text-emerald-400' : channel.err7d > 10 ? 'text-amber-400' : 'text-slate-300'}`}>
+                          {channel.err7d}%
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">н/д</span>
+                      )}
                     </td>
 
                     {/* Comparison with My Channel */}
@@ -465,12 +560,8 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 </div>
               </div>
 
-              {/* Deltas & Posts */}
-              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60 text-center">
-                <div className="bg-slate-900/60 p-2 rounded-lg">
-                  <div className="text-[10px] text-slate-400 mb-1">Δ 24ч</div>
-                  <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="sm" />
-                </div>
+              {/* Deltas & Posts & ERR */}
+              <div className="grid grid-cols-4 gap-2 pt-3 border-t border-border/60 text-center">
                 <div className="bg-slate-900/60 p-2 rounded-lg">
                   <div className="text-[10px] text-slate-400 mb-1">Δ 7д</div>
                   <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="sm" />
@@ -479,6 +570,18 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                   <div className="text-[10px] text-slate-400 mb-1">Посты (7д)</div>
                   <div className="text-xs font-mono font-semibold text-white">
                     {channel.posts7d}
+                  </div>
+                </div>
+                <div className="bg-slate-900/60 p-2 rounded-lg">
+                  <div className="text-[10px] text-slate-400 mb-1">Просм.</div>
+                  <div className="text-xs font-mono font-semibold text-white">
+                    {channel.avgViews7d ? formatNumber(channel.avgViews7d) : '-'}
+                  </div>
+                </div>
+                <div className="bg-slate-900/60 p-2 rounded-lg">
+                  <div className="text-[10px] text-slate-400 mb-1">ERR</div>
+                  <div className="text-xs font-mono font-semibold text-white">
+                    {channel.err7d !== null ? `${channel.err7d}%` : '-'}
                   </div>
                 </div>
               </div>

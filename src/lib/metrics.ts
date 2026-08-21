@@ -94,6 +94,24 @@ export async function calculateChannelMetrics(
 
   const avgPostsPerDay = Number((posts30d / 30).toFixed(1));
 
+  // Calculate views and ERR for last 7 days
+  const postsWithViewsData = await prisma.post.findMany({
+    where: {
+      channelId,
+      publishedAt: { gte: date7dAgo },
+      views: { not: null },
+    },
+    select: { views: true },
+  });
+  let totalViews7d = 0;
+  for (const p of postsWithViewsData) {
+    totalViews7d += p.views || 0;
+  }
+  const avgViews7d = postsWithViewsData.length > 0 ? Math.round(totalViews7d / postsWithViewsData.length) : null;
+  const err7d = (currentMembers && currentMembers > 0 && avgViews7d !== null) 
+    ? Number(((avgViews7d / currentMembers) * 100).toFixed(2)) 
+    : null;
+
   // Determine status
   let status: ChannelStatus = 'success';
   if (channel.lastError) {
@@ -125,6 +143,8 @@ export async function calculateChannelMetrics(
     posts7d,
     posts30d,
     avgPostsPerDay,
+    avgViews7d,
+    err7d,
     status,
   };
 }
@@ -313,11 +333,27 @@ export async function getChannelDetailStats(
     viewsAvg: data.viewPosts > 0 ? Math.round(data.totalViews / data.viewPosts) : null,
   }));
 
+  const heatmapGrid = Array.from({ length: 7 }, () => Array(24).fill(0));
+  for (const p of posts) {
+    const d = new Date(p.publishedAt);
+    const day = d.getDay();
+    const hour = d.getHours();
+    heatmapGrid[day][hour] += 1;
+  }
+  
+  const heatmapData = [];
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      heatmapData.push({ day, hour, count: heatmapGrid[day][hour] });
+    }
+  }
+
   return {
     channel,
     myChannel,
     period,
     membersHistory,
     postsDistribution,
+    heatmapData,
   };
 }
