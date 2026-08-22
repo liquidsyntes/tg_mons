@@ -446,3 +446,117 @@ export async function getChannelDetailStats(
     recentPosts,
   };
 }
+
+export async function getBestTimeRecommendation() {
+  const MS_DAY = 24 * 60 * 60 * 1000;
+  const periodStart = new Date(Date.now() - 30 * MS_DAY); // last 30 days
+
+  // Get all competitor channels
+  const competitorChannels = await prisma.channel.findMany({
+    where: { isMine: false, isActive: true },
+    select: { id: true, currentMembers: true }
+  });
+  const compIds = competitorChannels.map(c => c.id);
+
+  if (compIds.length === 0) {
+    return null;
+  }
+
+  // Get all competitor posts in last 30 days
+  const posts = await prisma.post.findMany({
+    where: {
+      channelId: { in: compIds },
+      publishedAt: { gte: periodStart }
+    },
+    select: {
+      channelId: true,
+      publishedAt: true,
+      views: true
+    }
+  });
+
+  // Calculate stats per slot
+  const slots: Record<string, { count: number, totalViews: number, totalMembers: number }> = {};
+  for (let d = 0; d < 7; d++) {
+    for (let h = 0; h < 24; h++) {
+      slots[`${d}-${h}`] = { count: 0, totalViews: 0, totalMembers: 0 };
+    }
+  }
+
+  for (const p of posts) {
+    const d = new Date(p.publishedAt);
+    const day = d.getDay();
+    const hour = d.getHours();
+    const key = `${day}-${hour}`;
+    
+    slots[key].count += 1;
+    if (p.views !== null) {
+      slots[key].totalViews += p.views;
+      const channel = competitorChannels.find(c => c.id === p.channelId);
+      if (channel && channel.currentMembers) {
+        slots[key].totalMembers += channel.currentMembers;
+      }
+    }
+  }
+
+  // Calculate scores
+  const heatmap = [];
+  let maxCount = 0;
+  let maxErr = 0;
+
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      const s = slots[`${day}-${hour}`];
+      const avgViews = s.count > 0 ? Math.round(s.totalViews / s.count) : 0;
+      const avgErr = s.totalMembers > 0 ? (s.totalViews / s.totalMembers) : 0;
+      
+      if (s.count > maxCount) maxCount = s.count;
+      if (avgErr > maxErr) maxErr = avgErr;
+
+      heatmap.push({
+        day,
+        hour,
+        postCount: s.count,
+        avgViews,
+        avgErr,
+        score: 0
+      });
+    }
+  }
+
+  // Calculate final score: high ERR, low postCount is better
+  let bestSlot = heatmap[0];
+  for (const cell of heatmap) {
+    // Normalize to 0-1
+    const normCount = maxCount > 0 ? cell.postCount / maxCount : 0;
+    const normErr = maxErr > 0 ? cell.avgErr / maxErr : 0;
+    
+    // Score formula: Audience engagement (ERR) - Competition noise
+    // But if count is 0, we have no data on ERR, so we give it a neutral score, or penalize it slightly
+    if (cell.postCount === 0) {
+      cell.score = 0;
+    } else {
+      cell.score = normErr - (normCount * 0.5); // Penalty for high competition is 0.5 weight
+    }
+
+    if (cell.score > bestSlot.score) {
+      bestSlot = cell;
+    }
+  }
+
+  // Filter out zero-data slots for best slot selection if we have any data
+  const validSlots = heatmap.filter(s => s.postCount > 0);
+  if (validSlots.length > 0) {
+    bestSlot = validSlots.reduce((prev, curr) => (curr.score > prev.score ? curr : prev));
+  }
+
+  return {
+    bestDay: bestSlot.day,
+    bestHour: bestSlot.hour,
+    score: bestSlot.score,
+    avgViews: bestSlot.avgViews,
+    avgErr: Number((bestSlot.avgErr * 100).toFixed(1)),
+    postCount: bestSlot.postCount,
+    heatmap
+  };
+}

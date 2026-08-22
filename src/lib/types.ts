@@ -86,3 +86,20 @@ export interface ChannelDetailStats {
     text: string | null;
   }[];
 }
+
+export interface BestTimeRecommendation {
+  bestDay: number;
+  bestHour: number;
+  score: number;
+  avgViews: number;
+  avgErr: number;
+  postCount: number;
+  heatmap: {
+    day: number;
+    hour: number;
+    postCount: number;
+    avgViews: number;
+    avgErr: number;
+    score: number;
+  }[];
+}

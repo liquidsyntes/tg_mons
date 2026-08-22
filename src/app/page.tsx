@@ -8,6 +8,7 @@ import { AddChannelModal } from '@/components/AddChannelModal';
 import { OverviewSkeleton } from '@/components/SkeletonLoader';
 import { TopGainersLosers } from '@/components/TopGainersLosers';
 import { OverviewStats } from '@/lib/types';
+import { BestTimeWidget } from '@/components/BestTimeWidget';
 import Link from 'next/link';
 import { Plus, Radio, AlertCircle, GitCompareArrows } from 'lucide-react';
 
@@ -90,6 +91,9 @@ export default function OverviewPage() {
               channel={stats.myChannel}
               onOpenAddModal={() => setIsAddModalOpen(true)}
             />
+
+            {/* AI Recommendation: Best Time to Post */}
+            <BestTimeWidget />
 
             {/* Top Gainers / Losers Dashboard Block */}
             <TopGainersLosers channels={stats.channels} />
