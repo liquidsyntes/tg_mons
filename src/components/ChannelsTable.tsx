@@ -265,19 +265,19 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 </th>
                 <th
                   onClick={() => handleSort('delta24h')}
-                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
+                  className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
                 >
                   Δ 24ч {renderSortIcon('delta24h')}
                 </th>
                 <th
                   onClick={() => handleSort('delta7d')}
-                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
+                  className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
                 >
                   Δ 7д {renderSortIcon('delta7d')}
                 </th>
                 <th
                   onClick={() => handleSort('delta30d')}
-                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
+                  className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
                 >
                   Δ 30д {renderSortIcon('delta30d')}
                 </th>
@@ -395,7 +395,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     </td>
 
                     {/* Delta 24h */}
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-3.5 px-1 text-center">
                       <DeltaBadge
                         abs={channel.delta24h.abs}
                         percent={channel.delta24h.percent}
@@ -404,7 +404,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     </td>
 
                     {/* Delta 7d */}
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-3.5 px-1 text-center">
                       <DeltaBadge
                         abs={channel.delta7d.abs}
                         percent={channel.delta7d.percent}
@@ -413,7 +413,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     </td>
 
                     {/* Delta 30d */}
-                    <td className="py-3.5 px-3 text-center">
+                    <td className="py-3.5 px-1 text-center">
                       <DeltaBadge
                         abs={channel.delta30d.abs}
                         percent={channel.delta30d.percent}

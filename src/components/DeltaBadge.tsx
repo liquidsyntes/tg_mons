@@ -62,7 +62,11 @@ export function DeltaBadge({
         className
       )}
     >
-      <div className={cn('flex items-center gap-1 px-1.5 py-0.5 rounded', bgClass)}>
+      <div className={cn(
+        'flex items-center rounded',
+        bgClass,
+        size === 'sm' ? 'gap-0.5 px-1 py-0.5' : 'gap-1 px-1.5 py-0.5'
+      )}>
         {icon}
         {showAbs && (
           <span className="font-semibold">
