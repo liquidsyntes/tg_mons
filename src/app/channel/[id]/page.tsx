@@ -51,6 +51,7 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const [period, setPeriod] = useState<'24h' | '7d' | '30d'>('7d');
   const [showMyChannelOverlay, setShowMyChannelOverlay] = useState(true);
   const [chartMode, setChartMode] = useState<'absolute' | 'growth'>('absolute');
+  const [showForecast, setShowForecast] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [postFilter, setPostFilter] = useState<'all' | 'ads' | 'partners'>('all');
   const [data, setData] = useState<ChannelDetailStats | null>(null);
@@ -132,7 +133,8 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const isMine = channel?.isMine;
 
   // Prepare subscriber chart data
-  const subscriberChartData = (data?.membersHistory || []).map((item, index, arr) => {
+  let forecastInfo: { targetMembers: number; daysToTarget: number } | null = null;
+  const baseSubscriberData = (data?.membersHistory || []).map((item, index, arr) => {
     const d = new Date(item.collectedAt);
     const dateFormatted =
       period === '24h'
@@ -157,8 +159,92 @@ export default function ChannelDetailPage({ params }: PageProps) {
       myMembers: item.myMembersCount ?? undefined,
       growth,
       myGrowth,
+      forecast: undefined as number | undefined,
+      isForecast: false,
     };
   });
+
+  const subscriberChartData = [...baseSubscriberData];
+
+  // Calculate linear regression forecast
+  if (showForecast && chartMode === 'absolute' && baseSubscriberData.length > 1 && channel?.currentMembers) {
+    const history = data!.membersHistory;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    const n = history.length;
+    const startT = new Date(history[0].collectedAt).getTime();
+    
+    history.forEach(item => {
+      const x = (new Date(item.collectedAt).getTime() - startT) / (1000 * 60 * 60 * 24); // in days
+      const y = item.membersCount;
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+    });
+    
+    const denominator = (n * sumX2 - sumX * sumX);
+    
+    if (denominator !== 0) {
+      const slope = (n * sumXY - sumX * sumY) / denominator; // members per day
+      const intercept = (sumY - slope * sumX) / n;
+      
+      if (slope > 0) {
+        const currentMembers = channel.currentMembers;
+        
+        // Determine target milestone
+        let magnitude = Math.pow(10, Math.floor(Math.log10(currentMembers)));
+        if (magnitude < 1000) magnitude = 1000;
+        // Step size based on magnitude (e.g. 1000s, 10000s, 50000s)
+        let step = magnitude;
+        if (magnitude >= 10000 && magnitude < 100000) step = 5000;
+        else if (magnitude >= 100000) step = 10000;
+        
+        let targetMembers = Math.ceil(currentMembers / step) * step;
+        if (targetMembers - currentMembers < step * 0.1) {
+          targetMembers += step;
+        }
+
+        const targetX = (targetMembers - intercept) / slope;
+        const lastX = (new Date(history[n-1].collectedAt).getTime() - startT) / (1000 * 60 * 60 * 24);
+        const daysToTarget = Math.max(0, targetX - lastX);
+
+        if (daysToTarget > 0 && daysToTarget < 365) {
+          forecastInfo = {
+            targetMembers,
+            daysToTarget: Math.ceil(daysToTarget),
+          };
+
+          // Project forward on chart
+          let projectionDays = period === '24h' ? 0.5 : period === '30d' ? 10 : 3;
+          // Don't project further than the target itself
+          projectionDays = Math.min(projectionDays, daysToTarget);
+          
+          const projectionX = lastX + projectionDays;
+          const projectionY = Math.round(intercept + slope * projectionX);
+          
+          const targetDate = new Date(startT + projectionX * 24 * 60 * 60 * 1000);
+          
+          // Connect the forecast line from the last real point
+          subscriberChartData[subscriberChartData.length - 1].forecast = history[n-1].membersCount;
+          
+          const dateFormatted = period === '24h'
+            ? targetDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+            : targetDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+
+          subscriberChartData.push({
+            time: dateFormatted,
+            fullTime: targetDate.toLocaleString('ru-RU') + ' (прогноз)',
+            members: undefined as any,
+            myMembers: undefined,
+            growth: 0,
+            myGrowth: undefined,
+            forecast: projectionY,
+            isForecast: true
+          });
+        }
+      }
+    }
+  }
 
   // Prepare post chart data
   const postsChartData = (data?.postsDistribution || []).map((item) => {
@@ -354,12 +440,35 @@ export default function ChannelDetailPage({ params }: PageProps) {
                       />
                       <span className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-violet-400"></span>
-                        Наложить кривую «{myChannel.title}»
+                        Мой канал
+                      </span>
+                    </label>
+                  )}
+                  {chartMode === 'absolute' && (
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-900/80 px-3 py-1.5 rounded-xl border border-border hover:border-slate-700 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={showForecast}
+                        onChange={(e) => setShowForecast(e.target.checked)}
+                        className="rounded border-slate-700 text-emerald-400 focus:ring-emerald-400 bg-slate-800"
+                      />
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full border-2 border-dashed border-emerald-400"></span>
+                        Прогноз
                       </span>
                     </label>
                   )}
                 </div>
               </div>
+
+              {showForecast && forecastInfo && chartMode === 'absolute' && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-400 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>
+                    При текущем темпе канал достигнет <strong>{formatNumber(forecastInfo.targetMembers)}</strong> подписчиков через <strong>~{forecastInfo.daysToTarget} {forecastInfo.daysToTarget % 10 === 1 && forecastInfo.daysToTarget % 100 !== 11 ? 'день' : [2, 3, 4].includes(forecastInfo.daysToTarget % 10) && ![12, 13, 14].includes(forecastInfo.daysToTarget % 100) ? 'дня' : 'дней'}</strong>
+                  </span>
+                </div>
+              )}
 
               <div className="h-72 w-full pt-4">
                 {subscriberChartData.length === 0 ? (
@@ -409,6 +518,19 @@ export default function ChannelDetailPage({ params }: PageProps) {
                           dot={{ r: 3, fill: '#38bdf8' }}
                           activeDot={{ r: 5 }}
                         />
+                        {showForecast && (
+                          <Line
+                            type="monotone"
+                            dataKey="forecast"
+                            name="Прогноз"
+                            stroke="#10b981"
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={false}
+                            activeDot={{ r: 4, fill: '#10b981' }}
+                            connectNulls
+                          />
+                        )}
                         {!isMine && showMyChannelOverlay && myChannel && (
                           <Line
                             type="monotone"
