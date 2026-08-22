@@ -31,7 +31,7 @@ export function BestTimeWidget() {
     );
   }
 
-  if (!data) return null;
+  if (!data || (data as any).error || data.bestHour === undefined) return null;
 
   const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
   const dayName = days[data.bestDay];

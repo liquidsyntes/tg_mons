@@ -451,10 +451,17 @@ export async function getBestTimeRecommendation() {
   const MS_DAY = 24 * 60 * 60 * 1000;
   const periodStart = new Date(Date.now() - 30 * MS_DAY); // last 30 days
 
-  // Get all competitor channels
+  // Get all competitor channels with their latest snapshot
   const competitorChannels = await prisma.channel.findMany({
     where: { isMine: false, isActive: true },
-    select: { id: true, currentMembers: true }
+    select: { 
+      id: true, 
+      snapshots: {
+        orderBy: { collectedAt: 'desc' },
+        take: 1,
+        select: { membersCount: true }
+      }
+    }
   });
   const compIds = competitorChannels.map(c => c.id);
 
@@ -493,8 +500,8 @@ export async function getBestTimeRecommendation() {
     if (p.views !== null) {
       slots[key].totalViews += p.views;
       const channel = competitorChannels.find(c => c.id === p.channelId);
-      if (channel && channel.currentMembers) {
-        slots[key].totalMembers += channel.currentMembers;
+      if (channel && channel.snapshots.length > 0) {
+        slots[key].totalMembers += channel.snapshots[0].membersCount;
       }
     }
   }
