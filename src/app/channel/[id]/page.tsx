@@ -35,6 +35,7 @@ import { DetailSkeleton } from '@/components/SkeletonLoader';
 import { formatNumber, formatPercent } from '@/lib/utils';
 import { HeatmapChart } from '@/components/HeatmapChart';
 import { CustomSubscriberTooltip } from '@/components/CustomSubscriberTooltip';
+import { ExportPdfButton } from '@/components/ExportPdfButton';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -232,6 +233,7 @@ export default function ChannelDetailPage({ params }: PageProps) {
         ) : (
           <>
             {/* Channel Hero Header */}
+            <div id="report-content" className="space-y-6">
             <div className="bg-surface border border-border rounded-2xl p-6 relative overflow-hidden shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-2">
@@ -266,13 +268,18 @@ export default function ChannelDetailPage({ params }: PageProps) {
                   )}
                 </div>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                   <div className="text-left md:text-right">
                     <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tabular-nums">
                       {formatNumber(channel.currentMembers)}
                     </div>
                     <div className="text-xs text-slate-400">текущих подписчиков</div>
                   </div>
+                  <ExportPdfButton
+                    reportContainerId="report-content"
+                    channelTitle={channel.title}
+                    period={period}
+                  />
                 </div>
               </div>
 
@@ -830,6 +837,7 @@ export default function ChannelDetailPage({ params }: PageProps) {
                 )}
               </div>
             </div>
+            </div>{/* /report-content */}
           </>
         )}
       </main>
