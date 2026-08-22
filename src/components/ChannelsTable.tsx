@@ -48,21 +48,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
     }
   };
 
-  const handleSetMine = async (channelId: number) => {
-    setActionLoadingId(channelId);
-    try {
-      const res = await fetch(`/api/channels/${channelId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isMine: true }),
-      });
-      if (res.ok) await onRefresh();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
+
 
   const handleToggleActive = async (channelId: number, currentActive: boolean) => {
     setActionLoadingId(channelId);
@@ -514,16 +500,6 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
                       <div className="inline-flex items-center gap-1.5 justify-end">
-                        {!isMineRow && (
-                          <button
-                            onClick={() => handleSetMine(channel.id)}
-                            disabled={actionLoadingId === channel.id}
-                            className="p-1.5 text-slate-400 hover:text-accent hover:bg-slate-800 rounded-lg transition-colors"
-                            title="Сделать «Моим каналом»"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                         <button
                           onClick={() => handleToggleActive(channel.id, channel.isActive)}
                           disabled={actionLoadingId === channel.id}
@@ -657,14 +633,6 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                   >
                     График
                   </Link>
-                  {!isMineRow && (
-                    <button
-                      onClick={() => handleSetMine(channel.id)}
-                      className="px-2.5 py-1 rounded bg-accent/10 text-accent text-[11px]"
-                    >
-                      Сделать моим
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
