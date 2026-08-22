@@ -4,7 +4,8 @@ import { notFound } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { AISummaryReport } from '@/components/AISummaryReport';
 import { AICompareReport } from '@/components/AICompareReport';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { AIReportEvolution } from '@/components/AIReportEvolution';
+import { ArrowLeft, Calendar, Download } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -44,7 +45,7 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
                 </Link>
                 <div>
                   <h1 className="text-xl font-bold text-white">
-                    {report.type === 'summary' ? 'Контент-анализ' : 'Сравнение каналов'}
+                    {report.type === 'summary' ? 'Контент-анализ' : report.type === 'evolution' ? 'Динамика изменений' : 'Сравнение каналов'}
                   </h1>
                   <div className="flex items-center gap-2 mt-1 text-sm text-slate-400">
                     <span className="font-medium text-slate-300">{report.channel.title}</span>
@@ -71,6 +72,8 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
                 </div>
               ) : report.type === 'summary' ? (
                 <AISummaryReport data={parsedData} />
+              ) : report.type === 'evolution' ? (
+                <AIReportEvolution data={parsedData} />
               ) : (
                 <AICompareReport 
                   data={parsedData} 
