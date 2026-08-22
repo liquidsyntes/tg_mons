@@ -40,6 +40,7 @@ import { HeatmapChart } from '@/components/HeatmapChart';
 import { CustomSubscriberTooltip } from '@/components/CustomSubscriberTooltip';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
 import { AISummaryReport } from '@/components/AISummaryReport';
+import { AICompareReport } from '@/components/AICompareReport';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { detectAd } from '@/lib/adDetector';
@@ -66,7 +67,7 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const [aiCompareSummary, setAiCompareSummary] = useState<string | null>(null);
+  const [aiCompareSummary, setAiCompareSummary] = useState<any | null>(null);
   const [aiCompareLoading, setAiCompareLoading] = useState(false);
   const [aiCompareError, setAiCompareError] = useState<string | null>(null);
 
@@ -148,6 +149,49 @@ ${data.weaknesses?.map((w: any) => `| **${w.weakness}** | ${w.problem} | ${w.rec
     `.trim();
   };
 
+  const aiCompareDataToMarkdown = (data: any, myTitle: string, targetTitle: string) => {
+    if (!data) return '';
+    return `
+# Сравнительный анализ каналов
+**Мой канал:** ${myTitle}
+**Конкурент:** ${targetTitle}
+
+${data.limitations ? `> **Ограничения:** ${data.limitations}\n` : ''}
+
+## 1. Сводная таблица
+| Параметр | Мой канал | Конкурент |
+|---|---|---|
+${data.comparisonTable?.map((c: any) => `| **${c.parameter}** | ${c.myChannel} | ${c.competitor} |`).join('\n')}
+
+## 2. Различия стратегий
+${data.strategy?.text}
+
+> **Мой канал:** ${data.strategy?.myQuote}
+> **Конкурент:** ${data.strategy?.competitorQuote}
+
+## 3. Tone of Voice
+${data.tone?.text}
+
+**Кто звучит убедительнее:** ${data.tone?.winner}
+
+## 4. Преимущества конкурента
+${data.competitorAdvantages?.length ? data.competitorAdvantages.map((a: any) => `### ${a.title}\n${a.description}\n*(Переносимость: ${a.isTransferable})*`).join('\n\n') : '*Преимуществ не обнаружено.*'}
+
+## 5. Наши сильные стороны
+${data.myStrengths?.length ? data.myStrengths.map((s: any) => `### ${s.title}\n${s.description}`).join('\n\n') : '*Преимуществ не обнаружено.*'}
+
+## 6. Точки роста (Приоритеты)
+| Рекомендация | Ожидаемый эффект | Сложность |
+|---|---|---|
+${data.recommendations?.map((r: any) => `| **${r.recommendation}** | ${r.effect} | ${r.difficulty} |`).join('\n')}
+
+## 7. Краткий вывод
+${data.conclusion?.summary}
+
+**Главный приоритет:** ${data.conclusion?.priority}
+    `.trim();
+  };
+
   const fetchAiSummary = async () => {
     setAiLoading(true);
     setAiError(null);
@@ -189,7 +233,17 @@ ${data.weaknesses?.map((w: any) => `| **${w.weakness}** | ${w.problem} | ${w.rec
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
-      setAiCompareSummary(json.summary);
+      if (json.summary) {
+        try {
+          const parsed = JSON.parse(json.summary);
+          setAiCompareSummary(parsed);
+        } catch (e) {
+          console.error("Failed to parse AI compare JSON:", e);
+          setAiCompareError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.');
+        }
+      } else {
+        setAiCompareError('Пустой ответ от нейросети.');
+      }
     } catch (err: any) {
       console.error(err);
       setAiCompareError(err.message);
@@ -985,15 +1039,15 @@ ${data.weaknesses?.map((w: any) => `| **${w.weakness}** | ${w.problem} | ${w.rec
                 )}
 
                 {aiCompareSummary && (
-                  <div className="space-y-3">
-                    <div className="p-4 rounded-xl bg-slate-900/60 border border-border/60 prose prose-invert prose-sm max-w-none text-slate-300 [&>table]:w-full [&>table]:my-4 [&>table>thead>tr>th]:border-b [&>table>thead>tr>th]:border-border [&>table>thead>tr>th]:pb-2 [&>table>thead>tr>th]:text-left [&>table>tbody>tr>td]:border-b [&>table>tbody>tr>td]:border-border/30 [&>table>tbody>tr>td]:py-2">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {aiCompareSummary}
-                      </ReactMarkdown>
-                    </div>
+                  <div className="space-y-4 mt-6">
+                    <AICompareReport 
+                      data={aiCompareSummary} 
+                      myTitle={myChannel.title} 
+                      targetTitle={channel.title} 
+                    />
                     <div className="flex justify-end">
                       <button
-                        onClick={() => downloadMarkdown(aiCompareSummary, `compare_${channel.username || channel.id}_vs_mine.md`)}
+                        onClick={() => downloadMarkdown(aiCompareDataToMarkdown(aiCompareSummary, myChannel.title, channel.title), `compare_${channel.username || channel.id}_vs_mine.md`)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
                         title="Экспорт в Markdown"
                         data-pdf-hide
