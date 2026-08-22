@@ -10,6 +10,7 @@ import { TopGainersLosers } from '@/components/TopGainersLosers';
 import { WatchlistWidget } from '@/components/WatchlistWidget';
 import { OverviewStats } from '@/lib/types';
 import { BestTimeWidget } from '@/components/BestTimeWidget';
+import { TrendSpotterWidget } from '@/components/TrendSpotterWidget';
 import Link from 'next/link';
 import { Plus, Radio, AlertCircle, GitCompareArrows } from 'lucide-react';
 
@@ -98,6 +99,9 @@ export default function OverviewPage() {
 
             {/* Watchlist / Favorites */}
             <WatchlistWidget channels={stats.channels} />
+
+            {/* AI Trend Spotter */}
+            <TrendSpotterWidget />
 
             {/* Top Gainers / Losers Dashboard Block */}
             <TopGainersLosers channels={stats.channels} />

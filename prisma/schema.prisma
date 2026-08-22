@@ -29,12 +29,12 @@ model Channel {
 
 model AiReport {
   id        Int      @id @default(autoincrement())
-  channelId Int      @map("channel_id")
-  type      String   // "summary" | "compare"
+  channelId Int?     @map("channel_id")
+  type      String   // "summary" | "compare" | "trend"
   content   String   // The JSON string payload
   createdAt DateTime @default(now()) @map("created_at")
 
-  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channel   Channel?  @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   @@index([channelId, createdAt])
   @@map("ai_reports")
