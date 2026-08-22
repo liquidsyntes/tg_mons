@@ -107,6 +107,24 @@ export async function calculateChannelMetrics(
 
   const avgPostsPerDay = Number((posts30d / 30).toFixed(1));
 
+  // Calculate views and ERR for last 24h
+  const postsWithViewsData24h = await prisma.post.findMany({
+    where: {
+      channelId,
+      publishedAt: { gte: date24hAgo },
+      views: { not: null },
+    },
+    select: { views: true },
+  });
+  let totalViews24h = 0;
+  for (const p of postsWithViewsData24h) {
+    totalViews24h += p.views || 0;
+  }
+  const avgViews24h = postsWithViewsData24h.length > 0 ? Math.round(totalViews24h / postsWithViewsData24h.length) : null;
+  const err24h = (currentMembers && currentMembers > 0 && avgViews24h !== null) 
+    ? Number(((avgViews24h / currentMembers) * 100).toFixed(2)) 
+    : null;
+
   // Calculate views and ERR for last 7 days
   const postsWithViewsData = await prisma.post.findMany({
     where: {
@@ -176,6 +194,8 @@ export async function calculateChannelMetrics(
     posts7d,
     posts30d,
     avgPostsPerDay,
+    avgViews24h,
+    err24h,
     avgViews7d,
     err7d,
     status,

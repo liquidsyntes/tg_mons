@@ -23,6 +23,8 @@ export interface ChannelMetrics {
   posts7d: number;
   posts30d: number;
   avgPostsPerDay: number;
+  avgViews24h: number | null;
+  err24h: number | null;
   avgViews7d: number | null;
   err7d: number | null;
   status: ChannelStatus;

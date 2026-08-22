@@ -199,12 +199,12 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
           valB = b.comparison?.audienceSharePercent ?? -1;
           break;
         case 'views':
-          valA = a.avgViews7d ?? -1;
-          valB = b.avgViews7d ?? -1;
+          valA = a.avgViews24h ?? a.avgViews7d ?? -1;
+          valB = b.avgViews24h ?? b.avgViews7d ?? -1;
           break;
         case 'err':
-          valA = a.err7d ?? -1;
-          valB = b.err7d ?? -1;
+          valA = a.err24h ?? a.err7d ?? -1;
+          valB = b.err24h ?? b.err7d ?? -1;
           break;
       }
 
@@ -305,7 +305,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                   onClick={() => handleSort('views')}
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
                 >
-                  Просм. (avg 7д) {renderSortIcon('views')}
+                  Просм. (avg 24ч / 7д) {renderSortIcon('views')}
                 </th>
                 <th
                   onClick={() => handleSort('err')}
@@ -445,20 +445,31 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                       </span>
                     </td>
 
-                    {/* Views & ERR */}
+                    {/* Views */}
                     <td className="py-3.5 px-4 text-center font-mono tabular-nums">
-                      <span className="font-semibold text-slate-200">
-                        {channel.avgViews7d ? formatNumber(channel.avgViews7d) : 'н/д'}
+                      <span className="font-semibold text-sky-400">
+                        {channel.avgViews24h ? formatNumber(channel.avgViews24h) : '—'}
+                      </span>
+                      <span className="text-slate-500 mx-1">/</span>
+                      <span className="text-slate-300">
+                        {channel.avgViews7d ? formatNumber(channel.avgViews7d) : '—'}
                       </span>
                     </td>
+                    
+                    {/* ERR */}
                     <td className="py-3.5 px-3 text-center font-mono tabular-nums">
-                      {channel.err7d !== null ? (
-                        <span className={`font-semibold ${channel.err7d > 20 ? 'text-emerald-400' : channel.err7d > 10 ? 'text-amber-400' : 'text-slate-300'}`}>
-                          {channel.err7d}%
+                      <div className="flex flex-col items-center justify-center gap-0.5">
+                        <span className="text-xs text-slate-400">
+                          24ч: {channel.err24h !== null ? <span className="text-slate-200">{channel.err24h}%</span> : '—'}
                         </span>
-                      ) : (
-                        <span className="text-slate-500">н/д</span>
-                      )}
+                        {channel.err7d !== null ? (
+                          <span className={`font-semibold ${channel.err7d > 20 ? 'text-emerald-400' : channel.err7d > 10 ? 'text-amber-400' : 'text-slate-300'}`}>
+                            7д: {channel.err7d}%
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">7д: —</span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Comparison with My Channel */}
