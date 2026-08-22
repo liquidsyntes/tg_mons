@@ -6,6 +6,7 @@ import { MyChannelCard } from '@/components/MyChannelCard';
 import { ChannelsTable } from '@/components/ChannelsTable';
 import { AddChannelModal } from '@/components/AddChannelModal';
 import { OverviewSkeleton } from '@/components/SkeletonLoader';
+import { TopGainersLosers } from '@/components/TopGainersLosers';
 import { OverviewStats } from '@/lib/types';
 import { Plus, Radio, AlertCircle } from 'lucide-react';
 
@@ -88,6 +89,9 @@ export default function OverviewPage() {
               channel={stats.myChannel}
               onOpenAddModal={() => setIsAddModalOpen(true)}
             />
+
+            {/* Top Gainers / Losers Dashboard Block */}
+            <TopGainersLosers channels={stats.channels} />
 
             {/* Comparative Channels Table */}
             <div className="space-y-3">
