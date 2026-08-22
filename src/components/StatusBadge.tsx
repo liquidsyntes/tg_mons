@@ -77,7 +77,7 @@ export function StatusBadge({
   return (
     <div
       className={cn(
-        'inline-flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded text-[11px] border leading-tight min-w-[50px] font-mono',
+        'inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded text-xs border leading-tight min-w-[70px] font-mono',
         bgClass,
         colorClass,
         borderClass,
