@@ -5,6 +5,8 @@ import { Header } from '@/components/Header';
 import { AISummaryReport } from '@/components/AISummaryReport';
 import { AICompareReport } from '@/components/AICompareReport';
 import { AIReportEvolution } from '@/components/AIReportEvolution';
+import { AIActionPlan } from '@/components/AIActionPlan';
+import { GenerateActionPlanButton } from '@/components/GenerateActionPlanButton';
 import { ArrowLeft, Calendar, Download } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -33,6 +35,13 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
     parsedData = null;
   }
 
+  const titleMap: Record<string, string> = {
+    summary: 'Контент-анализ',
+    evolution: 'Динамика изменений',
+    action_plan: 'Пошаговое руководство',
+    compare: 'Сравнение каналов'
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-slate-100">
       <Header />
@@ -45,7 +54,7 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
                 </Link>
                 <div>
                   <h1 className="text-xl font-bold text-white">
-                    {report.type === 'summary' ? 'Контент-анализ' : report.type === 'evolution' ? 'Динамика изменений' : 'Сравнение каналов'}
+                    {titleMap[report.type] || 'Отчет'}
                   </h1>
                   <div className="flex items-center gap-2 mt-1 text-sm text-slate-400">
                     <span className="font-medium text-slate-300">{report.channel.title}</span>
@@ -74,6 +83,8 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
                 <AISummaryReport data={parsedData} />
               ) : report.type === 'evolution' ? (
                 <AIReportEvolution data={parsedData} />
+              ) : report.type === 'action_plan' ? (
+                <AIActionPlan data={parsedData} />
               ) : (
                 <AICompareReport 
                   data={parsedData} 
@@ -82,6 +93,12 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
                 />
               )}
             </div>
+
+            {report.type !== 'action_plan' && parsedData && (
+              <div className="flex justify-center border-t border-border/50 pt-8 mt-8">
+                <GenerateActionPlanButton reportId={report.id} />
+              </div>
+            )}
         </div>
       </main>
     </div>
