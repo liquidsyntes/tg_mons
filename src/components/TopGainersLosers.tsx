@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { ChannelMetrics } from '@/lib/types';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import Link from 'next/link';
@@ -22,10 +22,6 @@ export function TopGainersLosers({ channels }: TopGainersLosersProps) {
     .filter((c) => (c.delta7d.abs ?? 0) < 0)
     .sort((a, b) => (a.delta7d.abs ?? 0) - (b.delta7d.abs ?? 0))
     .slice(0, 3);
-
-  if (gainers.length === 0 && losers.length === 0) {
-    return null; // Not enough data yet
-  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -57,18 +57,31 @@ export async function calculateChannelMetrics(
   });
 
   // Calculate Deltas
-  const calculateDelta = (pastSnapshot: { membersCount: number } | null) => {
-    if (currentMembers === null || !pastSnapshot || pastSnapshot.membersCount === 0) {
+  const calculateDelta = async (pastSnapshot: { membersCount: number } | null, dateLimit: Date) => {
+    // If no older snapshot exists, try to find the earliest snapshot we have after the limit
+    let baseline = pastSnapshot;
+    if (!baseline) {
+      baseline = await prisma.snapshot.findFirst({
+        where: {
+          channelId,
+          collectedAt: { gte: dateLimit },
+        },
+        orderBy: { collectedAt: 'asc' },
+      });
+    }
+
+    if (currentMembers === null || !baseline || baseline.membersCount === 0) {
       return { abs: null, percent: null };
     }
-    const abs = currentMembers - pastSnapshot.membersCount;
-    const percent = Number(((abs / pastSnapshot.membersCount) * 100).toFixed(2));
+    
+    const abs = currentMembers - baseline.membersCount;
+    const percent = Number(((abs / baseline.membersCount) * 100).toFixed(2));
     return { abs, percent };
   };
 
-  const delta24h = calculateDelta(snapshot24h);
-  const delta7d = calculateDelta(snapshot7d);
-  const delta30d = calculateDelta(snapshot30d);
+  const delta24h = await calculateDelta(snapshot24h, date24hAgo);
+  const delta7d = await calculateDelta(snapshot7d, date7dAgo);
+  const delta30d = await calculateDelta(snapshot30d, date30dAgo);
 
   // Post counts
   const posts24h = await prisma.post.count({
