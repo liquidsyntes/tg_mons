@@ -15,7 +15,8 @@ import {
   Eye,
   Sparkles,
   Flame,
-  Megaphone
+  Megaphone,
+  Handshake
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -51,7 +52,7 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const [showMyChannelOverlay, setShowMyChannelOverlay] = useState(true);
   const [chartMode, setChartMode] = useState<'absolute' | 'growth'>('absolute');
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
-  const [showAdsOnly, setShowAdsOnly] = useState(false);
+  const [postFilter, setPostFilter] = useState<'all' | 'ads' | 'partners'>('all');
   const [data, setData] = useState<ChannelDetailStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -810,17 +811,30 @@ export default function ChannelDetailPage({ params }: PageProps) {
                     Последние 15 постов канала
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowAdsOnly(!showAdsOnly)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
-                    showAdsOnly
-                      ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
-                      : 'bg-slate-800 border-border text-slate-400 hover:text-white hover:border-slate-600'
-                  }`}
-                >
-                  <Megaphone className="w-3.5 h-3.5" />
-                  {showAdsOnly ? 'Показаны только рекламные' : 'Фильтр: реклама'}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setPostFilter(postFilter === 'ads' ? 'all' : 'ads')}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                      postFilter === 'ads'
+                        ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                        : 'bg-slate-800 border-border text-slate-400 hover:text-white hover:border-slate-600'
+                    }`}
+                  >
+                    <Megaphone className="w-3 h-3" />
+                    Реклама
+                  </button>
+                  <button
+                    onClick={() => setPostFilter(postFilter === 'partners' ? 'all' : 'partners')}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                      postFilter === 'partners'
+                        ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
+                        : 'bg-slate-800 border-border text-slate-400 hover:text-white hover:border-slate-600'
+                    }`}
+                  >
+                    <Handshake className="w-3 h-3" />
+                    Партнёры
+                  </button>
+                </div>
               </div>
               <div className="pt-2">
                 {data.recentPosts && data.recentPosts.length > 0 ? (() => {
@@ -829,14 +843,30 @@ export default function ChannelDetailPage({ params }: PageProps) {
                     ad: detectAd(post.text),
                   }));
                   const adCount = postsWithAd.filter((p) => p.ad.isAd).length;
-                  const filtered = showAdsOnly ? postsWithAd.filter((p) => p.ad.isAd) : postsWithAd;
+                  const partnerCount = postsWithAd.filter((p) => p.ad.isPartner).length;
+                  const filtered = postFilter === 'ads'
+                    ? postsWithAd.filter((p) => p.ad.isAd)
+                    : postFilter === 'partners'
+                    ? postsWithAd.filter((p) => p.ad.isPartner)
+                    : postsWithAd;
 
                   return (
                     <>
-                      {adCount > 0 && (
-                        <div className="mb-3 flex items-center gap-2 text-xs text-orange-400/80 bg-orange-500/10 px-3 py-2 rounded-lg border border-orange-500/20">
-                          <Megaphone className="w-3.5 h-3.5" />
-                          Обнаружено рекламных постов: <strong>{adCount}</strong> из {data.recentPosts!.length}
+                      {(adCount > 0 || partnerCount > 0) && (
+                        <div className="mb-3 flex flex-wrap items-center gap-3 text-xs px-3 py-2 rounded-lg bg-slate-900/60 border border-border/50">
+                          {adCount > 0 && (
+                            <span className="flex items-center gap-1.5 text-orange-400/80">
+                              <Megaphone className="w-3.5 h-3.5" />
+                              Реклама: <strong>{adCount}</strong>
+                            </span>
+                          )}
+                          {partnerCount > 0 && (
+                            <span className="flex items-center gap-1.5 text-blue-400/80">
+                              <Handshake className="w-3.5 h-3.5" />
+                              Партнёры: <strong>{partnerCount}</strong>
+                            </span>
+                          )}
+                          <span className="text-slate-500">из {data.recentPosts!.length} постов</span>
                         </div>
                       )}
                       {filtered.length > 0 ? (
@@ -848,6 +878,8 @@ export default function ChannelDetailPage({ params }: PageProps) {
                               className={`bg-slate-900 border rounded-xl p-3 cursor-pointer hover:bg-slate-800/80 transition-colors flex flex-col ${
                                 post.ad.isAd
                                   ? 'border-orange-500/40 hover:border-orange-500/60'
+                                  : post.ad.isPartner
+                                  ? 'border-blue-500/30 hover:border-blue-500/50'
                                   : 'border-slate-800 hover:border-slate-600'
                               }`}
                             >
@@ -867,6 +899,15 @@ export default function ChannelDetailPage({ params }: PageProps) {
                                       Реклама
                                     </span>
                                   )}
+                                  {post.ad.isPartner && (
+                                    <span
+                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-500/15 text-blue-400/80 border border-blue-500/20"
+                                      title={post.ad.signals.join(' · ')}
+                                    >
+                                      <Handshake className="w-2.5 h-2.5" />
+                                      Партнёр
+                                    </span>
+                                  )}
                                 </div>
                                 {post.views !== null && (
                                   <span className="flex items-center gap-1 font-mono text-slate-400">
@@ -878,10 +919,10 @@ export default function ChannelDetailPage({ params }: PageProps) {
                               <div className="text-sm text-slate-300 line-clamp-3 leading-relaxed flex-1">
                                 {post.text || <span className="italic text-slate-500">Без текста (медиа)</span>}
                               </div>
-                              {post.ad.isAd && post.ad.signals.length > 0 && (
+                              {(post.ad.isAd || post.ad.isPartner) && post.ad.signals.length > 0 && (
                                 <div className="mt-2 pt-2 border-t border-slate-800/60">
                                   <div className="flex flex-wrap gap-1">
-                                    {post.ad.signals.map((s, i) => (
+                                    {post.ad.signals.map((s: string, i: number) => (
                                       <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-border/50">
                                         {s}
                                       </span>
@@ -894,7 +935,9 @@ export default function ChannelDetailPage({ params }: PageProps) {
                         </div>
                       ) : (
                         <div className="h-32 flex items-center justify-center text-xs text-slate-500 font-mono">
-                          {showAdsOnly ? 'Рекламных постов не обнаружено' : 'Нет последних постов'}
+                          {postFilter === 'ads' ? 'Рекламных постов не обнаружено' 
+                            : postFilter === 'partners' ? 'Партнёрских постов не обнаружено' 
+                            : 'Нет последних постов'}
                         </div>
                       )}
                     </>
