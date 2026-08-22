@@ -394,6 +394,14 @@ export async function getChannelDetailStats(
     }
   }
 
+  const recentPosts = posts.slice(-15).reverse().map((p) => ({
+    id: p.id,
+    messageId: p.messageId.toString(),
+    publishedAt: p.publishedAt.toISOString(),
+    views: p.views,
+    text: p.text,
+  }));
+
   return {
     channel,
     myChannel,
@@ -402,5 +410,6 @@ export async function getChannelDetailStats(
     postsDistribution,
     heatmapData,
     myHeatmapData: myChannelRecord ? myHeatmapData : undefined,
+    recentPosts,
   };
 }

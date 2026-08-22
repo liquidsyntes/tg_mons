@@ -76,4 +76,11 @@ export interface ChannelDetailStats {
     hour: number;
     count: number;
   }[];
+  recentPosts?: {
+    id: number;
+    messageId: string;
+    publishedAt: string;
+    views: number | null;
+    text: string | null;
+  }[];
 }

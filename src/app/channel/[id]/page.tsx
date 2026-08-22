@@ -46,6 +46,7 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const [period, setPeriod] = useState<'24h' | '7d' | '30d'>('7d');
   const [showMyChannelOverlay, setShowMyChannelOverlay] = useState(true);
   const [chartMode, setChartMode] = useState<'absolute' | 'growth'>('absolute');
+  const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [data, setData] = useState<ChannelDetailStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -840,23 +841,44 @@ export default function ChannelDetailPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* Heatmap Chart */}
-            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 overflow-hidden">
+            {/* Recent Posts Section */}
+            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-violet-400" />
-                  Тепловая карта публикаций
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  Последние публикации
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  В какие дни недели и часы выходит больше всего постов (за выбранный период)
+                  Последние 15 постов канала
                 </p>
               </div>
-              <div className="pt-4">
-                {data.heatmapData && data.heatmapData.length > 0 ? (
-                  <HeatmapChart data={data.heatmapData} />
+              <div className="pt-2">
+                {data.recentPosts && data.recentPosts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {data.recentPosts.map((post) => (
+                      <div 
+                        key={post.id} 
+                        onClick={() => setSelectedPost(post)}
+                        className="bg-slate-900 border border-slate-800 rounded-xl p-3 cursor-pointer hover:border-slate-600 hover:bg-slate-800/80 transition-colors flex flex-col"
+                      >
+                        <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 mb-2">
+                          <span>{new Date(post.publishedAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                          {post.views !== null && (
+                            <span className="flex items-center gap-1 font-mono text-slate-400">
+                              <Eye className="w-3 h-3" />
+                              {formatNumber(post.views)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-slate-300 line-clamp-3 leading-relaxed flex-1">
+                          {post.text || <span className="italic text-slate-500">Без текста (медиа)</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="h-32 flex items-center justify-center text-xs text-slate-500 font-mono">
-                    Нет данных для тепловой карты
+                    Нет последних постов
                   </div>
                 )}
               </div>
@@ -864,6 +886,51 @@ export default function ChannelDetailPage({ params }: PageProps) {
           </>
         )}
       </main>
+
+      {/* Post Modal */}
+      {selectedPost && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" 
+          onClick={() => setSelectedPost(null)}
+        >
+          <div 
+            className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/50">
+              <div className="flex items-center gap-4 text-sm text-slate-400">
+                <span>{new Date(selectedPost.publishedAt).toLocaleString('ru-RU')}</span>
+                {selectedPost.views !== null && (
+                  <span className="flex items-center gap-1.5 font-mono text-emerald-400">
+                    <Eye className="w-4 h-4" />
+                    {formatNumber(selectedPost.views)}
+                  </span>
+                )}
+              </div>
+              <button 
+                onClick={() => setSelectedPost(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto custom-scrollbar text-slate-200 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
+              {selectedPost.text || <span className="italic text-slate-500">Пост не содержит текста (возможно, это только фото или видео)</span>}
+            </div>
+            <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end">
+              <a 
+                href={`https://t.me/${channel?.username || 'c/' + channel?.tgId}/${selectedPost.messageId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent hover:bg-accent hover:text-slate-900 transition-colors rounded-xl text-sm font-semibold"
+              >
+                Открыть в Telegram
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
