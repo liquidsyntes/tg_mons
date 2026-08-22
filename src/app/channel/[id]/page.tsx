@@ -16,7 +16,8 @@ import {
   Sparkles,
   Flame,
   Megaphone,
-  Handshake
+  Handshake,
+  Download
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -38,6 +39,8 @@ import { formatNumber, formatPercent } from '@/lib/utils';
 import { HeatmapChart } from '@/components/HeatmapChart';
 import { CustomSubscriberTooltip } from '@/components/CustomSubscriberTooltip';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { detectAd } from '@/lib/adDetector';
 
 interface PageProps {
@@ -87,6 +90,18 @@ export default function ChannelDetailPage({ params }: PageProps) {
   useEffect(() => {
     fetchChannelData();
   }, [fetchChannelData]);
+
+  const downloadMarkdown = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const fetchAiSummary = async () => {
     setAiLoading(true);
@@ -869,13 +884,23 @@ export default function ChannelDetailPage({ params }: PageProps) {
               )}
 
               {aiSummary && (
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-border/60 prose prose-invert prose-sm max-w-none text-slate-300">
-                  <div dangerouslySetInnerHTML={{ 
-                    __html: aiSummary
-                      .replace(/\n/g, '<br />')
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  }} />
+                <div className="space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-border/60 prose prose-invert prose-sm max-w-none text-slate-300 [&>table]:w-full [&>table]:my-4 [&>table>thead>tr>th]:border-b [&>table>thead>tr>th]:border-border [&>table>thead>tr>th]:pb-2 [&>table>thead>tr>th]:text-left [&>table>tbody>tr>td]:border-b [&>table>tbody>tr>td]:border-border/30 [&>table>tbody>tr>td]:py-2">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {aiSummary}
+                    </ReactMarkdown>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => downloadMarkdown(aiSummary, `summary_${channel.username || channel.id}.md`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
+                      title="Экспорт в Markdown"
+                      data-pdf-hide
+                    >
+                      <Download className="w-3.5 h-3.5 text-accent" />
+                      Экспорт в MD
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -909,13 +934,23 @@ export default function ChannelDetailPage({ params }: PageProps) {
                 )}
 
                 {aiCompareSummary && (
-                  <div className="p-4 rounded-xl bg-slate-900/60 border border-border/60 prose prose-invert prose-sm max-w-none text-slate-300">
-                    <div dangerouslySetInnerHTML={{ 
-                      __html: aiCompareSummary
-                        .replace(/\n/g, '<br />')
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    }} />
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-xl bg-slate-900/60 border border-border/60 prose prose-invert prose-sm max-w-none text-slate-300 [&>table]:w-full [&>table]:my-4 [&>table>thead>tr>th]:border-b [&>table>thead>tr>th]:border-border [&>table>thead>tr>th]:pb-2 [&>table>thead>tr>th]:text-left [&>table>tbody>tr>td]:border-b [&>table>tbody>tr>td]:border-border/30 [&>table>tbody>tr>td]:py-2">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {aiCompareSummary}
+                      </ReactMarkdown>
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => downloadMarkdown(aiCompareSummary, `compare_${channel.username || channel.id}_vs_mine.md`)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
+                        title="Экспорт в Markdown"
+                        data-pdf-hide
+                      >
+                        <Download className="w-3.5 h-3.5 text-violet-400" />
+                        Экспорт в MD
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
