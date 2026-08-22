@@ -22,8 +22,22 @@ model Channel {
   createdAt       DateTime   @default(now())
   snapshots       Snapshot[]
   posts           Post[]
+  aiReports       AiReport[]
 
   @@map("channels")
+}
+
+model AiReport {
+  id        Int      @id @default(autoincrement())
+  channelId Int      @map("channel_id")
+  type      String   // "summary" | "compare"
+  content   String   // The JSON string payload
+  createdAt DateTime @default(now()) @map("created_at")
+
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+  @@map("ai_reports")
 }
 
 model Snapshot {

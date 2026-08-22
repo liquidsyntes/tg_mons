@@ -146,6 +146,20 @@ ${targetContent.substring(0, 15000)}
     const aiData = await aiRes.json();
     const summary = aiData.choices?.[0]?.message?.content || 'Не удалось сгенерировать сравнение.';
 
+    if (summary !== 'Не удалось сгенерировать сравнение.') {
+      try {
+        await prisma.aiReport.create({
+          data: {
+            channelId: Number(channelId),
+            type: 'compare',
+            content: summary,
+          }
+        });
+      } catch (dbError) {
+        console.error('Failed to save AI report to DB:', dbError);
+      }
+    }
+
     return NextResponse.json({ summary });
   } catch (error: any) {
     console.error('AI Compare Error:', error);

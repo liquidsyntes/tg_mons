@@ -6,17 +6,17 @@ import { Activity, Plus, RefreshCw, Radio, Check, AlertCircle } from 'lucide-rea
 import { formatRelativeTime } from '@/lib/utils';
 
 interface HeaderProps {
-  lastGlobalUpdate: string | null;
-  totalChannels: number;
-  activeChannels: number;
-  onOpenAddModal: () => void;
-  onRefresh: () => Promise<void>;
+  lastGlobalUpdate?: string | null;
+  totalChannels?: number;
+  activeChannels?: number;
+  onOpenAddModal?: () => void;
+  onRefresh?: () => Promise<void>;
 }
 
 export function Header({
-  lastGlobalUpdate,
-  totalChannels,
-  activeChannels,
+  lastGlobalUpdate = null,
+  totalChannels = 0,
+  activeChannels = 0,
   onOpenAddModal,
   onRefresh,
 }: HeaderProps) {
@@ -64,6 +64,11 @@ export function Header({
               </span>
             </div>
           </Link>
+          <div className="hidden sm:block w-px h-5 bg-border ml-3 mr-1"></div>
+          <Link href="/reports" className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            AI Отчеты
+          </Link>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
@@ -96,26 +101,30 @@ export function Header({
           )}
 
           {/* Trigger Collect Button */}
-          <button
-            onClick={handleTriggerCollect}
-            disabled={isCollecting}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-border transition-colors disabled:opacity-50"
-            title="Запустить цикл сбора данных вручную"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isCollecting ? 'animate-spin text-accent' : ''}`} />
-            <span className="hidden sm:inline">
-              {isCollecting ? 'Сбор...' : 'Собрать сейчас'}
-            </span>
-          </button>
+          {onRefresh && (
+            <button
+              onClick={handleTriggerCollect}
+              disabled={isCollecting}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-border transition-colors disabled:opacity-50"
+              title="Запустить цикл сбора данных вручную"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isCollecting ? 'animate-spin text-accent' : ''}`} />
+              <span className="hidden sm:inline">
+                {isCollecting ? 'Сбор...' : 'Собрать сейчас'}
+              </span>
+            </button>
+          )}
 
           {/* Add Channel Button */}
-          <button
-            onClick={onOpenAddModal}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent hover:bg-accent-hover text-slate-950 transition-colors shadow-sm shadow-accent/20"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Добавить канал</span>
-          </button>
+          {onOpenAddModal && (
+            <button
+              onClick={onOpenAddModal}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent hover:bg-accent-hover text-slate-950 transition-colors shadow-sm shadow-accent/20"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Добавить канал</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
