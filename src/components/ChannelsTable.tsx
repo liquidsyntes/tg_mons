@@ -479,7 +479,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                               }`}
                             >
                               {channel.comparison.growthRateDiff7d > 0 ? '+' : ''}
-                              {channel.comparison.growthRateDiff7d}% темп
+                              {channel.comparison.growthRateDiff7d}%
                             </span>
                           )}
                         </div>
