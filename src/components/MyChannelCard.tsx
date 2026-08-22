@@ -146,10 +146,12 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
             <FileText className="w-3.5 h-3.5 text-slate-500" />
-            <span>Просмотры (7д)</span>
+            <span>Просмотры (24ч/7д)</span>
           </div>
-          <div className="text-xs font-mono text-white tabular-nums font-semibold flex items-center gap-1.5">
-            <span>{channel.avgViews7d ? formatNumber(channel.avgViews7d) : 'н/д'}</span>
+          <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
+            <span className="text-sky-400">{channel.avgViews24h ? formatNumber(channel.avgViews24h) : '—'}</span>
+            <span className="text-slate-500">/</span>
+            <span className="text-slate-300">{channel.avgViews7d ? formatNumber(channel.avgViews7d) : '—'}</span>
           </div>
         </div>
 
@@ -157,15 +159,17 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
             <FileText className="w-3.5 h-3.5 text-slate-500" />
-            <span>ERR (7д)</span>
+            <span>ERR (24ч/7д)</span>
           </div>
           <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
+            <span className="text-slate-200">{channel.err24h !== null ? `${channel.err24h}%` : '—'}</span>
+            <span className="text-slate-500">/</span>
             {channel.err7d !== null ? (
               <span className={channel.err7d > 20 ? 'text-emerald-400' : channel.err7d > 10 ? 'text-amber-400' : 'text-slate-300'}>
                 {channel.err7d}%
               </span>
             ) : (
-              <span className="text-slate-500">н/д</span>
+              <span className="text-slate-300">—</span>
             )}
           </div>
         </div>
