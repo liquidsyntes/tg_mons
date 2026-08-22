@@ -8,7 +8,8 @@ import { AddChannelModal } from '@/components/AddChannelModal';
 import { OverviewSkeleton } from '@/components/SkeletonLoader';
 import { TopGainersLosers } from '@/components/TopGainersLosers';
 import { OverviewStats } from '@/lib/types';
-import { Plus, Radio, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Radio, AlertCircle, GitCompareArrows } from 'lucide-react';
 
 export default function OverviewPage() {
   const [stats, setStats] = useState<OverviewStats | null>(null);
@@ -99,6 +100,13 @@ export default function OverviewPage() {
                 <h3 className="text-base font-bold text-white tracking-tight">
                   Сравнительный мониторинг каналов
                 </h3>
+                <Link
+                  href="/compare"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 border border-border hover:border-accent hover:bg-slate-700 text-slate-200 transition-colors"
+                >
+                  <GitCompareArrows className="w-3.5 h-3.5" />
+                  Сравнить каналы
+                </Link>
               </div>
               <ChannelsTable
                 channels={stats.channels}
