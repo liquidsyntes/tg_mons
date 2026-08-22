@@ -26,6 +26,7 @@ export interface ChannelMetrics {
   avgViews7d: number | null;
   err7d: number | null;
   status: ChannelStatus;
+  sparkline7d?: number[]; // Added for 7d trend mini-chart
 
   // Comparison with "My Channel"
   comparison?: {

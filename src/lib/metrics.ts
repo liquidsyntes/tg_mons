@@ -112,6 +112,26 @@ export async function calculateChannelMetrics(
     ? Number(((avgViews7d / currentMembers) * 100).toFixed(2)) 
     : null;
 
+  // Fetch sparkline data (one snapshot per day for the last 7 days roughly, or all within 7 days)
+  const sparklineSnapshots = await prisma.snapshot.findMany({
+    where: {
+      channelId,
+      collectedAt: { gte: date7dAgo },
+    },
+    orderBy: { collectedAt: 'asc' },
+    select: { membersCount: true },
+  });
+  
+  // To avoid sending hundreds of points (if hourly), we can downsample to ~7-14 points
+  const sparkline7d = [];
+  const step = Math.max(1, Math.floor(sparklineSnapshots.length / 10)); // ~10 points max
+  for (let i = 0; i < sparklineSnapshots.length; i += step) {
+    sparkline7d.push(sparklineSnapshots[i].membersCount);
+  }
+  if (sparklineSnapshots.length > 0 && sparkline7d[sparkline7d.length - 1] !== sparklineSnapshots[sparklineSnapshots.length - 1].membersCount) {
+    sparkline7d.push(sparklineSnapshots[sparklineSnapshots.length - 1].membersCount); // ensure latest is included
+  }
+
   // Determine status
   let status: ChannelStatus = 'success';
   if (channel.lastError) {
@@ -146,6 +166,7 @@ export async function calculateChannelMetrics(
     avgViews7d,
     err7d,
     status,
+    sparkline7d,
   };
 }
 

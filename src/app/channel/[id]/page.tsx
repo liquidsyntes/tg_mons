@@ -44,6 +44,7 @@ export default function ChannelDetailPage({ params }: PageProps) {
 
   const [period, setPeriod] = useState<'24h' | '7d' | '30d'>('7d');
   const [showMyChannelOverlay, setShowMyChannelOverlay] = useState(true);
+  const [chartMode, setChartMode] = useState<'absolute' | 'growth'>('absolute');
   const [data, setData] = useState<ChannelDetailStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,18 +124,31 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const isMine = channel?.isMine;
 
   // Prepare subscriber chart data
-  const subscriberChartData = (data?.membersHistory || []).map((item) => {
+  const subscriberChartData = (data?.membersHistory || []).map((item, index, arr) => {
     const d = new Date(item.collectedAt);
     const dateFormatted =
       period === '24h'
         ? d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
         : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 
+    let growth = 0;
+    let myGrowth: number | undefined = undefined;
+    
+    if (index > 0) {
+      growth = item.membersCount - arr[index - 1].membersCount;
+      if (item.myMembersCount !== undefined && item.myMembersCount !== null && 
+          arr[index - 1].myMembersCount !== undefined && arr[index - 1].myMembersCount !== null) {
+        myGrowth = item.myMembersCount - arr[index - 1].myMembersCount!;
+      }
+    }
+
     return {
       time: dateFormatted,
       fullTime: d.toLocaleString('ru-RU'),
       members: item.membersCount,
       myMembers: item.myMembersCount ?? undefined,
+      growth,
+      myGrowth,
     };
   });
 
@@ -155,6 +169,86 @@ export default function ChannelDetailPage({ params }: PageProps) {
       viewsAvg: item.viewsAvg ?? 0,
     };
   });
+
+  const CustomSubscriberTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const dataPoint = payload[0].payload;
+      const isGrowthMode = chartMode === 'growth';
+      
+      return (
+        <div className="bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-lg max-w-[280px]">
+          <p className="text-slate-400 text-xs mb-2 pb-2 border-b border-slate-800">{dataPoint.fullTime || label}</p>
+          
+          <div className="space-y-2 text-sm">
+            {/* Competitor / Current Channel */}
+            <div className="flex flex-col gap-0.5">
+              <span className="font-semibold text-sky-400">{channel?.title}</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-white font-mono">{formatNumber(isGrowthMode ? dataPoint.growth : dataPoint.members)}</span>
+                {!isGrowthMode && dataPoint.growth !== 0 && (
+                  <span className={`text-[11px] font-mono ${dataPoint.growth > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    ({dataPoint.growth > 0 ? '+' : ''}{formatNumber(dataPoint.growth)} {period === '24h' ? 'за час' : 'за период'})
+                  </span>
+                )}
+                {isGrowthMode && dataPoint.members !== undefined && (
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    (всего: {formatNumber(dataPoint.members)})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* My Channel */}
+            {!isMine && showMyChannelOverlay && dataPoint.myMembers !== undefined && myChannel && (
+              <div className="flex flex-col gap-0.5 pt-1.5 border-t border-slate-800">
+                <span className="font-semibold text-violet-400">Мой: {myChannel.title}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-white font-mono">{formatNumber(isGrowthMode ? (dataPoint.myGrowth || 0) : dataPoint.myMembers)}</span>
+                  {!isGrowthMode && dataPoint.myGrowth !== undefined && dataPoint.myGrowth !== 0 && (
+                    <span className={`text-[11px] font-mono ${dataPoint.myGrowth > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      ({dataPoint.myGrowth > 0 ? '+' : ''}{formatNumber(dataPoint.myGrowth)})
+                    </span>
+                  )}
+                  {isGrowthMode && (
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      (всего: {formatNumber(dataPoint.myMembers)})
+                    </span>
+                  )}
+                </div>
+                
+                {/* Difference in Absolute mode */}
+                {!isGrowthMode && dataPoint.members !== undefined && (
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    {dataPoint.myMembers > dataPoint.members ? (
+                      <span>Вы опережаете на <strong className="text-emerald-400">{formatNumber(dataPoint.myMembers - dataPoint.members)}</strong></span>
+                    ) : dataPoint.myMembers < dataPoint.members ? (
+                      <span>Вы отстаете на <strong className="text-rose-400">{formatNumber(dataPoint.members - dataPoint.myMembers)}</strong></span>
+                    ) : (
+                      <span className="text-slate-300">Аудитории равны</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Difference in Growth mode */}
+                {isGrowthMode && dataPoint.myGrowth !== undefined && dataPoint.growth !== undefined && (
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    {dataPoint.myGrowth > dataPoint.growth ? (
+                      <span>Растёте быстрее на <strong className="text-emerald-400">{formatNumber(dataPoint.myGrowth - dataPoint.growth)}</strong></span>
+                    ) : dataPoint.myGrowth < dataPoint.growth ? (
+                      <span>Растёте медленнее на <strong className="text-rose-400">{formatNumber(dataPoint.growth - dataPoint.myGrowth)}</strong></span>
+                    ) : (
+                      <span className="text-slate-300">Темп роста одинаковый</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col">
@@ -286,20 +380,41 @@ export default function ChannelDetailPage({ params }: PageProps) {
                   </p>
                 </div>
 
-                {!isMine && myChannel && (
-                  <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-900/80 px-3 py-1.5 rounded-xl border border-border hover:border-slate-700 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={showMyChannelOverlay}
-                      onChange={(e) => setShowMyChannelOverlay(e.target.checked)}
-                      className="rounded border-slate-700 text-accent focus:ring-accent bg-slate-800"
-                    />
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-violet-400"></span>
-                      Наложить кривую «{myChannel.title}»
-                    </span>
-                  </label>
-                )}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-border">
+                    <button
+                      onClick={() => setChartMode('absolute')}
+                      className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-colors ${
+                        chartMode === 'absolute' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Абсолютные
+                    </button>
+                    <button
+                      onClick={() => setChartMode('growth')}
+                      className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-colors ${
+                        chartMode === 'growth' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Прирост
+                    </button>
+                  </div>
+
+                  {!isMine && myChannel && (
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-900/80 px-3 py-1.5 rounded-xl border border-border hover:border-slate-700 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={showMyChannelOverlay}
+                        onChange={(e) => setShowMyChannelOverlay(e.target.checked)}
+                        className="rounded border-slate-700 text-accent focus:ring-accent bg-slate-800"
+                      />
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-violet-400"></span>
+                        Наложить кривую «{myChannel.title}»
+                      </span>
+                    </label>
+                  )}
+                </div>
               </div>
 
               <div className="h-72 w-full pt-4">
@@ -309,55 +424,82 @@ export default function ChannelDetailPage({ params }: PageProps) {
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={subscriberChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                      <XAxis
-                        dataKey="time"
-                        stroke="#64748b"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={{ stroke: '#1e293b' }}
-                      />
-                      <YAxis
-                        stroke="#64748b"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={{ stroke: '#1e293b' }}
-                        domain={['auto', 'auto']}
-                        tickFormatter={(v) => formatNumber(v)}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#0f172a',
-                          border: '1px solid #334155',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          color: '#f8fafc',
-                        }}
-                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      <Line
-                        type="monotone"
-                        dataKey="members"
-                        name={channel.title}
-                        stroke="#38bdf8"
-                        strokeWidth={2.5}
-                        dot={{ r: 3, fill: '#38bdf8' }}
-                        activeDot={{ r: 5 }}
-                      />
-                      {!isMine && showMyChannelOverlay && myChannel && (
+                    {chartMode === 'absolute' ? (
+                      <LineChart data={subscriberChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                        <XAxis
+                          dataKey="time"
+                          stroke="#64748b"
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={{ stroke: '#1e293b' }}
+                        />
+                        <YAxis
+                          stroke="#64748b"
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={{ stroke: '#1e293b' }}
+                          domain={['auto', 'auto']}
+                          tickFormatter={(v) => formatNumber(v)}
+                        />
+                        <Tooltip content={<CustomSubscriberTooltip />} cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                        <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                         <Line
                           type="monotone"
-                          dataKey="myMembers"
-                          name={`Мой: ${myChannel.title}`}
-                          stroke="#a855f7"
-                          strokeWidth={2}
-                          strokeDasharray="4 4"
-                          dot={{ r: 2, fill: '#a855f7' }}
+                          dataKey="members"
+                          name={channel.title}
+                          stroke="#38bdf8"
+                          strokeWidth={2.5}
+                          dot={{ r: 3, fill: '#38bdf8' }}
+                          activeDot={{ r: 5 }}
                         />
-                      )}
-                    </LineChart>
+                        {!isMine && showMyChannelOverlay && myChannel && (
+                          <Line
+                            type="monotone"
+                            dataKey="myMembers"
+                            name={`Мой: ${myChannel.title}`}
+                            stroke="#a855f7"
+                            strokeWidth={2}
+                            strokeDasharray="4 4"
+                            dot={{ r: 2, fill: '#a855f7' }}
+                          />
+                        )}
+                      </LineChart>
+                    ) : (
+                      <BarChart data={subscriberChartData.slice(1)} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                        <XAxis
+                          dataKey="time"
+                          stroke="#64748b"
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={{ stroke: '#1e293b' }}
+                        />
+                        <YAxis
+                          stroke="#64748b"
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={{ stroke: '#1e293b' }}
+                          tickFormatter={(v) => (v > 0 ? `+${formatNumber(v)}` : formatNumber(v))}
+                        />
+                        <Tooltip content={<CustomSubscriberTooltip />} cursor={{ fill: '#334155', opacity: 0.2 }} />
+                        <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                        <Bar
+                          dataKey="growth"
+                          name={channel.title}
+                          fill="#38bdf8"
+                          radius={[4, 4, 0, 0]}
+                        />
+                        {!isMine && showMyChannelOverlay && myChannel && (
+                          <Bar
+                            dataKey="myGrowth"
+                            name={`Мой: ${myChannel.title}`}
+                            fill="#a855f7"
+                            radius={[4, 4, 0, 0]}
+                          />
+                        )}
+                      </BarChart>
+                    )}
                   </ResponsiveContainer>
                 )}
               </div>

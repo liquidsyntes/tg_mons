@@ -22,6 +22,7 @@ import { ChannelMetrics } from '@/lib/types';
 import { DeltaBadge } from './DeltaBadge';
 import { StatusBadge } from './StatusBadge';
 import { formatNumber, formatPercent } from '@/lib/utils';
+import { LineChart, Line, YAxis } from 'recharts';
 
 type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'err';
 type SortOrder = 'asc' | 'desc';
@@ -273,6 +274,9 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 >
                   Подписчики {renderSortIcon('members')}
                 </th>
+                <th className="py-3.5 px-3 text-center">
+                  Тренд (7д)
+                </th>
                 <th
                   onClick={() => handleSort('delta24h')}
                   className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
@@ -378,6 +382,30 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     {/* Members Count */}
                     <td className="py-3.5 px-4 text-right font-mono font-bold text-white tabular-nums text-sm">
                       {formatNumber(channel.currentMembers)}
+                    </td>
+
+                    {/* Trend 7d Sparkline */}
+                    <td className="py-3.5 px-3 text-center">
+                      {channel.sparkline7d && channel.sparkline7d.length > 1 ? (
+                        <div className="w-[80px] h-[30px] mx-auto opacity-80 hover:opacity-100 transition-opacity">
+                          <LineChart width={80} height={30} data={channel.sparkline7d.map(v => ({ value: v }))}>
+                            <YAxis domain={['dataMin', 'dataMax']} hide />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke={
+                                channel.delta7d.abs && channel.delta7d.abs > 0 ? '#34d399' :
+                                channel.delta7d.abs && channel.delta7d.abs < 0 ? '#fb7185' : '#94a3b8'
+                              }
+                              strokeWidth={2}
+                              dot={false}
+                              isAnimationActive={false}
+                            />
+                          </LineChart>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 text-[10px]">н/д</span>
+                      )}
                     </td>
 
                     {/* Delta 24h */}
@@ -557,6 +585,24 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     {formatNumber(channel.currentMembers)}
                   </div>
                   <div className="text-[10px] text-slate-400">подписчиков</div>
+                  {channel.sparkline7d && channel.sparkline7d.length > 1 && (
+                    <div className="w-[60px] h-[20px] ml-auto mt-1 opacity-70">
+                      <LineChart width={60} height={20} data={channel.sparkline7d.map(v => ({ value: v }))}>
+                        <YAxis domain={['dataMin', 'dataMax']} hide />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke={
+                            channel.delta7d.abs && channel.delta7d.abs > 0 ? '#34d399' :
+                            channel.delta7d.abs && channel.delta7d.abs < 0 ? '#fb7185' : '#94a3b8'
+                          }
+                          strokeWidth={1.5}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      </LineChart>
+                    </div>
+                  )}
                 </div>
               </div>
 
