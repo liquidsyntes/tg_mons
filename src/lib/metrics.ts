@@ -320,6 +320,16 @@ export async function getChannelDetailStats(
     orderBy: { publishedAt: 'asc' },
   });
 
+  const myPosts = myChannelRecord
+    ? await prisma.post.findMany({
+        where: {
+          channelId: myChannelRecord.id,
+          publishedAt: { gte: periodStart },
+        },
+        orderBy: { publishedAt: 'asc' },
+      })
+    : [];
+
   // Group posts by day/bucket
   const postsByDateMap = new Map<string, { count: number; totalViews: number; viewPosts: number }>();
 
@@ -369,6 +379,21 @@ export async function getChannelDetailStats(
     }
   }
 
+  const myHeatmapGrid = Array.from({ length: 7 }, () => Array(24).fill(0));
+  for (const p of myPosts) {
+    const d = new Date(p.publishedAt);
+    const day = d.getDay();
+    const hour = d.getHours();
+    myHeatmapGrid[day][hour] += 1;
+  }
+  
+  const myHeatmapData = [];
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      myHeatmapData.push({ day, hour, count: myHeatmapGrid[day][hour] });
+    }
+  }
+
   return {
     channel,
     myChannel,
@@ -376,5 +401,6 @@ export async function getChannelDetailStats(
     membersHistory,
     postsDistribution,
     heatmapData,
+    myHeatmapData: myChannelRecord ? myHeatmapData : undefined,
   };
 }

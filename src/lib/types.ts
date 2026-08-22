@@ -71,4 +71,9 @@ export interface ChannelDetailStats {
     hour: number; // 0 to 23
     count: number;
   }[];
+  myHeatmapData?: {
+    day: number;
+    hour: number;
+    count: number;
+  }[];
 }
