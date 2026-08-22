@@ -54,30 +54,34 @@ export function DeltaBadge({
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono tabular-nums',
-        bgClass,
+        'inline-flex flex-col items-center justify-center font-mono tabular-nums leading-tight',
         colorClass,
-        size === 'sm' && 'text-xs px-1.5 py-0.5',
+        size === 'sm' && 'text-xs',
         size === 'md' && 'text-xs',
-        size === 'lg' && 'text-sm px-2.5 py-1',
+        size === 'lg' && 'text-sm',
         className
       )}
     >
-      {icon}
-      <span>
+      <div className={cn('flex items-center gap-1 px-1.5 py-0.5 rounded', bgClass)}>
+        {icon}
         {showAbs && (
           <span className="font-semibold">
             {isPositive ? '+' : ''}
             {formatNumber(abs)}
           </span>
         )}
-        {showAbs && percent !== null && percent !== undefined && (
-          <span className="text-xs opacity-75 ml-1">({formatPercent(percent)})</span>
-        )}
         {!showAbs && percent !== null && percent !== undefined && (
-          <span className="font-semibold">{formatPercent(percent)}</span>
+          <span className="font-semibold">
+            {isPositive ? '+' : ''}
+            {formatPercent(percent)}
+          </span>
         )}
-      </span>
+      </div>
+      {showAbs && percent !== null && percent !== undefined && (
+        <span className={cn("opacity-75 mt-0.5", size === 'sm' ? 'text-[10px]' : 'text-xs')}>
+          ({isPositive ? '+' : ''}{formatPercent(percent)})
+        </span>
+      )}
     </div>
   );
 }
