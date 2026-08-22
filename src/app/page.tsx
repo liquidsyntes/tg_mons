@@ -7,6 +7,7 @@ import { ChannelsTable } from '@/components/ChannelsTable';
 import { AddChannelModal } from '@/components/AddChannelModal';
 import { OverviewSkeleton } from '@/components/SkeletonLoader';
 import { TopGainersLosers } from '@/components/TopGainersLosers';
+import { WatchlistWidget } from '@/components/WatchlistWidget';
 import { OverviewStats } from '@/lib/types';
 import { BestTimeWidget } from '@/components/BestTimeWidget';
 import Link from 'next/link';
@@ -94,6 +95,9 @@ export default function OverviewPage() {
 
             {/* AI Recommendation: Best Time to Post */}
             <BestTimeWidget />
+
+            {/* Watchlist / Favorites */}
+            <WatchlistWidget channels={stats.channels} />
 
             {/* Top Gainers / Losers Dashboard Block */}
             <TopGainersLosers channels={stats.channels} />

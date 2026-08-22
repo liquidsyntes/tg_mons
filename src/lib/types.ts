@@ -8,6 +8,7 @@ export interface ChannelMetrics {
   title: string;
   type: ChannelType;
   isMine: boolean;
+  isFavorite: boolean;
   isActive: boolean;
   lastMessageId: string | null;
   lastError: string | null;

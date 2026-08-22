@@ -14,6 +14,7 @@ model Channel {
   title           String
   type            String     // "channel" | "group"
   isMine          Boolean    @default(false)
+  isFavorite      Boolean    @default(false)
   isActive        Boolean    @default(true)
   lastMessageId   BigInt?
   lastError       String?

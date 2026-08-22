@@ -181,6 +181,7 @@ export async function calculateChannelMetrics(
     title: channel.title,
     type: channel.type as 'channel' | 'group',
     isMine: channel.isMine,
+    isFavorite: (channel as any).isFavorite || false,
     isActive: channel.isActive,
     lastMessageId: channel.lastMessageId ? channel.lastMessageId.toString() : null,
     lastError: channel.lastError,

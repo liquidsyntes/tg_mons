@@ -16,7 +16,8 @@ import {
   TrendingDown,
   BarChart3,
   Layers,
-  Download
+  Download,
+  Star
 } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
 import { DeltaBadge } from './DeltaBadge';
@@ -133,10 +134,32 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
   };
 
   // Filter and Sort
+  const [localFavorites, setLocalFavorites] = useState<Record<number, boolean>>({});
+
+  const toggleFavorite = async (e: React.MouseEvent, channelId: number, currentFav: boolean) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const newFav = !currentFav;
+    setLocalFavorites(prev => ({ ...prev, [channelId]: newFav }));
+    
+    try {
+      const res = await fetch(`/api/channels/${channelId}/favorite`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFavorite: newFav })
+      });
+      if (!res.ok) throw new Error('Failed to update favorite');
+    } catch (err) {
+      console.error(err);
+      // revert on error
+      setLocalFavorites(prev => ({ ...prev, [channelId]: currentFav }));
+    }
+  };
+
   const processedChannels = useMemo(() => {
     let list = [...channels];
 
-    // Filter
+    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(
@@ -337,6 +360,19 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                         )}
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
+                            {!isMineRow && (
+                              <button
+                                onClick={(e) => toggleFavorite(e, channel.id, localFavorites[channel.id] ?? channel.isFavorite)}
+                                className={`flex-shrink-0 transition-colors ${
+                                  (localFavorites[channel.id] ?? channel.isFavorite) 
+                                    ? 'text-amber-400 hover:text-amber-500' 
+                                    : 'text-slate-600 hover:text-amber-400/70'
+                                }`}
+                                title="В избранное"
+                              >
+                                <Star className={`w-3.5 h-3.5 ${(localFavorites[channel.id] ?? channel.isFavorite) ? 'fill-amber-400' : ''}`} />
+                              </button>
+                            )}
                             <Link
                               href={`/channel/${channel.id}`}
                               className="font-semibold text-slate-100 hover:text-accent transition-colors truncate max-w-[180px] inline-block"
@@ -547,9 +583,21 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 <div>
                   <div className="flex items-center gap-1.5">
                     {isMineRow && <Crown className="w-3.5 h-3.5 text-accent" />}
+                    {!isMineRow && (
+                      <button
+                        onClick={(e) => toggleFavorite(e, channel.id, localFavorites[channel.id] ?? channel.isFavorite)}
+                        className={`flex-shrink-0 transition-colors p-0.5 ${
+                          (localFavorites[channel.id] ?? channel.isFavorite) 
+                            ? 'text-amber-400 hover:text-amber-500' 
+                            : 'text-slate-600 hover:text-amber-400/70'
+                        }`}
+                      >
+                        <Star className={`w-3.5 h-3.5 ${(localFavorites[channel.id] ?? channel.isFavorite) ? 'fill-amber-400' : ''}`} />
+                      </button>
+                    )}
                     <Link
                       href={`/channel/${channel.id}`}
-                      className="font-bold text-white text-sm hover:text-accent"
+                      className="font-bold text-white text-sm hover:text-accent truncate max-w-[200px]"
                     >
                       {channel.title}
                     </Link>
@@ -559,10 +607,10 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                       href={`https://t.me/${channel.username}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-slate-400 font-mono inline-flex items-center gap-1"
+                      className="text-xs text-slate-400 font-mono inline-flex items-center gap-1 mt-0.5"
                     >
                       @{channel.username}
-                      <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                      <ExternalLink className="w-3 h-3 opacity-60" />
                     </a>
                   )}
                 </div>
