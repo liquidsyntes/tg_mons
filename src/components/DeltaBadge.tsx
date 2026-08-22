@@ -72,14 +72,13 @@ export function DeltaBadge({
         )}
         {!showAbs && percent !== null && percent !== undefined && (
           <span className="font-semibold">
-            {isPositive ? '+' : ''}
             {formatPercent(percent)}
           </span>
         )}
       </div>
       {showAbs && percent !== null && percent !== undefined && (
         <span className={cn("opacity-75 mt-0.5", size === 'sm' ? 'text-[10px]' : 'text-xs')}>
-          ({isPositive ? '+' : ''}{formatPercent(percent)})
+          ({formatPercent(percent)})
         </span>
       )}
     </div>
