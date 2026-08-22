@@ -39,6 +39,7 @@ import { formatNumber, formatPercent } from '@/lib/utils';
 import { HeatmapChart } from '@/components/HeatmapChart';
 import { CustomSubscriberTooltip } from '@/components/CustomSubscriberTooltip';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
+import { AISummaryReport } from '@/components/AISummaryReport';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { detectAd } from '@/lib/adDetector';
@@ -61,7 +62,7 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummary, setAiSummary] = useState<any | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -103,6 +104,50 @@ export default function ChannelDetailPage({ params }: PageProps) {
     URL.revokeObjectURL(url);
   };
 
+  const aiDataToMarkdown = (data: any) => {
+    if (!data) return '';
+    return `
+# Контент-анализ канала
+
+## Ключевые показатели
+${data.stats?.map((s: any) => `- **${s.value}**: ${s.label}`).join('\n')}
+
+## 1. Основные темы
+${data.themes?.bars?.map((b: any) => `- **${b.label}**: ${b.percent}%`).join('\n')}
+
+> ${data.themes?.quote}
+
+${data.themes?.descriptions?.map((d: any) => `**${d.title}**\n${d.text}`).join('\n\n')}
+
+## 2. Тональность и подача
+${data.tone?.map((t: any) => `### ${t.title} (${t.kicker})\n${t.text}`).join('\n\n')}
+
+## 3. Вовлечение
+- **Интерактивность**: ${data.engagement?.interactivity?.value} — ${data.engagement?.interactivity?.text}
+- **CTA**: ${data.engagement?.cta?.value} — ${data.engagement?.cta?.text}
+
+> **Рекомендация:** ${data.engagement?.recommendation}
+
+## 4. Реклама и промо
+${data.promo?.text1}
+
+${data.promo?.text2}
+
+## 5. Сильные стороны
+${data.strengths?.map((s: any) => `### ${s.num}. ${s.title}\n${s.text}\n\n> ${s.quote}`).join('\n\n')}
+
+## 6. Слабые места и рекомендации
+| Слабое место | Почему это проблема | Конкретная рекомендация |
+|---|---|---|
+${data.weaknesses?.map((w: any) => `| **${w.weakness}** | ${w.problem} | ${w.recommendation} |`).join('\n')}
+
+## 7. Краткий вывод
+**${data.conclusion?.main}**
+
+*Приоритет:* ${data.conclusion?.priority}
+    `.trim();
+  };
+
   const fetchAiSummary = async () => {
     setAiLoading(true);
     setAiError(null);
@@ -114,7 +159,17 @@ export default function ChannelDetailPage({ params }: PageProps) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
-      setAiSummary(json.summary);
+      if (json.summary) {
+        try {
+          const parsed = JSON.parse(json.summary);
+          setAiSummary(parsed);
+        } catch (e) {
+          console.error("Failed to parse AI summary JSON:", e);
+          setAiError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.');
+        }
+      } else {
+        setAiError('Пустой ответ от нейросети.');
+      }
     } catch (err: any) {
       console.error(err);
       setAiError(err.message);
@@ -884,15 +939,11 @@ export default function ChannelDetailPage({ params }: PageProps) {
               )}
 
               {aiSummary && (
-                <div className="space-y-3">
-                  <div className="p-4 rounded-xl bg-slate-900/60 border border-border/60 prose prose-invert prose-sm max-w-none text-slate-300 [&>table]:w-full [&>table]:my-4 [&>table>thead>tr>th]:border-b [&>table>thead>tr>th]:border-border [&>table>thead>tr>th]:pb-2 [&>table>thead>tr>th]:text-left [&>table>tbody>tr>td]:border-b [&>table>tbody>tr>td]:border-border/30 [&>table>tbody>tr>td]:py-2">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {aiSummary}
-                    </ReactMarkdown>
-                  </div>
+                <div className="space-y-4 mt-6">
+                  <AISummaryReport data={aiSummary} />
                   <div className="flex justify-end">
                     <button
-                      onClick={() => downloadMarkdown(aiSummary, `summary_${channel.username || channel.id}.md`)}
+                      onClick={() => downloadMarkdown(aiDataToMarkdown(aiSummary), `summary_${channel.username || channel.id}.md`)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
                       title="Экспорт в Markdown"
                       data-pdf-hide
