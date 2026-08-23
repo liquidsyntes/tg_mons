@@ -4,6 +4,9 @@ import { calculateChannelMetrics, getOverviewStats } from '@/lib/metrics';
 import { addChannelByInput, collectChannelData } from '@/worker/collector';
 import { getTelegramClient } from '@/worker/client';
 import { verifyBearerToken } from '@/lib/auth';
+import { metricsCache, bestTimeCache } from '@/lib/cache';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
@@ -14,6 +17,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,6 +48,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    metricsCache.invalidate();
+    bestTimeCache.invalidate();
     const metrics = await calculateChannelMetrics(channel.id);
     return NextResponse.json(metrics, { status: 201 });
   } catch (error: any) {

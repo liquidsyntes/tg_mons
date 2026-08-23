@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { Suspense, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -35,7 +35,7 @@ interface CompareData {
   period: string;
 }
 
-export default function ComparePage() {
+function ComparePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const aId = searchParams.get('a');
@@ -573,5 +573,14 @@ export default function ComparePage() {
         )}
       </main>
     </div>
+  );
+}
+
+
+export default function ComparePageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <ComparePage />
+    </Suspense>
   );
 }

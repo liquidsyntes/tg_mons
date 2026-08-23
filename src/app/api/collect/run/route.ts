@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runCollectCycle } from '@/worker/collector';
 import { verifyBearerToken } from '@/lib/auth';
+import { metricsCache, bestTimeCache } from '@/lib/cache';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,6 +11,8 @@ export async function POST(req: NextRequest) {
     if (!authCheck.authorized) return authCheck.response;
 
     const result = await runCollectCycle();
+    metricsCache.invalidate();
+    bestTimeCache.invalidate();
     return NextResponse.json({
       success: true,
       message: 'Цикл сбора успешно завершен',

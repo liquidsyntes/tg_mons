@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateChannelMetrics } from '@/lib/metrics';
 import { verifyBearerToken } from '@/lib/auth';
+import { metricsCache, bestTimeCache } from '@/lib/cache';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
@@ -63,6 +66,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       });
     });
 
+    metricsCache.invalidate();
+    bestTimeCache.invalidate();
     const metrics = await calculateChannelMetrics(updated.id);
     return NextResponse.json(metrics);
   } catch (error: any) {
@@ -92,6 +97,8 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     if (permanent) {
       // Physical delete (cascades to snapshots and posts)
       await prisma.channel.delete({ where: { id: channelId } });
+      metricsCache.invalidate();
+      bestTimeCache.invalidate();
       return NextResponse.json({ success: true, message: 'Канал и вся история удалены' });
     } else {
       // Soft removal from active monitoring (history preserved)
@@ -99,6 +106,8 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
         where: { id: channelId },
         data: { isActive: false },
       });
+      metricsCache.invalidate();
+      bestTimeCache.invalidate();
       return NextResponse.json({
         success: true,
         message: 'Мониторинг канала отключен (история сохранена)',

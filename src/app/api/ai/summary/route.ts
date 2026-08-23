@@ -4,6 +4,8 @@ import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { saveAiReport } from '@/lib/ai-reports';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const authCheck = verifyBearerToken(req);
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
       where: {
         channelId: Number(channelId),
         publishedAt: { gte: dateLimit },
-        text: { not: null, notIn: [''] },
+        text: { not: null },
       },
       orderBy: { publishedAt: 'desc' },
       take: 50, // Limit to 50 posts to avoid huge token usage

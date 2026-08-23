@@ -4,6 +4,8 @@ import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { saveAiReport } from '@/lib/ai-reports';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const authCheck = verifyBearerToken(req);
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
 Ты опытный маркетолог и аналитик Telegram-каналов с опытом SMM-аудита и трекинга прогресса.
 
 ЗАДАЧА
-Проведи объективный анализ динамики (эволюции) контент-стратегии канала "${olderReport.channel.title}" на основе двух исторических отчетов, сделанных в разное время. 
+Проведи объективный анализ динамики (эволюции) контент-стратегии канала "${olderReport.channel?.title || 'канала'}" на основе двух исторических отчетов, сделанных в разное время. 
 Твоя цель — понять, какие из прошлых рекомендаций были внедрены, что изменилось в лучшую или худшую сторону, и какой прогресс совершил канал.
 
 СТАРЫЙ ОТЧЕТ (от ${olderReport.createdAt.toISOString()}):

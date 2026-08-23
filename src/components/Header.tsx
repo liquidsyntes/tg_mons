@@ -35,7 +35,7 @@ export function Header({
         throw new Error(data.error || 'Ошибка запуска сбора');
       }
       setCollectMessage({ text: 'Сбор завершен успешно!' });
-      await onRefresh();
+      await onRefresh?.();
     } catch (err: any) {
       setCollectMessage({ text: err.message || 'Ошибка сбора', isError: true });
     } finally {

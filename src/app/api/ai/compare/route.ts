@@ -4,6 +4,8 @@ import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { saveAiReport } from '@/lib/ai-reports';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const authCheck = verifyBearerToken(req);
@@ -35,13 +37,13 @@ export async function POST(req: NextRequest) {
     const dateLimit = new Date(Date.now() - days * 24 * 3600 * 1000);
     
     const targetPosts = await prisma.post.findMany({
-      where: { channelId: targetChannel.id, publishedAt: { gte: dateLimit }, text: { not: null, notIn: [''] } },
+      where: { channelId: targetChannel.id, publishedAt: { gte: dateLimit }, text: { not: null } },
       orderBy: { publishedAt: 'desc' },
       take: 50,
     });
 
     const myPosts = await prisma.post.findMany({
-      where: { channelId: myChannel.id, publishedAt: { gte: dateLimit }, text: { not: null, notIn: [''] } },
+      where: { channelId: myChannel.id, publishedAt: { gte: dateLimit }, text: { not: null } },
       orderBy: { publishedAt: 'desc' },
       take: 50,
     });

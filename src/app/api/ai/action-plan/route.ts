@@ -4,6 +4,8 @@ import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { saveAiReport } from '@/lib/ai-reports';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const authCheck = verifyBearerToken(req);
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
 Ты опытный SMM-менеджер, продюсер Telegram-каналов и проектный руководитель.
 
 ЗАДАЧА
-На основе предоставленного аналитического отчета о Telegram-канале "${baseReport.channel.title}" составь четкое, пошаговое руководство к действию (Action Plan).
+На основе предоставленного аналитического отчета о Telegram-канале "${baseReport.channel?.title || 'канала'}" составь четкое, пошаговое руководство к действию (Action Plan).
 Руководство должно состоять максимум из 10 конкретных шагов. Это не абстрактные советы, а инструкция в формате "Бери и делай", которую можно сразу отдать контент-мейкеру.
 
 ОТЧЕТ ДЛЯ АНАЛИЗА:

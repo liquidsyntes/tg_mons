@@ -40,8 +40,8 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
   useEffect(() => { fetchChannelData(); }, [fetchChannelData]);
 
   const channel = data?.channel;
-  const myChannel = data?.myChannel;
-  const isMine = channel?.isMine;
+  const myChannel = data?.myChannel ?? null;
+  const isMine = channel?.isMine ?? false;
 
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col">

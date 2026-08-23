@@ -115,7 +115,8 @@ export async function addChannelByInput(input: string, isMine = false) {
   }
 
   const tgId = BigInt(entity.id.toString());
-  const username = entity.username || (parsed.type === 'username' ? parsed.value : null);
+  const parsedInput = parseChannelIdentifier(input);
+  const username = entity.username || (parsedInput.type === 'username' ? parsedInput.value : null);
   const title = entity.title || entity.firstName || 'Без названия';
   const type = entity.megagroup || entity.className === 'Chat' ? 'group' : 'channel';
 
