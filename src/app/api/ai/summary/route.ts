@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
+import { callOpenRouter } from '@/lib/openrouter';
+import { saveAiReport } from '@/lib/ai-reports';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,10 +14,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'channelId is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'OPENROUTER_API_KEY не задан в .env файле' }, { status: 500 });
-    }
 
     // Fetch posts for the last N days with text
     const dateLimit = new Date(Date.now() - days * 24 * 3600 * 1000);
@@ -114,58 +112,14 @@ ${contentToAnalyze.substring(0, 30000)}
 }
 `;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-    const aiRes = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'deepseek/deepseek-v4-pro',
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' }
-      }),
-    });
-    
-    clearTimeout(timeoutId);
-
-    if (!aiRes.ok) {
-      const errorData = await aiRes.text();
-      console.error('OpenRouter Error:', errorData);
-      return NextResponse.json({ error: `Ошибка API OpenRouter: ${aiRes.status}` }, { status: 502 });
-    }
-
-    const aiData = await aiRes.json();
-    const summary = aiData.choices?.[0]?.message?.content || 'Не удалось сгенерировать саммари.';
-
-    if (summary !== 'Не удалось сгенерировать саммари.') {
-      try {
-        await prisma.aiReport.create({
-          data: {
-            channelId: Number(channelId),
-            type: 'summary',
-            content: summary,
-          }
-        });
-      } catch (dbError) {
-        console.error('Failed to save AI report to DB:', dbError);
-        // We still return the summary even if it fails to save
-      }
-    }
-
-    return NextResponse.json({ summary });
+    const result = await callOpenRouter(prompt);
+    await saveAiReport(Number(channelId), 'summary', result);
+    return NextResponse.json({ summary: result });
   } catch (error: any) {
-    console.error('AI Summary Error:', error);
+    console.error('AI Error:', error);
     if (error.name === 'AbortError') {
-      return NextResponse.json({ error: 'Таймаут соединения. Серверы Google недоступны (возможно, нужна настройка VPN/Прокси)' }, { status: 504 });
+      return NextResponse.json({ error: 'Таймаут соединения с API.' }, { status: 504 });
     }
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера: ' + (error.message || '') }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 }

@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
+import { callOpenRouter } from '@/lib/openrouter';
+import { saveAiReport } from '@/lib/ai-reports';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const authCheck = verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
@@ -66,67 +68,14 @@ ${postsText}
 }
 `;
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'OPENROUTER_API_KEY не задан в .env файле' }, { status: 500 });
-    }
-
-    const openRouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'TG Monitor',
-      },
-      body: JSON.stringify({
-        model: 'deepseek/deepseek-v4-pro',
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: 'system',
-            content: 'Ты профессиональный маркетолог. Ты должен выдать ответ строго в JSON формате согласно запрошенной структуре.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
-    });
-
-    if (!openRouterRes.ok) {
-      const errText = await openRouterRes.text();
-      throw new Error(`OpenRouter API Error: ${errText}`);
-    }
-
-    const aiData = await openRouterRes.json();
-    let contentStr = aiData.choices?.[0]?.message?.content || '{}';
-    
-    // Clean up potential markdown formatting in response
-    if (contentStr.startsWith('```json')) {
-      contentStr = contentStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    }
-
-    const parsedResponse = JSON.parse(contentStr);
-
-    // Сохраняем отчет в БД
-    const report = await prisma.aiReport.create({
-      data: {
-        channelId: Number(channelId),
-        type: 'audience',
-        content: JSON.stringify(parsedResponse)
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      reportId: report.id,
-      audience: JSON.stringify(parsedResponse)
-    });
-
+    const result = await callOpenRouter(prompt);
+    await saveAiReport(Number(channelId), 'audience', result);
+    return NextResponse.json({ audience: result });
   } catch (error: any) {
-    console.error('AI Audience Analysis error:', error);
-    return NextResponse.json({ error: error.message || 'Ошибка генерации отчета' }, { status: 500 });
+    console.error('AI Error:', error);
+    if (error.name === 'AbortError') {
+      return NextResponse.json({ error: 'Таймаут соединения с API.' }, { status: 504 });
+    }
+    return NextResponse.json({ error: error.message || 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 }
