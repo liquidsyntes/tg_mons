@@ -33,9 +33,9 @@ Production-ready веб-приложение и фоновый сборщик д
 | Слой | Технологии |
 | :--- | :--- |
 | **Frontend + API** | Next.js 15 (App Router), TypeScript, Tailwind CSS, Recharts, Lucide Icons |
-| **База данных** | PostgreSQL 16 + Prisma ORM |
+| **База данных** | SQLite + Prisma ORM (PostgreSQL опционально через Docker) |
 | **Коллектор (Worker)** | Node.js + GramJS (Telegram MTProto Client) + node-cron + tsx |
-| **Инфраструктура** | Docker Compose (`web`, `worker`, `db`), `.env` конфигурация |
+| **Инфраструктура** | Docker Compose (`web`, `worker` + SQLite volume), `.env` конфигурация |
 
 ---
 
@@ -58,6 +58,8 @@ cp .env.example .env
 
 Заполните ваши `TG_API_ID` и `TG_API_HASH` в файле `.env`.
 
+По умолчанию используется SQLite (`DATABASE_URL="file:./dev.db"`) — отдельная настройка БД не требуется.
+
 ### 3. Первичная интерактивная авторизация в Telegram
 
 Для генерации строки сессии (`TG_SESSION`) запустите CLI-скрипт авторизации:
@@ -72,15 +74,18 @@ npm run auth
 
 ## 🐳 Запуск через Docker Compose
 
-Для поднятия всего стека (PostgreSQL + Next.js Web + Worker):
+Для поднятия всего стека (Next.js Web + Worker + SQLite):
 
 ```bash
 docker compose up --build -d
 ```
 
+Docker Compose настроен на SQLite с volume mount (`./data/dev.db`). База данных хранится в named volume `sqlite_data` и сохраняется между перезапусками контейнеров.
+
 Сервисы будут доступны по адресам:
 - **Веб-интерфейс дашборда:** [http://localhost:3000](http://localhost:3000)
-- **База данных PostgreSQL:** `localhost:5432`
+
+> **Примечание:** Для использования PostgreSQL вместо SQLite — измените `provider` в `prisma/schema.prisma` на `"postgresql"`, обновите `DATABASE_URL` в `.env` и добавьте сервис `db` обратно в `docker-compose.yml`.
 
 ---
 

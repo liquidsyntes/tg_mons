@@ -85,7 +85,7 @@ ${newerReport.content}
       },
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'google/gemini-3.7-flash',
+        model: 'deepseek/deepseek-v4-pro',
         messages: [
           { role: 'user', content: prompt }
         ],

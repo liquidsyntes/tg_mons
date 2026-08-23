@@ -72,7 +72,7 @@ ${postsText}
         'X-Title': 'TG Monitor',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'deepseek/deepseek-v4-pro',
         response_format: { type: "json_object" },
         messages: [
           {

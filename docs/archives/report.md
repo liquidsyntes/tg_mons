@@ -11,7 +11,7 @@
 * **Backend:** Next.js API Routes, Node.js.
 * **База данных:** SQLite + Prisma ORM.
 * **Сбор данных:** Telegram MTProto API через библиотеку `telegram` (GramJS).
-* **AI-интеграция:** OpenRouter API (модели Google Gemini) для анализа текстов.
+* **AI-интеграция:** OpenRouter API (модель `deepseek/deepseek-v4-pro`) для анализа текстов.
 
 ---
 
