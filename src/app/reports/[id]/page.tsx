@@ -8,6 +8,7 @@ import { AIReportEvolution } from '@/components/AIReportEvolution';
 import { AIActionPlan } from '@/components/AIActionPlan';
 import { AITrendReport } from '@/components/AITrendReport';
 import { AIAudienceReport } from '@/components/AIAudienceReport';
+import { AIPersonaReport } from '@/components/channel/AIPersonaReport';
 import { GenerateActionPlanButton } from '@/components/GenerateActionPlanButton';
 import { ArrowLeft, Calendar, Download } from 'lucide-react';
 import Link from 'next/link';
@@ -44,7 +45,8 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
     action_plan: 'Пошаговое руководство',
     compare: 'Сравнение каналов',
     trend: 'Радар Трендов (Рынок)',
-    audience: 'Анализ Целевой Аудитории'
+    audience: 'Анализ Целевой Аудитории',
+    persona: 'Психологический портрет'
   };
 
   const channelTitle = report.channel?.title || 'Глобальный отчет (Тренды)';
@@ -120,6 +122,8 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 <AITrendReport data={parsedData} />
               ) : report.type === 'audience' ? (
                 <AIAudienceReport data={parsedData} />
+              ) : report.type === 'persona' ? (
+                <AIPersonaReport data={parsedData} />
               ) : (
                 <AICompareReport 
                   data={parsedData} 
@@ -129,7 +133,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
               )}
             </div>
 
-            {report.type !== 'action_plan' && report.type !== 'trend' && report.type !== 'audience' && parsedData && (
+            {report.type !== 'action_plan' && report.type !== 'trend' && report.type !== 'audience' && report.type !== 'persona' && parsedData && (
               <div className="flex justify-center border-t border-border/50 pt-8 mt-8">
                 <GenerateActionPlanButton reportId={report.id} />
               </div>

@@ -189,6 +189,71 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           </div>
         </div>
       `;
+    } else if (report.type === 'persona') {
+      contentHtml = `
+        <div class="bg-[#0f0a10] rounded-3xl p-6 border border-[#521b2b] text-[#fbebf0]">
+          <h2 class="text-2xl font-bold mb-4 text-rose-400">Психологический портрет</h2>
+          ${parsedData.summary ? `<p class="text-lg mb-8 text-rose-100 italic">"${parsedData.summary}"</p>` : ''}
+          
+          <h3 class="text-xl font-bold mb-3 text-rose-300">Ядро личности</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-1">Архетип</div>
+              <div class="font-medium text-rose-100">${parsedData.corePersonality?.archetype || '-'}</div>
+            </div>
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-1">BDSM Роль</div>
+              <div class="font-medium text-rose-300">${parsedData.corePersonality?.bdsmRole || '-'}</div>
+            </div>
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-1">Доминантность</div>
+              <div class="font-medium text-rose-100">${parsedData.corePersonality?.dominanceLevel || '-'}</div>
+            </div>
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-1">Темперамент</div>
+              <div class="font-medium text-rose-100">${parsedData.corePersonality?.temperament || '-'}</div>
+            </div>
+          </div>
+          
+          <h3 class="text-xl font-bold mb-3 text-emerald-300">Психологические черты</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-emerald-950/20 p-4 rounded-xl border border-emerald-900/30">
+              <div class="text-[10px] uppercase text-emerald-400 mb-2">Сильные стороны</div>
+              <ul class="list-disc pl-4 text-sm text-emerald-100">
+                ${(parsedData.psychologicalTraits?.strengths || []).map((i: string) => `<li>${i}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="bg-rose-950/20 p-4 rounded-xl border border-rose-900/30">
+              <div class="text-[10px] uppercase text-rose-400 mb-2">Слабости / Тени</div>
+              <ul class="list-disc pl-4 text-sm text-rose-100">
+                ${(parsedData.psychologicalTraits?.weaknesses || []).map((v: string) => `<li>${v}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="bg-amber-950/20 p-4 rounded-xl border border-amber-900/30">
+              <div class="text-[10px] uppercase text-amber-400 mb-2">Триггеры</div>
+              <ul class="list-disc pl-4 text-sm text-amber-100">
+                ${(parsedData.psychologicalTraits?.triggers || []).map((f: string) => `<li>${f}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+
+          <h3 class="text-xl font-bold mb-3 text-rose-300">Стиль общения</h3>
+          <div class="space-y-4 mb-8">
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-1">Тон общения</div>
+              <div class="text-sm text-rose-100">${parsedData.communicationStyle?.tone || '-'}</div>
+            </div>
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-1">Манипуляции и поощрения</div>
+              <div class="text-sm text-rose-100">${parsedData.communicationStyle?.manipulation || '-'}</div>
+            </div>
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-1">Личные границы</div>
+              <div class="text-sm text-rose-100">${parsedData.communicationStyle?.boundaries || '-'}</div>
+            </div>
+          </div>
+        </div>
+      `;
     } else {
       contentHtml = `
         <div class="bg-[#07111f] rounded-3xl p-6 border border-[#231b52] text-[#edf4fb]">
@@ -225,7 +290,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       action_plan: 'Пошаговое руководство',
       compare: 'Сравнение каналов',
       trend: 'Радар Трендов (Рынок)',
-      audience: 'Анализ Целевой Аудитории'
+      audience: 'Анализ Целевой Аудитории',
+      persona: 'Психологический портрет'
     };
     
     const reportTitle = titleMap[report.type] || 'Отчет';

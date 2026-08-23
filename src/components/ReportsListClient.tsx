@@ -81,17 +81,17 @@ export function ReportsListClient({ reports }: Props) {
       <div className="grid gap-3">
         {reports.map(report => {
           const isSelected = selectedIds.includes(report.id);
-          const Icon = report.type === 'summary' ? Sparkles : report.type === 'evolution' ? Zap : report.type === 'action_plan' ? ListTodo : report.type === 'audience' ? Users : Layers;
-          const colorClass = report.type === 'summary' 
-            ? 'text-amber-400 bg-amber-400/10' 
-            : report.type === 'evolution'
-              ? 'text-emerald-400 bg-emerald-400/10'
-              : report.type === 'action_plan'
-                ? 'text-cyan-400 bg-cyan-400/10'
-                : report.type === 'audience'
-                  ? 'text-emerald-400 bg-emerald-400/10'
-                  : 'text-violet-400 bg-violet-400/10';
-          const title = report.type === 'summary' ? 'Контент-анализ' : report.type === 'evolution' ? 'Динамика изменений' : report.type === 'action_plan' ? 'Пошаговое руководство' : report.type === 'audience' ? 'Анализ Целевой Аудитории' : 'Сравнение с конкурентом';
+          const getReportMeta = (type: string) => {
+            switch(type) {
+              case 'summary': return { Icon: Sparkles, colorClass: 'text-amber-400 bg-amber-400/10', title: 'Контент-анализ' };
+              case 'evolution': return { Icon: Zap, colorClass: 'text-emerald-400 bg-emerald-400/10', title: 'Динамика изменений' };
+              case 'action_plan': return { Icon: ListTodo, colorClass: 'text-cyan-400 bg-cyan-400/10', title: 'Пошаговое руководство' };
+              case 'audience': return { Icon: Users, colorClass: 'text-emerald-400 bg-emerald-400/10', title: 'Анализ Целевой Аудитории' };
+              case 'persona': return { Icon: Sparkles, colorClass: 'text-rose-400 bg-rose-400/10', title: 'Психологический портрет' };
+              default: return { Icon: Layers, colorClass: 'text-violet-400 bg-violet-400/10', title: 'Сравнение с конкурентом' };
+            }
+          };
+          const { Icon, colorClass, title } = getReportMeta(report.type);
 
           return (
             <div 
