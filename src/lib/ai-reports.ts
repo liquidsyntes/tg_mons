@@ -1,6 +1,6 @@
 import { prisma } from './prisma';
 
-type AiReportType = 'summary' | 'compare' | 'trend' | 'audience' | 'evolution' | 'action_plan';
+type AiReportType = 'summary' | 'compare' | 'trend' | 'audience' | 'evolution' | 'action_plan' | 'persona';
 
 /**
  * Saves an AI-generated report to the database.

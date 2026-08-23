@@ -20,6 +20,14 @@ export function ScoreGauge({ breakdown }: ScoreGaugeProps) {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (total / 100) * circumference;
 
+  const tooltips: Record<string, string> = {
+    'ERR': 'Отношение просмотров к подписчикам. Отражает активность и вовлеченность аудитории канала.',
+    'Consistency': 'Регулярность постинга. Оптимально: 1-3 поста в день. Штрафы за долгое молчание или спам.',
+    'Growth': 'Темпы прироста подписчиков за последнюю неделю. Растущий канал получает больше баллов.',
+    'Engagement Div.': 'Разнообразие вовлеченности (реакции, репосты, комментарии) по сравнению со средним по нише.',
+    'Originality': 'Доля уникального и авторского контента. Частые рекламные посты снижают этот показатель.'
+  };
+
   return (
     <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
       <div className="flex-shrink-0 relative flex items-center justify-center w-32 h-32">
@@ -69,9 +77,16 @@ export function ScoreGauge({ breakdown }: ScoreGaugeProps) {
             breakdown.engagementScore,
             breakdown.originalityScore
           ].map((item, idx) => (
-            <div key={idx} className="flex justify-between items-center bg-slate-800/50 rounded-lg p-2 px-3">
-              <span className="text-slate-400">{item.label}</span>
+            <div key={idx} className="group relative flex justify-between items-center bg-slate-800/50 rounded-lg p-2 px-3 cursor-help">
+              <span className="text-slate-400 border-b border-dashed border-slate-500/50 pb-0.5">{item.label}</span>
               <span className="font-semibold text-white">{item.score} <span className="text-slate-500 font-normal">/ {item.max}</span></span>
+              
+              <div className="pointer-events-none absolute left-0 bottom-full mb-2 w-48 opacity-0 transition-opacity duration-300 delay-[1500ms] group-hover:opacity-100 z-20">
+                <div className="bg-slate-700 text-xs text-slate-200 p-2.5 rounded-lg shadow-xl border border-slate-600 relative">
+                  {tooltips[item.label]}
+                  <div className="absolute left-4 -bottom-1 w-2 h-2 bg-slate-700 border-b border-r border-slate-600 transform rotate-45"></div>
+                </div>
+              </div>
             </div>
           ))}
         </div>

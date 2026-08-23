@@ -5,6 +5,7 @@ import { Sparkles, Layers, Users, Download } from 'lucide-react';
 import { AISummaryReport } from '@/components/AISummaryReport';
 import { AICompareReport } from '@/components/AICompareReport';
 import { AIAudienceReport } from '@/components/AIAudienceReport';
+import { AIPersonaReport, aiPersonaToMarkdown } from '@/components/channel/AIPersonaReport';
 import { ChannelMetrics } from '@/lib/types';
 
 interface AIReportsSectionProps {
@@ -28,6 +29,10 @@ export function AIReportsSection({ channelId, channel, myChannel, period }: AIRe
   const [aiAudience, setAiAudience] = useState<any | null>(null);
   const [aiAudienceLoading, setAiAudienceLoading] = useState(false);
   const [aiAudienceError, setAiAudienceError] = useState<string | null>(null);
+
+  const [aiPersona, setAiPersona] = useState<any | null>(null);
+  const [aiPersonaLoading, setAiPersonaLoading] = useState(false);
+  const [aiPersonaError, setAiPersonaError] = useState<string | null>(null);
 
   const days = period === '30d' ? 30 : period === '7d' ? 7 : 1;
 
@@ -185,7 +190,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       const res = await fetch('/api/ai/compare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId, days }),
+        body: JSON.stringify({ targetChannelId: channelId, myChannelId: myChannel?.id, days }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
@@ -214,6 +219,25 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       } else { setAiAudienceError('Пустой ответ от нейросети.'); }
     } catch (err: any) { setAiAudienceError(err.message); }
     finally { setAiAudienceLoading(false); }
+  };
+
+  const fetchAiPersona = async () => {
+    setAiPersonaLoading(true);
+    setAiPersonaError(null);
+    try {
+      const res = await fetch('/api/ai/persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
+      if (json.persona) {
+        try { setAiPersona(JSON.parse(json.persona)); }
+        catch { setAiPersonaError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
+      } else { setAiPersonaError('Пустой ответ от нейросети.'); }
+    } catch (err: any) { setAiPersonaError(err.message); }
+    finally { setAiPersonaLoading(false); }
   };
 
   return (
@@ -301,6 +325,35 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
               <button onClick={() => downloadMarkdown(aiAudienceToMarkdown(aiAudience), `audience_${channel.username || channel.id}.md`)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
                 <Download className="w-3.5 h-3.5 text-emerald-400" /> Экспорт в MD
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* AI Persona Section */}
+      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-rose-500">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <span className="text-rose-500 text-lg">🎭</span>
+              Психологический портрет (Persona)
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">Глубокий психологический и BDSM профиль автора на основе текстов</p>
+          </div>
+          <button onClick={fetchAiPersona} disabled={aiPersonaLoading}
+            className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
+            {aiPersonaLoading ? 'Анализирую...' : 'Сгенерировать портрет'}
+          </button>
+        </div>
+        {aiPersonaError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiPersonaError}</div>}
+        {aiPersona && (
+          <div className="space-y-4 mt-6">
+            <AIPersonaReport data={aiPersona} />
+            <div className="flex justify-end">
+              <button onClick={() => downloadMarkdown(aiPersonaToMarkdown(aiPersona), `persona_${channel.username || channel.id}.md`)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
+                <Download className="w-3.5 h-3.5 text-rose-400" /> Экспорт в MD
               </button>
             </div>
           </div>
