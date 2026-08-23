@@ -42,7 +42,7 @@ export function AICompareReport({ data, myTitle, targetTitle }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#231b52]">
-              {data.comparisonTable.map((item, i) => (
+              {(data.comparisonTable || []).map((item, i) => (
                 <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                   <td className="p-4 text-sm text-[#b1acd9] font-medium align-top">{item.parameter}</td>
                   <td className="p-4 text-sm text-[#dce8f3] align-top">{item.myChannel}</td>
@@ -98,7 +98,7 @@ export function AICompareReport({ data, myTitle, targetTitle }: Props) {
             Преимущества конкурента
           </h2>
           <div className="space-y-4">
-            {data.competitorAdvantages.length > 0 ? data.competitorAdvantages.map((adv, i) => (
+            {data.competitorAdvantages?.length > 0 ? data.competitorAdvantages.map((adv, i) => (
               <div key={i} className="bg-[#100d2f] border border-[#231b52] rounded-2xl p-5 shadow-lg">
                 <h3 className="font-bold text-white mb-2">{adv.title}</h3>
                 <p className="text-sm text-[#a39fcc] mb-3 leading-relaxed">{adv.description}</p>
@@ -118,7 +118,7 @@ export function AICompareReport({ data, myTitle, targetTitle }: Props) {
             Наши сильные стороны
           </h2>
           <div className="space-y-4">
-            {data.myStrengths.length > 0 ? data.myStrengths.map((str, i) => (
+            {data.myStrengths?.length > 0 ? data.myStrengths.map((str, i) => (
               <div key={i} className="bg-[#0d1c2f] border border-[#1b3552] rounded-2xl p-5 shadow-lg">
                 <h3 className="font-bold text-white mb-2">{str.title}</h3>
                 <p className="text-sm text-[#91a6bc] leading-relaxed m-0">{str.description}</p>
@@ -145,7 +145,7 @@ export function AICompareReport({ data, myTitle, targetTitle }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#231b52]">
-              {data.recommendations.map((item, i) => {
+              {(data.recommendations || []).map((item, i) => {
                 let difficultyColor = 'text-amber-400';
                 if (item.difficulty.toLowerCase().includes('низкая')) difficultyColor = 'text-emerald-400';
                 if (item.difficulty.toLowerCase().includes('высокая')) difficultyColor = 'text-rose-400';

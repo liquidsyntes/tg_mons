@@ -45,7 +45,7 @@ export function AIReportEvolution({ data }: Props) {
             Сдвиги в метриках и показателях
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.metricsComparison.map((m, i) => {
+            {(data.metricsComparison || []).map((m, i) => {
               const isPos = m.trend === 'positive';
               const isNeg = m.trend === 'negative';
               const Icon = isPos ? TrendingUp : isNeg ? TrendingDown : Minus;

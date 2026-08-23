@@ -31,7 +31,7 @@ export function AISummaryReport({ data }: Props) {
     <div className="bg-[#07111f] rounded-3xl p-6 sm:p-10 border border-[#1b3552] text-[#edf4fb] space-y-12">
       {/* 4 Key stats */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {data.stats.slice(0, 4).map((stat, i) => (
+        {(data.stats || []).slice(0, 4).map((stat, i) => (
           <div key={i} className="bg-gradient-to-b from-[#0d1c2f] to-[#0a1829] border border-[#1b3552] rounded-2xl p-5 shadow-lg">
             <div className="text-3xl font-extrabold tracking-tight">{stat.value}</div>
             <div className="text-[#91a6bc] text-sm mt-1">{stat.label}</div>
@@ -48,7 +48,7 @@ export function AISummaryReport({ data }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] gap-5">
           <div className="bg-[#0d1c2f] border border-[#1b3552] rounded-2xl p-6 shadow-lg">
             <div className="grid gap-4">
-              {data.themes.bars.map((bar, i) => (
+              {(data.themes?.bars || []).map((bar, i) => (
                 <div key={i} className="grid gap-2">
                   <div className="flex justify-between text-sm">
                     <span>{bar.label}</span>

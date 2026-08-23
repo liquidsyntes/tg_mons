@@ -19,7 +19,7 @@ export default async function ReportsPage() {
     id: r.id,
     type: r.type,
     createdAt: r.createdAt.toISOString(),
-    channel: { title: r.channel.title }
+    channel: { title: r.channel?.title || 'Глобальный отчет (Тренды)' }
   }));
 
   return (
