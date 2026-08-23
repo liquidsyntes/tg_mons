@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { ChannelMetrics, ChannelStatus, OverviewStats, ChannelDetailStats } from './types';
 import { serializeBigInt } from './utils';
+import { calculateContentScore } from './scoring';
 
 const MS_HOUR = 3600 * 1000;
 const MS_24H = 24 * MS_HOUR;
@@ -60,7 +61,7 @@ export function calculateChannelMetricsFromData(
     createdAt: Date;
   },
   channelSnapshots: { collectedAt: Date; membersCount: number }[],
-  channelPosts: { publishedAt: Date; views: number | null }[],
+  channelPosts: { publishedAt: Date; views: number | null; text: string | null }[],
   now: Date = new Date()
 ): ChannelMetrics {
   const date24hAgo = new Date(now.getTime() - MS_24H);
@@ -149,6 +150,13 @@ export function calculateChannelMetricsFromData(
     status = 'stale';
   }
 
+  const scoreBreakdown = calculateContentScore(
+    err7d,
+    avgPostsPerDay,
+    delta7d.percent,
+    channelPosts.filter(p => p.text)
+  );
+
   return {
     id: channel.id,
     username: channel.username,
@@ -176,6 +184,8 @@ export function calculateChannelMetricsFromData(
     err7d,
     status,
     sparkline7d,
+    contentScore: scoreBreakdown.total,
+    contentGrade: scoreBreakdown.grade,
   };
 }
 
@@ -209,7 +219,7 @@ export async function calculateChannelMetrics(
       channelId,
       publishedAt: { gte: date30dAgo },
     },
-    select: { publishedAt: true, views: true },
+    select: { publishedAt: true, views: true, text: true },
   });
 
   return calculateChannelMetricsFromData(channel, allSnapshots, allPosts, now);
@@ -253,7 +263,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
       channelId: { in: channelIds },
       publishedAt: { gte: date30dAgo },
     },
-    select: { channelId: true, publishedAt: true, views: true },
+    select: { channelId: true, publishedAt: true, views: true, text: true },
   });
 
   // Group snapshots by channelId (preserving desc order)
@@ -269,7 +279,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
   }
 
   // Group posts by channelId
-  const postsByChannel = new Map<number, { publishedAt: Date; views: number | null }[]>();
+  const postsByChannel = new Map<number, { publishedAt: Date; views: number | null; text: string | null }[]>();
   for (const p of allPosts) {
     if (!postsByChannel.has(p.channelId)) {
       postsByChannel.set(p.channelId, []);
@@ -277,6 +287,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
     postsByChannel.get(p.channelId)!.push({
       publishedAt: p.publishedAt,
       views: p.views,
+      text: p.text,
     });
   }
 
@@ -360,7 +371,7 @@ export async function getErrHistory(channelId: number, days: number = 30) {
       channelId,
       publishedAt: { gte: periodStart },
     },
-    select: { publishedAt: true, views: true },
+    select: { publishedAt: true, views: true, text: true },
     orderBy: { publishedAt: 'asc' },
   });
 
@@ -593,10 +604,18 @@ export async function getChannelDetailStats(
     period === '24h' ? 1 : period === '30d' ? 30 : 7
   );
 
+  const scoreBreakdown = calculateContentScore(
+    channel.err7d,
+    channel.avgPostsPerDay,
+    channel.delta7d?.percent || 0,
+    recentPosts.filter(p => p.text)
+  );
+
   return {
     channel,
     myChannel,
     period,
+    scoreBreakdown,
     membersHistory,
     postsDistribution,
     errHistory,

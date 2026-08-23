@@ -47,8 +47,8 @@ export function Dashboard() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="bg-surface border border-border rounded-2xl h-24 animate-pulse" />
           ))}
         </div>
@@ -67,7 +67,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-surface border border-border rounded-2xl p-5 flex flex-col justify-between">
           <div className="flex items-center gap-2 text-slate-400 mb-2">
             <Radio className="w-4 h-4" />
@@ -79,7 +79,7 @@ export function Dashboard() {
         <div className="bg-surface border border-border rounded-2xl p-5 flex flex-col justify-between">
           <div className="flex items-center gap-2 text-slate-400 mb-2">
             <Users className="w-4 h-4" />
-            <span className="text-xs font-semibold uppercase tracking-wider">Аудитория ниши</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Аудитория (сумма)</span>
           </div>
           <span className="text-2xl font-bold text-white">{formatNumber(stats.totalSubscribers)}</span>
         </div>
@@ -98,6 +98,16 @@ export function Dashboard() {
             <span className="text-xs font-semibold uppercase tracking-wider">Средний ERR</span>
           </div>
           <span className="text-2xl font-bold text-white">{formatPercent(stats.avgErr)}</span>
+        </div>
+
+        <div className="bg-surface border border-border rounded-2xl p-5 flex flex-col justify-between">
+          <div className="flex items-center gap-2 text-slate-400 mb-2">
+            <Activity className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider">Средний Score</span>
+          </div>
+          <span className="text-2xl font-bold text-white">
+            {stats.avgScore !== undefined ? Math.round(stats.avgScore) : 'н/д'}
+          </span>
         </div>
       </div>
 

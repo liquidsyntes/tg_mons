@@ -8,6 +8,7 @@ export interface DashboardStats {
   totalPosts30d: number;
   avgGrowthRate: number;
   avgErr: number;
+  avgScore?: number;
   topGainers: Array<{
     id: number;
     title: string;
@@ -52,6 +53,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const avgErr = validErr.length > 0 
     ? validErr.reduce((sum, c) => sum + c.err7d!, 0) / validErr.length 
     : 0;
+
+  const validScore = allMetrics.filter(c => c.contentScore !== undefined);
+  const avgScore = validScore.length > 0
+    ? validScore.reduce((sum, c) => sum + c.contentScore!, 0) / validScore.length
+    : undefined;
 
   const gainers = [...allMetrics]
     .filter(c => (c.delta7d.abs || 0) > 0)

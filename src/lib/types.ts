@@ -30,6 +30,8 @@ export interface ChannelMetrics {
   err7d: number | null;
   status: ChannelStatus;
   sparkline7d?: number[]; // Added for 7d trend mini-chart
+  contentScore?: number;
+  contentGrade?: string;
 
   // Comparison with "My Channel"
   comparison?: {
@@ -59,6 +61,7 @@ export interface ChannelDetailStats {
   channel: ChannelMetrics;
   myChannel: ChannelMetrics | null;
   period: '24h' | '7d' | '30d';
+  scoreBreakdown?: any;
   membersHistory: {
     collectedAt: string;
     membersCount: number;

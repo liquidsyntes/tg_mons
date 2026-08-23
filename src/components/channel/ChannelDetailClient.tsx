@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChannelDetailStats } from '@/lib/types';
 import { DetailSkeleton } from '@/components/SkeletonLoader';
 import { ChannelHeader } from '@/components/channel/ChannelHeader';
+import { ScoreGauge } from '@/components/channel/ScoreGauge';
 import { SubscriberChart } from '@/components/channel/SubscriberChart';
 import { PostsActivity } from '@/components/channel/PostsActivity';
 import { ErrChart } from '@/components/channel/ErrChart';
@@ -61,6 +62,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
           <>
             <div id="report-content" className="space-y-6">
               <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} />
+              {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
               <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
               <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
               <ErrChart errHistory={data!.errHistory || []} period={period} />
