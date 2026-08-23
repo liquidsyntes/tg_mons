@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyBearerToken } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const authCheck = verifyBearerToken(req);
+    if (!authCheck.authorized) return authCheck.response;
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: 'OPENROUTER_API_KEY не задан в .env файле' }, { status: 500 });

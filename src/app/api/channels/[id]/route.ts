@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateChannelMetrics } from '@/lib/metrics';
+import { verifyBearerToken } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -28,6 +29,8 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
+    const authCheck = verifyBearerToken(req);
+    if (!authCheck.authorized) return authCheck.response;
     const { id } = await context.params;
     const channelId = parseInt(id, 10);
     if (isNaN(channelId)) {
@@ -70,6 +73,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
+    const authCheck = verifyBearerToken(req);
+    if (!authCheck.authorized) return authCheck.response;
     const { id } = await context.params;
     const channelId = parseInt(id, 10);
     if (isNaN(channelId)) {

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyBearerToken } from '@/lib/auth';
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authCheck = verifyBearerToken(req);
+    if (!authCheck.authorized) return authCheck.response;
     const { id } = await params;
     const channelId = parseInt(id, 10);
     if (isNaN(channelId)) {

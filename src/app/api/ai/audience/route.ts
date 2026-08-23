@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyBearerToken } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
+    const authCheck = verifyBearerToken(req);
+    if (!authCheck.authorized) return authCheck.response;
     const { channelId, days = 7 } = await req.json();
 
     if (!channelId) {

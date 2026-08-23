@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { calculateChannelMetrics, getOverviewStats } from '@/lib/metrics';
 import { addChannelByInput, collectChannelData } from '@/worker/collector';
 import { getTelegramClient } from '@/worker/client';
+import { verifyBearerToken } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -16,6 +17,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const authCheck = verifyBearerToken(req);
+    if (!authCheck.authorized) return authCheck.response;
     const body = await req.json();
     const { input, isMine } = body;
 

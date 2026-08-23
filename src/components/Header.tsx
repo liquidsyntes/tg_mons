@@ -29,9 +29,6 @@ export function Header({
     try {
       const res = await fetch('/api/collect/run', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_COLLECT_API_TOKEN || 'supersecrettoken'}`,
-        },
       });
       const data = await res.json();
       if (!res.ok) {
