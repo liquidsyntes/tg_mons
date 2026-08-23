@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo } from 'lucide-react';
+import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -81,15 +81,17 @@ export function ReportsListClient({ reports }: Props) {
       <div className="grid gap-3">
         {reports.map(report => {
           const isSelected = selectedIds.includes(report.id);
-          const Icon = report.type === 'summary' ? Sparkles : report.type === 'evolution' ? Zap : report.type === 'action_plan' ? ListTodo : Layers;
+          const Icon = report.type === 'summary' ? Sparkles : report.type === 'evolution' ? Zap : report.type === 'action_plan' ? ListTodo : report.type === 'audience' ? Users : Layers;
           const colorClass = report.type === 'summary' 
             ? 'text-amber-400 bg-amber-400/10' 
             : report.type === 'evolution'
               ? 'text-emerald-400 bg-emerald-400/10'
               : report.type === 'action_plan'
                 ? 'text-cyan-400 bg-cyan-400/10'
-                : 'text-violet-400 bg-violet-400/10';
-          const title = report.type === 'summary' ? 'Контент-анализ' : report.type === 'evolution' ? 'Динамика изменений' : report.type === 'action_plan' ? 'Пошаговое руководство' : 'Сравнение с конкурентом';
+                : report.type === 'audience'
+                  ? 'text-emerald-400 bg-emerald-400/10'
+                  : 'text-violet-400 bg-violet-400/10';
+          const title = report.type === 'summary' ? 'Контент-анализ' : report.type === 'evolution' ? 'Динамика изменений' : report.type === 'action_plan' ? 'Пошаговое руководство' : report.type === 'audience' ? 'Анализ Целевой Аудитории' : 'Сравнение с конкурентом';
 
           return (
             <div 

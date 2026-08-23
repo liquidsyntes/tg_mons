@@ -17,7 +17,8 @@ import {
   Flame,
   Megaphone,
   Handshake,
-  Download
+  Download,
+  Users
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -41,6 +42,7 @@ import { CustomSubscriberTooltip } from '@/components/CustomSubscriberTooltip';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
 import { AISummaryReport } from '@/components/AISummaryReport';
 import { AICompareReport } from '@/components/AICompareReport';
+import { AIAudienceReport } from '@/components/AIAudienceReport';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { detectAd } from '@/lib/adDetector';
@@ -70,6 +72,10 @@ export default function ChannelDetailPage({ params }: PageProps) {
   const [aiCompareSummary, setAiCompareSummary] = useState<any | null>(null);
   const [aiCompareLoading, setAiCompareLoading] = useState(false);
   const [aiCompareError, setAiCompareError] = useState<string | null>(null);
+
+  const [aiAudience, setAiAudience] = useState<any | null>(null);
+  const [aiAudienceLoading, setAiAudienceLoading] = useState(false);
+  const [aiAudienceError, setAiAudienceError] = useState<string | null>(null);
 
   const fetchChannelData = useCallback(async () => {
     setLoading(true);
@@ -249,6 +255,65 @@ ${data.conclusion?.summary}
       setAiCompareError(err.message);
     } finally {
       setAiCompareLoading(false);
+    }
+  };
+
+  const aiAudienceToMarkdown = (data: any) => {
+    if (!data) return '';
+    return `
+# Анализ Целевой Аудитории
+
+**Резюме:** ${data.summary}
+
+## Демография
+- **Возраст:** ${data.demographics?.age}
+- **Пол:** ${data.demographics?.gender}
+- **Доход:** ${data.demographics?.income}
+- **География:** ${data.demographics?.geo}
+
+## Поведенческие факторы
+- **Потребление контента:** ${data.behavior?.contentConsumption}
+- **Причина подписки:** ${data.behavior?.engagementReason}
+
+## Психографика
+**Интересы:**
+${data.psychographics?.interests?.map((i: string) => `- ${i}`).join('\n')}
+
+**Ценности:**
+${data.psychographics?.values?.map((v: string) => `- ${v}`).join('\n')}
+
+**Боли и страхи:**
+${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
+    `.trim();
+  };
+
+  const fetchAiAudience = async () => {
+    setAiAudienceLoading(true);
+    setAiAudienceError(null);
+    try {
+      const res = await fetch('/api/ai/audience', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId, days: period === '30d' ? 30 : period === '7d' ? 7 : 1 }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
+      if (json.audience) {
+        try {
+          const parsed = JSON.parse(json.audience);
+          setAiAudience(parsed);
+        } catch (e) {
+          console.error("Failed to parse AI audience JSON:", e);
+          setAiAudienceError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.');
+        }
+      } else {
+        setAiAudienceError('Пустой ответ от нейросети.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAiAudienceError(err.message);
+    } finally {
+      setAiAudienceLoading(false);
     }
   };
 
@@ -1060,6 +1125,51 @@ ${data.conclusion?.summary}
                 )}
               </div>
             )}
+
+            {/* AI Audience Analysis Section */}
+            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-400" />
+                    Анализ Целевой Аудитории
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Предполагаемая аудитория на основе контента канала
+                  </p>
+                </div>
+                <button
+                  onClick={fetchAiAudience}
+                  disabled={aiAudienceLoading}
+                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {aiAudienceLoading ? 'Анализирую...' : 'Сгенерировать отчет'}
+                </button>
+              </div>
+
+              {aiAudienceError && (
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                  {aiAudienceError}
+                </div>
+              )}
+
+              {aiAudience && (
+                <div className="space-y-4 mt-6">
+                  <AIAudienceReport data={aiAudience} />
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => downloadMarkdown(aiAudienceToMarkdown(aiAudience), `audience_${channel.username || channel.id}.md`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
+                      title="Экспорт в Markdown"
+                      data-pdf-hide
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-400" />
+                      Экспорт в MD
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Recent Posts Section */}
             <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">

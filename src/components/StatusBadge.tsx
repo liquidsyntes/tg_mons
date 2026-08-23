@@ -22,18 +22,16 @@ export function StatusBadge({
     return (
       <div
         className={cn(
-          'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 max-w-[200px] truncate',
+          'inline-flex items-center justify-center w-7 h-7 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-shrink-0',
           className
         )}
         title={lastError || 'Ошибка при сборе данных'}
       >
-        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-        <span className="truncate">{lastError || 'Ошибка сбора'}</span>
+        <AlertCircle className="w-4 h-4" />
       </div>
     );
   }
 
-  let text = 'Никогда';
   let diffMinutes = 999;
   
   if (lastCollectedAt) {
@@ -41,15 +39,6 @@ export function StatusBadge({
     const now = new Date();
     const diffMs = Math.max(0, now.getTime() - date.getTime());
     diffMinutes = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMinutes < 1) text = 'сейчас';
-    else if (diffMinutes < 60) text = `${diffMinutes} мин`;
-    else if (diffHours < 24) text = `${diffHours} ч`;
-    else if (diffDays === 1) text = 'вчера';
-    else if (diffDays < 30) text = `${diffDays} д`;
-    else text = date.toLocaleDateString('ru-RU');
   }
 
   let colorClass = '';
@@ -77,7 +66,7 @@ export function StatusBadge({
   return (
     <div
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded text-xs border leading-tight min-w-[70px] font-mono',
+        'inline-flex items-center justify-center w-7 h-7 rounded-md border flex-shrink-0',
         bgClass,
         colorClass,
         borderClass,
@@ -85,8 +74,7 @@ export function StatusBadge({
       )}
       title={`Последний сбор: ${lastCollectedAt ? new Date(lastCollectedAt).toLocaleString('ru-RU') : 'Никогда'}`}
     >
-      <Clock className="w-3.5 h-3.5" />
-      <span className="font-semibold">{text}</span>
+      <Clock className="w-4 h-4" />
     </div>
   );
 }

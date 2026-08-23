@@ -128,6 +128,67 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           </div>
         </div>
       `;
+    } else if (report.type === 'audience') {
+      contentHtml = `
+        <div class="bg-[#07111f] rounded-3xl p-6 border border-[#1b5241] text-[#edf4fb]">
+          <h2 class="text-2xl font-bold mb-4 text-emerald-400">Анализ Целевой Аудитории</h2>
+          <p class="text-lg mb-8 text-emerald-100">${parsedData.summary}</p>
+          
+          <h3 class="text-xl font-bold mb-3 text-emerald-300">Демография</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-[#0a1f16] p-4 rounded-xl border border-[#1b5241]">
+              <div class="text-[10px] uppercase text-emerald-500 mb-1">Возраст</div>
+              <div class="font-medium text-emerald-100">${parsedData.demographics?.age || '-'}</div>
+            </div>
+            <div class="bg-[#0a1f16] p-4 rounded-xl border border-[#1b5241]">
+              <div class="text-[10px] uppercase text-emerald-500 mb-1">Пол</div>
+              <div class="font-medium text-emerald-100">${parsedData.demographics?.gender || '-'}</div>
+            </div>
+            <div class="bg-[#0a1f16] p-4 rounded-xl border border-[#1b5241]">
+              <div class="text-[10px] uppercase text-emerald-500 mb-1">Доход</div>
+              <div class="font-medium text-emerald-100">${parsedData.demographics?.income || '-'}</div>
+            </div>
+            <div class="bg-[#0a1f16] p-4 rounded-xl border border-[#1b5241]">
+              <div class="text-[10px] uppercase text-emerald-500 mb-1">География</div>
+              <div class="font-medium text-emerald-100">${parsedData.demographics?.geo || '-'}</div>
+            </div>
+          </div>
+          
+          <h3 class="text-xl font-bold mb-3 text-sky-300">Поведенческие факторы</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-[#0a192f] p-4 rounded-xl border border-[#1b3552]">
+              <div class="text-[10px] uppercase text-sky-500 mb-1">Потребление контента</div>
+              <div class="text-sm text-sky-100">${parsedData.behavior?.contentConsumption || '-'}</div>
+            </div>
+            <div class="bg-[#0a192f] p-4 rounded-xl border border-[#1b3552]">
+              <div class="text-[10px] uppercase text-sky-500 mb-1">Причина подписки</div>
+              <div class="text-sm text-sky-100">${parsedData.behavior?.engagementReason || '-'}</div>
+            </div>
+          </div>
+
+          <h3 class="text-xl font-bold mb-3 text-purple-300">Психографика</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-purple-950/20 p-4 rounded-xl border border-purple-900/30">
+              <div class="text-[10px] uppercase text-purple-400 mb-2">Интересы</div>
+              <ul class="list-disc pl-4 text-sm text-purple-100">
+                ${(parsedData.psychographics?.interests || []).map((i: string) => `<li>${i}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="bg-purple-950/20 p-4 rounded-xl border border-purple-900/30">
+              <div class="text-[10px] uppercase text-purple-400 mb-2">Ценности</div>
+              <ul class="list-disc pl-4 text-sm text-purple-100">
+                ${(parsedData.psychographics?.values || []).map((v: string) => `<li>${v}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="bg-rose-950/10 p-4 rounded-xl border border-rose-900/20">
+              <div class="text-[10px] uppercase text-rose-400 mb-2">Боли и страхи</div>
+              <ul class="list-disc pl-4 text-sm text-rose-100">
+                ${(parsedData.psychographics?.fears || []).map((f: string) => `<li>${f}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        </div>
+      `;
     } else {
       contentHtml = `
         <div class="bg-[#07111f] rounded-3xl p-6 border border-[#231b52] text-[#edf4fb]">
@@ -163,7 +224,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       evolution: 'Динамика изменений',
       action_plan: 'Пошаговое руководство',
       compare: 'Сравнение каналов',
-      trend: 'Радар Трендов (Рынок)'
+      trend: 'Радар Трендов (Рынок)',
+      audience: 'Анализ Целевой Аудитории'
     };
     
     const reportTitle = titleMap[report.type] || 'Отчет';
