@@ -64,7 +64,12 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
               <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
               <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />
               <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} />
-              <RecentPosts posts={data!.recentPosts || []} channelUsername={channel.username} channelTgId={channel.tgId} />
+              <RecentPosts 
+                initialPosts={data!.recentPosts || []} 
+                channelId={channelId} 
+                channelUsername={channel.username} 
+                channelTgId={channel.tgId} 
+              />
             </div>
           </>
         )}

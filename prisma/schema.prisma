@@ -62,5 +62,6 @@ model Post {
 
   @@unique([channelId, messageId])
   @@index([channelId, publishedAt])
+  @@index([channelId, publishedAt, text])
   @@map("posts")
 }

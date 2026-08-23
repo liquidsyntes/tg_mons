@@ -1,25 +1,105 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, Eye, Megaphone, Handshake, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { FileText, Eye, Megaphone, Handshake, ExternalLink, Search, Filter, Loader2, ArrowDownUp } from 'lucide-react';
 import { detectAd } from '@/lib/adDetector';
 import { formatNumber } from '@/lib/utils';
 
 interface RecentPostsProps {
-  posts: {
-    id: number;
-    messageId: string;
-    publishedAt: string;
-    views: number | null;
-    text: string | null;
-  }[];
+  initialPosts: any[];
+  channelId: number | string;
   channelUsername: string | null;
   channelTgId: string | null;
 }
 
-export function RecentPosts({ posts, channelUsername, channelTgId }: RecentPostsProps) {
+export function RecentPosts({ initialPosts, channelId, channelUsername, channelTgId }: RecentPostsProps) {
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
-  const [postFilter, setPostFilter] = useState<'all' | 'ads' | 'partners'>('all');
+  
+  // Search and Filter State
+  const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [minViews, setMinViews] = useState('');
+  const [maxViews, setMaxViews] = useState('');
+  const [type, setType] = useState<'all' | 'ads' | 'partners'>('all');
+  const [sortBy, setSortBy] = useState('date');
+  
+  // Pagination & Data State
+  const [offset, setOffset] = useState(0);
+  const [limit] = useState(15);
+  const [posts, setPosts] = useState<any[]>(initialPosts.map(p => ({ ...p, ad: detectAd(p.text) })));
+  const [total, setTotal] = useState<number>(initialPosts.length);
+  const [absoluteTotal, setAbsoluteTotal] = useState<number>(initialPosts.length);
+  const [loading, setLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQ(q), 300);
+    return () => clearTimeout(timer);
+  }, [q]);
+
+  // Reset offset when filters change
+  useEffect(() => {
+    setOffset(0);
+  }, [debouncedQ, dateFrom, dateTo, minViews, maxViews, type, sortBy]);
+
+  const fetchPosts = useCallback(async (isLoadMore = false) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        channelId: channelId.toString(),
+        limit: limit.toString(),
+        offset: offset.toString(),
+      });
+      if (debouncedQ) params.append('q', debouncedQ);
+      if (dateFrom) params.append('dateFrom', dateFrom);
+      if (dateTo) params.append('dateTo', dateTo);
+      if (minViews) params.append('minViews', minViews);
+      if (maxViews) params.append('maxViews', maxViews);
+      if (type !== 'all') params.append('type', type);
+      if (sortBy) params.append('sortBy', sortBy);
+
+      const res = await fetch(`/api/posts/search?${params.toString()}`);
+      if (!res.ok) throw new Error('Search failed');
+      const data = await res.json();
+      
+      if (isLoadMore) {
+        setPosts(prev => [...prev, ...data.posts]);
+      } else {
+        setPosts(data.posts);
+      }
+      setTotal(data.total);
+      setAbsoluteTotal(data.absoluteTotal);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [channelId, debouncedQ, dateFrom, dateTo, minViews, maxViews, type, sortBy, offset, limit]);
+
+  // Fetch when filters or offset change.
+  useEffect(() => {
+    fetchPosts(offset > 0);
+  }, [fetchPosts, offset]);
+
+  // Helper to highlight search term
+  const highlightText = (text: string, highlight: string) => {
+    if (!highlight.trim() || !text) return text || '';
+    const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === highlight.toLowerCase() ? (
+            <mark key={i} className="bg-accent/40 text-white rounded px-0.5">{part}</mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
 
   return (
     <>
@@ -28,137 +108,144 @@ export function RecentPosts({ posts, channelUsername, channelTgId }: RecentPosts
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <FileText className="w-4 h-4 text-emerald-400" />
-              Последние публикации
+              Публикации
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Последние 15 постов канала</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Найдено {formatNumber(total)} постов из {formatNumber(absoluteTotal)}
+            </p>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input 
+                type="text" 
+                placeholder="Поиск по тексту..." 
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-1.5 text-xs text-white focus:outline-none focus:border-accent w-48 sm:w-64"
+              />
+            </div>
             <button
-              onClick={() => setPostFilter(postFilter === 'ads' ? 'all' : 'ads')}
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
-                postFilter === 'ads'
-                  ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
-                  : 'bg-slate-800 border-border text-slate-400 hover:text-white hover:border-slate-600'
-              }`}
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-1.5 rounded-lg border transition-colors ${showFilters ? 'bg-accent/20 border-accent text-accent' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
             >
-              <Megaphone className="w-3 h-3" />
-              Реклама
-            </button>
-            <button
-              onClick={() => setPostFilter(postFilter === 'partners' ? 'all' : 'partners')}
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
-                postFilter === 'partners'
-                  ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
-                  : 'bg-slate-800 border-border text-slate-400 hover:text-white hover:border-slate-600'
-              }`}
-            >
-              <Handshake className="w-3 h-3" />
-              Партнёры
+              <Filter className="w-4 h-4" />
             </button>
           </div>
         </div>
-        <div className="pt-2">
-          {posts && posts.length > 0 ? (() => {
-            const postsWithAd = posts.map((post) => ({ ...post, ad: detectAd(post.text) }));
-            const adCount = postsWithAd.filter((p) => p.ad.isAd).length;
-            const partnerCount = postsWithAd.filter((p) => p.ad.isPartner).length;
-            const filtered = postFilter === 'ads'
-              ? postsWithAd.filter((p) => p.ad.isAd)
-              : postFilter === 'partners'
-              ? postsWithAd.filter((p) => p.ad.isPartner)
-              : postsWithAd;
 
-            return (
-              <>
-                {(adCount > 0 || partnerCount > 0) && (
-                  <div className="mb-3 flex flex-wrap items-center gap-3 text-xs px-3 py-2 rounded-lg bg-slate-900/60 border border-border/50">
-                    {adCount > 0 && (
-                      <span className="flex items-center gap-1.5 text-orange-400/80">
-                        <Megaphone className="w-3.5 h-3.5" />
-                        Реклама: <strong>{adCount}</strong>
-                      </span>
-                    )}
-                    {partnerCount > 0 && (
-                      <span className="flex items-center gap-1.5 text-blue-400/80">
-                        <Handshake className="w-3.5 h-3.5" />
-                        Партнёры: <strong>{partnerCount}</strong>
-                      </span>
-                    )}
-                    <span className="text-slate-500">из {posts.length} постов</span>
-                  </div>
-                )}
-                {filtered.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {filtered.map((post) => (
-                      <div
-                        key={post.id}
-                        onClick={() => setSelectedPost(post)}
-                        className={`bg-slate-900 border rounded-xl p-3 cursor-pointer hover:bg-slate-800/80 transition-colors flex flex-col ${
-                          post.ad.isAd
-                            ? 'border-orange-500/40 hover:border-orange-500/60'
-                            : post.ad.isPartner
-                            ? 'border-blue-500/30 hover:border-blue-500/50'
-                            : 'border-slate-800 hover:border-slate-600'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 mb-2">
-                          <div className="flex items-center gap-1.5">
-                            <span>{new Date(post.publishedAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                            {post.ad.isAd && (
-                              <span
-                                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                                  post.ad.confidence === 'high'
-                                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                                    : 'bg-amber-500/15 text-amber-400/80 border border-amber-500/20'
-                                }`}
-                                title={post.ad.signals.join(' · ')}
-                              >
-                                <Megaphone className="w-2.5 h-2.5" />
-                                Реклама
-                              </span>
-                            )}
-                            {post.ad.isPartner && (
-                              <span
-                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-500/15 text-blue-400/80 border border-blue-500/20"
-                                title={post.ad.signals.join(' · ')}
-                              >
-                                <Handshake className="w-2.5 h-2.5" />
-                                Партнёр
-                              </span>
-                            )}
-                          </div>
-                          {post.views !== null && (
-                            <span className="flex items-center gap-1 font-mono text-slate-400">
-                              <Eye className="w-3 h-3" />
-                              {formatNumber(post.views)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-slate-300 line-clamp-3 leading-relaxed flex-1">
-                          {post.text || <span className="italic text-slate-500">Без текста (медиа)</span>}
-                        </div>
-                        {(post.ad.isAd || post.ad.isPartner) && post.ad.signals.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-slate-800/60">
-                            <div className="flex flex-wrap gap-1">
-                              {post.ad.signals.map((s: string, i: number) => (
-                                <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-border/50">{s}</span>
-                              ))}
-                            </div>
-                          </div>
+        {showFilters && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+            <div className="space-y-1.5 text-xs">
+              <label className="text-slate-500">Тип контента</label>
+              <select value={type} onChange={e => setType(e.target.value as any)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+                <option value="all">Все посты</option>
+                <option value="ads">Реклама</option>
+                <option value="partners">Партнерские</option>
+              </select>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <label className="text-slate-500">Сортировка</label>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+                <option value="date">По дате (новые)</option>
+                <option value="views_desc">По просмотрам (max)</option>
+                <option value="views_asc">По просмотрам (min)</option>
+              </select>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <label className="text-slate-500">Просмотры</label>
+              <div className="flex items-center gap-1">
+                <input type="number" placeholder="Min" value={minViews} onChange={e => setMinViews(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white" />
+                <span>-</span>
+                <input type="number" placeholder="Max" value={maxViews} onChange={e => setMaxViews(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white" />
+              </div>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <label className="text-slate-500">Период</label>
+              <div className="flex items-center gap-1">
+                <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white [color-scheme:dark]" />
+                <span>-</span>
+                <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white [color-scheme:dark]" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2">
+          {posts.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {posts.map((post) => (
+                  <div
+                    key={post.id}
+                    onClick={() => setSelectedPost(post)}
+                    className={`bg-slate-900 border rounded-xl p-3 cursor-pointer hover:bg-slate-800/80 transition-colors flex flex-col ${
+                      post.ad.isAd
+                        ? 'border-orange-500/40 hover:border-orange-500/60'
+                        : post.ad.isPartner
+                        ? 'border-blue-500/30 hover:border-blue-500/50'
+                        : 'border-slate-800 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span>{new Date(post.publishedAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        {post.ad.isAd && (
+                          <span
+                            className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                              post.ad.confidence === 'high'
+                                ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                                : 'bg-amber-500/15 text-amber-400/80 border border-amber-500/20'
+                            }`}
+                          >
+                            <Megaphone className="w-2.5 h-2.5" />
+                            Реклама
+                          </span>
+                        )}
+                        {post.ad.isPartner && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-500/15 text-blue-400/80 border border-blue-500/20">
+                            <Handshake className="w-2.5 h-2.5" />
+                            Партнёр
+                          </span>
                         )}
                       </div>
-                    ))}
+                      {post.views !== null && (
+                        <span className="flex items-center gap-1 font-mono text-slate-400">
+                          <Eye className="w-3 h-3" />
+                          {formatNumber(post.views)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-slate-300 line-clamp-3 leading-relaxed flex-1">
+                      {post.text ? highlightText(post.text, debouncedQ) : <span className="italic text-slate-500">Без текста (медиа)</span>}
+                    </div>
                   </div>
-                ) : (
-                  <div className="h-32 flex items-center justify-center text-xs text-slate-500 font-mono">
-                    {postFilter === 'ads' ? 'Рекламных постов не обнаружено' : postFilter === 'partners' ? 'Партнёрских постов не обнаружено' : 'Нет последних постов'}
-                  </div>
-                )}
-              </>
-            );
-          })() : (
-            <div className="h-32 flex items-center justify-center text-xs text-slate-500 font-mono">
-              Нет последних постов
+                ))}
+              </div>
+              
+              {posts.length < total && (
+                <div className="flex justify-center mt-6">
+                  <button 
+                    onClick={() => setOffset(prev => prev + limit)}
+                    disabled={loading}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowDownUp className="w-4 h-4" />}
+                    Показать ещё
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="h-32 flex flex-col items-center justify-center text-xs text-slate-500 font-mono gap-2">
+              {loading ? (
+                <Loader2 className="w-6 h-6 animate-spin text-slate-600" />
+              ) : (
+                <>
+                  <Search className="w-6 h-6 text-slate-600" />
+                  Посты не найдены
+                </>
+              )}
             </div>
           )}
         </div>
@@ -192,7 +279,7 @@ export function RecentPosts({ posts, channelUsername, channelTgId }: RecentPosts
               </button>
             </div>
             <div className="p-5 overflow-y-auto custom-scrollbar text-slate-200 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
-              {selectedPost.text || <span className="italic text-slate-500">Пост не содержит текста (возможно, это только фото или видео)</span>}
+              {selectedPost.text ? highlightText(selectedPost.text, debouncedQ) : <span className="italic text-slate-500">Пост не содержит текста (возможно, это только фото или видео)</span>}
             </div>
             <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end">
               <a
