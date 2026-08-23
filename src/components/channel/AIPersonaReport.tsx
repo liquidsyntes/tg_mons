@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { User } from 'lucide-react';
 
@@ -36,6 +36,17 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
               <span className="block text-xs text-slate-400 mb-1">Темперамент</span>
               <span className="font-medium text-slate-200">{data.corePersonality.temperament}</span>
             </div>
+            {data.corePersonality.narcissismLevel && (
+              <div className="bg-rose-950/40 rounded-lg p-3 border border-rose-900/50 col-span-1 sm:col-span-2 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-rose-900/50 text-rose-300 font-black text-xl border border-rose-500/30">
+                  {data.corePersonality.narcissismLevel.score}
+                </div>
+                <div>
+                  <span className="block text-xs text-rose-400 uppercase tracking-wider font-bold mb-1">Шкала нарциссизма: {data.corePersonality.narcissismLevel.status}</span>
+                  <p className="text-sm text-rose-200/80 leading-snug">{data.corePersonality.narcissismLevel.reasoning}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -85,6 +96,63 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
         </div>
       )}
 
+      {/* Fears */}
+      {data.fears && (
+        <div className="space-y-3">
+          <h4 className="text-white font-semibold flex items-center gap-2 border-b border-slate-600 pb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+            Страхи и компенсации
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-slate-800/20 rounded-xl p-4 border border-slate-700/30">
+              <span className="block text-xs text-rose-500 font-semibold uppercase mb-2">Проговариваемые страхи</span>
+              <ul className="space-y-1 text-slate-300 text-sm">
+                {(data.fears.explicitFears || []).map((f: string, i: number) => <li key={i}>• {f}</li>)}
+              </ul>
+            </div>
+            <div className="bg-slate-800/20 rounded-xl p-4 border border-slate-700/30">
+              <span className="block text-xs text-rose-500 font-semibold uppercase mb-2">Скрытые страхи</span>
+              <ul className="space-y-1 text-slate-300 text-sm">
+                {(data.fears.hiddenFears || []).map((f: string, i: number) => <li key={i}>• {f}</li>)}
+              </ul>
+            </div>
+            <div className="col-span-1 md:col-span-2 bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+              <span className="block text-xs text-slate-400 font-semibold uppercase mb-1">Коупинг-механизм (Защита)</span>
+              <p className="text-slate-200">{data.fears.copingMechanism}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Money and Success Attitude */}
+      {data.moneyAndSuccessAttitude && (
+        <div className="space-y-3">
+          <h4 className="text-white font-semibold flex items-center gap-2 border-b border-amber-500/30 pb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            Деньги и Успех
+          </h4>
+          <div className="space-y-3 bg-amber-950/10 rounded-xl p-4 border border-amber-900/30">
+            <div>
+              <span className="block text-xs text-amber-500/80 mb-1">Отношение к деньгам</span>
+              <p className="text-slate-200">{data.moneyAndSuccessAttitude.relationToMoney}</p>
+            </div>
+            <div className="pt-2 border-t border-amber-900/30">
+              <span className="block text-xs text-amber-500/80 mb-1">Маркеры успеха</span>
+              <p className="text-slate-200">{data.moneyAndSuccessAttitude.relationToSuccess}</p>
+            </div>
+            <div className="pt-2 border-t border-amber-900/30">
+              <span className="block text-xs text-amber-500/80 mb-1">Уровень флекса (демонстративности)</span>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-full bg-slate-800 rounded-full h-2.5 max-w-xs">
+                  <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: `${(Number(data.moneyAndSuccessAttitude.flexingLevel) || 0) * 10}%` }}></div>
+                </div>
+                <span className="text-amber-400 font-bold">{data.moneyAndSuccessAttitude.flexingLevel}/10</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Communication Style */}
       {data.communicationStyle && (
         <div className="space-y-3">
@@ -111,49 +179,71 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
 
       {/* Summary */}
       {data.summary && (
-        <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-start gap-3">
+        <div className="mt-6 p-4 bg-rose-950/20 border border-rose-900/30 rounded-xl flex items-start gap-3">
           <User className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-          <p className="text-rose-100 italic">{data.summary}</p>
+          <p className="text-rose-100/90 italic">{data.summary}</p>
         </div>
       )}
-      
     </div>
   );
 }
 
 export function aiPersonaToMarkdown(data: any): string {
   if (!data) return '';
+
   let md = '# Психологический портрет автора канала (AI Анализ)\n\n';
 
   if (data.corePersonality) {
     md += '## Ядро личности\n';
-    md += `- **Архетип:** ${data.corePersonality.archetype}\n`;
-    md += `- **BDSM Роль / Склонность:** ${data.corePersonality.bdsmRole}\n`;
-    md += `- **Уровень доминантности:** ${data.corePersonality.dominanceLevel}\n`;
-    md += `- **Темперамент:** ${data.corePersonality.temperament}\n\n`;
+    md += '- **Архетип:** ' + data.corePersonality.archetype + '\n';
+    md += '- **BDSM Роль / Склонность:** ' + data.corePersonality.bdsmRole + '\n';
+    md += '- **Уровень доминантности:** ' + data.corePersonality.dominanceLevel + '\n';
+    md += '- **Темперамент:** ' + data.corePersonality.temperament + '\n';
+    if (data.corePersonality.narcissismLevel) {
+      md += '- **Шкала нарциссизма:** ' + data.corePersonality.narcissismLevel.score + '/100 (' + data.corePersonality.narcissismLevel.status + ')\n';
+      md += '  *' + data.corePersonality.narcissismLevel.reasoning + '*\n';
+    }
+    md += '\n';
   }
 
   if (data.psychologicalTraits) {
     md += '## Психологические черты\n';
     md += '### Сильные стороны\n';
-    (data.psychologicalTraits.strengths || []).forEach((s: string) => md += `- ${s}\n`);
+    (data.psychologicalTraits.strengths || []).forEach((s: string) => md += '- ' + s + '\n');
     md += '\n### Слабости / Тени\n';
-    (data.psychologicalTraits.weaknesses || []).forEach((w: string) => md += `- ${w}\n`);
+    (data.psychologicalTraits.weaknesses || []).forEach((w: string) => md += '- ' + w + '\n');
     md += '\n### Триггеры\n';
-    (data.psychologicalTraits.triggers || []).forEach((t: string) => md += `- ${t}\n`);
+    (data.psychologicalTraits.triggers || []).forEach((t: string) => md += '- ' + t + '\n');
     md += '\n';
+  }
+
+  if (data.fears) {
+    md += '## Страхи и компенсации\n';
+    md += '### Проговариваемые страхи\n';
+    (data.fears.explicitFears || []).forEach((s: string) => md += '- ' + s + '\n');
+    md += '\n### Скрытые страхи\n';
+    (data.fears.hiddenFears || []).forEach((w: string) => md += '- ' + w + '\n');
+    md += '\n### Коупинг-механизм (Защита)\n';
+    md += data.fears.copingMechanism + '\n\n';
+  }
+
+  if (data.moneyAndSuccessAttitude) {
+    md += '## Деньги и Успех\n';
+    md += '- **Отношение к деньгам:** ' + data.moneyAndSuccessAttitude.relationToMoney + '\n';
+    md += '- **Маркеры успеха:** ' + data.moneyAndSuccessAttitude.relationToSuccess + '\n';
+    md += '- **Уровень флекса:** ' + data.moneyAndSuccessAttitude.flexingLevel + '/10\n\n';
   }
 
   if (data.communicationStyle) {
     md += '## Стиль общения\n';
-    md += `- **Тон:** ${data.communicationStyle.tone}\n`;
-    md += `- **Манипуляции:** ${data.communicationStyle.manipulation}\n`;
-    md += `- **Личные границы:** ${data.communicationStyle.boundaries}\n\n`;
+    md += '- **Тон:** ' + data.communicationStyle.tone + '\n';
+    md += '- **Манипуляции:** ' + data.communicationStyle.manipulation + '\n';
+    md += '- **Личные границы:** ' + data.communicationStyle.boundaries + '\n\n';
   }
 
   if (data.summary) {
     md += '## Резюме\n';
-    md += `> ${data.summary}\n`;
+    md += '> ' + data.summary + '\n';
   }
 
   return md;

@@ -189,14 +189,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           </div>
         </div>
       `;
-    } else if (report.type === 'persona') {
+    ﻿    } else if (report.type === 'persona') {
       contentHtml = `
         <div class="bg-[#0f0a10] rounded-3xl p-6 border border-[#521b2b] text-[#fbebf0]">
           <h2 class="text-2xl font-bold mb-4 text-rose-400">Психологический портрет</h2>
           ${parsedData.summary ? `<p class="text-lg mb-8 text-rose-100 italic">"${parsedData.summary}"</p>` : ''}
           
           <h3 class="text-xl font-bold mb-3 text-rose-300">Ядро личности</h3>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
               <div class="text-[10px] uppercase text-rose-500 mb-1">Архетип</div>
               <div class="font-medium text-rose-100">${parsedData.corePersonality?.archetype || '-'}</div>
@@ -214,6 +214,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
               <div class="font-medium text-rose-100">${parsedData.corePersonality?.temperament || '-'}</div>
             </div>
           </div>
+          ${parsedData.corePersonality?.narcissismLevel ? `
+          <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b] mb-8 flex items-center gap-4">
+            <div class="shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-[#521b2b] text-rose-300 font-black text-xl border border-rose-500">
+              ${parsedData.corePersonality.narcissismLevel.score}
+            </div>
+            <div>
+              <div class="text-xs uppercase text-rose-500 font-bold mb-1">Шкала нарциссизма: ${parsedData.corePersonality.narcissismLevel.status}</div>
+              <div class="text-sm text-rose-200">${parsedData.corePersonality.narcissismLevel.reasoning || '-'}</div>
+            </div>
+          </div>
+          ` : '<div class="mb-8"></div>'}
           
           <h3 class="text-xl font-bold mb-3 text-emerald-300">Психологические черты</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -237,6 +248,45 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             </div>
           </div>
 
+          ${parsedData.fears ? `
+          <h3 class="text-xl font-bold mb-3 text-rose-400">Страхи и компенсации</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-2">Проговариваемые страхи</div>
+              <ul class="list-disc pl-4 text-sm text-rose-200">
+                ${(parsedData.fears.explicitFears || []).map((f: string) => `<li>${f}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-2">Скрытые страхи</div>
+              <ul class="list-disc pl-4 text-sm text-rose-200">
+                ${(parsedData.fears.hiddenFears || []).map((f: string) => `<li>${f}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="col-span-1 md:col-span-2 bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
+              <div class="text-[10px] uppercase text-rose-500 mb-1">Коупинг-механизм</div>
+              <div class="text-sm text-rose-100">${parsedData.fears.copingMechanism || '-'}</div>
+            </div>
+          </div>
+          ` : ''}
+
+          ${parsedData.moneyAndSuccessAttitude ? `
+          <h3 class="text-xl font-bold mb-3 text-amber-400">Деньги и Успех</h3>
+          <div class="bg-[#1a110a] p-4 rounded-xl border border-[#52321b] mb-8 space-y-3">
+            <div>
+              <div class="text-[10px] uppercase text-amber-500 mb-1">Отношение к деньгам</div>
+              <div class="text-sm text-amber-100">${parsedData.moneyAndSuccessAttitude.relationToMoney || '-'}</div>
+            </div>
+            <div class="pt-2 border-t border-amber-900/30">
+              <div class="text-[10px] uppercase text-amber-500 mb-1">Маркеры успеха</div>
+              <div class="text-sm text-amber-100">${parsedData.moneyAndSuccessAttitude.relationToSuccess || '-'}</div>
+            </div>
+            <div class="pt-2 border-t border-amber-900/30">
+              <div class="text-[10px] uppercase text-amber-500 mb-1">Уровень флекса: ${parsedData.moneyAndSuccessAttitude.flexingLevel}/10</div>
+            </div>
+          </div>
+          ` : ''}
+
           <h3 class="text-xl font-bold mb-3 text-rose-300">Стиль общения</h3>
           <div class="space-y-4 mb-8">
             <div class="bg-[#1f0a12] p-4 rounded-xl border border-[#521b2b]">
@@ -254,6 +304,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           </div>
         </div>
       `;
+
     } else {
       contentHtml = `
         <div class="bg-[#07111f] rounded-3xl p-6 border border-[#231b52] text-[#edf4fb]">
