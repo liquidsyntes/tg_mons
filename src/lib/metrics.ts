@@ -352,6 +352,87 @@ export async function getOverviewStats(): Promise<OverviewStats> {
   };
 }
 
+export async function getErrHistory(channelId: number, days: number = 30) {
+  const periodStart = new Date(Date.now() - days * 24 * 3600 * 1000);
+
+  const posts = await prisma.post.findMany({
+    where: {
+      channelId,
+      publishedAt: { gte: periodStart },
+    },
+    select: { publishedAt: true, views: true },
+    orderBy: { publishedAt: 'asc' },
+  });
+
+  const snapshots = await prisma.snapshot.findMany({
+    where: {
+      channelId,
+      collectedAt: { gte: periodStart },
+    },
+    select: { collectedAt: true, membersCount: true },
+    orderBy: { collectedAt: 'asc' },
+  });
+
+  const postsByDate = new Map<string, { totalViews: number; count: number }>();
+  for (const p of posts) {
+    if (p.views === null || p.views === undefined) continue;
+    const date = p.publishedAt.toISOString().slice(0, 10);
+    const curr = postsByDate.get(date) || { totalViews: 0, count: 0 };
+    curr.totalViews += p.views;
+    curr.count += 1;
+    postsByDate.set(date, curr);
+  }
+
+  // To match a day to its members count, we can find the closest snapshot 
+  // on or before that day.
+  // Pre-calculate the latest snapshot before each day.
+  const baselineSnapshots = await prisma.snapshot.findMany({
+    where: {
+      channelId,
+      collectedAt: { lt: periodStart },
+    },
+    orderBy: { collectedAt: 'desc' },
+    take: 1,
+  });
+  
+  let currentMembers = baselineSnapshots[0]?.membersCount || 0;
+  let snapshotIndex = 0;
+
+  const dates = Array.from(postsByDate.keys()).sort();
+  const history = [];
+
+  for (const date of dates) {
+    // Advance snapshot index until it matches or passes the date
+    const dayStart = new Date(date + 'T00:00:00.000Z');
+    const dayEnd = new Date(date + 'T23:59:59.999Z');
+    
+    // Find the latest snapshot up to dayEnd
+    let dayMembers = currentMembers;
+    for (let i = snapshotIndex; i < snapshots.length; i++) {
+      if (snapshots[i].collectedAt <= dayEnd) {
+        dayMembers = snapshots[i].membersCount;
+        snapshotIndex = i + 1;
+      } else {
+        break;
+      }
+    }
+    currentMembers = dayMembers;
+
+    const data = postsByDate.get(date)!;
+    const avgViews = Math.round(data.totalViews / data.count);
+    const err = dayMembers > 0 ? Number(((avgViews / dayMembers) * 100).toFixed(2)) : 0;
+
+    history.push({
+      date,
+      err,
+      avgViews,
+      membersCount: dayMembers,
+    });
+  }
+
+  return history;
+}
+
 export async function getChannelDetailStats(
   channelId: number,
   period: '24h' | '7d' | '30d' = '7d'
@@ -507,12 +588,18 @@ export async function getChannelDetailStats(
     text: p.text,
   }));
 
+  const errHistory = await getErrHistory(
+    channelId,
+    period === '24h' ? 1 : period === '30d' ? 30 : 7
+  );
+
   return {
     channel,
     myChannel,
     period,
     membersHistory,
     postsDistribution,
+    errHistory,
     heatmapData,
     myHeatmapData: myChannelRecord ? myHeatmapData : undefined,
     recentPosts,

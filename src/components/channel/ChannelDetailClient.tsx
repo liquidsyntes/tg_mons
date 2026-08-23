@@ -7,6 +7,7 @@ import { DetailSkeleton } from '@/components/SkeletonLoader';
 import { ChannelHeader } from '@/components/channel/ChannelHeader';
 import { SubscriberChart } from '@/components/channel/SubscriberChart';
 import { PostsActivity } from '@/components/channel/PostsActivity';
+import { ErrChart } from '@/components/channel/ErrChart';
 import { ChannelHeatmap } from '@/components/channel/ChannelHeatmap';
 import { RecentPosts } from '@/components/channel/RecentPosts';
 import { AIReportsSection } from '@/components/channel/AIReportsSection';
@@ -62,6 +63,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
               <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} />
               <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
               <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
+              <ErrChart errHistory={data!.errHistory || []} period={period} />
               <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />
               <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} />
               <RecentPosts 

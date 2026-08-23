@@ -69,6 +69,12 @@ export interface ChannelDetailStats {
     postsCount: number;
     viewsAvg?: number | null;
   }[];
+  errHistory?: {
+    date: string;
+    err: number;
+    avgViews: number;
+    membersCount: number;
+  }[];
   heatmapData: {
     day: number; // 0 (Sunday) to 6 (Saturday)
     hour: number; // 0 to 23
