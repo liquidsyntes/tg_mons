@@ -270,7 +270,43 @@ export async function collectChannelData(
       const views = typeof msg.views === 'number' ? msg.views : null;
       const text = msg.message || null;
 
-      await prisma.post.upsert({
+      // Extract mentions
+      const extractedMentions: { type: string, targetUsername?: string | null, targetTgId?: any }[] = [];
+
+      // 1. Forward
+      if (msg.fwdFrom) {
+          const fromId = msg.fwdFrom.fromId;
+          if (fromId && fromId.className === 'PeerChannel') {
+              extractedMentions.push({
+                  type: 'forward',
+                  targetTgId: fromId.channelId,
+              });
+          }
+      }
+
+      // 2. Text mentions
+      if (text) {
+          const usernameRegex = /@([a-zA-Z0-9_]{4,})/g;
+          let match;
+          while ((match = usernameRegex.exec(text)) !== null) {
+              const uname = match[1].toLowerCase();
+              if (uname !== channel.username?.toLowerCase()) {
+                 extractedMentions.push({ type: 'mention', targetUsername: uname });
+              }
+          }
+          const linkRegex = /(?:t\.me\/|telegram\.me\/)([a-zA-Z0-9_]{4,})/g;
+          while ((match = linkRegex.exec(text)) !== null) {
+              const uname = match[1].toLowerCase();
+              if (uname !== channel.username?.toLowerCase() && uname !== 'joinchat') {
+                 extractedMentions.push({ type: 'mention', targetUsername: uname });
+              }
+          }
+      }
+      
+      const uniqueMentionsStr = Array.from(new Set(extractedMentions.map(m => JSON.stringify(m))));
+      const uniqueMentions = uniqueMentionsStr.map(s => JSON.parse(s));
+
+      const post = await prisma.post.upsert({
         where: {
           channelId_messageId: {
             channelId: channel.id,
@@ -289,6 +325,31 @@ export async function collectChannelData(
           text,
         },
       });
+
+      if (views !== null && views !== undefined) {
+          const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+          if (publishedAt.getTime() > sevenDaysAgo) {
+              await prisma.postSnapshot.create({
+                  data: {
+                      postId: post.id,
+                      views,
+                  }
+              });
+          }
+      }
+
+      if (uniqueMentions.length > 0) {
+          await prisma.mention.deleteMany({ where: { sourcePostId: post.id } });
+          await prisma.mention.createMany({
+              data: uniqueMentions.map(m => ({
+                  sourcePostId: post.id,
+                  sourceChannelId: channel.id,
+                  targetUsername: m.targetUsername,
+                  targetTgId: m.targetTgId ? BigInt(m.targetTgId) : null,
+                  type: m.type,
+              }))
+          });
+      }
 
       postsAdded++;
     }

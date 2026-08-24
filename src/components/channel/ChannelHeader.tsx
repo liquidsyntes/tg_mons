@@ -6,6 +6,7 @@ import { ChannelMetrics } from '@/lib/types';
 import { DeltaBadge } from '@/components/DeltaBadge';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
+import { ExportWrappedButton } from '@/components/channel/ExportWrappedButton';
 import { formatNumber } from '@/lib/utils';
 
 interface ChannelHeaderProps {
@@ -89,11 +90,14 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
               </div>
               <div className="text-xs text-slate-400">текущих подписчиков</div>
             </div>
-            <ExportPdfButton
-              reportContainerId="report-content"
-              channelTitle={channel.title}
-              period={period}
-            />
+            <div className="flex flex-col gap-2">
+              <ExportPdfButton
+                reportContainerId="report-content"
+                channelTitle={channel.title}
+                period={period}
+              />
+              <ExportWrappedButton filename={`tgmon-wrapped-${channel.username || channel.id}.png`} />
+            </div>
           </div>
         </div>
 

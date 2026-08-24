@@ -12,6 +12,9 @@ import { ErrChart } from '@/components/channel/ErrChart';
 import { ChannelHeatmap } from '@/components/channel/ChannelHeatmap';
 import { RecentPosts } from '@/components/channel/RecentPosts';
 import { AIReportsSection } from '@/components/channel/AIReportsSection';
+import CitationNetworkWidget from '@/components/CitationNetworkWidget';
+import ContentLTVChart from '@/components/channel/ContentLTVChart';
+import { WrappedCard } from '@/components/channel/WrappedCard';
 
 interface ChannelDetailClientProps {
   channelId: string;
@@ -68,12 +71,15 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
               <ErrChart errHistory={data!.errHistory || []} period={period} />
               <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />
               <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} />
+              <CitationNetworkWidget channelId={Number(channelId)} />
+              <ContentLTVChart channelId={Number(channelId)} />
               <RecentPosts 
                 initialPosts={data!.recentPosts || []} 
                 channelId={channelId} 
                 channelUsername={channel.username} 
                 channelTgId={channel.tgId} 
               />
+              <WrappedCard channel={channel} stats={data!} />
             </div>
           </>
         )}

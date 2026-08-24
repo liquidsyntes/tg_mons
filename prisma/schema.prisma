@@ -1,10 +1,12 @@
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm]
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 model Channel {
@@ -23,6 +25,7 @@ model Channel {
   snapshots       Snapshot[]
   posts           Post[]
   aiReports       AiReport[]
+  mentions        Mention[]
 
   @@map("channels")
 }
@@ -59,9 +62,40 @@ model Post {
   views       Int?
   text        String?
   channel     Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  mentions    Mention[]
+  snapshots   PostSnapshot[]
 
   @@unique([channelId, messageId])
   @@index([channelId, publishedAt])
-  @@index([channelId, publishedAt, text])
+  @@index([text(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("posts")
+}
+
+model PostSnapshot {
+  id          Int      @id @default(autoincrement())
+  postId      Int      @map("post_id")
+  views       Int
+  collectedAt DateTime @default(now()) @map("collected_at")
+
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, collectedAt])
+  @@map("post_snapshots")
+}
+
+model Mention {
+  id              Int      @id @default(autoincrement())
+  sourcePostId    Int      @map("source_post_id")
+  sourceChannelId Int      @map("source_channel_id")
+  targetUsername  String?  @map("target_username")
+  targetTgId      BigInt?  @map("target_tg_id")
+  type            String   // "forward" | "mention"
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  sourcePost      Post     @relation(fields: [sourcePostId], references: [id], onDelete: Cascade)
+  sourceChannel   Channel  @relation(fields: [sourceChannelId], references: [id], onDelete: Cascade)
+
+  @@index([sourceChannelId])
+  @@index([targetUsername])
+  @@map("mentions")
 }

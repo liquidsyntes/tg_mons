@@ -1,4 +1,17 @@
 services:
+  postgres:
+    image: postgres:15
+    container_name: tgmon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: tgmon
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   web:
     build:
       context: .
@@ -8,7 +21,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: "file:./data/dev.db"
+      DATABASE_URL: "postgresql://postgres:password@postgres:5432/tgmon?schema=public"
       TG_API_ID: ${TG_API_ID}
       TG_API_HASH: ${TG_API_HASH}
       TG_SESSION: ${TG_SESSION}
@@ -16,8 +29,8 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-    volumes:
-      - sqlite_data:/app/data
+    depends_on:
+      - postgres
 
   worker:
     build:
@@ -26,7 +39,7 @@ services:
     container_name: tgmon-worker
     restart: unless-stopped
     environment:
-      DATABASE_URL: "file:./data/dev.db"
+      DATABASE_URL: "postgresql://postgres:password@postgres:5432/tgmon?schema=public"
       TG_API_ID: ${TG_API_ID}
       TG_API_HASH: ${TG_API_HASH}
       TG_SESSION: ${TG_SESSION}
@@ -34,8 +47,8 @@ services:
       COLLECT_ON_STARTUP: ${COLLECT_ON_STARTUP:-true}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-    volumes:
-      - sqlite_data:/app/data
+    depends_on:
+      - postgres
 
 volumes:
-  sqlite_data:
+  postgres_data:

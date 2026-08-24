@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     const where: any = { channelId };
 
     if (q) {
-      where.text = { contains: q };
+      where.text = { contains: q, mode: 'insensitive' };
     }
 
     if (dateFrom || dateTo) {
@@ -46,19 +46,19 @@ export async function GET(req: Request) {
 
     if (type === 'ads') {
       where.OR = [
-        { text: { contains: 'реклам' } },
-        { text: { contains: 'erid' } },
-        { text: { contains: 'promo' } },
-        { text: { contains: '#ad' } },
-        { text: { contains: 'спонсор' } }
+        { text: { contains: 'реклам', mode: 'insensitive' } },
+        { text: { contains: 'erid', mode: 'insensitive' } },
+        { text: { contains: 'promo', mode: 'insensitive' } },
+        { text: { contains: '#ad', mode: 'insensitive' } },
+        { text: { contains: 'спонсор', mode: 'insensitive' } }
       ];
     } else if (type === 'partners') {
        where.OR = [
-        { text: { contains: 'партнер' } },
-        { text: { contains: 'партнёр' } },
-        { text: { contains: 'коллаб' } },
-        { text: { contains: 'совместн' } },
-        { text: { contains: 't.me/' } }
+        { text: { contains: 'партнер', mode: 'insensitive' } },
+        { text: { contains: 'партнёр', mode: 'insensitive' } },
+        { text: { contains: 'коллаб', mode: 'insensitive' } },
+        { text: { contains: 'совместн', mode: 'insensitive' } },
+        { text: { contains: 't.me/', mode: 'insensitive' } }
       ];
     }
 
