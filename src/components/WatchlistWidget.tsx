@@ -15,8 +15,8 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
   if (favorites.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 px-1">
+    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+      <div className="flex items-center gap-2">
         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
         <h3 className="text-base font-bold text-white tracking-tight">Избранное</h3>
       </div>
@@ -26,7 +26,7 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
           <Link 
             key={channel.id} 
             href={`/channel/${channel.id}`}
-            className="block bg-surface border border-border hover:border-amber-500/50 rounded-2xl p-4 transition-colors group"
+            className="block bg-slate-900 border border-border hover:border-amber-500/50 rounded-xl p-4 transition-colors group"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="min-w-0">
