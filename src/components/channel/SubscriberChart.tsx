@@ -251,9 +251,9 @@ export function SubscriberChart({ data, channel, myChannel, isMine, period }: Su
                   cursor={{ fill: '#334155', opacity: 0.4 }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Bar dataKey="growth" name={channel.title} fill="#38bdf8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="growth" name={channel.title} fill="#38bdf8" radius={[3, 3, 0, 0]} />
                 {!isMine && showMyChannelOverlay && myChannel && (
-                  <Bar dataKey="myGrowth" name={`Мой: ${myChannel.title}`} fill="#a855f7" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="myGrowth" name={`Мой: ${myChannel.title}`} fill="#a855f7" radius={[3, 3, 0, 0]} />
                 )}
               </BarChart>
             )}

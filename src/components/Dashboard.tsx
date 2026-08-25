@@ -195,7 +195,7 @@ export function Dashboard() {
                 <Bar 
                   dataKey="count" 
                   fill="#a855f7" 
-                  radius={[4, 4, 0, 0]} 
+                  radius={[3, 3, 0, 0]} 
                 />
               </BarChart>
             </ResponsiveContainer>

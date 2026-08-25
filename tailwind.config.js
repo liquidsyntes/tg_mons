@@ -8,6 +8,17 @@ module.exports = {
     './src/**/*.{ts,tsx}',
   ],
   theme: {
+    borderRadius: {
+      none: '0px',
+      sm: '3px',
+      DEFAULT: '3px',
+      md: '3px',
+      lg: '3px',
+      xl: '3px',
+      '2xl': '3px',
+      '3xl': '3px',
+      full: '9999px',
+    },
     extend: {
       colors: {
         background: '#090d16',

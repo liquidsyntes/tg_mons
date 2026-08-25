@@ -506,8 +506,8 @@ function ComparePage() {
                         labelStyle={{ color: '#94a3b8' }}
                       />
                       <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      <Bar dataKey="postsA" name={chA.title} fill="#38bdf8" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="postsB" name={chB.title} fill="#fbbf24" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="postsA" name={chA.title} fill="#38bdf8" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="postsB" name={chB.title} fill="#fbbf24" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
