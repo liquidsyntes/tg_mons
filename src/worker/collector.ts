@@ -269,6 +269,13 @@ export async function collectChannelData(
       const publishedAt = new Date(msgDateSec * 1000);
       const views = typeof msg.views === 'number' ? msg.views : null;
       const text = msg.message || null;
+      const forwards = typeof msg.forwards === 'number' ? msg.forwards : null;
+      const comments = msg.replies && typeof msg.replies.replies === 'number' ? msg.replies.replies : null;
+      
+      let reactions: number | null = null;
+      if (msg.reactions && msg.reactions.results) {
+         reactions = msg.reactions.results.reduce((acc: number, r: any) => acc + (r.count || 0), 0);
+      }
 
       // Extract mentions
       const extractedMentions: { type: string, targetUsername?: string | null, targetTgId?: any }[] = [];
@@ -315,6 +322,9 @@ export async function collectChannelData(
         },
         update: {
           views: views ?? undefined,
+          reactions: reactions ?? undefined,
+          comments: comments ?? undefined,
+          forwards: forwards ?? undefined,
           text: text ?? undefined,
         },
         create: {
@@ -322,6 +332,9 @@ export async function collectChannelData(
           messageId,
           publishedAt,
           views,
+          reactions,
+          comments,
+          forwards,
           text,
         },
       });

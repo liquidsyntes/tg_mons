@@ -59,6 +59,7 @@ export function calculateChannelMetricsFromData(
     lastError: string | null;
     lastCollectedAt: Date | null;
     createdAt: Date;
+    niche: string;
   },
   channelSnapshots: { collectedAt: Date; membersCount: number }[],
   channelPosts: { publishedAt: Date; views: number | null; text: string | null }[],
@@ -163,6 +164,7 @@ export function calculateChannelMetricsFromData(
     tgId: channel.tgId ? channel.tgId.toString() : null,
     title: channel.title,
     type: channel.type as 'channel' | 'group',
+    niche: channel.niche,
     isMine: channel.isMine,
     isFavorite: channel.isFavorite || false,
     isActive: channel.isActive,
@@ -263,7 +265,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
       channelId: { in: channelIds },
       publishedAt: { gte: date30dAgo },
     },
-    select: { channelId: true, publishedAt: true, views: true, text: true },
+    select: { channelId: true, publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true },
   });
 
   // Group snapshots by channelId (preserving desc order)
@@ -279,7 +281,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
   }
 
   // Group posts by channelId
-  const postsByChannel = new Map<number, { publishedAt: Date; views: number | null; text: string | null }[]>();
+  const postsByChannel = new Map<number, { publishedAt: Date; views: number | null; text: string | null; reactions: number | null; comments: number | null; forwards: number | null }[]>();
   for (const p of allPosts) {
     if (!postsByChannel.has(p.channelId)) {
       postsByChannel.set(p.channelId, []);
@@ -288,16 +290,51 @@ export async function getOverviewStats(): Promise<OverviewStats> {
       publishedAt: p.publishedAt,
       views: p.views,
       text: p.text,
+      reactions: p.reactions,
+      comments: p.comments,
+      forwards: p.forwards,
     });
   }
 
   // Compute metrics for each channel — pure in-memory, no DB calls
   const channelMetricsList: ChannelMetrics[] = [];
+  const epSnapshots: import('./ep').ChannelSnapshot[] = [];
+
   for (const ch of allChannels) {
     const snapshots = snapshotsByChannel.get(ch.id) || [];
     const posts = postsByChannel.get(ch.id) || [];
     const metrics = calculateChannelMetricsFromData(ch, snapshots, posts, now);
     channelMetricsList.push(metrics);
+
+    // Build EP snapshot for calculation
+    const recentPosts = posts.slice(-20); // last 20 posts
+    epSnapshots.push({
+      channelId: ch.id.toString(),
+      niche: ch.niche || 'general',
+      subscribers: metrics.currentMembers || 0,
+      newSubs24h: metrics.delta24h.abs || 0,
+      newSubs7d: metrics.delta7d.abs || 0,
+      newSubs30d: metrics.delta30d.abs || 0,
+      postViews: recentPosts.map(p => p.views || 0),
+      postReactions: recentPosts.map(p => p.reactions || 0),
+      postComments: recentPosts.map(p => p.comments || 0),
+      postForwards: recentPosts.map(p => p.forwards || 0),
+    });
+  }
+
+  // Calculate EP
+  const { computeNicheStats, calculateEP } = await import('./ep');
+  const nicheStats = computeNicheStats(epSnapshots);
+  for (const metrics of channelMetricsList) {
+    const snap = epSnapshots.find(s => s.channelId === metrics.id.toString());
+    if (snap) {
+      const stats = nicheStats.get(snap.niche);
+      if (stats) {
+        const epResult = calculateEP(snap, stats);
+        metrics.ep = epResult.EP;
+        metrics.epBreakdown = epResult.breakdown;
+      }
+    }
   }
 
   // Find My Channel
@@ -451,6 +488,14 @@ export async function getChannelDetailStats(
   const now = new Date();
   const channel = await calculateChannelMetrics(channelId, now);
   if (!channel) return null;
+
+  // Fetch EP from overview (since EP requires all channels data)
+  const overview = await getOverviewStats();
+  const overviewChannel = overview.channels.find(c => c.id === channelId) || overview.myChannel;
+  if (overviewChannel) {
+    channel.ep = overviewChannel.ep;
+    channel.epBreakdown = overviewChannel.epBreakdown;
+  }
 
   const myChannelRecord = await prisma.channel.findFirst({
     where: { isMine: true },

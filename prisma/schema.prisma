@@ -15,6 +15,7 @@ model Channel {
   tgId            BigInt?    @unique
   title           String
   type            String     // "channel" | "group"
+  niche           String     @default("general")
   isMine          Boolean    @default(false)
   isFavorite      Boolean    @default(false)
   isActive        Boolean    @default(true)
@@ -60,6 +61,9 @@ model Post {
   messageId   BigInt   @map("message_id")
   publishedAt DateTime @map("published_at")
   views       Int?
+  reactions   Int?
+  comments    Int?
+  forwards    Int?
   text        String?
   channel     Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
   mentions    Mention[]

@@ -25,7 +25,7 @@ import { StatusBadge } from './StatusBadge';
 import { formatNumber, formatPercent } from '@/lib/utils';
 import { LineChart, Line, YAxis } from 'recharts';
 
-type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'err' | 'score';
+type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'err' | 'score' | 'ep';
 type SortOrder = 'asc' | 'desc';
 
 interface ChannelsTableProps {
@@ -219,6 +219,10 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
           valA = a.contentScore ?? -1;
           valB = b.contentScore ?? -1;
           break;
+        case 'ep':
+          valA = a.ep ?? -1;
+          valB = b.ep ?? -1;
+          break;
       }
 
       if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
@@ -337,6 +341,12 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
                 >
                   Score {renderSortIcon('score')}
+                </th>
+                <th
+                  onClick={() => handleSort('ep')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                >
+                  EP {renderSortIcon('ep')}
                 </th>
                 <th className="py-3.5 px-4 text-center">Статус</th>
                 <th className="py-3.5 px-4 text-right">Действия</th>
@@ -546,6 +556,24 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                           }`}
                         >
                           {channel.contentGrade} <span className="opacity-70 ml-1 font-normal">{channel.contentScore}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 font-mono text-xs">н/д</span>
+                      )}
+                    </td>
+
+                    {/* EP */}
+                    <td className="py-3.5 px-4 text-center">
+                      {channel.ep !== undefined ? (
+                        <div
+                          className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold ${
+                            channel.ep >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
+                            channel.ep >= 60 ? 'bg-amber-500/10 text-amber-400' :
+                            channel.ep >= 40 ? 'bg-orange-500/10 text-orange-400' :
+                            'bg-rose-500/10 text-rose-400'
+                          }`}
+                        >
+                          {channel.ep.toFixed(1)}
                         </div>
                       ) : (
                         <span className="text-slate-500 font-mono text-xs">н/д</span>

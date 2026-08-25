@@ -16,8 +16,8 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
   const deltaPercent = channel.delta30d?.percent || 0;
   const isPositive = deltaAbs >= 0;
   
-  const contentScore = channel.contentScore || 85;
-  const scoreColor = contentScore >= 80 ? '#fbbf24' : contentScore >= 50 ? '#94a3b8' : '#f87171'; 
+  const epScore = channel.ep !== undefined ? channel.ep : (channel.contentScore || 85);
+  const scoreColor = epScore >= 80 ? '#fbbf24' : epScore >= 50 ? '#94a3b8' : '#f87171'; 
   const getGrade = (score: number) => {
     if (score >= 90) return 'S';
     if (score >= 80) return 'A';
@@ -25,7 +25,7 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
     if (score >= 50) return 'C';
     return 'D';
   };
-  const grade = getGrade(contentScore);
+  const grade = getGrade(epScore);
 
   const avgViews = posts.length > 0 ? Math.round(totalViews / posts.length) : 0;
   const erPercent = channel.currentMembers ? ((avgViews / channel.currentMembers) * 100).toFixed(1) : '0.0';
@@ -156,11 +156,11 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
               </div>
               
               <div className="flex-1 flex flex-col justify-end pb-8 relative z-10">
-                 <div className="text-sm text-slate-400 font-bold tracking-widest uppercase mb-2 h-12 flex items-start">Качество (Score)</div>
+                 <div className="text-sm text-slate-400 font-bold tracking-widest uppercase mb-2 h-12 flex items-start">Эффективность (EP)</div>
                  <div className="text-6xl font-bold mb-2 leading-none" style={{ color: scoreColor }}>
-                   {contentScore} - {grade}
+                   {typeof epScore === 'number' ? epScore.toFixed(1) : epScore} - {grade}
                  </div>
-                 <div className="text-lg text-slate-500 min-h-[3.5rem] mt-2">Оценка метрик контента</div>
+                 <div className="text-lg text-slate-500 min-h-[3.5rem] mt-2">Рейтинг канала в нише</div>
               </div>
             </div>
 

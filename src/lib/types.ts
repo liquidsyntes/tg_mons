@@ -32,6 +32,9 @@ export interface ChannelMetrics {
   sparkline7d?: number[]; // Added for 7d trend mini-chart
   contentScore?: number;
   contentGrade?: string;
+  niche?: string;
+  ep?: number;
+  epBreakdown?: any;
 
   // Comparison with "My Channel"
   comparison?: {
