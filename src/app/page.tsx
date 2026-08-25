@@ -88,23 +88,25 @@ export default function OverviewPage() {
           </div>
         ) : stats ? (
           <>
-            {/* My Channel Hero Card */}
-            <MyChannelCard
-              channel={stats.myChannel}
-              onOpenAddModal={() => setIsAddModalOpen(true)}
-            />
+            <div className="flex flex-col gap-[6px]">
+              {/* My Channel Hero Card */}
+              <MyChannelCard
+                channel={stats.myChannel}
+                onOpenAddModal={() => setIsAddModalOpen(true)}
+              />
 
-            {/* AI Recommendation: Best Time to Post */}
-            <BestTimeWidget />
+              {/* AI Recommendation: Best Time to Post */}
+              <BestTimeWidget />
 
-            {/* Watchlist / Favorites */}
-            <WatchlistWidget channels={stats.channels} />
+              {/* Watchlist / Favorites */}
+              <WatchlistWidget channels={stats.channels} />
 
-            {/* AI Trend Spotter */}
-            <TrendSpotterWidget />
+              {/* AI Trend Spotter */}
+              <TrendSpotterWidget />
 
-            {/* Dashboard Block */}
-            <Dashboard />
+              {/* Dashboard Block */}
+              <Dashboard />
+            </div>
 
             {/* Comparative Channels Table */}
             <div className="space-y-3">

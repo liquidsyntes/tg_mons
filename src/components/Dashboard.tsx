@@ -46,13 +46,13 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="space-y-[6px]">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-[6px]">
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="bg-surface border border-border rounded-2xl h-24 animate-pulse" />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[6px]">
           <div className="bg-surface border border-border rounded-2xl h-64 animate-pulse" />
           <div className="bg-surface border border-border rounded-2xl h-64 animate-pulse" />
         </div>
@@ -65,9 +65,9 @@ export function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[6px]">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-[6px]">
         <div className="bg-surface border border-border rounded-2xl p-5 flex flex-col justify-between">
           <div className="flex items-center gap-2 text-slate-400 mb-2">
             <Radio className="w-4 h-4" />
@@ -112,7 +112,7 @@ export function Dashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[6px]">
         {/* Subscribers Chart */}
         <div className="bg-surface border border-border rounded-2xl p-5">
           <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
@@ -204,13 +204,13 @@ export function Dashboard() {
       </div>
 
       {/* Gainers / Losers */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[6px]">
         <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
             Лидеры роста (7 дней)
           </h3>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-[6px]">
             {stats.topGainers.length > 0 ? (
               stats.topGainers.map((channel) => (
                 <Link key={channel.id} href={`/channel/${channel.id}`} className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700 group">
@@ -239,7 +239,7 @@ export function Dashboard() {
             <TrendingDown className="w-4 h-4 text-rose-400" />
             Слив аудитории (7 дней)
           </h3>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-[6px]">
             {stats.topLosers.length > 0 ? (
               stats.topLosers.map((channel) => (
                 <Link key={channel.id} href={`/channel/${channel.id}`} className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700 group">

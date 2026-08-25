@@ -91,13 +91,13 @@ export function BestTimeWidget() {
   };
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-[6px]">
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-emerald-400" />
         <h3 className="text-base font-bold text-white">Лучшее время для поста</h3>
       </div>
       
-      <div className="flex flex-col md:flex-row gap-5">
+      <div className="flex flex-col md:flex-row gap-[6px]">
         <div className="flex-1 bg-slate-900 border border-emerald-500/20 rounded-xl p-4 flex flex-col justify-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/50"></div>
           <div className="text-emerald-400/80 text-[10px] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">

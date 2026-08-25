@@ -98,7 +98,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
       </div>
 
       {/* Grid of Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mt-6 pt-5 border-t border-border/80">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-[6px] mt-6 pt-5 border-t border-border/80">
         {/* Delta 24h */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">

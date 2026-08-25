@@ -80,7 +80,7 @@ export function TrendSpotterWidget() {
   }
 
   return (
-    <div className="bg-surface border border-border rounded-3xl p-6 sm:p-8 space-y-6">
+    <div className="bg-surface border border-border rounded-3xl p-6 sm:p-8 space-y-[6px]">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -124,12 +124,12 @@ export function TrendSpotterWidget() {
       )}
 
       {report && (
-        <div className="space-y-6">
+        <div className="space-y-[6px]">
           <div className="p-4 rounded-2xl bg-slate-800/50 border border-border text-sm text-slate-300 leading-relaxed">
             <span className="font-semibold text-white">Сводка:</span> {report.data.summary}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-[6px]">
             {report.data.trends.map((trend, idx) => (
               <div key={idx} className="bg-slate-900/50 rounded-2xl border border-border p-5 space-y-4 flex flex-col">
                 <div className="flex items-start justify-between gap-3">

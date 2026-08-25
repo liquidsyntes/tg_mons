@@ -15,13 +15,13 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
   if (favorites.length === 0) return null;
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-[6px]">
       <div className="flex items-center gap-2">
         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
         <h3 className="text-base font-bold text-white tracking-tight">Избранное</h3>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[6px]">
         {favorites.map(channel => (
           <Link 
             key={channel.id} 
