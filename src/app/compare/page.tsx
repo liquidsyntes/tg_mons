@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { Suspense, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -369,8 +369,8 @@ function ComparePage() {
               />
               <CompareMetricCard
                 label="ERR (7д)"
-                valueA={chA.err7d}
-                valueB={chB.err7d}
+                valueA={chA.vr7d}
+                valueB={chB.vr7d}
                 formatFn={(v) => (v !== null ? `${v}%` : '—')}
                 highlight
               />

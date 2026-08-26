@@ -12,14 +12,14 @@ export interface ScoreBreakdown {
 }
 
 export function calculateContentScore(
-  err: number | null,
+  trueErr: number | null,
   postsPerDay: number,
   growthPercent: number | null,
   posts: { text: string | null }[]
 ): ScoreBreakdown {
   // ERR (0-30)
   let errScore = 5;
-  const e = err || 0;
+  const e = trueErr || 0;
   if (e >= 10) errScore = 30;
   else if (e >= 5) errScore = 20;
   else if (e >= 2) errScore = 10;

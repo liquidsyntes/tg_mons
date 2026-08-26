@@ -25,9 +25,10 @@ export interface ChannelMetrics {
   posts30d: number;
   avgPostsPerDay: number;
   avgViews24h: number | null;
-  err24h: number | null;
+  vr24h: number | null;
   avgViews7d: number | null;
-  err7d: number | null;
+  vr7d: number | null;
+  trueErr7d: number | null;
   status: ChannelStatus;
   sparkline7d?: number[]; // Added for 7d trend mini-chart
   contentScore?: number;
@@ -75,9 +76,9 @@ export interface ChannelDetailStats {
     postsCount: number;
     viewsAvg?: number | null;
   }[];
-  errHistory?: {
+  vrHistory?: {
     date: string;
-    err: number;
+    vr: number;
     avgViews: number;
     membersCount: number;
   }[];
@@ -105,14 +106,14 @@ export interface BestTimeRecommendation {
   bestHour: number;
   score: number;
   avgViews: number;
-  avgErr: number;
+  avgVr: number;
   postCount: number;
   heatmap: {
     day: number;
     hour: number;
     postCount: number;
     avgViews: number;
-    avgErr: number;
+    avgVr: number;
     score: number;
   }[];
 }

@@ -1,4 +1,4 @@
-import { ChannelMetrics, ChannelDetailStats } from '@/lib/types';
+﻿import { ChannelMetrics, ChannelDetailStats } from '@/lib/types';
 
 interface WrappedCardProps {
   channel: ChannelMetrics;
@@ -28,7 +28,7 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
   const grade = getGrade(epScore);
 
   const avgViews = posts.length > 0 ? Math.round(totalViews / posts.length) : 0;
-  const erPercent = channel.currentMembers ? ((avgViews / channel.currentMembers) * 100).toFixed(1) : '0.0';
+  const vrPercent = channel.currentMembers ? ((avgViews / channel.currentMembers) * 100).toFixed(1) : '0.0';
 
   const formatNum = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -171,9 +171,9 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
               </div>
               
               <div className="flex-1 flex flex-col justify-end pb-8 relative z-10">
-                 <div className="text-sm text-slate-400 font-bold tracking-widest uppercase mb-2 h-12 flex items-start">Средняя вовлеченность</div>
-                 <div className="text-6xl font-bold text-blue-400 mb-2 leading-none">{erPercent}%</div>
-                 <div className="text-lg text-slate-500 min-h-[3.5rem] mt-2">ER по просмотрам</div>
+                 <div className="text-sm text-slate-400 font-bold tracking-widest uppercase mb-2 h-12 flex items-start">Просмотры к подписчикам</div>
+                 <div className="text-6xl font-bold text-blue-400 mb-2 leading-none">{vrPercent}%</div>
+                 <div className="text-lg text-slate-500 min-h-[3.5rem] mt-2">View Rate</div>
               </div>
 
               <div className="absolute bottom-0 left-0 w-full h-28 opacity-60">

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -162,11 +162,11 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
             <span>ERR (24ч/7д)</span>
           </div>
           <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
-            <span className="text-slate-200">{channel.err24h !== null ? `${channel.err24h}%` : '—'}</span>
+            <span className="text-slate-200">{channel.vr24h !== null ? `${channel.vr24h}%` : '—'}</span>
             <span className="text-slate-500">/</span>
-            {channel.err7d !== null ? (
-              <span className={channel.err7d > 20 ? 'text-emerald-400' : channel.err7d > 10 ? 'text-amber-400' : 'text-slate-300'}>
-                {channel.err7d}%
+            {channel.vr7d !== null ? (
+              <span className={channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-300'}>
+                {channel.vr7d}%
               </span>
             ) : (
               <span className="text-slate-300">—</span>

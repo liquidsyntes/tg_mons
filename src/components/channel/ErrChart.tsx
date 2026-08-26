@@ -16,12 +16,12 @@ import {
 import { formatNumber } from '@/lib/utils';
 
 interface ErrChartProps {
-  errHistory: { date: string; err: number; avgViews: number; membersCount: number }[];
+  vrHistory: { date: string; vr: number; avgViews: number; membersCount: number }[];
   period: '24h' | '7d' | '30d';
   benchmarkErr?: number;
 }
 
-export function ErrChart({ errHistory, period, benchmarkErr: initialBenchmarkErr }: ErrChartProps) {
+export function ErrChart({ vrHistory, period, benchmarkErr: initialBenchmarkErr }: ErrChartProps) {
   const [benchmarkErr, setBenchmarkErr] = useState<number | undefined>(initialBenchmarkErr);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function ErrChart({ errHistory, period, benchmarkErr: initialBenchmarkErr
     }
   }, [benchmarkErr]);
 
-  const chartData = (errHistory || []).map((item) => {
+  const chartData = (vrHistory || []).map((item) => {
     let dateFormatted = item.date;
     if (period !== '24h') {
       const parts = item.date.split('-');
@@ -50,7 +50,7 @@ export function ErrChart({ errHistory, period, benchmarkErr: initialBenchmarkErr
     return {
       date: dateFormatted,
       viewsAvg: item.avgViews ?? 0,
-      err: item.err,
+      vr: item.vr,
     };
   });
 
@@ -88,7 +88,7 @@ export function ErrChart({ errHistory, period, benchmarkErr: initialBenchmarkErr
                 <ReferenceLine y={benchmarkErr} yAxisId="right" stroke="#64748b" strokeDasharray="3 3" label={{ position: 'top', value: 'Средний по нише', fill: '#64748b', fontSize: 10 }} />
               )}
               <Line yAxisId="left" type="monotone" dataKey="viewsAvg" name="Ср. просмотры" stroke="#fbbf24" strokeWidth={2.5} dot={{ r: 3, fill: '#fbbf24' }} activeDot={{ r: 5 }} />
-              <Line yAxisId="right" type="monotone" dataKey="err" name="ERR" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} />
+              <Line yAxisId="right" type="monotone" dataKey="vr" name="ERR" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         )}

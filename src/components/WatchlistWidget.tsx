@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ChannelMetrics } from '@/lib/types';
 import { Star, Eye, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -68,7 +68,7 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
                     ERR 7д
                   </div>
                   <div className="text-xs font-mono text-slate-300">
-                    {channel.err7d !== null ? `${channel.err7d}%` : '—'}
+                    {channel.vr7d !== null ? `${channel.vr7d}%` : '—'}
                   </div>
                 </div>
               </div>

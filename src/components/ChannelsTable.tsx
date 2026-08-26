@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -114,7 +114,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
       c.posts7d,
       c.posts30d,
       c.avgViews7d ?? '',
-      c.err7d ?? '',
+      c.vr7d ?? '',
       c.comparison?.audienceSharePercent ?? ''
     ]);
 
@@ -212,8 +212,8 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
           valB = b.avgViews24h ?? b.avgViews7d ?? -1;
           break;
         case 'err':
-          valA = a.err24h ?? a.err7d ?? -1;
-          valB = b.err24h ?? b.err7d ?? -1;
+          valA = a.vr24h ?? a.vr7d ?? -1;
+          valB = b.vr24h ?? b.vr7d ?? -1;
           break;
         case 'score':
           valA = a.contentScore ?? -1;
@@ -502,11 +502,11 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     <td className="py-3.5 px-3 text-center font-mono tabular-nums">
                       <div className="flex flex-col items-center justify-center gap-0.5">
                         <span className="text-xs text-slate-400">
-                          24ч: {channel.err24h !== null ? <span className="text-slate-200">{channel.err24h}%</span> : '—'}
+                          24ч: {channel.vr24h !== null ? <span className="text-slate-200">{channel.vr24h}%</span> : '—'}
                         </span>
-                        {channel.err7d !== null ? (
-                          <span className={`font-semibold ${channel.err7d > 20 ? 'text-emerald-400' : channel.err7d > 10 ? 'text-amber-400' : 'text-slate-300'}`}>
-                            7д: {channel.err7d}%
+                        {channel.vr7d !== null ? (
+                          <span className={`font-semibold ${channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-300'}`}>
+                            7д: {channel.vr7d}%
                           </span>
                         ) : (
                           <span className="text-slate-500">7д: —</span>
@@ -718,7 +718,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 <div className="bg-slate-900/60 p-2 rounded-lg">
                   <div className="text-[10px] text-slate-400 mb-1">ERR</div>
                   <div className="text-xs font-mono font-semibold text-white">
-                    {channel.err7d !== null ? `${channel.err7d}%` : '-'}
+                    {channel.vr7d !== null ? `${channel.vr7d}%` : '-'}
                   </div>
                 </div>
               </div>

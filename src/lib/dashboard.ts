@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+﻿import { prisma } from './prisma';
 import { getOverviewStats } from './metrics';
 import { subDays, format, startOfDay } from 'date-fns';
 
@@ -49,9 +49,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     : 0;
 
   // average err 7d
-  const validErr = allMetrics.filter(c => c.err7d !== null);
+  const validErr = allMetrics.filter(c => c.vr7d !== null);
   const avgErr = validErr.length > 0 
-    ? validErr.reduce((sum, c) => sum + c.err7d!, 0) / validErr.length 
+    ? validErr.reduce((sum, c) => sum + c.vr7d!, 0) / validErr.length 
     : 0;
 
   const validScore = allMetrics.filter(c => c.contentScore !== undefined);

@@ -62,7 +62,7 @@ export function calculateChannelMetricsFromData(
     niche: string;
   },
   channelSnapshots: { collectedAt: Date; membersCount: number }[],
-  channelPosts: { publishedAt: Date; views: number | null; text: string | null }[],
+  channelPosts: { publishedAt: Date; views: number | null; text: string | null; reactions?: number | null; comments?: number | null; forwards?: number | null }[],
   now: Date = new Date()
 ): ChannelMetrics {
   const date24hAgo = new Date(now.getTime() - MS_24H);
@@ -120,6 +120,30 @@ export function calculateChannelMetricsFromData(
     }
   }
 
+  // Вычисляем истинный ERR для скоринга контента
+  const trueViews7d: number[] = [];
+  const trueReactions7d: number[] = [];
+  const trueComments7d: number[] = [];
+  const trueForwards7d: number[] = [];
+  
+  for (const p of channelPosts) {
+    const pt = p.publishedAt.getTime();
+    if (pt >= t7d && pt < t24h && p.views !== null) {
+      trueViews7d.push(p.views);
+      trueReactions7d.push(p.reactions || 0);
+      trueComments7d.push(p.comments || 0);
+      trueForwards7d.push(p.forwards || 0);
+    }
+  }
+
+  let trueTotalEngagement = 0;
+  for (let i = 0; i < trueViews7d.length; i++) {
+    trueTotalEngagement += trueReactions7d[i] + trueComments7d[i] + trueForwards7d[i];
+  }
+  const trueAvgEngagement = trueViews7d.length > 0 ? trueTotalEngagement / trueViews7d.length : 0;
+  const trueAvgViews = trueViews7d.length > 0 ? trueViews7d.reduce((a,b)=>a+b,0) / trueViews7d.length : 0;
+  const trueErr7d = trueAvgViews > 0 ? (trueAvgEngagement / trueAvgViews) * 100 : null;
+
   // Если за окно 24-48ч не было постов, фоллбэк на среднее за 7 дней
   if (viewPosts24h === 0 && viewPosts7d > 0) {
     totalViews24h = totalViews7d;
@@ -129,12 +153,12 @@ export function calculateChannelMetricsFromData(
   const avgPostsPerDay = Number((posts30d / 30).toFixed(1));
 
   const avgViews24h = viewPosts24h > 0 ? Math.round(totalViews24h / viewPosts24h) : null;
-  const err24h = (currentMembers && currentMembers > 0 && avgViews24h !== null)
+  const vr24h = (currentMembers && currentMembers > 0 && avgViews24h !== null)
     ? Number(((avgViews24h / currentMembers) * 100).toFixed(2))
     : null;
 
   const avgViews7d = viewPosts7d > 0 ? Math.round(totalViews7d / viewPosts7d) : null;
-  const err7d = (currentMembers && currentMembers > 0 && avgViews7d !== null)
+  const vr7d = (currentMembers && currentMembers > 0 && avgViews7d !== null)
     ? Number(((avgViews7d / currentMembers) * 100).toFixed(2))
     : null;
 
@@ -166,7 +190,7 @@ export function calculateChannelMetricsFromData(
   }
 
   const scoreBreakdown = calculateContentScore(
-    err7d,
+    trueErr7d,
     avgPostsPerDay,
     delta7d.percent,
     channelPosts.filter(p => p.text)
@@ -195,9 +219,10 @@ export function calculateChannelMetricsFromData(
     posts30d,
     avgPostsPerDay,
     avgViews24h,
-    err24h,
+    vr24h,
     avgViews7d,
-    err7d,
+    vr7d,
+    trueErr7d,
     status,
     sparkline7d,
     contentScore: scoreBreakdown.total,
@@ -414,7 +439,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
   };
 }
 
-export async function getErrHistory(channelId: number, days: number = 30) {
+export async function getVrHistory(channelId: number, days: number = 30) {
   const periodStart = new Date(Date.now() - days * 24 * 3600 * 1000);
 
   const posts = await prisma.post.findMany({
@@ -482,11 +507,11 @@ export async function getErrHistory(channelId: number, days: number = 30) {
 
     const data = postsByDate.get(date)!;
     const avgViews = Math.round(data.totalViews / data.count);
-    const err = dayMembers > 0 ? Number(((avgViews / dayMembers) * 100).toFixed(2)) : 0;
+    const vr = dayMembers > 0 ? Number(((avgViews / dayMembers) * 100).toFixed(2)) : 0;
 
     history.push({
       date,
-      err,
+      vr,
       avgViews,
       membersCount: dayMembers,
     });
@@ -658,13 +683,13 @@ export async function getChannelDetailStats(
     text: p.text,
   }));
 
-  const errHistory = await getErrHistory(
+  const vrHistory = await getVrHistory(
     channelId,
     period === '24h' ? 1 : period === '30d' ? 30 : 7
   );
 
   const scoreBreakdown = calculateContentScore(
-    channel.err7d,
+    channel.trueErr7d,
     channel.avgPostsPerDay,
     channel.delta7d?.percent || 0,
     recentPosts.filter(p => p.text)
@@ -677,7 +702,7 @@ export async function getChannelDetailStats(
     scoreBreakdown,
     membersHistory,
     postsDistribution,
-    errHistory,
+    vrHistory,
     heatmapData,
     myHeatmapData: myChannelRecord ? myHeatmapData : undefined,
     recentPosts,
@@ -746,23 +771,23 @@ export async function getBestTimeRecommendation() {
   // Calculate scores
   const heatmap = [];
   let maxCount = 0;
-  let maxErr = 0;
+  let maxVr = 0;
 
   for (let day = 0; day < 7; day++) {
     for (let hour = 0; hour < 24; hour++) {
       const s = slots[`${day}-${hour}`];
       const avgViews = s.count > 0 ? Math.round(s.totalViews / s.count) : 0;
-      const avgErr = s.totalMembers > 0 ? (s.totalViews / s.totalMembers) : 0;
+      const avgVr = s.totalMembers > 0 ? (s.totalViews / s.totalMembers) : 0;
       
       if (s.count > maxCount) maxCount = s.count;
-      if (avgErr > maxErr) maxErr = avgErr;
+      if (avgVr > maxVr) maxVr = avgVr;
 
       heatmap.push({
         day,
         hour,
         postCount: s.count,
         avgViews,
-        avgErr,
+        avgVr,
         score: 0
       });
     }
@@ -773,14 +798,14 @@ export async function getBestTimeRecommendation() {
   for (const cell of heatmap) {
     // Normalize to 0-1
     const normCount = maxCount > 0 ? cell.postCount / maxCount : 0;
-    const normErr = maxErr > 0 ? cell.avgErr / maxErr : 0;
+    const normVr = maxVr > 0 ? cell.avgVr / maxVr : 0;
     
-    // Score formula: Audience engagement (ERR) - Competition noise
-    // But if count is 0, we have no data on ERR, so we give it a neutral score, or penalize it slightly
+    // Score formula: Audience engagement (VR) - Competition noise
+    // But if count is 0, we have no data on VR, so we give it a neutral score, or penalize it slightly
     if (cell.postCount === 0) {
       cell.score = 0;
     } else {
-      cell.score = normErr - (normCount * 0.5); // Penalty for high competition is 0.5 weight
+      cell.score = normVr - (normCount * 0.5); // Penalty for high competition is 0.5 weight
     }
 
     if (cell.score > bestSlot.score) {
@@ -797,10 +822,17 @@ export async function getBestTimeRecommendation() {
   return {
     bestDay: bestSlot.day,
     bestHour: bestSlot.hour,
-    score: bestSlot.score,
+    score: Number((bestSlot.score * 100).toFixed(1)),
     avgViews: bestSlot.avgViews,
-    avgErr: Number((bestSlot.avgErr * 100).toFixed(1)),
+    avgVr: Number((bestSlot.avgVr * 100).toFixed(2)),
     postCount: bestSlot.postCount,
-    heatmap
+    heatmap: heatmap.map(c => ({
+      day: c.day,
+      hour: c.hour,
+      postCount: c.postCount,
+      avgViews: c.avgViews,
+      avgVr: Number((c.avgVr * 100).toFixed(2)),
+      score: Number((c.score * 100).toFixed(1)),
+    }))
   };
 }
