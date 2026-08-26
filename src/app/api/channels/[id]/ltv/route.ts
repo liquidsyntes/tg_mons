@@ -40,12 +40,23 @@ export async function GET(
     const hourlyAverages: { [hour: number]: number[] } = {};
     for (let i = 1; i <= 72; i++) hourlyAverages[i] = [];
 
+    let validPostsCount = 0;
+
     for (const post of posts) {
       if (!post.views) continue;
       const postSnaps = snapshots.filter(s => s.postId === post.id);
-      if (postSnaps.length === 0) continue;
       
+      // Для корректного LTV нужен хотя бы 1 "ранний" снапшот (до 6 часов)
+      // Иначе старые посты, скачанные задним числом, сломают график (прыжок с 0 до 100%)
       const publishedTime = post.publishedAt.getTime();
+      const hasEarlySnapshot = postSnaps.some(snap => {
+         const elapsedHours = Math.round((snap.collectedAt.getTime() - publishedTime) / (1000 * 60 * 60));
+         return elapsedHours <= 6;
+      });
+
+      if (!hasEarlySnapshot || postSnaps.length < 2) continue;
+      
+      validPostsCount++;
       const maxViews = post.views; // Assuming current views is the max
 
       for (const snap of postSnaps) {
@@ -55,6 +66,12 @@ export async function GET(
              hourlyAverages[elapsedHours].push(percent);
          }
       }
+    }
+
+    // Если нет ни одного поста с нормальной историей сбора, возвращаем пустой массив
+    // (Фронтенд покажет плашку "Недостаточно данных")
+    if (validPostsCount === 0) {
+      return NextResponse.json({ ltv: [] });
     }
 
     const ltv = [];

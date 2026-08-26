@@ -103,3 +103,28 @@ model Mention {
   @@index([targetUsername])
   @@map("mentions")
 }
+
+
+enum SyncStatus {
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+model SyncJob {
+  id                Int        @id @default(autoincrement())
+  startedAt         DateTime
+  endedAt           DateTime?
+  status            SyncStatus
+  channelsTotal     Int        @default(0)
+  channelsSucceeded Int        @default(0)
+  channelsFailed    Int        @default(0)
+  postsAdded        Int        @default(0)
+  durationMs        Int?
+  errorSummary      String?
+  createdAt         DateTime   @default(now())
+
+  @@map("sync_jobs")
+}
+

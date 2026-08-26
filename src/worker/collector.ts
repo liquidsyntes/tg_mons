@@ -1,4 +1,4 @@
-import { Api, TelegramClient } from 'telegram';
+﻿import { Api, TelegramClient } from 'telegram';
 import { prisma } from '../lib/prisma';
 import { getTelegramClient } from './client';
 
@@ -10,8 +10,8 @@ async function sendTelegramAlert(channelTitle: string, diff: number, diffPercent
   if (!token || !chatId) return;
 
   const sign = diff > 0 ? '+' : '';
-  const emoji = diff > 0 ? '🚀' : '🔻';
-  const text = `${emoji} <b>Аномалия в канале "${channelTitle}"!</b>\n\nИзменение: ${sign}${diff} подписчиков (${sign}${diffPercent.toFixed(2)}%)\nТекущая аудитория: ${currentMembers}`;
+  const emoji = diff > 0 ? 'рџљЂ' : 'рџ”»';
+  const text = `${emoji} <b>РђРЅРѕРјР°Р»РёСЏ РІ РєР°РЅР°Р»Рµ "${channelTitle}"!</b>\n\nРР·РјРµРЅРµРЅРёРµ: ${sign}${diff} РїРѕРґРїРёСЃС‡РёРєРѕРІ (${sign}${diffPercent.toFixed(2)}%)\nРўРµРєСѓС‰Р°СЏ Р°СѓРґРёС‚РѕСЂРёСЏ: ${currentMembers}`;
 
   try {
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -26,6 +26,40 @@ async function sendTelegramAlert(channelTitle: string, diff: number, diffPercent
   } catch (err) {
     console.error('[Alert] Telegram alert failed:', err);
   }
+}
+
+export class TelegramTimeoutError extends Error {
+  code: string;
+  constructor(operation: string, context?: string) {
+    const ctxMsg = context ? ` for ${context}` : '';
+    super(`Telegram operation '${operation}' timed out${ctxMsg}`);
+    this.name = 'TelegramTimeoutError';
+    this.code = 'TELEGRAM_TIMEOUT';
+  }
+}
+
+export function withTimeout<T>(
+  promiseFn: () => Promise<T>,
+  operation: string,
+  context?: string
+): Promise<T> {
+  const timeoutMs = parseInt(process.env.TELEGRAM_REQUEST_TIMEOUT_MS || '30000', 10);
+  
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new TelegramTimeoutError(operation, context));
+    }, timeoutMs);
+
+    promiseFn()
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
 }
 
 export async function withRateLimitAndRetry<T>(
@@ -87,7 +121,7 @@ export async function resolveChannelEntity(client: TelegramClient, input: string
   if (parsed.type === 'invite') {
     // Check invite hash
     const inviteRes = await withRateLimitAndRetry(() =>
-      client.invoke(new Api.messages.CheckChatInvite({ hash: parsed.value }))
+      withTimeout(() => client.invoke(new Api.messages.CheckChatInvite({ hash: parsed.value })), 'CheckChatInvite', parsed.value)
     );
 
     if (inviteRes.className === 'ChatInviteAlready') {
@@ -95,14 +129,16 @@ export async function resolveChannelEntity(client: TelegramClient, input: string
       return chat;
     } else if (inviteRes.className === 'ChatInvite') {
       throw new Error(
-        'Аккаунт сборщика еще не вступил в этот приватный канал. Вступите в него перед добавлением.'
+        'РђРєРєР°СѓРЅС‚ СЃР±РѕСЂС‰РёРєР° РµС‰Рµ РЅРµ РІСЃС‚СѓРїРёР» РІ СЌС‚РѕС‚ РїСЂРёРІР°С‚РЅС‹Р№ РєР°РЅР°Р». Р’СЃС‚СѓРїРёС‚Рµ РІ РЅРµРіРѕ РїРµСЂРµРґ РґРѕР±Р°РІР»РµРЅРёРµРј.'
       );
     }
-    throw new Error('Не удалось получить информацию о приватном канале');
+    throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РїСЂРёРІР°С‚РЅРѕРј РєР°РЅР°Р»Рµ');
   }
 
   // Resolve by username or ID
-  const entity = await withRateLimitAndRetry(() => client.getEntity(parsed.value));
+  const entity = await withRateLimitAndRetry(() => 
+    withTimeout(() => client.getEntity(parsed.value), 'getEntity', parsed.value)
+  );
   return entity;
 }
 
@@ -111,13 +147,13 @@ export async function addChannelByInput(input: string, isMine = false) {
   const entity: any = await resolveChannelEntity(client, input);
 
   if (!entity || (entity.className !== 'Channel' && entity.className !== 'Chat')) {
-    throw new Error('Указанный ресурс не является каналом или группой Telegram');
+    throw new Error('РЈРєР°Р·Р°РЅРЅС‹Р№ СЂРµСЃСѓСЂСЃ РЅРµ СЏРІР»СЏРµС‚СЃСЏ РєР°РЅР°Р»РѕРј РёР»Рё РіСЂСѓРїРїРѕР№ Telegram');
   }
 
   const tgId = BigInt(entity.id.toString());
   const parsedInput = parseChannelIdentifier(input);
   const username = entity.username || (parsedInput.type === 'username' ? parsedInput.value : null);
-  const title = entity.title || entity.firstName || 'Без названия';
+  const title = entity.title || entity.firstName || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ';
   const type = entity.megagroup || entity.className === 'Chat' ? 'group' : 'channel';
 
   // Transactionally handle isMine if set
@@ -186,7 +222,7 @@ export async function collectChannelData(
   let participantsCount: number | null = null;
   try {
     const full: any = await withRateLimitAndRetry(() =>
-      client.invoke(new Api.channels.GetFullChannel({ channel: entity }))
+      withTimeout(() => client.invoke(new Api.channels.GetFullChannel({ channel: entity })), 'GetFullChannel', identifier)
     );
     participantsCount = full.fullChat?.participantsCount ?? null;
 
@@ -198,6 +234,7 @@ export async function collectChannelData(
       });
     }
   } catch (err: any) {
+    if (err instanceof TelegramTimeoutError) throw err;
     console.warn(`[Collector] Could not fetch FullChannel for ${channel.title}: ${err.message}`);
     // Some basic groups may store participantsCount directly on entity
     if (entity.participantsCount) {
@@ -216,7 +253,7 @@ export async function collectChannelData(
       const diff = participantsCount - previousSnapshot.membersCount;
       const diffPercent = (diff / previousSnapshot.membersCount) * 100;
       
-      // Аномалия: изменение больше 1% или больше 500 человек за один цикл сбора
+      // РђРЅРѕРјР°Р»РёСЏ: РёР·РјРµРЅРµРЅРёРµ Р±РѕР»СЊС€Рµ 1% РёР»Рё Р±РѕР»СЊС€Рµ 500 С‡РµР»РѕРІРµРє Р·Р° РѕРґРёРЅ С†РёРєР» СЃР±РѕСЂР°
       if (Math.abs(diffPercent) >= 1 || Math.abs(diff) >= 500) {
         await sendTelegramAlert(channel.title, diff, diffPercent, participantsCount);
       }
@@ -245,7 +282,9 @@ export async function collectChannelData(
       options.minId = minId;
     }
 
-    const messages = await withRateLimitAndRetry(() => client.getMessages(entity, options));
+    const messages = await withRateLimitAndRetry(() => 
+      withTimeout(() => client.getMessages(entity, options), 'getMessages', identifier)
+    );
 
     for (const msg of messages) {
       if (!msg.id) continue;
@@ -367,6 +406,7 @@ export async function collectChannelData(
       postsAdded++;
     }
   } catch (err: any) {
+    if (err instanceof TelegramTimeoutError) throw err;
     console.warn(`[Collector] Could not fetch messages for ${channel.title}: ${err.message}`);
   }
 
@@ -395,14 +435,6 @@ export async function runCollectCycle(): Promise<{
   const cycleStartTime = Date.now();
   console.log(`[Collector] === Starting collection cycle at ${new Date().toISOString()} ===`);
 
-  let client: TelegramClient;
-  try {
-    client = await getTelegramClient();
-  } catch (err: any) {
-    console.error(`[Collector] Telegram client initialization error: ${err.message}`);
-    throw err;
-  }
-
   // Fetch active channels
   const activeChannels = await prisma.channel.findMany({
     where: { isActive: true },
@@ -411,45 +443,125 @@ export async function runCollectCycle(): Promise<{
 
   console.log(`[Collector] Found ${activeChannels.length} active channels to monitor`);
 
+  let syncJobId: number | null = null;
+  try {
+    const job = await prisma.syncJob.create({
+      data: {
+        startedAt: new Date(),
+        status: 'RUNNING',
+        channelsTotal: activeChannels.length,
+      }
+    });
+    syncJobId = job.id;
+  } catch (err) {
+    console.error(`[Collector] Could not create SyncJob record:`, err);
+  }
+
   let successCount = 0;
   let errorCount = 0;
   let totalPosts = 0;
   let totalSnapshots = 0;
+  let fatalError: string | null = null;
 
-  for (const channel of activeChannels) {
-    const channelStartTime = Date.now();
+  try {
+    let client: TelegramClient;
     try {
-      console.log(`[Collector] Processing channel: "${channel.title}" (@${channel.username || channel.tgId || channel.id})...`);
-      const isInitial = !channel.lastCollectedAt;
-      const result = await collectChannelData(client, channel.id, isInitial);
-
-      successCount++;
-      totalPosts += result.postsAdded;
-      totalSnapshots += result.snapshotsAdded;
-
-      console.log(
-        `[Collector] ✓ "${channel.title}" done in ${result.durationMs}ms | Snapshots: ${result.snapshotsAdded}, Posts: ${result.postsAdded}`
-      );
+      client = await getTelegramClient();
     } catch (err: any) {
-      errorCount++;
-      const errorMessage = err.message || String(err);
-      console.error(`[Collector] ✗ Failed for "${channel.title}": ${errorMessage}`);
-
-      // Isolate error: save to DB and continue next channel
-      await prisma.channel.update({
-        where: { id: channel.id },
-        data: {
-          lastError: errorMessage,
-        },
-      }).catch((dbErr) => console.error('[Collector] Could not update channel error status:', dbErr));
+      fatalError = err.message || String(err);
+      throw err;
     }
+
+    for (const channel of activeChannels) {
+      const channelStartTime = Date.now();
+      try {
+        console.log(`[Collector] Processing channel: "${channel.title}" (@${channel.username || channel.tgId || channel.id})...`);
+        const isInitial = !channel.lastCollectedAt;
+        const result = await collectChannelData(client, channel.id, isInitial);
+
+        successCount++;
+        totalPosts += result.postsAdded;
+        totalSnapshots += result.snapshotsAdded;
+
+        if (syncJobId) {
+          prisma.syncJob.update({
+            where: { id: syncJobId },
+            data: { channelsSucceeded: successCount, postsAdded: totalPosts }
+          }).catch((dbErr: any) => console.error('[Collector] SyncJob update failed:', dbErr));
+        }
+
+        console.log(
+          `[Collector] вњ“ "${channel.title}" done in ${result.durationMs}ms | Snapshots: ${result.snapshotsAdded}, Posts: ${result.postsAdded}`
+        );
+      } catch (err: any) {
+        errorCount++;
+        const errorMessage = err.message || String(err);
+        console.error(`[Collector] вњ— Failed for "${channel.title}": ${errorMessage}`);
+
+        if (syncJobId) {
+          prisma.syncJob.update({
+            where: { id: syncJobId },
+            data: { channelsFailed: errorCount }
+          }).catch((dbErr: any) => console.error('[Collector] SyncJob update failed:', dbErr));
+        }
+
+        // Isolate error: save to DB and continue next channel
+        await prisma.channel.update({
+          where: { id: channel.id },
+          data: {
+            lastError: errorMessage,
+          },
+        }).catch((dbErr) => console.error('[Collector] Could not update channel error status:', dbErr));
+
+        if (err instanceof TelegramTimeoutError) {
+          console.warn(`[Collector] TelegramTimeoutError detected. Attempting to force reconnect client to recover dead socket...`);
+          try {
+            await client.disconnect();
+            client = await getTelegramClient();
+            console.log(`[Collector] Client reconnected successfully after timeout.`);
+          } catch (reconnectErr: any) {
+            fatalError = `Failed to reconnect client after timeout: ${reconnectErr.message}`;
+            console.error(`[Collector] ${fatalError}. Aborting cycle.`);
+            break;
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    if (!fatalError) fatalError = err.message || String(err);
+  } finally {
+    const durationMs = Date.now() - cycleStartTime;
+    if (syncJobId) {
+      let finalStatus: 'COMPLETED' | 'PARTIAL' | 'FAILED' = 'COMPLETED';
+      
+      if (fatalError) {
+        finalStatus = 'FAILED';
+      } else if (errorCount > 0 && successCount > 0) {
+        finalStatus = 'PARTIAL';
+      } else if (errorCount > 0 && successCount === 0 && activeChannels.length > 0) {
+        finalStatus = 'FAILED';
+      }
+
+      await prisma.syncJob.update({
+        where: { id: syncJobId },
+        data: {
+          endedAt: new Date(),
+          durationMs,
+          status: finalStatus,
+          errorSummary: fatalError ? fatalError.substring(0, 200) : null,
+          channelsSucceeded: successCount,
+          channelsFailed: errorCount,
+          postsAdded: totalPosts,
+        }
+      }).catch((err: any) => console.error('[Collector] Final SyncJob update failed:', err));
+    }
+    
+    console.log(
+      `[Collector] === Cycle completed in ${(durationMs / 1000).toFixed(1)}s | Success: ${successCount}, Errors: ${errorCount}, Snapshots: ${totalSnapshots}, Posts: ${totalPosts} ===\n`
+    );
   }
 
   const durationMs = Date.now() - cycleStartTime;
-  console.log(
-    `[Collector] === Cycle completed in ${(durationMs / 1000).toFixed(1)}s | Success: ${successCount}, Errors: ${errorCount}, Snapshots: ${totalSnapshots}, Posts: ${totalPosts} ===\n`
-  );
-
   return {
     totalChannels: activeChannels.length,
     successCount,

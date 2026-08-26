@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { computeNicheStats, calculateEP, ChannelSnapshot } from './ep';
 
 describe('Effective Point (EP) Calculation', () => {
@@ -56,7 +57,8 @@ describe('Effective Point (EP) Calculation', () => {
     const nicheStatsMap = computeNicheStats([channelZero]);
     const ep = calculateEP(channelZero, nicheStatsMap.get('general')!);
     
-    expect(ep.EP).toBe(50); // Sigmoid(0) = 50 * confidence = 50 * 0.5 = 25. Wait, Z-score of single item is 0. Sigmoid(0) = 50. Confidence = 0.5 + 0.5*(0/0) = 0.5 + 0.5*(0/0). Actually log(1)/log(1) is NaN!
+    expect(ep.EP).toBe(25); // Sigmoid(0) = 50 * confidence = 50 * 0.5 = 25. Wait, Z-score of single item is 0. Sigmoid(0) = 50. Confidence = 0.5 + 0.5*(0/0) = 0.5 + 0.5*(0/0). Actually log(1)/log(1) is NaN!
     // We should fix the NaN in confidence if maxSubscribers is 0.
   });
 });
+

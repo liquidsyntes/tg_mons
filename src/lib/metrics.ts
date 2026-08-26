@@ -88,6 +88,7 @@ export function calculateChannelMetricsFromData(
   let viewPosts7d = 0;
 
   const t24h = date24hAgo.getTime();
+  const t48h = date24hAgo.getTime() - MS_24H;
   const t7d = date7dAgo.getTime();
   const t30d = date30dAgo.getTime();
 
@@ -97,19 +98,32 @@ export function calculateChannelMetricsFromData(
       posts30d++;
       if (pt >= t7d) {
         posts7d++;
-        if (p.views !== null) {
-          totalViews7d += p.views;
-          viewPosts7d++;
-        }
         if (pt >= t24h) {
           posts24h++;
+        }
+        
+        // Исключаем посты, опубликованные менее 24 часов назад, 
+        // так как они еще не набрали просмотры и сильно занижают среднее значение (ERR).
+        if (pt < t24h) {
           if (p.views !== null) {
-            totalViews24h += p.views;
-            viewPosts24h++;
+            totalViews7d += p.views;
+            viewPosts7d++;
+            
+            // Для метрики "за 24 часа" берем посты, опубликованные от 24 до 48 часов назад
+            if (pt >= t48h) {
+              totalViews24h += p.views;
+              viewPosts24h++;
+            }
           }
         }
       }
     }
+  }
+
+  // Если за окно 24-48ч не было постов, фоллбэк на среднее за 7 дней
+  if (viewPosts24h === 0 && viewPosts7d > 0) {
+    totalViews24h = totalViews7d;
+    viewPosts24h = viewPosts7d;
   }
 
   const avgPostsPerDay = Number((posts30d / 30).toFixed(1));
