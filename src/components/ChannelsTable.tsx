@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -17,7 +17,8 @@ import {
   BarChart3,
   Layers,
   Download,
-  Star
+  Star,
+  GitCompareArrows
 } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
 import { DeltaBadge } from './DeltaBadge';
@@ -246,30 +247,47 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
   };
 
   return (
-    <div className="space-y-4">
-      {/* Table Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface p-3.5 rounded-2xl border border-border">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск по названию или @username..."
-            className="w-full bg-slate-900/90 border border-border/80 rounded-xl pl-9 pr-3.5 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-accent"
-          />
+    <div className="space-y-[6px]">
+      {/* Combined Toolbar Frame */}
+      <div className="bg-slate-800/40 border border-border rounded-2xl p-4 sm:p-5 space-y-4">
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-white tracking-tight">
+            Сравнительный мониторинг каналов
+          </h3>
+          <Link
+            href="/compare"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 border border-border hover:border-accent hover:bg-slate-700 text-slate-200 transition-colors"
+          >
+            <GitCompareArrows className="w-3.5 h-3.5" />
+            Сравнить каналы
+          </Link>
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-slate-400">
-          <span>Всего: <strong className="text-white font-mono">{channels.length}</strong></span>
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600"
-            title="Выгрузить данные в CSV"
-          >
-            <Download className="w-3.5 h-3.5 text-accent" />
-            <span className="hidden sm:inline">Экспорт</span>
-          </button>
+        {/* Search row */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск по названию или @username..."
+              className="w-full bg-slate-900/90 border border-border/80 rounded-xl pl-9 pr-3.5 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-accent"
+            />
+          </div>
+
+          <div className="flex items-center gap-4 text-xs text-slate-400">
+            <span>Всего: <strong className="text-white font-mono">{channels.length}</strong></span>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600"
+              title="Выгрузить данные в CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-accent" />
+              <span className="hidden sm:inline">Экспорт</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -283,46 +301,46 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                   onClick={() => handleSort('title')}
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors"
                 >
-                  Канал {renderSortIcon('title')}
+                  Channel {renderSortIcon('title')}
                 </th>
                 <th
                   onClick={() => handleSort('members')}
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-right"
                 >
-                  Подписчики {renderSortIcon('members')}
+                  Subscribers {renderSortIcon('members')}
                 </th>
                 <th className="py-3.5 px-3 text-center">
-                  Тренд (7д)
+                  Trend (7d)
                 </th>
                 <th
                   onClick={() => handleSort('delta24h')}
                   className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
                 >
-                  Δ 24ч {renderSortIcon('delta24h')}
+                  Δ 24h {renderSortIcon('delta24h')}
                 </th>
                 <th
                   onClick={() => handleSort('delta7d')}
                   className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
                 >
-                  Δ 7д {renderSortIcon('delta7d')}
+                  Δ 7d {renderSortIcon('delta7d')}
                 </th>
                 <th
                   onClick={() => handleSort('delta30d')}
                   className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
                 >
-                  Δ 30д {renderSortIcon('delta30d')}
+                  Δ 30d {renderSortIcon('delta30d')}
                 </th>
                 <th
                   onClick={() => handleSort('posts7d')}
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
                 >
-                  Посты (7д / 30д) {renderSortIcon('posts7d')}
+                  Publ (7d / 30d) {renderSortIcon('posts7d')}
                 </th>
                 <th
                   onClick={() => handleSort('views')}
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
                 >
-                  Просм. (avg 24ч / 7д) {renderSortIcon('views')}
+                  Views (avg 24h / 7d) {renderSortIcon('views')}
                 </th>
                 <th
                   onClick={() => handleSort('err')}
@@ -334,7 +352,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                   onClick={() => handleSort('share')}
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
                 >
-                  % от моего {renderSortIcon('share')}
+                  % of mine {renderSortIcon('share')}
                 </th>
                 <th
                   onClick={() => handleSort('score')}
@@ -348,8 +366,8 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 >
                   EP {renderSortIcon('ep')}
                 </th>
-                <th className="py-3.5 px-4 text-center">Статус</th>
-                <th className="py-3.5 px-4 text-right">Действия</th>
+                <th className="py-3.5 px-4 text-center">Status</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">

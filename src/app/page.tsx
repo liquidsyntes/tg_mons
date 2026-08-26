@@ -109,25 +109,11 @@ export default function OverviewPage() {
             </div>
 
             {/* Comparative Channels Table */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Сравнительный мониторинг каналов
-                </h3>
-                <Link
-                  href="/compare"
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 border border-border hover:border-accent hover:bg-slate-700 text-slate-200 transition-colors"
-                >
-                  <GitCompareArrows className="w-3.5 h-3.5" />
-                  Сравнить каналы
-                </Link>
-              </div>
-              <ChannelsTable
-                channels={stats.channels}
-                myChannel={stats.myChannel}
-                onRefresh={fetchOverview}
-              />
-            </div>
+            <ChannelsTable
+              channels={stats.channels}
+              myChannel={stats.myChannel}
+              onRefresh={fetchOverview}
+            />
           </>
         ) : null}
       </main>
