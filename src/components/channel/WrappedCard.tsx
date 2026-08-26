@@ -16,16 +16,11 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
   const deltaPercent = channel.delta30d?.percent || 0;
   const isPositive = deltaAbs >= 0;
   
-  const epScore = channel.ep !== undefined ? channel.ep : (channel.contentScore || 85);
-  const scoreColor = epScore >= 80 ? '#fbbf24' : epScore >= 50 ? '#94a3b8' : '#f87171'; 
-  const getGrade = (score: number) => {
-    if (score >= 90) return 'S';
-    if (score >= 80) return 'A';
-    if (score >= 65) return 'B';
-    if (score >= 50) return 'C';
-    return 'D';
-  };
-  const grade = getGrade(epScore);
+  const epScore = channel.ep;
+  const epColor = (epScore !== undefined && epScore >= 80) ? '#fbbf24' : (epScore !== undefined && epScore >= 50) ? '#94a3b8' : '#f87171'; 
+  
+  const contentScore = channel.contentScore;
+  const contentGrade = channel.contentGrade || '-';
 
   const avgViews = channel.avgViews30d ?? 0;
   const vrPercent = channel.vr30d !== null ? channel.vr30d.toFixed(1) : '0.0';
@@ -157,9 +152,15 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
               
               <div className="flex-1 flex flex-col justify-end pb-8 relative z-10">
                  <div className="text-sm text-slate-400 font-bold tracking-widest uppercase mb-2 h-12 flex items-start">Эффективность (EP)</div>
-                 <div className="text-6xl font-bold mb-2 leading-none" style={{ color: scoreColor }}>
-                   {typeof epScore === 'number' ? epScore.toFixed(1) : epScore} - {grade}
-                 </div>
+                 {typeof epScore === 'number' ? (
+                   <div className="text-6xl font-bold mb-2 leading-none" style={{ color: epColor }}>
+                     {epScore.toFixed(1)}
+                   </div>
+                 ) : (
+                   <div className="text-3xl font-bold mb-2 leading-none text-slate-500">
+                     Мало данных
+                   </div>
+                 )}
                  <div className="text-lg text-slate-500 min-h-[3.5rem] mt-2">Рейтинг канала в нише</div>
               </div>
             </div>
@@ -220,6 +221,32 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
             </div>
           </div>
 
+          {/* Content Score Wide Card */}
+          <div className="bg-gradient-to-r from-[#1e1b4b] to-[#111623] border border-indigo-500/20 rounded-3xl p-8 mt-5 flex items-center justify-between relative overflow-hidden">
+            <div className="absolute top-0 right-0 opacity-10 w-64 h-64 pointer-events-none translate-x-1/4 -translate-y-1/4">
+              <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div className="relative z-10 flex items-center gap-6">
+              <div className="w-16 h-16 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/30">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div>
+                <div className="text-sm text-slate-400 font-bold tracking-widest uppercase mb-1">Оценка контента</div>
+                <div className="text-xl text-slate-300">Качество ведения канала</div>
+              </div>
+            </div>
+            <div className="relative z-10 flex items-end gap-4">
+              {typeof contentScore === 'number' ? (
+                <>
+                  <div className="text-6xl font-bold text-white leading-none">{contentScore.toFixed(0)}</div>
+                  <div className="text-4xl font-black text-indigo-400 mb-1">{contentGrade}</div>
+                </>
+              ) : (
+                <div className="text-3xl font-bold text-slate-500 leading-none">Мало данных</div>
+              )}
+            </div>
+          </div>
+
           {/* Best Post Wide Card - Compacted & Left-aligned Pill */}
           {bestPost && (
             <div className="bg-gradient-to-br from-[#1c1a17] to-[#0f1118] border border-white/5 rounded-[2rem] p-10 shadow-2xl mt-8 flex-1 relative overflow-hidden flex flex-col justify-start">
@@ -270,3 +297,4 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
     </div>
   );
 }
+
