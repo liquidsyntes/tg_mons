@@ -19,6 +19,7 @@ model Channel {
   isMine          Boolean    @default(false)
   isFavorite      Boolean    @default(false)
   isActive        Boolean    @default(true)
+  consecutiveErrors Int        @default(0)
   lastMessageId   BigInt?
   lastError       String?
   lastCollectedAt DateTime?

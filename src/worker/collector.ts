@@ -1,4 +1,4 @@
-﻿import { Api, TelegramClient } from 'telegram';
+import { Api, TelegramClient } from 'telegram';
 import { prisma } from '../lib/prisma';
 import { getTelegramClient } from './client';
 
@@ -417,6 +417,7 @@ export async function collectChannelData(
       lastMessageId: maxMessageId > BigInt(0) ? maxMessageId : channel.lastMessageId,
       lastCollectedAt: new Date(),
       lastError: null,
+      consecutiveErrors: 0,
     },
   });
 
@@ -510,6 +511,7 @@ export async function runCollectCycle(): Promise<{
           where: { id: channel.id },
           data: {
             lastError: errorMessage,
+            consecutiveErrors: { increment: 1 },
           },
         }).catch((dbErr) => console.error('[Collector] Could not update channel error status:', dbErr));
 
