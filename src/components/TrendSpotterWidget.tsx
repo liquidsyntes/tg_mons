@@ -90,7 +90,6 @@ export function TrendSpotterWidget() {
           <div>
             <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
               Радар Трендов
-              <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 text-[10px] uppercase font-bold tracking-wider">AI</span>
             </h3>
             <p className="text-xs text-slate-400">
               {report 
