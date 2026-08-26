@@ -8,9 +8,9 @@ const MS_24H = 24 * MS_HOUR;
 const MS_7D = 7 * 24 * MS_HOUR;
 const MS_30D = 30 * 24 * MS_HOUR;
 
-// ──────────────────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 // Pure function: computes metrics from pre-loaded data (no DB calls)
-// ──────────────────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 function calculateDeltaFromData(
   snapshots: { collectedAt: Date; membersCount: number }[],
@@ -86,6 +86,8 @@ export function calculateChannelMetricsFromData(
   let viewPosts24h = 0;
   let totalViews7d = 0;
   let viewPosts7d = 0;
+  let totalViews30d = 0;
+  let viewPosts30d = 0;
 
   const t24h = date24hAgo.getTime();
   const t48h = date24hAgo.getTime() - MS_24H;
@@ -96,20 +98,24 @@ export function calculateChannelMetricsFromData(
     const pt = p.publishedAt.getTime();
     if (pt >= t30d) {
       posts30d++;
+      if (pt < t24h && p.views !== null) {
+        totalViews30d += p.views;
+        viewPosts30d++;
+      }
       if (pt >= t7d) {
         posts7d++;
         if (pt >= t24h) {
           posts24h++;
         }
         
-        // Исключаем посты, опубликованные менее 24 часов назад, 
-        // так как они еще не набрали просмотры и сильно занижают среднее значение (ERR).
+        // РСЃРєР»СЋС‡Р°РµРј РїРѕСЃС‚С‹, РѕРїСѓР±Р»РёРєРѕРІР°РЅРЅС‹Рµ РјРµРЅРµРµ 24 С‡Р°СЃРѕРІ РЅР°Р·Р°Рґ, 
+        // С‚Р°Рє РєР°Рє РѕРЅРё РµС‰Рµ РЅРµ РЅР°Р±СЂР°Р»Рё РїСЂРѕСЃРјРѕС‚СЂС‹ Рё СЃРёР»СЊРЅРѕ Р·Р°РЅРёР¶Р°СЋС‚ СЃСЂРµРґРЅРµРµ Р·РЅР°С‡РµРЅРёРµ (ERR).
         if (pt < t24h) {
           if (p.views !== null) {
             totalViews7d += p.views;
             viewPosts7d++;
             
-            // Для метрики "за 24 часа" берем посты, опубликованные от 24 до 48 часов назад
+            // Р”Р»СЏ РјРµС‚СЂРёРєРё "Р·Р° 24 С‡Р°СЃР°" Р±РµСЂРµРј РїРѕСЃС‚С‹, РѕРїСѓР±Р»РёРєРѕРІР°РЅРЅС‹Рµ РѕС‚ 24 РґРѕ 48 С‡Р°СЃРѕРІ РЅР°Р·Р°Рґ
             if (pt >= t48h) {
               totalViews24h += p.views;
               viewPosts24h++;
@@ -120,7 +126,7 @@ export function calculateChannelMetricsFromData(
     }
   }
 
-  // Вычисляем истинный ERR для скоринга контента
+  // Р’С‹С‡РёСЃР»СЏРµРј РёСЃС‚РёРЅРЅС‹Р№ ERR РґР»СЏ СЃРєРѕСЂРёРЅРіР° РєРѕРЅС‚РµРЅС‚Р°
   const trueViews7d: number[] = [];
   const trueReactions7d: number[] = [];
   const trueComments7d: number[] = [];
@@ -144,7 +150,7 @@ export function calculateChannelMetricsFromData(
   const trueAvgViews = trueViews7d.length > 0 ? trueViews7d.reduce((a,b)=>a+b,0) / trueViews7d.length : 0;
   const trueErr7d = trueAvgViews > 0 ? (trueAvgEngagement / trueAvgViews) * 100 : null;
 
-  // Если за окно 24-48ч не было постов, фоллбэк на среднее за 7 дней
+  // Р•СЃР»Рё Р·Р° РѕРєРЅРѕ 24-48С‡ РЅРµ Р±С‹Р»Рѕ РїРѕСЃС‚РѕРІ, С„РѕР»Р»Р±СЌРє РЅР° СЃСЂРµРґРЅРµРµ Р·Р° 7 РґРЅРµР№
   if (viewPosts24h === 0 && viewPosts7d > 0) {
     totalViews24h = totalViews7d;
     viewPosts24h = viewPosts7d;
@@ -160,6 +166,11 @@ export function calculateChannelMetricsFromData(
   const avgViews7d = viewPosts7d > 0 ? Math.round(totalViews7d / viewPosts7d) : null;
   const vr7d = (currentMembers && currentMembers > 0 && avgViews7d !== null)
     ? Number(((avgViews7d / currentMembers) * 100).toFixed(2))
+    : null;
+
+  const avgViews30d = viewPosts30d > 0 ? Math.round(totalViews30d / viewPosts30d) : null;
+  const vr30d = (currentMembers && currentMembers > 0 && avgViews30d !== null)
+    ? Number(((avgViews30d / currentMembers) * 100).toFixed(2))
     : null;
 
   // Sparkline: filter snapshots within 7d, downsample to ~10 points
@@ -222,6 +233,8 @@ export function calculateChannelMetricsFromData(
     vr24h,
     avgViews7d,
     vr7d,
+    avgViews30d,
+    vr30d,
     trueErr7d,
     status,
     sparkline7d,
@@ -230,10 +243,10 @@ export function calculateChannelMetricsFromData(
   };
 }
 
-// ──────────────────────────────────────────────────────────────
-// Single-channel version (still uses DB — kept for getChannelDetailStats
+// в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// Single-channel version (still uses DB вЂ” kept for getChannelDetailStats
 // and API routes that query one channel at a time)
-// ──────────────────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 export async function calculateChannelMetrics(
   channelId: number,
@@ -266,9 +279,9 @@ export async function calculateChannelMetrics(
   return calculateChannelMetricsFromData(channel, allSnapshots, allPosts, now);
 }
 
-// ──────────────────────────────────────────────────────────────
-// Batch-optimized: getOverviewStats — 3 queries total
-// ──────────────────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// Batch-optimized: getOverviewStats вЂ” 3 queries total
+// в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 export async function getOverviewStats(): Promise<OverviewStats> {
   const now = new Date();
@@ -335,7 +348,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
     });
   }
 
-  // Compute metrics for each channel — pure in-memory, no DB calls
+  // Compute metrics for each channel вЂ” pure in-memory, no DB calls
   const channelMetricsList: ChannelMetrics[] = [];
   const epSnapshots: import('./ep').ChannelSnapshot[] = [];
 
@@ -836,3 +849,8 @@ export async function getBestTimeRecommendation() {
     }))
   };
 }
+
+
+
+
+

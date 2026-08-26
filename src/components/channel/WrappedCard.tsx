@@ -1,4 +1,4 @@
-﻿import { ChannelMetrics, ChannelDetailStats } from '@/lib/types';
+import { ChannelMetrics, ChannelDetailStats } from '@/lib/types';
 
 interface WrappedCardProps {
   channel: ChannelMetrics;
@@ -27,8 +27,8 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
   };
   const grade = getGrade(epScore);
 
-  const avgViews = posts.length > 0 ? Math.round(totalViews / posts.length) : 0;
-  const vrPercent = channel.currentMembers ? ((avgViews / channel.currentMembers) * 100).toFixed(1) : '0.0';
+  const avgViews = channel.avgViews30d ?? 0;
+  const vrPercent = channel.vr30d !== null ? channel.vr30d.toFixed(1) : '0.0';
 
   const formatNum = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
