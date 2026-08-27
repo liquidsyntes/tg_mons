@@ -10,7 +10,6 @@ import {
   ArrowDown,
   ExternalLink,
   Power,
-  Trash2,
   Sparkles,
   TrendingUp,
   TrendingDown,
@@ -68,21 +67,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
     }
   };
 
-  const handleDelete = async (channelId: number, title: string) => {
-    if (!confirm(`Отключить мониторинг канала «${title}»? История будет сохранена.`)) return;
 
-    setActionLoadingId(channelId);
-    try {
-      const res = await fetch(`/api/channels/${channelId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) await onRefresh();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
 
   const handleExportCSV = () => {
     const headers = [
@@ -342,12 +327,6 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 >
                   Views (avg 24h / 7d) {renderSortIcon('views')}
                 </th>
-                <th className="py-3.5 px-3 text-center text-xs text-slate-400">
-                  <div className="flex flex-col items-center leading-tight">
-                    <span>Last</span>
-                    <span>Fact</span>
-                  </div>
-                </th>
                 <th
                   onClick={() => handleSort('err')}
                   className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
@@ -522,13 +501,6 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                       </span>
                     </td>
                     
-                    {/* Last Fact */}
-                    <td className="py-3.5 px-3 text-center font-mono tabular-nums text-sm">
-                      <span className="text-lime-400 font-medium">
-                        {channel.lastPostViews ? formatNumber(channel.lastPostViews) : '—'}
-                      </span>
-                    </td>
-                    
                     {/* ERR */}
                     <td className="py-3.5 px-3 text-center font-mono tabular-nums">
                       <div className="flex flex-col items-center justify-center gap-0.5">
@@ -634,14 +606,6 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                           title={channel.isActive ? 'Поставить на паузу' : 'Возобновить сбор'}
                         >
                           <Power className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(channel.id, channel.title)}
-                          disabled={actionLoadingId === channel.id}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
-                          title="Отключить мониторинг"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>

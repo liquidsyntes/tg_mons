@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -15,6 +15,7 @@ import { AIReportsSection } from '@/components/channel/AIReportsSection';
 import CitationNetworkWidget from '@/components/CitationNetworkWidget';
 import ContentLTVChart from '@/components/channel/ContentLTVChart';
 import { WrappedCard } from '@/components/channel/WrappedCard';
+import { ChannelDangerZone } from '@/components/channel/ChannelDangerZone';
 
 interface ChannelDetailClientProps {
   channelId: string;
@@ -80,6 +81,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
                 channelTgId={channel.tgId} 
               />
               <WrappedCard channel={channel} stats={data!} />
+              <ChannelDangerZone channelId={channel.id} channelTitle={channel.title} />
             </div>
           </>
         )}
