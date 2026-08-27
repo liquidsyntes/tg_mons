@@ -342,6 +342,12 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 >
                   Views (avg 24h / 7d) {renderSortIcon('views')}
                 </th>
+                <th className="py-3.5 px-3 text-center text-xs text-slate-400">
+                  <div className="flex flex-col items-center leading-tight">
+                    <span>Last</span>
+                    <span>Fact</span>
+                  </div>
+                </th>
                 <th
                   onClick={() => handleSort('err')}
                   className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
@@ -513,6 +519,13 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                       <span className="text-slate-500 mx-1">/</span>
                       <span className="text-slate-300">
                         {channel.avgViews7d ? formatNumber(channel.avgViews7d) : '—'}
+                      </span>
+                    </td>
+                    
+                    {/* Last Fact */}
+                    <td className="py-3.5 px-3 text-center font-mono tabular-nums text-sm">
+                      <span className="text-lime-400 font-medium">
+                        {channel.lastPostViews ? formatNumber(channel.lastPostViews) : '—'}
                       </span>
                     </td>
                     

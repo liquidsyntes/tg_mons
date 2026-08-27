@@ -173,6 +173,15 @@ export function calculateChannelMetricsFromData(
     ? Number(((avgViews30d / currentMembers) * 100).toFixed(2))
     : null;
 
+  // Find the most recent post views (Last Fact)
+  let lastPostViews: number | null = null;
+  for (const p of channelPosts) {
+    if (p.views !== null && p.views !== undefined) {
+      lastPostViews = p.views;
+      break;
+    }
+  }
+
   // Sparkline: filter snapshots within 7d, downsample to ~10 points
   const sparklineSnapshots = channelSnapshots.filter(
     (s) => s.collectedAt.getTime() >= date7dAgo.getTime()
@@ -235,6 +244,7 @@ export function calculateChannelMetricsFromData(
     vr7d,
     avgViews30d,
     vr30d,
+    lastPostViews,
     trueErr7d,
     status,
     sparkline7d,

@@ -58,12 +58,20 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
       <div className="relative z-10 flex-1 flex flex-col px-16 pt-12 pb-16 h-full">
         <div className="flex-1 flex flex-col">
           {/* Title Area - Compact */}
-          <div className="mb-12">
-            <h2 className="text-lg font-bold text-slate-500 mb-2 uppercase tracking-[0.2em]">Аналитика канала</h2>
-            <h1 className="text-7xl font-bold tracking-tight leading-tight text-white mb-2">
-              {channel.title}
-            </h1>
-            <p className="text-2xl font-medium text-blue-400">@{channel.username}</p>
+          <div className="mb-12 flex items-end justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-500 mb-2 uppercase tracking-[0.2em]">Аналитика канала</h2>
+              <h1 className="text-7xl font-bold tracking-tight leading-tight text-white mb-2 max-w-[700px] truncate">
+                {channel.title}
+              </h1>
+              <p className="text-2xl font-medium text-blue-400">@{channel.username}</p>
+            </div>
+            {channel.lastPostViews && (
+              <div className="bg-lime-500/10 border border-lime-500/20 px-7 py-4 rounded-3xl flex flex-col items-end shrink-0 mb-4 shadow-[0_0_30px_rgba(163,230,53,0.1)]">
+                <span className="text-xs font-bold text-lime-500/80 uppercase tracking-widest mb-1.5">Текущие просмотры (Live)</span>
+                <span className="text-4xl font-black text-lime-400 tabular-nums leading-none">{formatNum(channel.lastPostViews)}</span>
+              </div>
+            )}
           </div>
 
           {/* 3x2 Grid - Cards 360px height */}
