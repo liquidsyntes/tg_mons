@@ -11,6 +11,21 @@ export interface ScoreBreakdown {
   recommendation: string;
 }
 
+/**
+ * Вычисляет Content Score (Оценка качества контента) и формирует буквенную оценку (Grade) с рекомендацией.
+ * 
+ * @description
+ * Метрика представляет собой взвешенную сумму от 0 до 100 баллов, состоящую из:
+ * - ERR Score (0-30): на основе True ERR (>=10: 30, >=5: 20, >=2: 10, иначе 5).
+ * - Consistency Score (0-20): частота постингов (1-3 в день: 20, <1: 15, >3: 15, иначе 5).
+ * - Growth Score (0-20): рост аудитории (>=2%: 20, >0%: 10, иначе 0).
+ * - Engagement Diversity (0-15): хардкод 10 (заглушка, нет данных по реакциям).
+ * - Originality Score (0-15): доля рекламных постов (<=10%: 15, <=30%: 10, >30%: 5).
+ * 
+ * Диапазон значений: [0, 100].
+ * Grade: A+ (>=90), A (>=80), B (>=70), C (>=60), D (<60).
+ * Входные данные: True ERR, посты/день, % роста, список текстов недавних постов.
+ */
 export function calculateContentScore(
   trueErr: number | null,
   postsPerDay: number,
@@ -92,3 +107,4 @@ export function calculateContentScore(
     recommendation
   };
 }
+

@@ -75,6 +75,18 @@ function sigmoid(x: number): number {
   return 100 / (1 + Math.exp(-x));
 }
 
+/**
+ * Вычисляет сырые метрики канала (CEI, VR, ERR) и коэффициент уверенности (confidence).
+ * 
+ * @description
+ * - **Growth Rate (gr24h, gr7d, gr30d)**: Приведенный к дневному процент роста подписчиков.
+ * - **CEI (Channel Expansion Index)**: Индекс роста, взвешенная сумма дневных темпов роста. Формула: w_24h * gr24h + w_7d * gr7d + w_30d * gr30d. Веса: 0.2 (24h), 0.3 (7d), 0.5 (30d). Диапазон: (-∞, +∞).
+ * - **VR (View Rate)**: Отношение медианы просмотров к числу подписчиков (в процентах). Диапазон: [0, +∞).
+ * - **ERR (Engagement Rate by Reach)**: Отношение средней суммы реакций, комментариев и репостов к среднему числу просмотров. Диапазон: [0, +∞).
+ * - **Confidence (Сглаживание)**: Логарифмический коэффициент от 0.5 до 1.0, пенализирующий каналы с малым числом подписчиков относительно лидера ниши. Формула: 0.5 + 0.5 * (log(subs+1) / log(maxSubs+1)).
+ * 
+ * Входные данные: снапшот канала и максимум подписчиков в его нише.
+ */
 // Internal pure calculation of CEI, VR, ERR
 function calculateRawMetrics(channel: ChannelSnapshot, maxSubscribersInNiche: number) {
   // 1. Growth Rate
@@ -145,6 +157,20 @@ export function computeNicheStats(channels: ChannelSnapshot[]): Map<string, Nich
   return map;
 }
 
+/**
+ * Вычисляет итоговый Effective Point (EP) канала.
+ * 
+ * @description
+ * EP — это нормализованный Z-score рейтинг канала относительно его ниши.
+ * Формула:
+ * 1. Считаются Z-score для CEI, VR, ERR: (X - Mean) / StdDev.
+ * 2. Composite Score = w_growth * Z_growth + w_vr * Z_vr + w_err * Z_err.
+ *    (Текущие веса: Рост=0.45, VR=0.30, ERR=0.25. Обоснование приоритета роста над вовлеченностью не задокументировано авторами, требует уточнения).
+ * 3. Применяется Sigmoid (100 / (1 + e^-x)), чтобы перевести Z-score из (-∞, +∞) в [0, 100].
+ * 4. Умножается на Confidence (0.5..1.0) для пенализации мелких каналов.
+ * 
+ * Диапазон значений EP: [0, 100].
+ */
 export function calculateEP(channel: ChannelSnapshot, nicheStats: NicheStats): EPResult {
   const raw = calculateRawMetrics(channel, nicheStats.maxSubscribers);
 
@@ -173,3 +199,4 @@ export function calculateEP(channel: ChannelSnapshot, nicheStats: NicheStats): E
     },
   };
 }
+
