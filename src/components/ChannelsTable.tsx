@@ -25,7 +25,7 @@ import { StatusBadge } from './StatusBadge';
 import { formatNumber, formatPercent } from '@/lib/utils';
 import { LineChart, Line, YAxis } from 'recharts';
 
-type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'err' | 'score' | 'ep';
+type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'err' | 'score' | 'ep' | 'lastFact';
 type SortOrder = 'asc' | 'desc';
 
 interface ChannelsTableProps {
@@ -209,6 +209,10 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
           valA = a.ep ?? -1;
           valB = b.ep ?? -1;
           break;
+        case 'lastFact':
+          valA = a.lastPostViews ?? -1;
+          valB = b.lastPostViews ?? -1;
+          break;
       }
 
       if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
@@ -320,6 +324,15 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                   className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
                 >
                   Publ (7d / 30d) {renderSortIcon('posts7d')}
+                </th>
+                <th
+                  onClick={() => handleSort('lastFact')}
+                  className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                >
+                  <div className="flex flex-col items-center">
+                    <span>Last</span>
+                    <span>Fact {renderSortIcon('lastFact')}</span>
+                  </div>
                 </th>
                 <th
                   onClick={() => handleSort('views')}
@@ -488,6 +501,11 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                       <span className="text-[10px] text-slate-500 block">
                         ({channel.avgPostsPerDay}/д)
                       </span>
+                    </td>
+
+                    {/* Last Fact */}
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold tabular-nums text-[lime]">
+                      {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
                     </td>
 
                     {/* Views */}
@@ -667,10 +685,20 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 </div>
 
                 <div className="text-right">
-                  <div className="text-base font-extrabold font-mono text-white tabular-nums">
-                    {formatNumber(channel.currentMembers)}
+                  <div className="flex items-center justify-end gap-4">
+                    <div className="text-right">
+                      <div className="text-base font-extrabold font-mono text-[lime] tabular-nums">
+                        {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
+                      </div>
+                      <div className="text-[10px] text-slate-400">Last Fact</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-extrabold font-mono text-white tabular-nums">
+                        {formatNumber(channel.currentMembers)}
+                      </div>
+                      <div className="text-[10px] text-slate-400">подписчиков</div>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-400">подписчиков</div>
                   {channel.sparkline7d && channel.sparkline7d.length > 1 && (
                     <div className="w-[60px] h-[20px] ml-auto mt-1 opacity-70">
                       <LineChart width={60} height={20} data={channel.sparkline7d.map(v => ({ value: v }))}>

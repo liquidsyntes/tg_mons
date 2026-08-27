@@ -84,6 +84,12 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
           </div>
 
           <div className="flex items-center gap-4">
+            <div className="text-left md:text-right mr-4 border-r border-border/70 pr-4">
+              <div className="text-3xl sm:text-4xl font-extrabold font-mono tabular-nums" style={{ color: 'lime' }}>
+                {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
+              </div>
+              <div className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Last Fact</div>
+            </div>
             <div className="text-left md:text-right">
               <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tabular-nums">
                 {formatNumber(channel.currentMembers)}

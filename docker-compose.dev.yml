@@ -1,0 +1,13 @@
+﻿services:
+  web:
+    # Используем тот же образ, но переопределяем команду на dev
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+    volumes:
+      # Пробрасываем текущую папку внутрь контейнера
+      - .:/app
+      # Исключаем локальные node_modules и .next, чтобы не было конфликтов с контейнером
+      - /app/node_modules
+      - /app/.next
+
