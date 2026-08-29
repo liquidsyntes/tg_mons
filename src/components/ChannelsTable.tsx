@@ -235,6 +235,27 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
     );
   };
 
+  const getAvatarStyles = (channel: ChannelMetrics) => {
+    if (channel.status === 'error') {
+      return 'bg-rose-500/30 text-rose-400 border-rose-500/40';
+    }
+    if (channel.status === 'paused' || !channel.isActive) {
+      return 'bg-slate-500/30 text-slate-400 border-slate-500/40';
+    }
+
+    let diffMinutes = 999;
+    if (channel.lastCollectedAt) {
+      const date = new Date(channel.lastCollectedAt);
+      const diffMs = Math.max(0, new Date().getTime() - date.getTime());
+      diffMinutes = Math.floor(diffMs / 60000);
+    }
+
+    if (diffMinutes <= 30) return 'bg-emerald-500/30 text-emerald-400 border-emerald-500/40';
+    if (diffMinutes <= 45) return 'bg-amber-500/30 text-amber-400 border-amber-500/40';
+    if (diffMinutes <= 55) return 'bg-orange-500/30 text-orange-400 border-orange-500/40';
+    return 'bg-violet-500/30 text-violet-400 border-violet-500/40';
+  };
+
   return (
     <div className="space-y-[6px]">
       {/* Combined Toolbar Frame */}
@@ -342,9 +363,10 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 </th>
                 <th
                   onClick={() => handleSort('err')}
-                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center"
+                  className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
                 >
-                  ERR {renderSortIcon('err')}
+                  <div>ERR {renderSortIcon('err')}</div>
+                  <div className="text-[10px] text-slate-500 font-normal mt-0.5">(24h / 7d)</div>
                 </th>
                 <th
                   onClick={() => handleSort('share')}
@@ -364,8 +386,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 >
                   EP {renderSortIcon('ep')}
                 </th>
-                <th className="py-3.5 px-4 text-center">Status</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+                <th className="py-3.5 pl-2 pr-4 text-center">Act.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -374,7 +395,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                 return (
                   <tr
                     key={channel.id}
-                    className={`transition-colors duration-150 ${
+                    className={`h-[88px] transition-colors duration-150 ${
                       isMineRow
                         ? 'bg-accent/[0.06] hover:bg-accent/[0.1] border-l-2 border-l-accent'
                         : channel.isActive
@@ -386,11 +407,17 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2.5">
                         {isMineRow ? (
-                          <div className="w-7 h-7 rounded-lg bg-accent/20 border border-accent/40 flex items-center justify-center text-accent flex-shrink-0">
+                          <div 
+                            className={`w-7 h-7 rounded-lg border flex items-center justify-center flex-shrink-0 ${getAvatarStyles(channel)}`}
+                            title={`Последний сбор: ${channel.lastCollectedAt ? new Date(channel.lastCollectedAt).toLocaleString('ru-RU') : 'Никогда'}`}
+                          >
                             <Crown className="w-3.5 h-3.5" />
                           </div>
                         ) : (
-                          <div className="w-7 h-7 rounded-lg bg-slate-800 border border-border flex items-center justify-center text-slate-400 flex-shrink-0 font-mono text-xs">
+                          <div 
+                            className={`w-7 h-7 rounded-lg border flex items-center justify-center flex-shrink-0 font-mono text-xs ${getAvatarStyles(channel)}`}
+                            title={`Последний сбор: ${channel.lastCollectedAt ? new Date(channel.lastCollectedAt).toLocaleString('ru-RU') : 'Никогда'}`}
+                          >
                             {channel.type === 'group' ? 'Г' : 'К'}
                           </div>
                         )}
@@ -521,17 +548,13 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                     
                     {/* ERR */}
                     <td className="py-3.5 px-3 text-center font-mono tabular-nums">
-                      <div className="flex flex-col items-center justify-center gap-0.5">
-                        <span className="text-xs text-slate-400">
-                          24ч: {channel.vr24h !== null ? <span className="text-slate-200">{channel.vr24h}%</span> : '—'}
-                        </span>
-                        {channel.vr7d !== null ? (
-                          <span className={`font-semibold ${channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-300'}`}>
-                            7д: {channel.vr7d}%
-                          </span>
-                        ) : (
-                          <span className="text-slate-500">7д: —</span>
-                        )}
+                      <div>
+                        <div className="font-semibold text-slate-200 text-sm">
+                          {channel.vr24h !== null ? `${channel.vr24h}%` : '—'}
+                        </div>
+                        <div className={`text-[10px] mt-0.5 ${channel.vr7d !== null ? (channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-400') : 'text-slate-500'}`}>
+                          {channel.vr7d !== null ? `${channel.vr7d}%` : '—'}
+                        </div>
                       </div>
                     </td>
 
@@ -601,18 +624,9 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
                       )}
                     </td>
 
-                    {/* Status */}
-                    <td className="py-3.5 px-4 text-center">
-                      <StatusBadge
-                        status={channel.status}
-                        lastCollectedAt={channel.lastCollectedAt}
-                        lastError={channel.lastError}
-                      />
-                    </td>
-
                     {/* Actions */}
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="inline-flex items-center gap-1.5 justify-end">
+                    <td className="py-3.5 pl-2 pr-4 text-center">
+                      <div className="inline-flex items-center gap-1.5 justify-center">
                         <button
                           onClick={() => handleToggleActive(channel.id, channel.isActive)}
                           disabled={actionLoadingId === channel.id}
