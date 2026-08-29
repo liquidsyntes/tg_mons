@@ -190,7 +190,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       const res = await fetch('/api/ai/compare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetChannelId: channelId, myChannelId: myChannel?.id, days }),
+        body: JSON.stringify({ channelId, days }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');

@@ -5,7 +5,7 @@
 
 interface CallOpenRouterOptions {
   systemPrompt?: string;
-  model?: string;        // default: 'deepseek/deepseek-v4-pro'
+  model?: string;        // default: 'z-ai/glm-5.3-flash'
   temperature?: number; // default: 0.7
   timeoutMs?: number;   // default: 60000
 }
@@ -27,7 +27,7 @@ export async function callOpenRouter(
     throw new Error('OPENROUTER_API_KEY не задан в .env файле');
   }
 
-  const model = options?.model ?? 'deepseek/deepseek-v4-pro';
+  const model = options?.model ?? 'z-ai/glm-5.3-flash';
   const temperature = options?.temperature ?? 0.7;
   const timeoutMs = options?.timeoutMs ?? 60000;
 

@@ -69,6 +69,7 @@ model Post {
   channel     Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
   mentions    Mention[]
   snapshots   PostSnapshot[]
+  eventMentions EventMention[]
 
   @@unique([channelId, messageId])
   @@index([channelId, publishedAt])
@@ -127,5 +128,34 @@ model SyncJob {
   createdAt         DateTime   @default(now())
 
   @@map("sync_jobs")
+}
+
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  date        DateTime // Date of the event
+  timeStr     String?  // Exact time string if any, e.g., '22:00 - 05:00'
+  organizer   String?
+  prices      Json?    // Storing categories of prices
+  createdAt   DateTime @default(now())
+
+  mentions    EventMention[]
+
+  @@map("events")
+}
+
+model EventMention {
+  id        Int      @id @default(autoincrement())
+  eventId   Int      @map("event_id")
+  postId    Int      @map("post_id")
+
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, postId])
+  @@index([eventId])
+  @@index([postId])
+  @@map("event_mentions")
 }
 

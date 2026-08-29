@@ -239,7 +239,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
     if (channel.status === 'error') {
       return 'bg-rose-500/30 text-rose-400 border-rose-500/40';
     }
-    if (channel.status === 'paused' || !channel.isActive) {
+    if (!channel.isActive) {
       return 'bg-slate-500/30 text-slate-400 border-slate-500/40';
     }
 
