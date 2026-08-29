@@ -16,12 +16,13 @@ export async function POST() {
       where: {
         publishedAt: { gte: dateLimit },
         text: { not: null },
+        eventMentions: { none: {} } // Exclude already parsed posts
       },
       include: {
         channel: true,
       },
       orderBy: { publishedAt: 'desc' },
-      take: 2000 // safeguard
+      take: 2000
     });
 
     const keywords = ['вечеринка', 'старт', 'начало', 'билет', 'dj', 'вход', 'line-up', 'мероприятие', 'анонс', 'событие'];
@@ -34,7 +35,7 @@ export async function POST() {
     });
 
     if (candidatePosts.length === 0) {
-      return NextResponse.json({ message: 'No candidate posts found.' });
+      return NextResponse.json({ message: 'No new candidate posts found to scan.' });
     }
 
     // Format posts for AI
@@ -77,37 +78,68 @@ ${JSON.stringify(limitedPayload)}
 `;
 
     const aiResponse = await callOpenRouter(prompt, { timeoutMs: 120000 });
-    const parsed = JSON.parse(aiResponse);
+    
+    // Extract JSON in case AI wrapped it in markdown or added text
+    let cleanResponse = aiResponse.trim();
+    const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanResponse = jsonMatch[0];
+    }
+    
+    const parsed = JSON.parse(cleanResponse);
     const events = parsed.events || [];
 
     let savedCount = 0;
+
+    // Pre-fetch recent events from DB to deduplicate across scan runs
+    const recentDbEvents = await prisma.event.findMany({
+      where: { date: { gte: new Date(Date.now() - 30 * 24 * 3600 * 1000) } }
+    });
 
     // Save to DB
     for (const evt of events) {
       if (!evt.title || !evt.date) continue;
       
-      const newEvent = await prisma.event.create({
-        data: {
-          title: evt.title,
-          date: new Date(evt.date),
-          timeStr: evt.timeStr,
-          organizer: evt.organizer,
-          prices: evt.prices ? evt.prices : [],
-        }
+      const eventDate = new Date(evt.date);
+      
+      // Try to find if this event already exists
+      let targetEvent = recentDbEvents.find(dbEvt => {
+        if (dbEvt.date.getTime() !== eventDate.getTime()) return false;
+        const t1 = dbEvt.title.toLowerCase();
+        const t2 = evt.title.toLowerCase();
+        return t1 === t2 || t1.includes(t2) || t2.includes(t1);
       });
-      savedCount++;
+
+      if (!targetEvent) {
+        targetEvent = await prisma.event.create({
+          data: {
+            title: evt.title,
+            date: eventDate,
+            timeStr: evt.timeStr,
+            organizer: evt.organizer,
+            prices: evt.prices ? evt.prices : [],
+          }
+        });
+        recentDbEvents.push(targetEvent);
+        savedCount++;
+      } else {
+        // If event exists, we might want to update prices if they were missing, but for now just link it
+      }
 
       if (evt.sourcePostIds && Array.isArray(evt.sourcePostIds)) {
         for (const pid of evt.sourcePostIds) {
-          // Verify post exists
+          // Verify post exists in our candidate list
           const exists = candidatePosts.find(p => p.id === pid);
           if (exists) {
-            await prisma.eventMention.create({
-              data: {
-                eventId: newEvent.id,
-                postId: pid
-              }
-            });
+            try {
+              await prisma.eventMention.upsert({
+                where: { eventId_postId: { eventId: targetEvent.id, postId: pid } },
+                create: { eventId: targetEvent.id, postId: pid },
+                update: {}
+              });
+            } catch (err) {
+              console.warn('Could not link mention', err);
+            }
           }
         }
       }
