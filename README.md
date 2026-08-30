@@ -1,145 +1,159 @@
-# TG Monitor — Мониторинг и сравнение Telegram-каналов
+# TG Monitor (TgMon) — аналитика и мониторинг Telegram-каналов
 
-Production-ready веб-приложение и фоновый сборщик для непрерывного мониторинга, сравнительного анализа аудитории и публикационной активности Telegram-каналов и групп относительно базового «Моего канала».
+Fullstack-платформа для непрерывного мониторинга Telegram-каналов: сбор метрик через MTProto, сравнение с «Моим каналом», скоринг вовлечённости (EP, Content Score), AI-отчёты через OpenRouter и сканер мероприятий.
 
----
-
-## 🎯 Возможности
-
-- **Мгновенный срез за 10 секунд:**
-  - Кто из конкурентов растёт быстрее «Моего канала»?
-  - Кто сколько публикует постов (24ч / 7д / 30д)?
-  - Какова текущая позиция «Моего канала» в пуле конкурентов?
-- **MTProto User-Client (GramJS):**
-  - Прямой сбор метрик подписчиков и истории постов без ограничений Bot API.
-  - Поддержка публичных каналов, супергрупп и закрытых каналов (по инвайт-ссылкам).
-  - Первичный бэкфилл истории на 30 дней при добавлении канала.
-  - Инкрементальный сбор постов (`min_id = lastMessageId`) с дедупликацией в БД.
-- **Отказоустойчивость и Rate Limiting:**
-  - Ограничение скорости ~1 rps между запросами к MTProto.
-  - Автоматическая обработка `FLOOD_WAIT_*` с экспоненциальной задержкой и джиттером.
-  - Полная изоляция ошибок: сбой в одном канале не прерывает сбор других.
-- **Современный UI дашборд:**
-  - Тёмная тема по умолчанию, чистый интерфейс без визуального шума.
-  - Табличные цифры (`tabular-nums`), семантические цветовые индикаторы динамики.
-  - Сравнительная таблица с сортировкой по любому столбцу и адаптивным видом для мобильных устройств.
-  - Детальная страница канала с интерактивными графиками Recharts (LineChart подписчиков с оверлеем «Моего канала», BarChart активности постов).
-  - Управление «Моим каналом» (транзакционное назначение в один клик).
+**Стек:** Next.js 15 (App Router) · React 19 · TypeScript · Prisma 6 + **PostgreSQL 15** · GramJS (MTProto) · node-cron · Tailwind CSS · Recharts · Vitest · Docker Compose · GitHub Actions
 
 ---
 
-## 🛠 Технологический стек
+## Возможности
 
-| Слой | Технологии |
-| :--- | :--- |
-| **Frontend + API** | Next.js 15 (App Router), TypeScript, Tailwind CSS, Recharts, Lucide Icons |
-| **База данных** | SQLite + Prisma ORM (PostgreSQL опционально через Docker) |
-| **Коллектор (Worker)** | Node.js + GramJS (Telegram MTProto Client) + node-cron + tsx |
-| **Инфраструктура** | Docker Compose (`web`, `worker` + SQLite volume), `.env` конфигурация |
+### Сбор данных (Worker)
+- **MTProto User-Client (GramJS):** подписчики, просмотры, реакции, комментарии, репосты — без ограничений Bot API.
+- Публичные каналы, супергруппы и закрытые каналы (при условии, что аккаунт сборщика состоит в чате).
+- Первичный бэкфельд истории на 30 дней при добавлении канала, далее инкрементальный сбор (`min_id = lastMessageId`) с дедупликацией.
+- Cron-расписание (`COLLECT_CRON`, по умолчанию раз в час), ручной запуск через `POST /api/collect/run`.
+- Отказоустойчивость: rate limit ~1 rps, обработка `FLOOD_WAIT` с экспоненциальной задержкой, reconnect по таймауту, изоляция ошибок по каналам (`consecutiveErrors`), журнал циклов (`SyncJob`).
+- Алерты об аномалиях подписчиков в Telegram (Bot API).
+
+### Аналитика
+- **Сравнение с «Моим каналом»:** рост подписчиков (24ч / 7д / 30д), активность постов, позиция в пуле конкурентов.
+- **EP-скоринг** (`src/lib/ep.ts`): engagement-показатель канала с z-нормализацией по нише. Компоненты: CEI, VR, ERR; веса — рост 0.45 / views-ratio 0.30 / ERR 0.25. Формулы всех метрик — в `docs/analytics-formulas.md`.
+- **Content Score** (`src/lib/scoring.ts`) и оценка рекламных постов (`src/lib/adDetector.ts`).
+- Детальная страница канала: Wrapped-карточка, heatmap активности, Content LTV, сеть цитирований, динамика подписчиков с оверлеем «Моего канала».
+- Подбор лучшего времени публикации (`/api/stats/best-time`), тренды ниши, топ gainers/losers.
+
+### AI-отчёты (OpenRouter)
+7 типов отчётов, общий клиент `src/lib/openrouter.ts` (модель по умолчанию `z-ai/glm-5.3-flash`, JSON response format, таймаут 60с):
+
+| Тип | Эндпоинт | Назначение |
+| :--- | :--- | :--- |
+| Summary | `POST /api/ai/summary` | сводный отчёт по каналу |
+| Compare | `POST /api/ai/compare` | сравнение каналов |
+| Trends | `POST /api/ai/trends` | тренды ниши |
+| Audience | `POST /api/ai/audience` | анализ аудитории |
+| Action Plan | `POST /api/ai/action-plan` | план действий |
+| Persona | `POST /api/ai/persona` | контент-персона канала |
+| Compare-reports | `POST /api/ai/compare-reports` | эволюция отчётов |
+
+История отчётов хранится в БД (`ai_reports`), просмотр — `/reports`, экспорт в PDF (`jsPDF` + `html2canvas-pro`).
+
+### Event Scanner
+`POST /api/events/scan` — LLM-парсинг анонсов мероприятий из постов за 14 дней: keyword-фильтр кандидатов + извлечение структурированных событий (дата, время, организатор, цены) в таблицу `events`. Просмотр — страница `/events`.
 
 ---
 
-## 🚀 Быстрый старт
+## Быстрый старт
 
-### 1. Получение ключей Telegram MTProto API
+### 1. Ключи Telegram MTProto
+Получите `api_id` и `api_hash` на [my.telegram.org](https://my.telegram.org) → «API development tools».
 
-1. Перейдите на официальный портал [my.telegram.org](https://my.telegram.org) и авторизуйтесь по номеру телефона.
-2. Откройте раздел **«API development tools»**.
-3. Создайте приложение (если еще не создано) и скопируйте:
-   - `api_id` (числовой идентификатор)
-   - `api_hash` (хеш-строка)
-
-### 2. Клонирование и настройка окружения
-
-Скопируйте пример файла конфигурации:
+### 2. Настройка окружения
 ```bash
 cp .env.example .env
+# Заполните: DATABASE_URL (PostgreSQL), TG_API_ID, TG_API_HASH, TG_PHONE
 ```
 
-Заполните ваши `TG_API_ID` и `TG_API_HASH` в файле `.env`.
+База данных — **PostgreSQL**. Локально: любая БД 14+, в Docker — `docker compose up -d postgres`.
 
-По умолчанию используется SQLite (`DATABASE_URL="file:./dev.db"`) — отдельная настройка БД не требуется.
-
-### 3. Первичная интерактивная авторизация в Telegram
-
-Для генерации строки сессии (`TG_SESSION`) запустите CLI-скрипт авторизации:
-
+### 3. Авторизация Telegram (одноразово)
 ```bash
 npm run auth
 ```
+Интерактивный вход (телефон → код → 2FA), строка сессии сохраняется в `.env` как `TG_SESSION`.
 
-Скрипт запросит номер телефона, код подтверждения из приложения Telegram и пароль двухфакторной аутентификации (2FA, если включен). После успешного входа строка сессии будет **автоматически сохранена в `.env`**.
+### 4. Установка и запуск
+```bash
+npm install
+npm run prisma:generate
+npm run prisma:push        # или npm run prisma:migrate для миграций
+npm run seed               # тестовые данные (опционально)
 
----
+npm run dev:all            # web (:3000) + worker одновременно
+# или по отдельности:
+npm run dev                # только web
+npm run worker             # только воркер-коллектор
+```
 
-## 🐳 Запуск через Docker Compose
-
-Для поднятия всего стека (Next.js Web + Worker + SQLite):
-
+### Docker Compose (web + worker + PostgreSQL)
 ```bash
 docker compose up --build -d
 ```
+Поднимает `postgres:15`, `web` (порт 3000) и `worker`. Пароль БД по умолчанию `password` — для VPS смените в `docker-compose.yml`.
 
-Docker Compose настроен на SQLite с volume mount (`./data/dev.db`). База данных хранится в named volume `sqlite_data` и сохраняется между перезапусками контейнеров.
-
-Сервисы будут доступны по адресам:
-- **Веб-интерфейс дашборда:** [http://localhost:3000](http://localhost:3000)
-
-> **Примечание:** Для использования PostgreSQL вместо SQLite — измените `provider` в `prisma/schema.prisma` на `"postgresql"`, обновите `DATABASE_URL` в `.env` и добавьте сервис `db` обратно в `docker-compose.yml`.
+VPS-развёртывание (Nginx + PM2 + скрипт обновления) — отдельная инструкция: `docs/deployment.md`.
 
 ---
 
-## 💻 Локальная разработка (без Docker)
+## API
 
-### 1. Установка зависимостей
-```bash
-npm install
-```
+24 route handler'а (все мутирующие — за Bearer-токеном `COLLECT_API_TOKEN`):
 
-### 2. Генерация Prisma Client и применение схемы
-```bash
-npm run prisma:generate
-npm run prisma:push
-```
+| Группа | Эндпоинты |
+| :--- | :--- |
+| Channels | `GET/POST /api/channels`, `GET/PATCH/DELETE /api/channels/:id` (`?permanent=true` — физическое удаление), `POST /api/channels/:id/favorite`, `GET /api/channels/:id/ltv`, `GET /api/channels/:id/network` |
+| Stats | `GET /api/stats/overview`, `/api/stats/dashboard`, `/api/stats/channel/:id?period=24h\|7d\|30d`, `/api/stats/compare`, `/api/stats/trends`, `/api/stats/best-time` |
+| AI | 7 эндпоинтов из таблицы выше |
+| Events | `GET/POST /api/events`, `POST /api/events/scan` |
+| Прочее | `POST /api/collect/run` (ручной цикл сбора), `GET /api/health`, `POST /api/posts/search` (полнотекстовый, trgm), `GET /api/reports/:id/export` |
 
-### 3. Запуск веб-сервера Next.js
-```bash
-npm run dev
-```
-
-### 4. Запуск фонового воркера-сборщика (в отдельном терминале)
-```bash
-npm run worker
-```
+**Авторизация:** браузерные мутации авторизуются автоматически — `src/middleware.ts` инжектит Bearer-токен серверно, токен не попадает в клиентский бандл. Внешние вызовы передают заголовок `Authorization: Bearer <COLLECT_API_TOKEN>` сами.
 
 ---
 
-## 📡 Спецификация API (Route Handlers)
+## Разработка
 
-| Метод | Эндпоинт | Назначение |
+```bash
+npm test              # vitest, 54 теста (collector, reconnect, timeout, ep, adDetector, utils, health)
+npm run test:coverage # покрытие v8
+npx tsc --noEmit      # typecheck
+npx eslint src        # линт
+npm run build         # prisma generate && next build
+```
+
+CI (`.github/workflows/ci.yml`): на каждый push/PR — typecheck, eslint, тесты, build.
+
+---
+
+## Переменные окружения
+
+| Переменная | Обязательна | Назначение |
 | :--- | :--- | :--- |
-| `GET` | `/api/channels` | Получение списка всех каналов с рассчитанными метриками |
-| `POST` | `/api/channels` | Добавление канала (`input`: `@username` / ссылка / инвайт; `isMine`: boolean) |
-| `GET` | `/api/channels/:id` | Получение метрик конкретного канала |
-| `PATCH` | `/api/channels/:id` | Обновление флагов `isActive`, `isMine` (транзакционно) |
-| `DELETE` | `/api/channels/:id` | Отключение канала от мониторинга (мягкое удаление) |
-| `GET` | `/api/stats/overview` | Сводная статистика главной страницы, карточка «Мой канал», сравнительные показатели |
-| `GET` | `/api/stats/channel/:id?period=7d` | Таймсерии динамики участников и распределения публикаций для графиков (`24h`, `7d`, `30d`) |
-| `POST` | `/api/collect/run` | Ручной запуск цикла сбора (защита Bearer-токеном `COLLECT_API_TOKEN`) |
+| `DATABASE_URL` | да | PostgreSQL connection string |
+| `TG_API_ID` / `TG_API_HASH` | да | MTProto-ключи приложения |
+| `TG_PHONE` | да | телефон аккаунта сборщика |
+| `TG_SESSION` | да (после `npm run auth`) | строка MTProto-сессии |
+| `COLLECT_CRON` | нет | расписание сбора (`0 * * * *`) |
+| `COLLECT_ON_STARTUP` | нет | сбор при старте воркера (`true`) |
+| `COLLECT_API_TOKEN` | да | Bearer-токен мутаций API. **Не используйте дефолт в production** |
+| `OPENROUTER_API_KEY` | для AI-отчётов | ключ OpenRouter |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | нет | алерты об аномалиях |
+| `TELEGRAM_REQUEST_TIMEOUT_MS` | нет | таймаут MTProto (30000) |
+| `MY_CHANNEL_USERNAME` | нет | начальный «Мой канал» |
+
+Полный список с описаниями — `.env.example`.
 
 ---
 
-## 📋 Раздел «Допущения» (Assumptions)
+## Документация
 
-В соответствии с правилами проекта зафиксированы следующие инженерные допущения:
+- `docs/analytics-formulas.md` — все метрики и формулы (VR, ERR, CEI, EP, Content Score)
+- `docs/overview.md` — обзор продукта
+- `docs/metrics-logic-audit.md` — аудит расчётной логики
+- `docs/tg-monitoring-observability-audit.md` — аудит наблюдаемости бэкенда
+- `docs/telegram-timeout-review.md` — ревью реализации таймаутов GramJS
+- `docs/deployment.md` — развёртывание на VPS
+- `docs/git-workflow.md` — git-процесс
+- `docs/report_dev_2026-08-30.md` — технический аудит проекта (2026-08-30)
+- `docs/fix_prompts_2026-08-30.md` — план устранения найденных проблем
+- `docs/archives/` — архивные документы (ТЗ, старые статусы)
 
-1. **Мягкое отключение от мониторинга (Soft Deactivate):**
-   При вызове `DELETE /api/channels/:id` канал переводится в статус `isActive = false`. Все ранее собранные снапшоты подписчиков и история постов сохраняются в базе данных для исторического анализа. Физическое каскадное удаление доступно через параметр `?permanent=true`.
-2. **Расчёт динамики участников при нехватке снапшотов:**
-   Если канал добавлен недавно и в базе данных нет снапшота на границе окна (`<= now() - interval`), вычисляемое значение дельты возвращается как `null`, а в интерфейсе отображается нейтральная плашка `н/д` (вместо искусственного нуля).
-3. **Определение «Моего канала»:**
-   В системе поддерживается ровно один «Мой канал» (`isMine = true`). При назначении нового «Моего канала» флаг с предыдущего снимается в атомарной транзакции базы данных.
-4. **Инвайт-ссылки в закрытые каналы:**
-   Сбор данных по закрытым каналам/супергруппам по приватным ссылкам (`t.me/+hash` / `t.me/joinchat/hash`) возможен при условии, что авторизованный аккаунт сборщика уже состоит в этом чате.
-5. **Дискретность метрик:**
-   Точность суточной и недельной динамики подписчиков определяется частотой выполнения cron-задачи (`COLLECT_CRON`, по умолчанию раз в час).
+---
+
+## Допущения (Assumptions)
+
+1. **Мягкое удаление:** `DELETE /api/channels/:id` переводит канал в `isActive = false`, данные сохраняются. Физическое удаление — `?permanent=true`.
+2. **Дельты при нехватке снапшотов:** если снапшота на границе окна нет, возвращается `null` (в UI — «н/д»), а не искусственный ноль.
+3. **«Мой канал» ровно один:** назначение нового атомарно снимает флаг с предыдущего.
+4. **Закрытые каналы:** сбор возможен, если аккаунт сборщика уже состоит в чате.
+5. **Дискретность метрик:** точность динамики подписчиков определяется частотой `COLLECT_CRON`.
