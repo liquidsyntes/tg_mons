@@ -10,8 +10,8 @@ async function sendTelegramAlert(channelTitle: string, diff: number, diffPercent
   if (!token || !chatId) return;
 
   const sign = diff > 0 ? '+' : '';
-  const emoji = diff > 0 ? 'рџљЂ' : 'рџ”»';
-  const text = `${emoji} <b>РђРЅРѕРјР°Р»РёСЏ РІ РєР°РЅР°Р»Рµ "${channelTitle}"!</b>\n\nРР·РјРµРЅРµРЅРёРµ: ${sign}${diff} РїРѕРґРїРёСЃС‡РёРєРѕРІ (${sign}${diffPercent.toFixed(2)}%)\nРўРµРєСѓС‰Р°СЏ Р°СѓРґРёС‚РѕСЂРёСЏ: ${currentMembers}`;
+  const emoji = diff > 0 ? '🚀' : '🔻';
+  const text = `${emoji} <b>Аномалия в канале "${channelTitle}"!</b>\n\nИзменение: ${sign}${diff} подписчиков (${sign}${diffPercent.toFixed(2)}%)\nТекущая аудитория: ${currentMembers}`;
 
   try {
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -129,10 +129,10 @@ export async function resolveChannelEntity(client: TelegramClient, input: string
       return chat;
     } else if (inviteRes.className === 'ChatInvite') {
       throw new Error(
-        'РђРєРєР°СѓРЅС‚ СЃР±РѕСЂС‰РёРєР° РµС‰Рµ РЅРµ РІСЃС‚СѓРїРёР» РІ СЌС‚РѕС‚ РїСЂРёРІР°С‚РЅС‹Р№ РєР°РЅР°Р». Р’СЃС‚СѓРїРёС‚Рµ РІ РЅРµРіРѕ РїРµСЂРµРґ РґРѕР±Р°РІР»РµРЅРёРµРј.'
+        'Аккаунт сборщика еще не вступил в этот приватный канал. Вступите в него перед добавлением.'
       );
     }
-    throw new Error('РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РїСЂРёРІР°С‚РЅРѕРј РєР°РЅР°Р»Рµ');
+    throw new Error('Не удалось получить информацию о приватном канале');
   }
 
   // Resolve by username or ID
@@ -147,13 +147,13 @@ export async function addChannelByInput(input: string, isMine = false) {
   const entity: any = await resolveChannelEntity(client, input);
 
   if (!entity || (entity.className !== 'Channel' && entity.className !== 'Chat')) {
-    throw new Error('РЈРєР°Р·Р°РЅРЅС‹Р№ СЂРµСЃСѓСЂСЃ РЅРµ СЏРІР»СЏРµС‚СЃСЏ РєР°РЅР°Р»РѕРј РёР»Рё РіСЂСѓРїРїРѕР№ Telegram');
+    throw new Error('Указанный ресурс не является каналом или группой Telegram');
   }
 
   const tgId = BigInt(entity.id.toString());
   const parsedInput = parseChannelIdentifier(input);
   const username = entity.username || (parsedInput.type === 'username' ? parsedInput.value : null);
-  const title = entity.title || entity.firstName || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ';
+  const title = entity.title || entity.firstName || 'Без названия';
   const type = entity.megagroup || entity.className === 'Chat' ? 'group' : 'channel';
 
   // Transactionally handle isMine if set
@@ -253,7 +253,7 @@ export async function collectChannelData(
       const diff = participantsCount - previousSnapshot.membersCount;
       const diffPercent = (diff / previousSnapshot.membersCount) * 100;
       
-      // РђРЅРѕРјР°Р»РёСЏ: РёР·РјРµРЅРµРЅРёРµ Р±РѕР»СЊС€Рµ 1% РёР»Рё Р±РѕР»СЊС€Рµ 500 С‡РµР»РѕРІРµРє Р·Р° РѕРґРёРЅ С†РёРєР» СЃР±РѕСЂР°
+      // Аномалия: изменение больше 1% или больше 500 человек за один цикл сбора
       if (Math.abs(diffPercent) >= 1 || Math.abs(diff) >= 500) {
         await sendTelegramAlert(channel.title, diff, diffPercent, participantsCount);
       }
@@ -492,12 +492,12 @@ export async function runCollectCycle(): Promise<{
         }
 
         console.log(
-          `[Collector] вњ“ "${channel.title}" done in ${result.durationMs}ms | Snapshots: ${result.snapshotsAdded}, Posts: ${result.postsAdded}`
+          `[Collector] ✓ "${channel.title}" done in ${result.durationMs}ms | Snapshots: ${result.snapshotsAdded}, Posts: ${result.postsAdded}`
         );
       } catch (err: any) {
         errorCount++;
         const errorMessage = err.message || String(err);
-        console.error(`[Collector] вњ— Failed for "${channel.title}": ${errorMessage}`);
+        console.error(`[Collector] ✗ Failed for "${channel.title}": ${errorMessage}`);
 
         if (syncJobId) {
           prisma.syncJob.update({
