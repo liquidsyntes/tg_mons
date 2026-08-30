@@ -1,0 +1,14 @@
+# Нормализация переводов строк: в репо всегда LF
+* text=auto eol=lf
+
+# Bash-скрипты — строго LF
+*.sh text eol=lf
+
+# Windows-специфичное — CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# Бинарники не трогать
+*.png binary
+*.jpg binary
+*.db binary
