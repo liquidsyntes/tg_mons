@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev:all": "concurrently \"npm run dev\" \"npm run worker\"",
-    "dev": "next dev",
+    "dev": "next dev -p 4000",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "next start -p 4000",
     "lint": "next lint",
     "worker": "npx tsx src/worker/index.ts",
     "auth": "npx tsx src/worker/auth.ts",

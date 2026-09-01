@@ -11,3 +11,10 @@
       - /app/node_modules
       - /app/.next
 
+  worker:
+    command: npx tsx watch src/worker/index.ts
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
