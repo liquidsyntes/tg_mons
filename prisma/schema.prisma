@@ -10,24 +10,25 @@ generator client {
 }
 
 model Channel {
-  id              Int        @id @default(autoincrement())
-  username        String?    @unique
-  tgId            BigInt?    @unique
-  title           String
-  type            String     // "channel" | "group"
-  niche           String     @default("general")
-  isMine          Boolean    @default(false)
-  isFavorite      Boolean    @default(false)
-  isActive        Boolean    @default(true)
-  consecutiveErrors Int        @default(0)
-  lastMessageId   BigInt?
-  lastError       String?
-  lastCollectedAt DateTime?
-  createdAt       DateTime   @default(now())
-  snapshots       Snapshot[]
-  posts           Post[]
-  aiReports       AiReport[]
-  mentions        Mention[]
+  id                   Int                  @id @default(autoincrement())
+  username             String?              @unique
+  tgId                 BigInt?              @unique
+  title                String
+  type                 String // "channel" | "group"
+  niche                String               @default("general")
+  isMine               Boolean              @default(false)
+  isFavorite           Boolean              @default(false)
+  isActive             Boolean              @default(true)
+  consecutiveErrors    Int                  @default(0)
+  lastMessageId        BigInt?
+  lastError            String?
+  lastCollectedAt      DateTime?
+  createdAt            DateTime             @default(now())
+  snapshots            Snapshot[]
+  posts                Post[]
+  aiReports            AiReport[]
+  mentions             Mention[]
+  channelMetricDailies ChannelMetricDaily[]
 
   @@map("channels")
 }
@@ -35,11 +36,11 @@ model Channel {
 model AiReport {
   id        Int      @id @default(autoincrement())
   channelId Int?     @map("channel_id")
-  type      String   // "summary" | "compare" | "trend"
-  content   String   // The JSON string payload
+  type      String // "summary" | "compare" | "trend"
+  content   String // The JSON string payload
   createdAt DateTime @default(now()) @map("created_at")
 
-  channel   Channel?  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   @@index([channelId, createdAt])
   @@map("ai_reports")
@@ -57,18 +58,18 @@ model Snapshot {
 }
 
 model Post {
-  id          Int      @id @default(autoincrement())
-  channelId   Int      @map("channel_id")
-  messageId   BigInt   @map("message_id")
-  publishedAt DateTime @map("published_at")
-  views       Int?
-  reactions   Int?
-  comments    Int?
-  forwards    Int?
-  text        String?
-  channel     Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  mentions    Mention[]
-  snapshots   PostSnapshot[]
+  id            Int            @id @default(autoincrement())
+  channelId     Int            @map("channel_id")
+  messageId     BigInt         @map("message_id")
+  publishedAt   DateTime       @map("published_at")
+  views         Int?
+  reactions     Int?
+  comments      Int?
+  forwards      Int?
+  text          String?
+  channel       Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  mentions      Mention[]
+  snapshots     PostSnapshot[]
   eventMentions EventMention[]
 
   @@unique([channelId, messageId])
@@ -83,7 +84,7 @@ model PostSnapshot {
   views       Int
   collectedAt DateTime @default(now()) @map("collected_at")
 
-  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId, collectedAt])
   @@map("post_snapshots")
@@ -95,17 +96,16 @@ model Mention {
   sourceChannelId Int      @map("source_channel_id")
   targetUsername  String?  @map("target_username")
   targetTgId      BigInt?  @map("target_tg_id")
-  type            String   // "forward" | "mention"
+  type            String // "forward" | "mention"
   createdAt       DateTime @default(now()) @map("created_at")
 
-  sourcePost      Post     @relation(fields: [sourcePostId], references: [id], onDelete: Cascade)
-  sourceChannel   Channel  @relation(fields: [sourceChannelId], references: [id], onDelete: Cascade)
+  sourcePost    Post    @relation(fields: [sourcePostId], references: [id], onDelete: Cascade)
+  sourceChannel Channel @relation(fields: [sourceChannelId], references: [id], onDelete: Cascade)
 
   @@index([sourceChannelId])
   @@index([targetUsername])
   @@map("mentions")
 }
-
 
 enum SyncStatus {
   RUNNING
@@ -130,28 +130,27 @@ model SyncJob {
   @@map("sync_jobs")
 }
 
-
 model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  date        DateTime // Date of the event
-  timeStr     String?  // Exact time string if any, e.g., '22:00 - 05:00'
-  organizer   String?
-  prices      Json?    // Storing categories of prices
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  title     String
+  date      DateTime // Date of the event
+  timeStr   String? // Exact time string if any, e.g., '22:00 - 05:00'
+  organizer String?
+  prices    Json? // Storing categories of prices
+  createdAt DateTime @default(now())
 
-  mentions    EventMention[]
+  mentions EventMention[]
 
   @@map("events")
 }
 
 model EventMention {
-  id        Int      @id @default(autoincrement())
-  eventId   Int      @map("event_id")
-  postId    Int      @map("post_id")
+  id      Int @id @default(autoincrement())
+  eventId Int @map("event_id")
+  postId  Int @map("post_id")
 
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, postId])
   @@index([eventId])
@@ -159,3 +158,19 @@ model EventMention {
   @@map("event_mentions")
 }
 
+model ChannelMetricDaily {
+  id         Int      @id @default(autoincrement())
+  channelId  Int      @map("channel_id")
+  date       DateTime @db.Date
+  followers  Int
+  avgViews   Int
+  vr         Float
+  err        Float
+  postsCount Int
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, date])
+  @@index([date])
+  @@map("channel_metrics_daily")
+}

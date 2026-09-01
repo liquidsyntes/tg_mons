@@ -1,6 +1,7 @@
 import { Api, TelegramClient } from 'telegram';
 import { prisma } from '../lib/prisma';
 import { getTelegramClient } from './client';
+import { materializeDailyMetrics } from '../lib/materialize';
 
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
@@ -488,6 +489,10 @@ export async function runCollectCycle(): Promise<{
             data: { channelsSucceeded: successCount, postsAdded: totalPosts }
           }).catch((dbErr: any) => console.error('[Collector] SyncJob update failed:', dbErr));
         }
+
+        await materializeDailyMetrics(channel.id, 7).catch((err) => {
+          console.error(`[Collector] Materialization failed for "${channel.title}":`, err);
+        });
 
         console.log(
           `[Collector] ✓ "${channel.title}" done in ${result.durationMs}ms | Snapshots: ${result.snapshotsAdded}, Posts: ${result.postsAdded}`

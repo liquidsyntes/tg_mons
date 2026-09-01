@@ -45,6 +45,127 @@ function calculateDeltaFromData(
   return { abs, percent };
 }
 
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Materialized data builder
+// ──────────────────────────────────────────────────────────────────────────────
+export function buildMetricsFromMaterialized(
+  channel: any,
+  dailyMetrics: any[],
+  recentPosts: any[],
+  now: Date = new Date()
+): ChannelMetrics {
+  const t24h = new Date(now.getTime() - MS_24H);
+  const t7d = new Date(now.getTime() - MS_7D);
+  const t30d = new Date(now.getTime() - MS_30D);
+
+  const getMetricsForPeriod = (dateLimit: Date) => {
+    const periodMetrics = dailyMetrics.filter(m => new Date(m.date).getTime() >= dateLimit.getTime());
+    let postsCount = 0;
+    let sumViews = 0;
+    let sumErr = 0;
+    
+    for (const m of periodMetrics) {
+      if (m.postsCount > 0) {
+        postsCount += m.postsCount;
+        sumViews += m.avgViews * m.postsCount;
+        sumErr += m.err * m.postsCount;
+      }
+    }
+    
+    const avgViews = postsCount > 0 ? Math.round(sumViews / postsCount) : null;
+    const trueErr = postsCount > 0 ? Number((sumErr / postsCount).toFixed(2)) : null;
+    
+    return { postsCount, avgViews, trueErr };
+  };
+
+  let currentMembers = null;
+  if (dailyMetrics.length > 0) {
+    const sorted = [...dailyMetrics].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    currentMembers = sorted[0].followers;
+  }
+  
+  const calculateDelta = (dateLimit: Date) => {
+    let baseline = null;
+    for (const m of dailyMetrics) {
+      if (new Date(m.date).getTime() <= dateLimit.getTime()) {
+        baseline = m;
+        break;
+      }
+    }
+    if (!baseline && dailyMetrics.length > 0) {
+      baseline = dailyMetrics[dailyMetrics.length - 1];
+    }
+    
+    if (currentMembers === null || !baseline || baseline.followers === 0) return { abs: null, percent: null };
+    const abs = currentMembers - baseline.followers;
+    const percent = Number(((abs / baseline.followers) * 100).toFixed(2));
+    return { abs, percent };
+  };
+
+  const delta24h = calculateDelta(t24h);
+  const delta7d = calculateDelta(t7d);
+  const delta30d = calculateDelta(t30d);
+
+  const stats24h = getMetricsForPeriod(t24h);
+  const stats7d = getMetricsForPeriod(t7d);
+  const stats30d = getMetricsForPeriod(t30d);
+
+  const vr24h = (currentMembers && currentMembers > 0 && stats24h.avgViews !== null) ? Number(((stats24h.avgViews / currentMembers) * 100).toFixed(2)) : null;
+  const vr7d = (currentMembers && currentMembers > 0 && stats7d.avgViews !== null) ? Number(((stats7d.avgViews / currentMembers) * 100).toFixed(2)) : null;
+  const vr30d = (currentMembers && currentMembers > 0 && stats30d.avgViews !== null) ? Number(((stats30d.avgViews / currentMembers) * 100).toFixed(2)) : null;
+
+  let lastPostViews = null;
+  for (const p of recentPosts) {
+    if (p.views !== null && p.views !== undefined) {
+      lastPostViews = p.views;
+      break;
+    }
+  }
+
+  const sparkline7d = dailyMetrics
+    .filter(m => new Date(m.date).getTime() >= t7d.getTime())
+    .map(m => m.followers)
+    .reverse();
+
+  let status = 'success';
+  if (channel.lastError) status = 'error';
+  else if (!channel.lastCollectedAt || now.getTime() - new Date(channel.lastCollectedAt).getTime() > 3 * 3600 * 1000) status = 'stale';
+
+  const avgPostsPerDay = Number((stats30d.postsCount / 30).toFixed(1));
+  const scoreBreakdown = require('./scoring').calculateContentScore(stats7d.trueErr, avgPostsPerDay, delta7d.percent, recentPosts.filter(p => p.text));
+
+  return {
+    id: channel.id,
+    username: channel.username,
+    tgId: channel.tgId ? channel.tgId.toString() : null,
+    title: channel.title,
+    type: channel.type,
+    niche: channel.niche,
+    isMine: channel.isMine,
+    isFavorite: channel.isFavorite || false,
+    isActive: channel.isActive,
+    lastMessageId: channel.lastMessageId ? channel.lastMessageId.toString() : null,
+    lastError: channel.lastError,
+    lastCollectedAt: channel.lastCollectedAt ? new Date(channel.lastCollectedAt).toISOString() : null,
+    createdAt: new Date(channel.createdAt).toISOString(),
+    currentMembers,
+    delta24h, delta7d, delta30d,
+    posts24h: stats24h.postsCount, posts7d: stats7d.postsCount, posts30d: stats30d.postsCount,
+    avgPostsPerDay,
+    avgViews24h: stats24h.avgViews, vr24h,
+    avgViews7d: stats7d.avgViews, vr7d,
+    avgViews30d: stats30d.avgViews, vr30d,
+    lastPostViews,
+    trueErr7d: stats7d.trueErr,
+    status: status as any,
+    sparkline7d,
+    contentScore: scoreBreakdown.total,
+    contentGrade: scoreBreakdown.grade,
+  };
+}
+
+
 export function calculateChannelMetricsFromData(
   channel: {
     id: number;
@@ -262,28 +383,36 @@ export async function calculateChannelMetrics(
   channelId: number,
   now: Date = new Date()
 ): Promise<ChannelMetrics | null> {
-  const channel = await prisma.channel.findUnique({
-    where: { id: channelId },
-  });
-
+  const channel = await prisma.channel.findUnique({ where: { id: channelId } });
   if (!channel) return null;
 
   const date30dAgo = new Date(now.getTime() - MS_30D);
 
-  // Load all snapshots for this channel (sorted desc)
+  const dailyMetrics = await prisma.channelMetricDaily.findMany({
+    where: { channelId, date: { gte: date30dAgo } },
+    orderBy: { date: 'desc' },
+  });
+
+  if (dailyMetrics.length > 0) {
+    const recentPosts = await prisma.post.findMany({
+      where: { channelId },
+      orderBy: { publishedAt: 'desc' },
+      take: 20,
+      select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true },
+    });
+    return buildMetricsFromMaterialized(channel, dailyMetrics, recentPosts, now);
+  }
+
+  // fallback
   const allSnapshots = await prisma.snapshot.findMany({
     where: { channelId },
     orderBy: { collectedAt: 'desc' },
     select: { collectedAt: true, membersCount: true },
   });
 
-  // Load all posts for this channel in the last 30 days
   const allPosts = await prisma.post.findMany({
-    where: {
-      channelId,
-      publishedAt: { gte: date30dAgo },
-    },
-    select: { publishedAt: true, views: true, text: true },
+    where: { channelId, publishedAt: { gte: date30dAgo } },
+    select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true },
   });
 
   return calculateChannelMetricsFromData(channel, allSnapshots, allPosts, now);
@@ -296,80 +425,61 @@ export async function calculateChannelMetrics(
 export async function getOverviewStats(): Promise<OverviewStats> {
   const now = new Date();
   const date30dAgo = new Date(now.getTime() - MS_30D);
+  const date7dAgo = new Date(now.getTime() - MS_7D);
 
-  // Query 1: all channels
   const allChannels = await prisma.channel.findMany({
     orderBy: [{ isMine: 'desc' }, { createdAt: 'asc' }],
   });
 
   if (allChannels.length === 0) {
-    return {
-      myChannel: null,
-      channels: [],
-      totalChannels: 0,
-      activeChannels: 0,
-      lastGlobalUpdate: null,
-    };
+    return { myChannel: null, channels: [], totalChannels: 0, activeChannels: 0, lastGlobalUpdate: null };
   }
 
   const channelIds = allChannels.map((c) => c.id);
 
-  // Query 2: all snapshots for all channels (sorted desc by collectedAt)
-  const allSnapshots = await prisma.snapshot.findMany({
-    where: { channelId: { in: channelIds } },
-    orderBy: { collectedAt: 'desc' },
-    select: { channelId: true, collectedAt: true, membersCount: true },
+  const allDailyMetrics = await prisma.channelMetricDaily.findMany({
+    where: { channelId: { in: channelIds }, date: { gte: date30dAgo } },
+    orderBy: { date: 'desc' },
   });
 
-  // Query 3: all posts for all channels in the last 30 days
-  const allPosts = await prisma.post.findMany({
-    where: {
-      channelId: { in: channelIds },
-      publishedAt: { gte: date30dAgo },
-    },
+  const recentPosts = await prisma.post.findMany({
+    where: { channelId: { in: channelIds }, publishedAt: { gte: date7dAgo } },
     select: { channelId: true, publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true },
+    orderBy: { publishedAt: 'desc' },
   });
 
-  // Group snapshots by channelId (preserving desc order)
-  const snapshotsByChannel = new Map<number, { collectedAt: Date; membersCount: number }[]>();
-  for (const s of allSnapshots) {
-    if (!snapshotsByChannel.has(s.channelId)) {
-      snapshotsByChannel.set(s.channelId, []);
-    }
-    snapshotsByChannel.get(s.channelId)!.push({
-      collectedAt: s.collectedAt,
-      membersCount: s.membersCount,
-    });
+  const metricsByChannel = new Map<number, any[]>();
+  for (const m of allDailyMetrics) {
+    if (!metricsByChannel.has(m.channelId)) metricsByChannel.set(m.channelId, []);
+    metricsByChannel.get(m.channelId).push(m);
   }
 
-  // Group posts by channelId
-  const postsByChannel = new Map<number, { publishedAt: Date; views: number | null; text: string | null; reactions: number | null; comments: number | null; forwards: number | null }[]>();
-  for (const p of allPosts) {
-    if (!postsByChannel.has(p.channelId)) {
-      postsByChannel.set(p.channelId, []);
-    }
-    postsByChannel.get(p.channelId)!.push({
-      publishedAt: p.publishedAt,
-      views: p.views,
-      text: p.text,
-      reactions: p.reactions,
-      comments: p.comments,
-      forwards: p.forwards,
-    });
+  const postsByChannel = new Map<number, any[]>();
+  for (const p of recentPosts) {
+    if (!postsByChannel.has(p.channelId)) postsByChannel.set(p.channelId, []);
+    postsByChannel.get(p.channelId).push(p);
   }
 
-  // Compute metrics for each channel вЂ” pure in-memory, no DB calls
   const channelMetricsList: ChannelMetrics[] = [];
   const epSnapshots: import('./ep').ChannelSnapshot[] = [];
 
   for (const ch of allChannels) {
-    const snapshots = snapshotsByChannel.get(ch.id) || [];
-    const posts = postsByChannel.get(ch.id) || [];
-    const metrics = calculateChannelMetricsFromData(ch, snapshots, posts, now);
+    const dailyMetrics = metricsByChannel.get(ch.id) || [];
+    let metrics: ChannelMetrics;
+    
+    if (dailyMetrics.length > 0) {
+      const posts = postsByChannel.get(ch.id) || [];
+      metrics = buildMetricsFromMaterialized(ch, dailyMetrics, posts.slice(0, 20), now);
+    } else {
+      // fallback
+      const snapshots = await prisma.snapshot.findMany({ where: { channelId: ch.id }, orderBy: { collectedAt: 'desc' }, select: { collectedAt: true, membersCount: true } });
+      const posts = await prisma.post.findMany({ where: { channelId: ch.id, publishedAt: { gte: date30dAgo } }, select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true } });
+      metrics = calculateChannelMetricsFromData(ch, snapshots, posts, now);
+    }
+    
     channelMetricsList.push(metrics);
 
-    // Build EP snapshot for calculation
-    const recentPosts = posts.slice(-20); // last 20 posts
+    const rPosts = (postsByChannel.get(ch.id) || []).slice(0, 20);
     epSnapshots.push({
       channelId: ch.id.toString(),
       niche: ch.niche || 'general',
@@ -377,15 +487,14 @@ export async function getOverviewStats(): Promise<OverviewStats> {
       newSubs24h: metrics.delta24h.abs || 0,
       newSubs7d: metrics.delta7d.abs || 0,
       newSubs30d: metrics.delta30d.abs || 0,
-      postViews: recentPosts.map(p => p.views || 0),
-      postReactions: recentPosts.map(p => p.reactions || 0),
-      postComments: recentPosts.map(p => p.comments || 0),
-      postForwards: recentPosts.map(p => p.forwards || 0),
+      postViews: rPosts.map(p => p.views || 0),
+      postReactions: rPosts.map(p => p.reactions || 0),
+      postComments: rPosts.map(p => p.comments || 0),
+      postForwards: rPosts.map(p => p.forwards || 0),
     });
   }
 
-  // Calculate EP
-  const { computeNicheStats, calculateEP } = await import('./ep');
+  const { computeNicheStats, calculateEP } = await Promise.resolve().then(() => require('./ep'));
   const nicheStats = computeNicheStats(epSnapshots);
   for (const metrics of channelMetricsList) {
     const snap = epSnapshots.find(s => s.channelId === metrics.id.toString());
@@ -399,49 +508,21 @@ export async function getOverviewStats(): Promise<OverviewStats> {
     }
   }
 
-  // Find My Channel
   const myChannel = channelMetricsList.find((c) => c.isMine) || null;
 
-  // Enrich with comparisons against My Channel
   const channelsWithComparison = channelMetricsList.map((ch) => {
-    if (!myChannel || ch.id === myChannel.id) {
-      return ch;
+    if (!myChannel || ch.id === myChannel.id) return ch;
+    let audienceSharePercent = null;
+    if (ch.currentMembers !== null && myChannel.currentMembers !== null && myChannel.currentMembers > 0) {
+      audienceSharePercent = Number(((ch.currentMembers / myChannel.currentMembers) * 100).toFixed(1));
     }
-
-    let audienceSharePercent: number | null = null;
-    if (
-      ch.currentMembers !== null &&
-      myChannel.currentMembers !== null &&
-      myChannel.currentMembers > 0
-    ) {
-      audienceSharePercent = Number(
-        ((ch.currentMembers / myChannel.currentMembers) * 100).toFixed(1)
-      );
+    let growthRateDiff7d = null;
+    if (ch.delta7d.percent !== null && myChannel.delta7d.percent !== null) {
+      growthRateDiff7d = Number((ch.delta7d.percent - myChannel.delta7d.percent).toFixed(2));
     }
-
-    let growthRateDiff7d: number | null = null;
-    if (
-      ch.delta7d.percent !== null &&
-      myChannel.delta7d.percent !== null
-    ) {
-      growthRateDiff7d = Number(
-        (ch.delta7d.percent - myChannel.delta7d.percent).toFixed(2)
-      );
-    }
-
-    let activityDiff7d: number | null = null;
-    if (myChannel.posts7d !== undefined) {
-      activityDiff7d = ch.posts7d - myChannel.posts7d;
-    }
-
-    return {
-      ...ch,
-      comparison: {
-        audienceSharePercent,
-        growthRateDiff7d,
-        activityDiff7d,
-      },
-    };
+    let activityDiff7d = null;
+    if (myChannel.posts7d !== undefined) activityDiff7d = ch.posts7d - myChannel.posts7d;
+    return { ...ch, comparison: { audienceSharePercent, growthRateDiff7d, activityDiff7d } };
   });
 
   let lastGlobalUpdate: string | null = null;
