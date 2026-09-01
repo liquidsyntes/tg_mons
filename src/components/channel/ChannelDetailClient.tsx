@@ -53,7 +53,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col">
       <Header />
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-[6px]">
         {loading ? (
           <DetailSkeleton />
         ) : error || !channel ? (
@@ -66,7 +66,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
           </div>
         ) : (
           <>
-            <div id="report-content" className="space-y-6">
+            <div id="report-content" className="flex flex-col gap-[6px]">
               <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} />
               {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
               <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
