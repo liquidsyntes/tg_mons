@@ -274,13 +274,11 @@ export async function collectChannelData(
   let maxMessageId = channel.lastMessageId ? BigInt(channel.lastMessageId) : BigInt(0);
 
   const thirtyDaysAgoSec = Math.floor((Date.now() - 30 * 86400 * 1000) / 1000);
-  const minId = (!isBackfill && channel.lastMessageId) ? Number(channel.lastMessageId) : undefined;
 
   try {
     const options: any = { limit: isBackfill ? 1000 : 200 };
-    if (minId) {
-      options.minId = minId;
-    }
+    // Убираем использование minId, чтобы всегда получать последние 200 постов
+    // и регулярно обновлять количество просмотров и реакций для свежих публикаций.
 
     const messages = await withRateLimitAndRetry(() => 
       withTimeout(() => client.getMessages(entity, options), 'getMessages', identifier)
