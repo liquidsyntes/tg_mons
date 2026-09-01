@@ -22,6 +22,10 @@ export function AIReportsSection({ channelId, channel, myChannel, period }: AIRe
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  const [aiSuperSummary, setAiSuperSummary] = useState<any | null>(null);
+  const [aiSuperLoading, setAiSuperLoading] = useState(false);
+  const [aiSuperError, setAiSuperError] = useState<string | null>(null);
+
   const [aiCompareSummary, setAiCompareSummary] = useState<any | null>(null);
   const [aiCompareLoading, setAiCompareLoading] = useState(false);
   const [aiCompareError, setAiCompareError] = useState<string | null>(null);
@@ -183,6 +187,25 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
     finally { setAiLoading(false); }
   };
 
+  const fetchAiSuperSummary = async () => {
+    setAiSuperLoading(true);
+    setAiSuperError(null);
+    try {
+      const res = await fetch('/api/ai/super-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
+      if (json.summary) {
+        try { setAiSuperSummary(JSON.parse(json.summary)); }
+        catch { setAiSuperError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
+      } else { setAiSuperError('Пустой ответ от нейросети.'); }
+    } catch (err: any) { setAiSuperError(err.message); }
+    finally { setAiSuperLoading(false); }
+  };
+
   const fetchAiCompare = async () => {
     setAiCompareLoading(true);
     setAiCompareError(null);
@@ -265,6 +288,35 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
               <button onClick={() => downloadMarkdown(aiDataToMarkdown(aiSummary), `summary_${channel.username || channel.id}.md`)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
                 <Download className="w-3.5 h-3.5 text-accent" /> Экспорт в MD
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* AI Super Report Section */}
+      <div className="bg-surface border border-orange-500/30 rounded-2xl p-5 sm:p-6 space-y-4 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-orange-500" />
+              Супер Отчет (6 недель)
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">Глубокий анализ контента за последние 6 недель (до 150 постов)</p>
+          </div>
+          <button onClick={fetchAiSuperSummary} disabled={aiSuperLoading}
+            className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
+            {aiSuperLoading ? 'Анализирую...' : 'Супер Отчет'}
+          </button>
+        </div>
+        {aiSuperError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiSuperError}</div>}
+        {aiSuperSummary && (
+          <div className="space-y-4 mt-6">
+            <AISummaryReport data={aiSuperSummary} />
+            <div className="flex justify-end">
+              <button onClick={() => downloadMarkdown(aiDataToMarkdown(aiSuperSummary), `super_summary_${channel.username || channel.id}.md`)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
+                <Download className="w-3.5 h-3.5 text-orange-500" /> Экспорт в MD
               </button>
             </div>
           </div>
