@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
 import React, { Suspense, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Header } from '@/components/Header';
 import {
   ArrowLeft,
   GitCompareArrows,
@@ -207,6 +208,7 @@ function ComparePage() {
 
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col">
+      <Header />
       {/* Top Bar */}
       <div className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">

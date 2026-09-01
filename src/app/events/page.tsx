@@ -7,6 +7,7 @@ import { ru } from 'date-fns/locale';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { EventCard } from '@/components/events/EventCard';
+import { Header } from '@/components/Header';
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
@@ -63,9 +64,11 @@ export default function EventsPage() {
   }, [events, currentMonth]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
-      {/* Header */}
+    <div className="min-h-screen bg-background text-slate-100 flex flex-col">
+      <Header />
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        
+        {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
@@ -176,6 +179,7 @@ export default function EventsPage() {
           )}
         </div>
       </div>
+      </main>
     </div>
   );
 }

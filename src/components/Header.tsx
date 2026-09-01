@@ -5,12 +5,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Activity, Plus, RefreshCw, Radio, Check, AlertCircle } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
+import { AddChannelModal } from '@/components/AddChannelModal';
 
 interface HeaderProps {
   lastGlobalUpdate?: string | null;
   totalChannels?: number;
   activeChannels?: number;
-  onOpenAddModal?: () => void;
   onRefresh?: () => Promise<void>;
 }
 
@@ -18,11 +18,40 @@ export function Header({
   lastGlobalUpdate = null,
   totalChannels = 0,
   activeChannels = 0,
-  onOpenAddModal,
   onRefresh,
 }: HeaderProps) {
   const [isCollecting, setIsCollecting] = useState(false);
   const [collectMessage, setCollectMessage] = useState<{ text: string; isError?: boolean } | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  const [localStats, setLocalStats] = useState<{ total: number; active: number; lastUpdate: string | null } | null>(null);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/stats/overview');
+      if (res.ok) {
+        const data = await res.json();
+        setLocalStats({
+          total: data.totalChannels,
+          active: data.activeChannels,
+          lastUpdate: data.lastGlobalUpdate
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Fetch local stats on mount if not provided via props
+  React.useEffect(() => {
+    if (totalChannels === 0 && activeChannels === 0) {
+      fetchStats();
+    }
+  }, [totalChannels, activeChannels]);
+
+  const displayTotal = totalChannels || localStats?.total || 0;
+  const displayActive = activeChannels || localStats?.active || 0;
+  const displayUpdate = lastGlobalUpdate || localStats?.lastUpdate || null;
 
   const handleTriggerCollect = async () => {
     setIsCollecting(true);
@@ -36,7 +65,12 @@ export function Header({
         throw new Error(data.error || 'Ошибка запуска сбора');
       }
       setCollectMessage({ text: 'Сбор завершен успешно!' });
-      await onRefresh?.();
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        await fetchStats();
+        window.location.reload();
+      }
     } catch (err: any) {
       setCollectMessage({ text: err.message || 'Ошибка сбора', isError: true });
     } finally {
@@ -91,10 +125,10 @@ export function Header({
           <div className="hidden lg:flex items-center gap-3 text-xs text-slate-400 font-mono border-r border-border pr-4">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              {activeChannels} из {totalChannels} активны
+              {displayActive} из {displayTotal} активны
             </span>
             <span>•</span>
-            <span>Обновлено: {formatRelativeTime(lastGlobalUpdate)}</span>
+            <span>Обновлено: {formatRelativeTime(displayUpdate)}</span>
           </div>
 
           {/* Всплывающее уведомление о статусе ручного сбора данных (успех/ошибка) */}
@@ -116,32 +150,42 @@ export function Header({
           )}
 
           {/* Кнопка принудительного обновления данных по каналам */}
-          {onRefresh && (
-            <button
-              onClick={handleTriggerCollect}
-              disabled={isCollecting}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-border transition-colors disabled:opacity-50"
-              title="Запустить цикл сбора данных вручную"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isCollecting ? 'animate-spin text-accent' : ''}`} />
-              <span className="hidden sm:inline">
-                {isCollecting ? 'Сбор...' : 'Собрать сейчас'}
-              </span>
-            </button>
-          )}
+          <button
+            onClick={handleTriggerCollect}
+            disabled={isCollecting}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-border transition-colors disabled:opacity-50"
+            title="Запустить цикл сбора данных вручную"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isCollecting ? 'animate-spin text-accent' : ''}`} />
+            <span className="hidden sm:inline">
+              {isCollecting ? 'Сбор...' : 'Собрать сейчас'}
+            </span>
+          </button>
 
           {/* Главная целевая кнопка: добавление нового канала для мониторинга */}
-          {onOpenAddModal && (
-            <button
-              onClick={onOpenAddModal}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent hover:bg-accent-hover text-slate-950 transition-colors shadow-sm shadow-accent/20"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Добавить канал</span>
-            </button>
-          )}
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent hover:bg-accent-hover text-slate-950 transition-colors shadow-sm shadow-accent/20"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Добавить канал</span>
+          </button>
         </div>
       </div>
+      
+      <AddChannelModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={async () => {
+          setIsAddModalOpen(false);
+          await fetchStats();
+          if (onRefresh) {
+            await onRefresh();
+          } else {
+            window.location.reload();
+          }
+        }}
+      />
     </header>
   );
 }
