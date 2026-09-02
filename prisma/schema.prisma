@@ -61,6 +61,7 @@ model Post {
   id            Int            @id @default(autoincrement())
   channelId     Int            @map("channel_id")
   messageId     BigInt         @map("message_id")
+  groupedId     BigInt?        @map("grouped_id")
   publishedAt   DateTime       @map("published_at")
   views         Int?
   reactions     Int?
@@ -73,6 +74,7 @@ model Post {
   eventMentions EventMention[]
 
   @@unique([channelId, messageId])
+  @@index([channelId, groupedId])
   @@index([channelId, publishedAt])
   @@index([text(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("posts")

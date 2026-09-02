@@ -309,10 +309,21 @@ export async function collectChannelData(
       const text = msg.message || null;
       const forwards = typeof msg.forwards === 'number' ? msg.forwards : null;
       const comments = msg.replies && typeof msg.replies.replies === 'number' ? msg.replies.replies : null;
+      const groupedId = msg.groupedId ? BigInt(msg.groupedId) : null;
       
       let reactions: number | null = null;
       if (msg.reactions && msg.reactions.results) {
          reactions = msg.reactions.results.reduce((acc: number, r: any) => acc + (r.count || 0), 0);
+      }
+
+      let targetMessageId = messageId;
+      if (groupedId) {
+          const existingGroupPost = await prisma.post.findFirst({
+              where: { channelId: channel.id, groupedId }
+          });
+          if (existingGroupPost) {
+              targetMessageId = existingGroupPost.messageId;
+          }
       }
 
       // Extract mentions
@@ -355,7 +366,7 @@ export async function collectChannelData(
         where: {
           channelId_messageId: {
             channelId: channel.id,
-            messageId,
+            messageId: targetMessageId,
           },
         },
         update: {
@@ -364,16 +375,18 @@ export async function collectChannelData(
           comments: comments ?? undefined,
           forwards: forwards ?? undefined,
           text: text ?? undefined,
+          groupedId: groupedId ?? undefined,
         },
         create: {
           channelId: channel.id,
-          messageId,
+          messageId: targetMessageId,
           publishedAt,
           views,
           reactions,
           comments,
           forwards,
           text,
+          groupedId,
         },
       });
 
