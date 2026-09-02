@@ -80,6 +80,7 @@ export function Header({
   };
 
   return (
+    <>
     <header className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Левая часть хедера: Логотип, название проекта и навигация */}
@@ -172,6 +173,7 @@ export function Header({
           </button>
         </div>
       </div>
+    </header>
       
       <AddChannelModal
         isOpen={isAddModalOpen}
@@ -186,6 +188,6 @@ export function Header({
           }
         }}
       />
-    </header>
+    </>
   );
 }
