@@ -10,6 +10,7 @@ export interface ChannelMetrics {
   isMine: boolean;
   isFavorite: boolean;
   isActive: boolean;
+  consecutiveErrors: number;
   lastMessageId: string | null;
   lastError: string | null;
   lastCollectedAt: string | null;

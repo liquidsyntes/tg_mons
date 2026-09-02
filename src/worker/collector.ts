@@ -522,14 +522,34 @@ export async function runCollectCycle(): Promise<{
           }).catch((dbErr: any) => console.error('[Collector] SyncJob update failed:', dbErr));
         }
 
+        const newErrors = channel.consecutiveErrors + 1;
+        const shouldDisable = newErrors >= (Number(process.env.CHANNEL_MAX_CONSECUTIVE_ERRORS) || 10);
+
         // Isolate error: save to DB and continue next channel
         await prisma.channel.update({
           where: { id: channel.id },
           data: {
             lastError: errorMessage,
-            consecutiveErrors: { increment: 1 },
+            consecutiveErrors: newErrors,
+            ...(shouldDisable ? { isActive: false } : {})
           },
         }).catch((dbErr) => console.error('[Collector] Could not update channel error status:', dbErr));
+
+        if (shouldDisable) {
+          const warnText = `[Collector] Disabled channel "${channel.title}" after ${newErrors} consecutive errors.`;
+          console.warn(warnText);
+          
+          const token = process.env.TELEGRAM_BOT_TOKEN;
+          const chatId = process.env.TELEGRAM_CHAT_ID;
+          if (token && chatId) {
+            const text = `\u26A0\uFE0F <b>РљР°РЅР°Р» РѕС‚РєР»СЋС‡РµРЅ</b>\n\nРљР°РЅР°Р» "<b>${channel.title}</b>" (${channel.username ? '@' + channel.username : channel.tgId}) Р±С‹Р» Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РѕС‚РєР»СЋС‡РµРЅ РёР·-Р·Р° ${newErrors} РѕС€РёР±РѕРє РїРѕРґСЂСЏРґ.\n\nРџРѕСЃР»РµРґРЅСЏСЏ РѕС€РёР±РєР°:\n<pre>${errorMessage}</pre>`;
+            fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+            }).catch(e => console.error('[Collector] Failed to send admin alert', e));
+          }
+        }
 
         if (err instanceof TelegramTimeoutError) {
           console.warn(`[Collector] TelegramTimeoutError detected. Attempting to force reconnect client to recover dead socket...`);
