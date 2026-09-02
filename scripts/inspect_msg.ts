@@ -6,13 +6,15 @@ async function main() {
   const entity = await client.getEntity('senioritas_bdsm');
   
   const messages = await client.getMessages(entity, {
-    ids: [542, 543, 548, 549]
+    ids: [553]
   });
 
-  for (const msg of messages) {
-    if (!msg) continue;
-    console.log(`MSG ${msg.id}: text='${msg.message ? msg.message.substring(0, 50) : ''}', groupedId=${msg.groupedId}, media=${msg.media ? msg.media.className : 'none'}`);
-  }
+  const msg = messages[0];
+  console.log(JSON.stringify(msg, (key, value) => {
+    if (key === 'originalArgs' || key === 'client') return undefined;
+    if (typeof value === 'bigint') return value.toString();
+    return value;
+  }, 2));
 
   process.exit(0);
 }

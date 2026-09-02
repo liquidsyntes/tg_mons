@@ -80,6 +80,7 @@ export async function GET(req: Request) {
     const enrichedPosts = posts.map(p => ({
         ...p,
         messageId: p.messageId.toString(),
+        groupedId: p.groupedId ? p.groupedId.toString() : null,
         ad: detectAd(p.text)
     }));
 
