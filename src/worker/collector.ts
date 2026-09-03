@@ -2,6 +2,7 @@ import { Api, TelegramClient } from 'telegram';
 import { prisma } from '../lib/prisma';
 import { getTelegramClient } from './client';
 import { materializeDailyMetrics } from '../lib/materialize';
+import { logger } from '../lib/logger';
 
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
@@ -25,7 +26,7 @@ async function sendTelegramAlert(channelTitle: string, diff: number, diffPercent
       }),
     });
   } catch (err) {
-    console.error('[Alert] Telegram alert failed:', err);
+    logger.error('Telegram alert failed', undefined, err);
   }
 }
 
@@ -77,7 +78,7 @@ export async function withRateLimitAndRetry<T>(
 
       if (floodSeconds && attempt < maxRetries - 1) {
         const waitTime = (floodSeconds + 2) * 1000 + Math.floor(Math.random() * 1500);
-        console.warn(`[RateLimit] FLOOD_WAIT detected: sleeping for ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})...`);
+        logger.warn('FLOOD_WAIT detected', { waitTime, attempt: attempt + 1, maxRetries });
         await sleep(waitTime);
         continue;
       }
@@ -236,7 +237,7 @@ export async function collectChannelData(
     }
   } catch (err: any) {
     if (err instanceof TelegramTimeoutError) throw err;
-    console.warn(`[Collector] Could not fetch FullChannel for ${channel.title}: ${err.message}`);
+    logger.warn('Could not fetch FullChannel', { channelId: channel.id, title: channel.title }, err);
     // Some basic groups may store participantsCount directly on entity
     if (entity.participantsCount) {
       participantsCount = entity.participantsCount;
@@ -309,7 +310,7 @@ export async function collectChannelData(
       const text = msg.message || null;
       const forwards = typeof msg.forwards === 'number' ? msg.forwards : null;
       const comments = msg.replies && typeof msg.replies.replies === 'number' ? msg.replies.replies : null;
-      const groupedId = msg.groupedId ? BigInt(msg.groupedId) : null;
+      const groupedId = msg.groupedId ? BigInt(msg.groupedId.toString()) : null;
       
       let reactions: number | null = null;
       if (msg.reactions && msg.reactions.results) {
@@ -419,7 +420,7 @@ export async function collectChannelData(
     }
   } catch (err: any) {
     if (err instanceof TelegramTimeoutError) throw err;
-    console.warn(`[Collector] Could not fetch messages for ${channel.title}: ${err.message}`);
+    logger.warn('Could not fetch messages', { channelId: channel.id, title: channel.title }, err);
   }
 
   // 3. Update channel state
@@ -446,7 +447,7 @@ export async function runCollectCycle(): Promise<{
   durationMs: number;
 }> {
   const cycleStartTime = Date.now();
-  console.log(`[Collector] === Starting collection cycle at ${new Date().toISOString()} ===`);
+  logger.info('Starting collection cycle');
 
   // Fetch active channels
   const activeChannels = await prisma.channel.findMany({
@@ -454,7 +455,7 @@ export async function runCollectCycle(): Promise<{
     orderBy: { id: 'asc' },
   });
 
-  console.log(`[Collector] Found ${activeChannels.length} active channels to monitor`);
+  logger.info('Found active channels to monitor', { activeChannelsCount: activeChannels.length });
 
   let syncJobId: number | null = null;
   try {
@@ -467,7 +468,7 @@ export async function runCollectCycle(): Promise<{
     });
     syncJobId = job.id;
   } catch (err) {
-    console.error(`[Collector] Could not create SyncJob record:`, err);
+    logger.error('Could not create SyncJob record', undefined, err);
   }
 
   let successCount = 0;
@@ -488,7 +489,7 @@ export async function runCollectCycle(): Promise<{
     for (const channel of activeChannels) {
       const channelStartTime = Date.now();
       try {
-        console.log(`[Collector] Processing channel: "${channel.title}" (@${channel.username || channel.tgId || channel.id})...`);
+        logger.info('Processing channel', { title: channel.title, username: channel.username, tgId: channel.tgId, id: channel.id });
         const isInitial = !channel.lastCollectedAt;
         const result = await collectChannelData(client, channel.id, isInitial);
 
@@ -500,26 +501,24 @@ export async function runCollectCycle(): Promise<{
           prisma.syncJob.update({
             where: { id: syncJobId },
             data: { channelsSucceeded: successCount, postsAdded: totalPosts }
-          }).catch((dbErr: any) => console.error('[Collector] SyncJob update failed:', dbErr));
+          }).catch((dbErr: any) => logger.error('SyncJob update failed', undefined, dbErr));
         }
 
         await materializeDailyMetrics(channel.id, 30).catch((err) => {
-          console.error(`[Collector] Materialization failed for "${channel.title}":`, err);
+          logger.error('Materialization failed', { title: channel.title }, err);
         });
 
-        console.log(
-          `[Collector] ✓ "${channel.title}" done in ${result.durationMs}ms | Snapshots: ${result.snapshotsAdded}, Posts: ${result.postsAdded}`
-        );
+        logger.info('Channel processed successfully', { title: channel.title, durationMs: result.durationMs, snapshotsAdded: result.snapshotsAdded, postsAdded: result.postsAdded });
       } catch (err: any) {
         errorCount++;
         const errorMessage = err.message || String(err);
-        console.error(`[Collector] ✗ Failed for "${channel.title}": ${errorMessage}`);
+        logger.error('Channel processing failed', { title: channel.title }, new Error(errorMessage));
 
         if (syncJobId) {
           prisma.syncJob.update({
             where: { id: syncJobId },
             data: { channelsFailed: errorCount }
-          }).catch((dbErr: any) => console.error('[Collector] SyncJob update failed:', dbErr));
+          }).catch((dbErr: any) => logger.error('SyncJob update failed', undefined, dbErr));
         }
 
         const newErrors = channel.consecutiveErrors + 1;
@@ -533,11 +532,11 @@ export async function runCollectCycle(): Promise<{
             consecutiveErrors: newErrors,
             ...(shouldDisable ? { isActive: false } : {})
           },
-        }).catch((dbErr) => console.error('[Collector] Could not update channel error status:', dbErr));
+        }).catch((dbErr) => logger.error('Could not update channel error status', undefined, dbErr));
 
         if (shouldDisable) {
           const warnText = `[Collector] Disabled channel "${channel.title}" after ${newErrors} consecutive errors.`;
-          console.warn(warnText);
+          logger.warn('Channel error threshold reached', { channelId: channel.id, title: channel.title, consecutiveErrors: channel.consecutiveErrors + 1 });
           
           const token = process.env.TELEGRAM_BOT_TOKEN;
           const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -547,19 +546,19 @@ export async function runCollectCycle(): Promise<{
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
-            }).catch(e => console.error('[Collector] Failed to send admin alert', e));
+            }).catch(e => logger.error('Failed to send admin alert', undefined, e));
           }
         }
 
         if (err instanceof TelegramTimeoutError) {
-          console.warn(`[Collector] TelegramTimeoutError detected. Attempting to force reconnect client to recover dead socket...`);
+          logger.warn('TelegramTimeoutError detected. Attempting to force reconnect client to recover dead socket');
           try {
             await client.disconnect();
             client = await getTelegramClient();
-            console.log(`[Collector] Client reconnected successfully after timeout.`);
+            logger.info('Client reconnected successfully after timeout');
           } catch (reconnectErr: any) {
             fatalError = `Failed to reconnect client after timeout: ${reconnectErr.message}`;
-            console.error(`[Collector] ${fatalError}. Aborting cycle.`);
+            logger.error('Fatal reconnect error. Aborting cycle', undefined, new Error(fatalError));
             break;
           }
         }
@@ -591,12 +590,10 @@ export async function runCollectCycle(): Promise<{
           channelsFailed: errorCount,
           postsAdded: totalPosts,
         }
-      }).catch((err: any) => console.error('[Collector] Final SyncJob update failed:', err));
+      }).catch((err: any) => logger.error('Final SyncJob update failed', undefined, err));
     }
     
-    console.log(
-      `[Collector] === Cycle completed in ${(durationMs / 1000).toFixed(1)}s | Success: ${successCount}, Errors: ${errorCount}, Snapshots: ${totalSnapshots}, Posts: ${totalPosts} ===\n`
-    );
+    logger.info('Cycle completed', { durationMs, successCount, errorCount, totalSnapshots, totalPosts });
   }
 
   const durationMs = Date.now() - cycleStartTime;

@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Shared OpenRouter API client.
  * Used by all 6 AI route handlers to avoid duplicated fetch/timeout/error logic.
@@ -59,7 +61,7 @@ export async function callOpenRouter(
 
   if (!res.ok) {
     const errorData = await res.text();
-    console.error('OpenRouter Error:', errorData);
+    logger.error('OpenRouter Error', { status: res.status, errorData });
     throw new Error(`Ошибка API OpenRouter: ${res.status}`);
   }
 

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOpenRouter } from '@/lib/openrouter';
@@ -138,7 +139,7 @@ ${JSON.stringify(limitedPayload)}
                 update: {}
               });
             } catch (err) {
-              console.warn('Could not link mention', err);
+              logger.warn('Could not link mention', undefined, err);
             }
           }
         }
@@ -147,7 +148,7 @@ ${JSON.stringify(limitedPayload)}
 
     return NextResponse.json({ success: true, savedCount, parsedEvents: events });
   } catch (error: any) {
-    console.error('Error scanning events:', error);
+    logger.error('Error scanning events:', undefined, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

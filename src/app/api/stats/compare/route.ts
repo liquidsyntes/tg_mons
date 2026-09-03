@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getChannelDetailStats } from '@/lib/metrics';
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ a: statsA, b: statsB, period });
   } catch (error: any) {
-    console.error('GET /api/stats/compare error:', error);
+    logger.error('GET /api/stats/compare error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

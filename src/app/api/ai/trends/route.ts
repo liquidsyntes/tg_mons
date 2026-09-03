@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
@@ -104,7 +105,7 @@ ${contentToAnalyze.substring(0, 30000)}
       return NextResponse.json({ error: 'ИИ вернул невалидный JSON' }, { status: 500 });
     }
   } catch (error: any) {
-    console.error('AI Error:', error);
+    logger.error('AI Error', undefined, error);
     if (error.name === 'AbortError') {
       return NextResponse.json({ error: 'Таймаут соединения с API.' }, { status: 504 });
     }

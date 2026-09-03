@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -389,7 +390,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     return new NextResponse(htmlDocument, { status: 200, headers });
   } catch (err) {
-    console.error('Export HTML Error:', err);
+    logger.error('Export HTML Error:', undefined, err);
     
     // Возвращаем ошибку в формате HTML, чтобы браузер не сохранял ее как .txt
     const errorHtml = `

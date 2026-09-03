@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -92,7 +93,7 @@ export async function GET(
 
     return NextResponse.json({ ltv });
   } catch (error: any) {
-    console.error('LTV API error:', error);
+    logger.error('LTV API error:', undefined, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { detectAd } from '@/lib/adDetector';
@@ -90,7 +91,7 @@ export async function GET(req: Request) {
       absoluteTotal,
     });
   } catch (error: any) {
-    console.error('Search API error:', error);
+    logger.error('Search API error:', undefined, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

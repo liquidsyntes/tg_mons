@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -70,7 +71,7 @@ export async function GET(
 
     return NextResponse.json({ outbound, inbound });
   } catch (error: any) {
-    console.error('Network API error:', error);
+    logger.error('Network API error:', undefined, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 ﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -42,7 +43,7 @@ export async function GET() {
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error('Health API error:', error);
+    logger.error('Health API error:', undefined, error);
     return NextResponse.json({ status: 'error', message: 'internal server error' }, { status: 500 });
   }
 }

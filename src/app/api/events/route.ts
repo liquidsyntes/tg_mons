@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -29,7 +30,7 @@ export async function GET() {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('Error fetching events:', error);
+    logger.error('Error fetching events:', undefined, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

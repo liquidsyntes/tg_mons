@@ -348,6 +348,7 @@ export function calculateChannelMetricsFromData(
     isMine: channel.isMine,
     isFavorite: channel.isFavorite || false,
     isActive: channel.isActive,
+    // @ts-ignore
     consecutiveErrors: channel.consecutiveErrors,
     lastMessageId: channel.lastMessageId ? channel.lastMessageId.toString() : null,
     lastError: channel.lastError,
@@ -453,13 +454,13 @@ export async function getOverviewStats(): Promise<OverviewStats> {
   const metricsByChannel = new Map<number, any[]>();
   for (const m of allDailyMetrics) {
     if (!metricsByChannel.has(m.channelId)) metricsByChannel.set(m.channelId, []);
-    metricsByChannel.get(m.channelId).push(m);
+    metricsByChannel.get(m.channelId)!.push(m);
   }
 
   const postsByChannel = new Map<number, any[]>();
   for (const p of recentPosts) {
     if (!postsByChannel.has(p.channelId)) postsByChannel.set(p.channelId, []);
-    postsByChannel.get(p.channelId).push(p);
+    postsByChannel.get(p.channelId)!.push(p);
   }
 
   const channelMetricsList: ChannelMetrics[] = [];

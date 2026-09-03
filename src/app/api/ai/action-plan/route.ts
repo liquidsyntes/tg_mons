@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
@@ -67,7 +68,7 @@ ${baseReport.content}
     await saveAiReport(baseReport.channelId, 'action_plan', result);
     return NextResponse.json({ summary: result });
   } catch (error: any) {
-    console.error('AI Error:', error);
+    logger.error('AI Error', undefined, error);
     if (error.name === 'AbortError') {
       return NextResponse.json({ error: 'Таймаут соединения с API.' }, { status: 504 });
     }

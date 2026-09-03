@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getChannelDetailStats } from '@/lib/metrics';
 import { metricsCache } from '@/lib/cache';
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     metricsCache.set(cacheKey, detailStats);
     return NextResponse.json(detailStats);
   } catch (error: any) {
-    console.error('GET /api/stats/channel/[id] error:', error);
+    logger.error('GET /api/stats/channel/[id] error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateChannelMetrics } from '@/lib/metrics';
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json(metrics);
   } catch (error: any) {
-    console.error('GET /api/channels/[id] error:', error);
+    logger.error('GET /api/channels/[id] error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -71,7 +72,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const metrics = await calculateChannelMetrics(updated.id);
     return NextResponse.json(metrics);
   } catch (error: any) {
-    console.error('PATCH /api/channels/[id] error:', error);
+    logger.error('PATCH /api/channels/[id] error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Ошибка обновления канала' }, { status: 500 });
   }
 }
@@ -115,7 +116,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       });
     }
   } catch (error: any) {
-    console.error('DELETE /api/channels/[id] error:', error);
+    logger.error('DELETE /api/channels/[id] error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Ошибка удаления канала' }, { status: 500 });
   }
 }

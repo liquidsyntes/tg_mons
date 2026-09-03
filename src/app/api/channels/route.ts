@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateChannelMetrics, getOverviewStats } from '@/lib/metrics';
@@ -13,7 +14,7 @@ export async function GET() {
     const overview = await getOverviewStats();
     return NextResponse.json(overview.channels);
   } catch (error: any) {
-    console.error('GET /api/channels error:', error);
+    logger.error('GET /api/channels error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     const metrics = await calculateChannelMetrics(channel.id);
     return NextResponse.json(metrics, { status: 201 });
   } catch (error: any) {
-    console.error('POST /api/channels error:', error);
+    logger.error('POST /api/channels error:', undefined, error);
     return NextResponse.json(
       { error: error.message || 'Ошибка добавления канала' },
       { status: 400 }

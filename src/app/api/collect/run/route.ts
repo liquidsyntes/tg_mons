@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { runCollectCycle } from '@/worker/collector';
 import { verifyBearerToken } from '@/lib/auth';
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
       result,
     });
   } catch (error: any) {
-    console.error('POST /api/collect/run error:', error);
+    logger.error('POST /api/collect/run error:', undefined, error);
     return NextResponse.json(
       { error: error.message || 'Ошибка выполнения сбора' },
       { status: 500 }

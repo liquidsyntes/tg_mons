@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { getDashboardStats } from '@/lib/dashboard';
 import { metricsCache } from '@/lib/cache';
@@ -15,7 +16,7 @@ export async function GET() {
     metricsCache.set('dashboard', stats);
     return NextResponse.json(stats);
   } catch (error: any) {
-    console.error('GET /api/stats/dashboard error:', error);
+    logger.error('GET /api/stats/dashboard error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

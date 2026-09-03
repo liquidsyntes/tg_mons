@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
@@ -25,7 +26,7 @@ export async function PUT(
 
     return NextResponse.json({ success: true, isFavorite: channel.isFavorite });
   } catch (error: any) {
-    console.error('Failed to update favorite status:', error);
+    logger.error('Failed to update favorite status:', undefined, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
