@@ -97,8 +97,13 @@ function calculateRawMetrics(channel: ChannelSnapshot, maxSubscribersInNiche: nu
 
   // 2. CEI
   const score = CONFIG.w_24h * gr24h + CONFIG.w_7d * gr7d + CONFIG.w_30d * gr30d;
-  const maxSubsLog = Math.log(maxSubscribersInNiche + 1);
-  const confidence = maxSubsLog > 0 ? 0.5 + 0.5 * (Math.log(channel.subscribers + 1) / maxSubsLog) : 0.5;
+  let confidence = 0.5;
+  if (maxSubscribersInNiche === 0) {
+    confidence = 1; // if niche is empty, channel is automatically the leader
+  } else {
+    const maxSubsLog = Math.log(maxSubscribersInNiche + 1);
+    confidence = maxSubsLog > 0 ? 0.5 + 0.5 * (Math.log(channel.subscribers + 1) / maxSubsLog) : 0.5;
+  }
   const CEI = score;
 
   // 3. VR
