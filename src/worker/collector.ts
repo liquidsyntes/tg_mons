@@ -336,7 +336,7 @@ export async function collectChannelData(
           if (fromId && fromId.className === 'PeerChannel') {
               extractedMentions.push({
                   type: 'forward',
-                  targetTgId: fromId.channelId,
+                  targetTgId: fromId.channelId ? fromId.channelId.toString() : null,
               });
           }
       }

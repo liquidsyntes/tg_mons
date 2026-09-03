@@ -43,7 +43,9 @@ function writeLog(level: LogLevel, event: string, context?: Record<string, any>,
     output.error = safeError;
   }
 
-  const jsonString = JSON.stringify(output);
+  const jsonString = JSON.stringify(output, (key, value) => 
+    typeof value === 'bigint' ? value.toString() : value
+  );
   if (level === 'error') {
     console.error(jsonString);
   } else if (level === 'warn') {
