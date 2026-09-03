@@ -1,3 +1,4 @@
+import { serializeBigInt } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
     }
 
-    return NextResponse.json(metrics);
+    return NextResponse.json(serializeBigInt(metrics));
   } catch (error: any) {
     logger.error('GET /api/channels/[id] error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
@@ -70,7 +71,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     metricsCache.invalidate();
     bestTimeCache.invalidate();
     const metrics = await calculateChannelMetrics(updated.id);
-    return NextResponse.json(metrics);
+    return NextResponse.json(serializeBigInt(metrics));
   } catch (error: any) {
     logger.error('PATCH /api/channels/[id] error:', undefined, error);
     return NextResponse.json({ error: error.message || 'Ошибка обновления канала' }, { status: 500 });
@@ -112,7 +113,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       return NextResponse.json({
         success: true,
         message: 'Мониторинг канала отключен (история сохранена)',
-        channel: updated,
+        channel: serializeBigInt(updated),
       });
     }
   } catch (error: any) {

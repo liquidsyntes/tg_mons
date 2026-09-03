@@ -46,14 +46,42 @@ export function ChannelDangerZone({ channelId, channelTitle }: ChannelDangerZone
             Отключить мониторинг этого канала. Он будет удален из списков, но накопленная история сохранится в базе.
           </p>
         </div>
-        <button
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 whitespace-nowrap border border-rose-500/20"
-        >
-          <Trash2 className="w-4 h-4" />
-          {isDeleting ? 'Удаление...' : 'Отключить мониторинг'}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 whitespace-nowrap border border-rose-500/20"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            {isDeleting ? 'Загрузка...' : 'Отключить мониторинг'}
+          </button>
+          <button
+            onClick={async () => {
+              if (!confirm(`ВНИМАНИЕ! Вы точно хотите ПОЛНОСТЬЮ УДАЛИТЬ канал «${channelTitle}» и всю его историю из базы данных? Это действие необратимо.`)) return;
+              setIsDeleting(true);
+              try {
+                const res = await fetch(`/api/channels/${channelId}?permanent=true`, {
+                  method: 'DELETE',
+                });
+                if (res.ok) {
+                  router.push('/');
+                } else {
+                  alert('Ошибка при удалении');
+                }
+              } catch (err) {
+                console.error(err);
+                alert('Ошибка при удалении');
+              } finally {
+                setIsDeleting(false);
+              }
+            }}
+            disabled={isDeleting}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-500 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 whitespace-nowrap border border-red-600/30"
+          >
+            <Trash2 className="w-4 h-4" />
+            Удалить из базы
+          </button>
+        </div>
       </div>
     </div>
   );
