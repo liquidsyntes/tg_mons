@@ -1,5 +1,5 @@
-import { prisma } from '../src/lib/prisma';
-import { getTelegramClient } from '../src/worker/client';
+﻿import { prisma } from '.../src/lib/prisma';
+import { getTelegramClient } from '.../src/worker/client';
 
 async function main() {
   const client = await getTelegramClient();

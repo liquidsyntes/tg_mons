@@ -1,5 +1,5 @@
-import { Api } from 'telegram';
-import { getTelegramClient } from '../src/worker/client';
+﻿import { Api } from 'telegram';
+import { getTelegramClient } from '.../src/worker/client';
 
 async function main() {
   const client = await getTelegramClient();

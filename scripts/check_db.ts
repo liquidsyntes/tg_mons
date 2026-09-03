@@ -1,1 +1,1 @@
-﻿import { prisma } from './src/lib/prisma'; prisma.aiReport.findFirst({ where: { type: 'super_report' }, orderBy: { id: 'desc' } }).then(report => console.log(report?.content)).finally(() => prisma.$disconnect());
+﻿import { prisma } from '../src/lib/prisma'; prisma.aiReport.findFirst({ where: { type: 'super_report' }, orderBy: { id: 'desc' } }).then(report => console.log(report?.content)).finally(() => prisma.$disconnect());

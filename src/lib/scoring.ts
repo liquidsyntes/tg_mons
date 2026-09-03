@@ -19,7 +19,7 @@ export interface ScoreBreakdown {
  * - ERR Score (0-30): на основе True ERR (>=10: 30, >=5: 20, >=2: 10, иначе 5).
  * - Consistency Score (0-20): частота постингов (1-3 в день: 20, <1: 15, >3: 15, иначе 5).
  * - Growth Score (0-20): рост аудитории (>=2%: 20, >0%: 10, иначе 0).
- * - Engagement Diversity (0-15): хардкод 10 (заглушка, нет данных по реакциям).
+ * - Engagement Diversity (0-15): разнообразие вовлечения (наличие реакций, комментариев, репостов).
  * - Originality Score (0-15): доля рекламных постов (<=10%: 15, <=30%: 10, >30%: 5).
  * 
  * Диапазон значений: [0, 100].
@@ -30,7 +30,7 @@ export function calculateContentScore(
   trueErr: number | null,
   postsPerDay: number,
   growthPercent: number | null,
-  posts: { text: string | null }[]
+  posts: { text: string | null, reactions?: number | null, comments?: number | null, forwards?: number | null }[]
 ): ScoreBreakdown {
   // ERR (0-30)
   let errScore = 5;
@@ -51,8 +51,25 @@ export function calculateContentScore(
   if (g >= 2) growthScore = 20;
   else if (g > 0) growthScore = 10;
 
-  // Engagement Diversity (0-15) - mock since no DB data for reactions
-  let engagementScore = 10; // Default average
+  // Engagement Diversity (0-15)
+  let engagementScore = 0;
+  if (posts.length > 0) {
+    let postsWithReactions = 0;
+    let postsWithComments = 0;
+    let postsWithForwards = 0;
+    for (const p of posts) {
+      if (p.reactions !== undefined && p.reactions !== null && p.reactions > 0) postsWithReactions++;
+      if (p.comments !== undefined && p.comments !== null && p.comments > 0) postsWithComments++;
+      if (p.forwards !== undefined && p.forwards !== null && p.forwards > 0) postsWithForwards++;
+    }
+    // 5 points for reactions, 6 points for comments, 4 points for forwards
+    engagementScore += (postsWithReactions / posts.length) * 5;
+    engagementScore += (postsWithComments / posts.length) * 6;
+    engagementScore += (postsWithForwards / posts.length) * 4;
+  } else {
+    engagementScore = 10; // fallback if no posts
+  }
+  engagementScore = Math.round(engagementScore);
 
   // Content Originality (0-15)
   let originalityScore = 15;

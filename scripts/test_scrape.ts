@@ -1,4 +1,4 @@
-import * as https from 'https';
+﻿import * as https from 'https';
 
 https.get('https://t.me/s/senioritas_bdsm/553', (res) => {
   let data = '';
