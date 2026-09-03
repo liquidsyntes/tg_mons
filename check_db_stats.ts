@@ -1,0 +1,1 @@
+﻿import { prisma } from './src/lib/prisma'; async function main() { const channels = await prisma.channel.findMany({ select: { username: true, _count: { select: { posts: true } }, lastCollectedAt: true } }); console.log('Channels:', channels); } main().finally(() => prisma.$disconnect());

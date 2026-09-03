@@ -503,7 +503,7 @@ export async function runCollectCycle(): Promise<{
           }).catch((dbErr: any) => console.error('[Collector] SyncJob update failed:', dbErr));
         }
 
-        await materializeDailyMetrics(channel.id, 7).catch((err) => {
+        await materializeDailyMetrics(channel.id, 30).catch((err) => {
           console.error(`[Collector] Materialization failed for "${channel.title}":`, err);
         });
 

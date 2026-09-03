@@ -15,7 +15,12 @@ export async function materializeDailyMetrics(channelId: number, days: number = 
     orderBy: { collectedAt: 'desc' }
   });
   
-  let currentMembers = baseline?.membersCount || 0;
+  const earliest = await prisma.snapshot.findFirst({
+    where: { channelId },
+    orderBy: { collectedAt: 'asc' }
+  });
+  
+  let currentMembers = baseline?.membersCount || earliest?.membersCount || 0;
   let snapshotIndex = 0;
   
   for (let i = days - 1; i >= 0; i--) {
