@@ -105,8 +105,9 @@ export function ReportsListClient({ reports }: Props) {
                 {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
               </div>
 
-              <Link href={`/reports/${report.id}`} className="flex-1 flex items-center justify-between group min-w-0">
-                <div className="flex items-center gap-4 min-w-0">
+              <div className="flex-1 flex items-center justify-between group min-w-0 relative">
+                <Link href={`/reports/${report.id}`} className="absolute inset-0 z-0" />
+                <div className="flex items-center gap-4 min-w-0 pointer-events-none">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
                     <Icon className="w-6 h-6" />
                   </div>
@@ -124,21 +125,21 @@ export function ReportsListClient({ reports }: Props) {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 ml-4">
+                <div className="flex items-center gap-2 shrink-0 ml-4 relative z-10">
                   <a
                     href={`/api/reports/${report.id}/export`}
                     download
                     onClick={(e) => e.stopPropagation()}
-                    className="w-8 h-8 rounded-full border border-slate-700 bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-500 transition-colors z-10"
+                    className="w-8 h-8 rounded-full border border-slate-700 bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-500 transition-colors"
                     title="Скачать как HTML"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   </a>
-                  <div className="w-8 h-8 rounded-full bg-slate-900 border border-border flex items-center justify-center text-slate-400 group-hover:text-accent group-hover:border-accent/30 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 border border-border flex items-center justify-center text-slate-400 group-hover:text-accent group-hover:border-accent/30 transition-colors pointer-events-none">
                     <ChevronRight className="w-4 h-4" />
                   </div>
                 </div>
-              </Link>
+              </div>
             </div>
           );
         })}
