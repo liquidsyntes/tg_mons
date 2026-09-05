@@ -164,12 +164,17 @@ export function ChannelsDesktopTable({
                     <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} size="sm" />
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono tabular-nums">
-                    <span className="font-semibold text-slate-200">{channel.posts7d}</span>
-                    <span className="text-slate-500 mx-1">/</span>
-                    <span className="text-slate-400">{channel.posts30d}</span>
-                    <span className="text-[10px] text-slate-500 block">
-                      ({channel.avgPostsPerDay}/д)
-                    </span>
+                    <div className="flex flex-col items-center">
+                      <div className="font-semibold text-slate-200 text-sm">
+                        {channel.posts7d}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        {channel.posts30d}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">
+                        {channel.avgPostsPerDay}/д
+                      </div>
+                    </div>
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono font-semibold tabular-nums text-[lime]">
                     {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
