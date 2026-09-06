@@ -266,7 +266,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
   return (
     <>
       {/* AI Summary Section */}
-      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-accent">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -276,7 +276,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
             <p className="text-xs text-slate-400 mt-0.5">Нейросеть проанализирует посты канала и сделает выжимку</p>
           </div>
           <button onClick={fetchAiSummary} disabled={aiLoading}
-            className="px-4 py-2 rounded-xl bg-accent hover:bg-accent-hover text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="w-[220px] justify-center py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
             {aiLoading ? 'Анализирую...' : 'Сгенерировать саммари'}
           </button>
         </div>
@@ -295,7 +295,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       </div>
 
       {/* AI Super Report Section */}
-      <div className="bg-surface border border-orange-500/30 rounded-2xl p-5 sm:p-6 space-y-4 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+      <div className="bg-surface border border-orange-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -305,7 +305,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
             <p className="text-xs text-slate-400 mt-0.5">Глубокий анализ контента за последние 6 недель (до 150 постов)</p>
           </div>
           <button onClick={fetchAiSuperSummary} disabled={aiSuperLoading}
-            className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="w-[220px] justify-center py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
             {aiSuperLoading ? 'Анализирую...' : 'Супер Отчет'}
           </button>
         </div>
@@ -325,7 +325,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
 
       {/* AI Comparative Section */}
       {!isMine && myChannel && (
-        <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+        <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-violet-500">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -335,7 +335,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
               <p className="text-xs text-slate-400 mt-0.5">Сравнить контент этого канала с вашим («{myChannel.title}»)</p>
             </div>
             <button onClick={fetchAiCompare} disabled={aiCompareLoading}
-              className="px-4 py-2 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
+              className="w-[220px] justify-center py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
               {aiCompareLoading ? 'Сравниваю...' : 'Сравнить каналы'}
             </button>
           </div>
@@ -355,7 +355,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       )}
 
       {/* AI Audience Section */}
-      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
+      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-emerald-500">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -365,7 +365,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
             <p className="text-xs text-slate-400 mt-0.5">Предполагаемая аудитория на основе контента канала</p>
           </div>
           <button onClick={fetchAiAudience} disabled={aiAudienceLoading}
-            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="w-[220px] justify-center py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
             {aiAudienceLoading ? 'Анализирую...' : 'Сгенерировать отчет'}
           </button>
         </div>
@@ -394,7 +394,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
             <p className="text-xs text-slate-400 mt-0.5">Глубокий психологический и BDSM профиль автора на основе текстов</p>
           </div>
           <button onClick={fetchAiPersona} disabled={aiPersonaLoading}
-            className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
+            className="w-[220px] justify-center py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
             {aiPersonaLoading ? 'Анализирую...' : 'Сгенерировать портрет'}
           </button>
         </div>
