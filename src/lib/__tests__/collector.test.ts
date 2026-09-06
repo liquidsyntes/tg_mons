@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseChannelIdentifier } from '@/worker/collector';
+import { parseChannelIdentifier } from '@/worker/fetcher';
 
 describe('parseChannelIdentifier', () => {
   it('parses @username', () => {

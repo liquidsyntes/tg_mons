@@ -27,7 +27,7 @@ vi.mock('telegram/sessions/index.js', () => ({
   StringSession: vi.fn(),
 }));
 
-import { withRateLimitAndRetry, sleep } from '@/worker/collector';
+import { withRateLimitAndRetry, sleep } from '@/worker/fetcher';
 
 describe('withRateLimitAndRetry', () => {
   it('returns result on first success', async () => {

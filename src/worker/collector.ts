@@ -1,148 +1,34 @@
-import { Api, TelegramClient } from 'telegram';
-import { prisma } from '../lib/prisma';
+import { TelegramClient } from 'telegram';
 import { getTelegramClient } from './client';
 import { materializeDailyMetrics } from '../lib/materialize';
 import { logger } from '../lib/logger';
+import {
+  resolveChannelEntity,
+  fetchFullChannel,
+  fetchChannelMessages,
+  TelegramTimeoutError,
+  parseChannelIdentifier,
+} from './fetcher';
+import {
+  addChannelToDb,
+  getActiveChannels,
+  saveSnapshot,
+  getPreviousSnapshot,
+  updateChannelState,
+  createSyncJob,
+  updateSyncJobProgress,
+  finalizeSyncJob,
+  getExistingGroupPost,
+  upsertPostWithReactions,
+  saveMentions,
+  updateChannelTitle,
+} from './persister';
+import {
+  sendTelegramAnomalyAlert,
+  handleChannelError,
+} from './retry-policy';
 
-export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-async function sendTelegramAlert(channelTitle: string, diff: number, diffPercent: number, currentMembers: number) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!token || !chatId) return;
-
-  const sign = diff > 0 ? '+' : '';
-  const emoji = diff > 0 ? '🚀' : '🔻';
-  const text = `${emoji} <b>Аномалия в канале "${channelTitle}"!</b>\n\nИзменение: ${sign}${diff} подписчиков (${sign}${diffPercent.toFixed(2)}%)\nТекущая аудитория: ${currentMembers}`;
-
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: 'HTML',
-      }),
-    });
-  } catch (err) {
-    logger.error('Telegram alert failed', undefined, err);
-  }
-}
-
-export class TelegramTimeoutError extends Error {
-  code: string;
-  constructor(operation: string, context?: string) {
-    const ctxMsg = context ? ` for ${context}` : '';
-    super(`Telegram operation '${operation}' timed out${ctxMsg}`);
-    this.name = 'TelegramTimeoutError';
-    this.code = 'TELEGRAM_TIMEOUT';
-  }
-}
-
-export function withTimeout<T>(
-  promiseFn: () => Promise<T>,
-  operation: string,
-  context?: string
-): Promise<T> {
-  const timeoutMs = parseInt(process.env.TELEGRAM_REQUEST_TIMEOUT_MS || '30000', 10);
-  
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new TelegramTimeoutError(operation, context));
-    }, timeoutMs);
-
-    promiseFn()
-      .then((res) => {
-        clearTimeout(timer);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
-}
-
-export async function withRateLimitAndRetry<T>(
-  fn: () => Promise<T>,
-  maxRetries = 3
-): Promise<T> {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      await sleep(1000 + Math.floor(Math.random() * 300));
-      return await fn();
-    } catch (err: any) {
-      const floodMatch = err.errorMessage?.match(/FLOOD_WAIT_(\d+)/);
-      const floodSeconds = err.seconds || (floodMatch ? parseInt(floodMatch[1], 10) : null);
-
-      if (floodSeconds && attempt < maxRetries - 1) {
-        const waitTime = (floodSeconds + 2) * 1000 + Math.floor(Math.random() * 1500);
-        logger.warn('FLOOD_WAIT detected', { waitTime, attempt: attempt + 1, maxRetries });
-        await sleep(waitTime);
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw new Error('Max retries exceeded');
-}
-
-export function parseChannelIdentifier(input: string): { type: 'username' | 'invite' | 'id'; value: string } {
-  const trimmed = input.trim();
-
-  // Invite link: https://t.me/+hash or https://t.me/joinchat/hash
-  const inviteMatch = trimmed.match(/(?:t\.me\/\+|t\.me\/joinchat\/)([a-zA-Z0-9_-]+)/);
-  if (inviteMatch) {
-    return { type: 'invite', value: inviteMatch[1] };
-  }
-
-  // URL with username: https://t.me/username
-  const urlMatch = trimmed.match(/(?:https?:\/\/)?(?:www\.)?t\.me\/([a-zA-Z0-9_]{4,})/);
-  if (urlMatch) {
-    return { type: 'username', value: urlMatch[1] };
-  }
-
-  // @username or plain username
-  const cleanUsername = trimmed.replace(/^@/, '');
-  if (/^[a-zA-Z0-9_]{4,}$/.test(cleanUsername)) {
-    return { type: 'username', value: cleanUsername };
-  }
-
-  // Plain numeric ID
-  if (/^-?\d+$/.test(trimmed)) {
-    return { type: 'id', value: trimmed };
-  }
-
-  return { type: 'username', value: cleanUsername };
-}
-
-export async function resolveChannelEntity(client: TelegramClient, input: string) {
-  const parsed = parseChannelIdentifier(input);
-
-  if (parsed.type === 'invite') {
-    // Check invite hash
-    const inviteRes = await withRateLimitAndRetry(() =>
-      withTimeout(() => client.invoke(new Api.messages.CheckChatInvite({ hash: parsed.value })), 'CheckChatInvite', parsed.value)
-    );
-
-    if (inviteRes.className === 'ChatInviteAlready') {
-      const chat = (inviteRes as any).chat;
-      return chat;
-    } else if (inviteRes.className === 'ChatInvite') {
-      throw new Error(
-        'Аккаунт сборщика еще не вступил в этот приватный канал. Вступите в него перед добавлением.'
-      );
-    }
-    throw new Error('Не удалось получить информацию о приватном канале');
-  }
-
-  // Resolve by username or ID
-  const entity = await withRateLimitAndRetry(() => 
-    withTimeout(() => client.getEntity(parsed.value), 'getEntity', parsed.value)
-  );
-  return entity;
-}
+export { TelegramTimeoutError };
 
 export async function addChannelByInput(input: string, isMine = false) {
   const client = await getTelegramClient();
@@ -158,87 +44,32 @@ export async function addChannelByInput(input: string, isMine = false) {
   const title = entity.title || entity.firstName || 'Без названия';
   const type = entity.megagroup || entity.className === 'Chat' ? 'group' : 'channel';
 
-  // Transactionally handle isMine if set
-  const channel = await prisma.$transaction(async (tx) => {
-    if (isMine) {
-      await tx.channel.updateMany({
-        where: { isMine: true },
-        data: { isMine: false },
-      });
-    }
-
-    const existing = await tx.channel.findFirst({
-      where: {
-        OR: [
-          { tgId },
-          ...(username ? [{ username }] : []),
-        ],
-      },
-    });
-
-    if (existing) {
-      return await tx.channel.update({
-        where: { id: existing.id },
-        data: {
-          isActive: true,
-          isMine: isMine ? true : existing.isMine,
-          title,
-          username,
-          type,
-          lastError: null,
-        },
-      });
-    }
-
-    return await tx.channel.create({
-      data: {
-        tgId,
-        username,
-        title,
-        type,
-        isMine,
-        isActive: true,
-      },
-    });
-  });
-
-  // Run initial backfill asynchronously or synchronously
-  return channel;
+  return await addChannelToDb({ tgId, username, title, type, isMine });
 }
 
 export async function collectChannelData(
   client: TelegramClient,
-  channelId: number,
+  channel: { id: number; title: string; username: string | null; tgId: bigint | null; lastMessageId: bigint | null },
   isBackfill = false
 ): Promise<{ snapshotsAdded: number; postsAdded: number; durationMs: number }> {
   const startTime = Date.now();
-  const channel = await prisma.channel.findUnique({ where: { id: channelId } });
-  if (!channel) throw new Error(`Channel ${channelId} not found in DB`);
-
   const identifier = channel.username || (channel.tgId ? channel.tgId.toString() : null);
-  if (!identifier) throw new Error(`Channel ${channelId} has neither username nor tgId`);
+  if (!identifier) throw new Error(`Channel ${channel.id} has neither username nor tgId`);
 
   const entity: any = await resolveChannelEntity(client, identifier);
 
   // 1. Collect participants count (FullChannel)
   let participantsCount: number | null = null;
   try {
-    const full: any = await withRateLimitAndRetry(() =>
-      withTimeout(() => client.invoke(new Api.channels.GetFullChannel({ channel: entity })), 'GetFullChannel', identifier)
-    );
+    const full: any = await fetchFullChannel(client, entity, identifier);
     participantsCount = full.fullChat?.participantsCount ?? null;
 
-    // Metadata update (title, type)
     if (entity.title && entity.title !== channel.title) {
-      await prisma.channel.update({
-        where: { id: channel.id },
-        data: { title: entity.title },
-      });
+      await updateChannelTitle(channel.id, entity.title);
     }
   } catch (err: any) {
     if (err instanceof TelegramTimeoutError) throw err;
     logger.warn('Could not fetch FullChannel', { channelId: channel.id, title: channel.title }, err);
-    // Some basic groups may store participantsCount directly on entity
     if (entity.participantsCount) {
       participantsCount = entity.participantsCount;
     }
@@ -246,59 +77,34 @@ export async function collectChannelData(
 
   let snapshotsAdded = 0;
   if (participantsCount !== null && participantsCount !== undefined) {
-    const previousSnapshot = await prisma.snapshot.findFirst({
-      where: { channelId: channel.id },
-      orderBy: { collectedAt: 'desc' },
-    });
-
+    const previousSnapshot = await getPreviousSnapshot(channel.id);
     if (previousSnapshot && previousSnapshot.membersCount > 0) {
       const diff = participantsCount - previousSnapshot.membersCount;
       const diffPercent = (diff / previousSnapshot.membersCount) * 100;
       
-      // Аномалия: изменение больше 1% или больше 500 человек за один цикл сбора
       if (Math.abs(diffPercent) >= 1 || Math.abs(diff) >= 500) {
-        await sendTelegramAlert(channel.title, diff, diffPercent, participantsCount);
+        await sendTelegramAnomalyAlert(channel.title, diff, diffPercent, participantsCount);
       }
     }
-
-    await prisma.snapshot.create({
-      data: {
-        channelId: channel.id,
-        membersCount: participantsCount,
-        collectedAt: new Date(),
-      },
-    });
+    await saveSnapshot(channel.id, participantsCount);
     snapshotsAdded = 1;
   }
 
   // 2. Collect Posts
   let postsAdded = 0;
-  let maxMessageId = channel.lastMessageId ? BigInt(channel.lastMessageId) : BigInt(0);
-
+  let maxMessageId = channel.lastMessageId || 0n;
   const thirtyDaysAgoSec = Math.floor((Date.now() - 30 * 86400 * 1000) / 1000);
 
   try {
     const options: any = { limit: isBackfill ? 1000 : 200 };
-    // Убираем использование minId, чтобы всегда получать последние 200 постов
-    // и регулярно обновлять количество просмотров и реакций для свежих публикаций.
-
-    const messages = await withRateLimitAndRetry(() => 
-      withTimeout(() => client.getMessages(entity, options), 'getMessages', identifier)
-    );
+    const messages = await fetchChannelMessages(client, entity, options, identifier);
 
     for (const msg of messages) {
       if (!msg.id) continue;
       const msgDateSec = msg.date;
 
-      // If backfilling, only collect posts up to 30 days old
-      if (isBackfill && msgDateSec < thirtyDaysAgoSec) {
-        continue;
-      }
-
-      // Filter out action / service messages if needed
-      if (msg.action && msg.action.className !== 'MessageActionEmpty') {
-        continue;
-      }
+      if (isBackfill && msgDateSec < thirtyDaysAgoSec) continue;
+      if (msg.action && msg.action.className !== 'MessageActionEmpty') continue;
 
       const messageId = BigInt(msg.id);
       if (messageId > maxMessageId) {
@@ -319,29 +125,19 @@ export async function collectChannelData(
 
       let targetMessageId = messageId;
       if (groupedId) {
-          const existingGroupPost = await prisma.post.findFirst({
-              where: { channelId: channel.id, groupedId }
-          });
-          if (existingGroupPost) {
-              targetMessageId = existingGroupPost.messageId;
-          }
+          const existingGroupPost = await getExistingGroupPost(channel.id, groupedId);
+          if (existingGroupPost) targetMessageId = existingGroupPost.messageId;
       }
 
-      // Extract mentions
       const extractedMentions: { type: string, targetUsername?: string | null, targetTgId?: any }[] = [];
 
-      // 1. Forward
       if (msg.fwdFrom) {
           const fromId = msg.fwdFrom.fromId;
           if (fromId && fromId.className === 'PeerChannel') {
-              extractedMentions.push({
-                  type: 'forward',
-                  targetTgId: fromId.channelId ? fromId.channelId.toString() : null,
-              });
+              extractedMentions.push({ type: 'forward', targetTgId: fromId.channelId ? fromId.channelId.toString() : null });
           }
       }
 
-      // 2. Text mentions
       if (text) {
           const usernameRegex = /@([a-zA-Z0-9_]{4,})/g;
           let match;
@@ -363,58 +159,22 @@ export async function collectChannelData(
       const uniqueMentionsStr = Array.from(new Set(extractedMentions.map(m => JSON.stringify(m))));
       const uniqueMentions = uniqueMentionsStr.map(s => JSON.parse(s));
 
-      const post = await prisma.post.upsert({
-        where: {
-          channelId_messageId: {
-            channelId: channel.id,
-            messageId: targetMessageId,
-          },
-        },
-        update: {
-          views: views ?? undefined,
-          reactions: reactions ?? undefined,
-          comments: comments ?? undefined,
-          forwards: forwards ?? undefined,
-          text: text ?? undefined,
-          groupedId: groupedId ?? undefined,
-        },
-        create: {
-          channelId: channel.id,
-          messageId: targetMessageId,
-          publishedAt,
-          views,
-          reactions,
-          comments,
-          forwards,
-          text,
-          groupedId,
-        },
+      const post = await upsertPostWithReactions({
+        channelId: channel.id,
+        messageId: targetMessageId,
+        publishedAt,
+        views,
+        reactions,
+        comments,
+        forwards,
+        text,
+        groupedId,
       });
 
-      if (views !== null && views !== undefined) {
-          const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-          if (publishedAt.getTime() > sevenDaysAgo) {
-              await prisma.postSnapshot.create({
-                  data: {
-                      postId: post.id,
-                      views,
-                  }
-              });
-          }
-      }
-
-      if (uniqueMentions.length > 0) {
-          await prisma.mention.deleteMany({ where: { sourcePostId: post.id } });
-          await prisma.mention.createMany({
-              data: uniqueMentions.map(m => ({
-                  sourcePostId: post.id,
-                  sourceChannelId: channel.id,
-                  targetUsername: m.targetUsername,
-                  targetTgId: m.targetTgId ? BigInt(m.targetTgId) : null,
-                  type: m.type,
-              }))
-          });
-      }
+      await saveMentions(post.id, channel.id, uniqueMentions.map(m => ({
+          ...m,
+          targetTgId: m.targetTgId ? BigInt(m.targetTgId) : null,
+      })));
 
       postsAdded++;
     }
@@ -424,15 +184,7 @@ export async function collectChannelData(
   }
 
   // 3. Update channel state
-  await prisma.channel.update({
-    where: { id: channel.id },
-    data: {
-      lastMessageId: maxMessageId > BigInt(0) ? maxMessageId : channel.lastMessageId,
-      lastCollectedAt: new Date(),
-      lastError: null,
-      consecutiveErrors: 0,
-    },
-  });
+  await updateChannelState(channel.id, maxMessageId, channel.lastMessageId);
 
   const durationMs = Date.now() - startTime;
   return { snapshotsAdded, postsAdded, durationMs };
@@ -449,23 +201,12 @@ export async function runCollectCycle(): Promise<{
   const cycleStartTime = Date.now();
   logger.info('Starting collection cycle');
 
-  // Fetch active channels
-  const activeChannels = await prisma.channel.findMany({
-    where: { isActive: true },
-    orderBy: { id: 'asc' },
-  });
-
+  const activeChannels = await getActiveChannels();
   logger.info('Found active channels to monitor', { activeChannelsCount: activeChannels.length });
 
   let syncJobId: number | null = null;
   try {
-    const job = await prisma.syncJob.create({
-      data: {
-        startedAt: new Date(),
-        status: 'RUNNING',
-        channelsTotal: activeChannels.length,
-      }
-    });
+    const job = await createSyncJob(activeChannels.length);
     syncJobId = job.id;
   } catch (err) {
     logger.error('Could not create SyncJob record', undefined, err);
@@ -487,21 +228,17 @@ export async function runCollectCycle(): Promise<{
     }
 
     for (const channel of activeChannels) {
-      const channelStartTime = Date.now();
       try {
         logger.info('Processing channel', { title: channel.title, username: channel.username, tgId: channel.tgId, id: channel.id });
         const isInitial = !channel.lastCollectedAt;
-        const result = await collectChannelData(client, channel.id, isInitial);
+        const result = await collectChannelData(client, channel, isInitial);
 
         successCount++;
         totalPosts += result.postsAdded;
         totalSnapshots += result.snapshotsAdded;
 
         if (syncJobId) {
-          prisma.syncJob.update({
-            where: { id: syncJobId },
-            data: { channelsSucceeded: successCount, postsAdded: totalPosts }
-          }).catch((dbErr: any) => logger.error('SyncJob update failed', undefined, dbErr));
+          await updateSyncJobProgress(syncJobId, successCount, undefined, totalPosts).catch((dbErr) => logger.error('SyncJob update failed', undefined, dbErr));
         }
 
         await materializeDailyMetrics(channel.id, 30).catch((err) => {
@@ -511,44 +248,11 @@ export async function runCollectCycle(): Promise<{
         logger.info('Channel processed successfully', { title: channel.title, durationMs: result.durationMs, snapshotsAdded: result.snapshotsAdded, postsAdded: result.postsAdded });
       } catch (err: any) {
         errorCount++;
-        const errorMessage = err.message || String(err);
-        logger.error('Channel processing failed', { title: channel.title }, new Error(errorMessage));
-
         if (syncJobId) {
-          prisma.syncJob.update({
-            where: { id: syncJobId },
-            data: { channelsFailed: errorCount }
-          }).catch((dbErr: any) => logger.error('SyncJob update failed', undefined, dbErr));
+          await updateSyncJobProgress(syncJobId, undefined, errorCount, undefined).catch((dbErr) => logger.error('SyncJob update failed', undefined, dbErr));
         }
 
-        const newErrors = channel.consecutiveErrors + 1;
-        const shouldDisable = newErrors >= (Number(process.env.CHANNEL_MAX_CONSECUTIVE_ERRORS) || 10);
-
-        // Isolate error: save to DB and continue next channel
-        await prisma.channel.update({
-          where: { id: channel.id },
-          data: {
-            lastError: errorMessage,
-            consecutiveErrors: newErrors,
-            ...(shouldDisable ? { isActive: false } : {})
-          },
-        }).catch((dbErr) => logger.error('Could not update channel error status', undefined, dbErr));
-
-        if (shouldDisable) {
-          const warnText = `[Collector] Disabled channel "${channel.title}" after ${newErrors} consecutive errors.`;
-          logger.warn('Channel error threshold reached', { channelId: channel.id, title: channel.title, consecutiveErrors: channel.consecutiveErrors + 1 });
-          
-          const token = process.env.TELEGRAM_BOT_TOKEN;
-          const chatId = process.env.TELEGRAM_CHAT_ID;
-          if (token && chatId) {
-            const text = `\u26A0\uFE0F <b>РљР°РЅР°Р» РѕС‚РєР»СЋС‡РµРЅ</b>\n\nРљР°РЅР°Р» "<b>${channel.title}</b>" (${channel.username ? '@' + channel.username : channel.tgId}) Р±С‹Р» Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РѕС‚РєР»СЋС‡РµРЅ РёР·-Р·Р° ${newErrors} РѕС€РёР±РѕРє РїРѕРґСЂСЏРґ.\n\nРџРѕСЃР»РµРґРЅСЏСЏ РѕС€РёР±РєР°:\n<pre>${errorMessage}</pre>`;
-            fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
-            }).catch(e => logger.error('Failed to send admin alert', undefined, e));
-          }
-        }
+        await handleChannelError(channel, err);
 
         if (err instanceof TelegramTimeoutError) {
           logger.warn('TelegramTimeoutError detected. Attempting to force reconnect client to recover dead socket');
@@ -569,30 +273,9 @@ export async function runCollectCycle(): Promise<{
   } finally {
     const durationMs = Date.now() - cycleStartTime;
     if (syncJobId) {
-      let finalStatus: 'COMPLETED' | 'PARTIAL' | 'FAILED' = 'COMPLETED';
-      
-      if (fatalError) {
-        finalStatus = 'FAILED';
-      } else if (errorCount > 0 && successCount > 0) {
-        finalStatus = 'PARTIAL';
-      } else if (errorCount > 0 && successCount === 0 && activeChannels.length > 0) {
-        finalStatus = 'FAILED';
-      }
-
-      await prisma.syncJob.update({
-        where: { id: syncJobId },
-        data: {
-          endedAt: new Date(),
-          durationMs,
-          status: finalStatus,
-          errorSummary: fatalError ? fatalError.substring(0, 200) : null,
-          channelsSucceeded: successCount,
-          channelsFailed: errorCount,
-          postsAdded: totalPosts,
-        }
-      }).catch((err: any) => logger.error('Final SyncJob update failed', undefined, err));
+      await finalizeSyncJob(syncJobId, durationMs, successCount, errorCount, activeChannels.length, totalPosts, fatalError)
+        .catch((err) => logger.error('Final SyncJob update failed', undefined, err));
     }
-    
     logger.info('Cycle completed', { durationMs, successCount, errorCount, totalSnapshots, totalPosts });
   }
 

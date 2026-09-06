@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
-import { withTimeout, TelegramTimeoutError } from '../collector';
+import { withTimeout, TelegramTimeoutError } from '../fetcher';
 
 describe('withTimeout', () => {
   const originalEnv = process.env;

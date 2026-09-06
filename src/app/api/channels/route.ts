@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     // Run immediate backfill in background or synchronously
     try {
       const client = await getTelegramClient();
-      await collectChannelData(client, channel.id, true);
+      await collectChannelData(client, channel, true);
     } catch (backfillErr: any) {
       console.warn(`Initial backfill failed for channel ${channel.id}:`, backfillErr.message);
       await prisma.channel.update({
