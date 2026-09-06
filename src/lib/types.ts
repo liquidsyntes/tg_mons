@@ -35,6 +35,8 @@ export interface ChannelMetrics {
   trueErr7d: number | null;
   er24h: number | null;
   er7d: number | null;
+  err24h: number | null; // null if all reactions are 0 (likely hidden)
+  err7d: number | null;
   status: ChannelStatus;
   sparkline7d?: number[]; // Added for 7d trend mini-chart
   contentScore?: number;

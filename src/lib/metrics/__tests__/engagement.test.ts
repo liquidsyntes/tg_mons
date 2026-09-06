@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { calculatePostER, aggregateChannelER } from '../engagement';
+﻿import { describe, it, expect } from 'vitest';
+import { calculatePostER, aggregateChannelER, calculatePostERR, aggregateChannelERR } from '../engagement';
 
 describe('Engagement Metrics', () => {
   describe('calculatePostER', () => {
@@ -87,6 +87,59 @@ describe('Engagement Metrics', () => {
 
     it('returns null for empty array', () => {
       expect(aggregateChannelER([])).toBeNull();
+    });
+  });
+  describe('calculatePostERR', () => {
+    it('calculates ERR correctly for a standard post', () => {
+      const post = { views: 1000, reactions: 50 };
+      expect(calculatePostERR(post)).toBe(5);
+    });
+
+    it('returns null if views is 0', () => {
+      const post = { views: 0, reactions: 50 };
+      expect(calculatePostERR(post)).toBeNull();
+    });
+
+    it('returns null if views is missing', () => {
+      const post = { reactions: 50 };
+      expect(calculatePostERR(post)).toBeNull();
+    });
+
+    it('handles posts with 0 reactions', () => {
+      const post = { views: 1000, reactions: 0 };
+      expect(calculatePostERR(post)).toBe(0);
+    });
+  });
+
+  describe('aggregateChannelERR', () => {
+    it('aggregates average ERR across multiple posts', () => {
+      const posts = [
+        { views: 1000, reactions: 50 }, // 5%
+        { views: 2000, reactions: 200 }, // 10%
+        { views: 1500, reactions: 225 }, // 15%
+      ];
+      expect(aggregateChannelERR(posts)).toBe(10);
+    });
+
+    it('returns null if all posts have 0 reactions (hidden)', () => {
+      const posts = [
+        { views: 1000, reactions: 0 },
+        { views: 2000, reactions: 0 },
+      ];
+      expect(aggregateChannelERR(posts)).toBeNull();
+    });
+
+    it('returns 0 if at least one post has > 0 reactions but average is low', () => {
+      const posts = [
+        { views: 1000, reactions: 0 }, // 0%
+        { views: 1000, reactions: 0 }, // 0%
+        { views: 1000, reactions: 30 }, // 3%
+      ];
+      expect(aggregateChannelERR(posts)).toBe(1);
+    });
+
+    it('returns null for empty array', () => {
+      expect(aggregateChannelERR([])).toBeNull();
     });
   });
 });

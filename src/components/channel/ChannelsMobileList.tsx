@@ -90,27 +90,33 @@ export function ChannelsMobileList({
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 pt-3 border-t border-border/60 text-center">
-              <div className="bg-slate-900/60 p-2 rounded-lg">
-                <div className="text-[10px] text-slate-400 mb-1">Δ 7д</div>
+            <div className="grid grid-cols-5 gap-1.5 pt-3 border-t border-border/60 text-center">
+              <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
+                <div className="text-[9px] text-slate-400 mb-0.5">Δ 7д</div>
                 <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="sm" />
               </div>
-              <div className="bg-slate-900/60 p-2 rounded-lg">
-                <div className="text-[10px] text-slate-400 mb-1">Посты (7д)</div>
-                <div className="text-xs font-mono font-semibold text-white">
-                  {channel.posts7d}
-                </div>
-              </div>
-              <div className="bg-slate-900/60 p-2 rounded-lg">
-                <div className="text-[10px] text-slate-400 mb-1">Просм.</div>
-                <div className="text-xs font-mono font-semibold text-white">
+              <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
+                <div className="text-[9px] text-slate-400 mb-0.5">Просм.</div>
+                <div className="text-[11px] font-mono font-semibold text-white">
                   {channel.avgViews7d ? formatNumber(channel.avgViews7d) : '-'}
                 </div>
               </div>
-              <div className="bg-slate-900/60 p-2 rounded-lg">
-                <div className="text-[10px] text-slate-400 mb-1">ERR</div>
-                <div className="text-xs font-mono font-semibold text-white">
+              <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
+                <div className="text-[9px] text-slate-400 mb-0.5">VR</div>
+                <div className="text-[11px] font-mono font-semibold text-white">
                   {channel.vr7d !== null ? `${channel.vr7d}%` : '-'}
+                </div>
+              </div>
+              <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
+                <div className="text-[9px] text-slate-400 mb-0.5">ER</div>
+                <div className="text-[11px] font-mono font-semibold text-white">
+                  {channel.er7d !== null ? `${channel.er7d}%` : '-'}
+                </div>
+              </div>
+              <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
+                <div className="text-[9px] text-slate-400 mb-0.5">ERR</div>
+                <div className="text-[11px] font-mono font-semibold text-white">
+                  {channel.err7d !== null ? `${channel.err7d}%` : '-'}
                 </div>
               </div>
             </div>

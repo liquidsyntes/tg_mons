@@ -1,7 +1,7 @@
 import { ChannelMetrics, ChannelStatus } from '../types';
 import { calculateDelta, calculateDeltaFromData, calculateVr } from './calculate';
 import { calculateContentScore } from '../scoring';
-import { aggregateChannelER } from './engagement';
+import { aggregateChannelER, aggregateChannelERR } from './engagement';
 
 const MS_HOUR = 3600 * 1000;
 const MS_24H = 24 * MS_HOUR;
@@ -81,9 +81,13 @@ export function buildMetricsFromMaterialized(
   
   const rawEr24h = aggregateChannelER(posts24hList);
   const rawEr7d = aggregateChannelER(posts7dList);
+  const rawErr24h = aggregateChannelERR(posts24hList);
+  const rawErr7d = aggregateChannelERR(posts7dList);
   
   const er24h = rawEr24h !== null ? Number(rawEr24h.toFixed(2)) : null;
   const er7d = rawEr7d !== null ? Number(rawEr7d.toFixed(2)) : null;
+  const err24h = rawErr24h !== null ? Number(rawErr24h.toFixed(2)) : null;
+  const err7d = rawErr7d !== null ? Number(rawErr7d.toFixed(2)) : null;
 
   return {
     id: channel.id,
@@ -111,6 +115,8 @@ export function buildMetricsFromMaterialized(
     trueErr7d: stats7d.trueErr,
     er24h,
     er7d,
+    err24h,
+    err7d,
     status: status as any,
     sparkline7d,
     contentScore: scoreBreakdown.total,
@@ -276,9 +282,13 @@ export function calculateChannelMetricsFromData(
   
   const rawEr24h = aggregateChannelER(posts24hList);
   const rawEr7d = aggregateChannelER(posts7dList);
+  const rawErr24h = aggregateChannelERR(posts24hList);
+  const rawErr7d = aggregateChannelERR(posts7dList);
   
   const er24h = rawEr24h !== null ? Number(rawEr24h.toFixed(2)) : null;
   const er7d = rawEr7d !== null ? Number(rawEr7d.toFixed(2)) : null;
+  const err24h = rawErr24h !== null ? Number(rawErr24h.toFixed(2)) : null;
+  const err7d = rawErr7d !== null ? Number(rawErr7d.toFixed(2)) : null;
 
   return {
     id: channel.id,
@@ -314,6 +324,8 @@ export function calculateChannelMetricsFromData(
     trueErr7d,
     er24h,
     er7d,
+    err24h,
+    err7d,
     status,
     sparkline7d,
     contentScore: scoreBreakdown.total,

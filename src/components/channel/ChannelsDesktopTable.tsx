@@ -109,8 +109,17 @@ export function ChannelsDesktopTable({
               <th
                 onClick={() => onSort('er')}
                 className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                title="Engagement Rate (считает вовлечённость от всей аудитории / подписчиков)"
               >
                 <div>ER {renderSortIcon('er')}</div>
+                <div className="text-[10px] text-slate-500 font-normal mt-0.5">(24h / 7d)</div>
+              </th>
+              <th
+                onClick={() => onSort('err')}
+                className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                title="Engagement Rate by Reach (считает вовлечённость только от охвата / просмотров)"
+              >
+                <div>ERR {renderSortIcon('err')}</div>
                 <div className="text-[10px] text-slate-500 font-normal mt-0.5">(24h / 7d)</div>
               </th>
               <th
@@ -212,6 +221,16 @@ export function ChannelsDesktopTable({
                       </div>
                       <div className={`text-[10px] mt-0.5 ${channel.er7d !== null ? (channel.er7d > 2 ? 'text-emerald-400' : channel.er7d > 1 ? 'text-amber-400' : 'text-slate-400') : 'text-slate-500'}`}>
                         {channel.er7d !== null ? `${channel.er7d}%` : '—'}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                    <div>
+                      <div className="font-semibold text-slate-200 text-sm">
+                        {channel.err24h !== null ? `${channel.err24h}%` : '—'}
+                      </div>
+                      <div className={`text-[10px] mt-0.5 ${channel.err7d !== null ? (channel.err7d > 2 ? 'text-emerald-400' : channel.err7d > 1 ? 'text-amber-400' : 'text-slate-400') : 'text-slate-500'}`}>
+                        {channel.err7d !== null ? `${channel.err7d}%` : '—'}
                       </div>
                     </div>
                   </td>

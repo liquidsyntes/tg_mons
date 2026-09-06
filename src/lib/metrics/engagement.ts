@@ -41,3 +41,41 @@ export function aggregateChannelER(
 
   return count > 0 ? sumER / count : null;
 }
+
+export function calculatePostERR(post: {
+  views?: number | null;
+  reactions?: number | null;
+}): number | null {
+  if (!post.views || post.views <= 0) {
+    return null;
+  }
+  const reactions = post.reactions || 0;
+  return (reactions / post.views) * 100;
+}
+
+export function aggregateChannelERR(
+  posts: {
+    views?: number | null;
+    reactions?: number | null;
+  }[]
+): number | null {
+  let sumERR = 0;
+  let count = 0;
+  let allReactionsZero = true;
+
+  for (const post of posts) {
+    const err = calculatePostERR(post);
+    if (err !== null) {
+      sumERR += err;
+      count++;
+      if ((post.reactions || 0) > 0) {
+        allReactionsZero = false;
+      }
+    }
+  }
+
+  if (count === 0) return null;
+  if (allReactionsZero) return null;
+
+  return sumERR / count;
+}
