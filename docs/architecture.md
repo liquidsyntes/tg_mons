@@ -63,7 +63,7 @@ C4Component
     Component(api_stats, "Stats Route Handlers", "Next.js Route Handlers", "Отдают JSON с метриками (/api/stats/overview, /api/channels).")
     Component(api_ai, "AI Route Handlers", "Next.js Route Handlers", "Пайплайны сбора данных для промпта и обращения к LLM.")
     
-    Component(lib_metrics, "Metrics Engine", "src/lib/metrics.ts", "Бизнес-логика: расчет VR, ERR, дельт, агрегация.")
+    Component(lib_metrics, "Metrics Engine", "src/lib/metrics.ts", "Бизнес-логика: расчет VR, ER, ERR, дельт, агрегация.")
     Component(lib_ep, "EP Calculator", "src/lib/ep.ts", "Вычисление Effective Point (EP), CEI, Z-score нормализация.")
     Component(lib_prisma, "Prisma Client", "src/lib/prisma.ts", "Доступ к базе данных.")
   }

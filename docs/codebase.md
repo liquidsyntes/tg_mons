@@ -33,8 +33,8 @@ tg-monitor/
 ### Ключевые модули:
 - **`ep.ts`**: Содержит алгоритм **EP (Effective Point)** и **CEI (Channel Expansion Index)**. Это сердце рейтинговой системы, использующее Z-score нормализацию и логарифмический Confidence Penalty.
 - **`scoring.ts`**: Оценка контента (Content Score) и выдача буквенных грейдов (A+, B, C) на основе вовлеченности, рекламы и частоты.
-- **`metrics.ts`**: Глубокий файл с агрегацией. Здесь рассчитываются VR (View Rate), ERR (Engagement Rate), средние просмотры и дельты (рост/падение).
-- **`metrics/`**: Папка с разделенной логикой метрик (queries, format, aggregate).
+- **`metrics.ts`**: Глубокий файл с агрегацией и экспортами.
+- **`metrics/`**: Разделенная логика метрик: `queries.ts` (выборки), `aggregate.ts` (построение сводки), `engagement.ts` (расчет ER и ERR).
 - **`materialize.ts`**: Логика материализации сырых данных в агрегированные таблицы (например, `ChannelMetricDaily`).
 - **`openrouter.ts` & `ai-reports.ts`**: Обертки для вызова LLM (OpenRouter) и формирования отчетов.
 - **`prisma.ts`**: Инициализация Prisma Client.
