@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { User } from 'lucide-react';
 
@@ -140,14 +140,29 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
               <span className="block text-xs text-amber-500/80 mb-1">Маркеры успеха</span>
               <p className="text-slate-200">{data.moneyAndSuccessAttitude.relationToSuccess}</p>
             </div>
-            <div className="pt-2 border-t border-amber-900/30">
-              <span className="block text-xs text-amber-500/80 mb-1">Уровень флекса (демонстративности)</span>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-full bg-slate-800 rounded-full h-2.5 max-w-xs">
-                  <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: `${(Number(data.moneyAndSuccessAttitude.flexingLevel) || 0) * 10}%` }}></div>
-                </div>
-                <span className="text-amber-400 font-bold">{data.moneyAndSuccessAttitude.flexingLevel}/10</span>
-              </div>
+            <div className="pt-3 border-t border-amber-900/30">
+              <span className="block text-xs text-amber-500/80 mb-2">Уровень флекса (демонстративности)</span>
+              {(() => {
+                const flexStr = String(data.moneyAndSuccessAttitude.flexingLevel || '0');
+                const match = flexStr.match(/^(\d+)(?:(?:\s*из\s*10)|(?:\/10))?\s*(?:-|—|–)?\s*(.*)$/i);
+                const score = match ? Number(match[1]) : parseFloat(flexStr) || 0;
+                const desc = match && match[2] ? match[2] : (score > 0 ? flexStr.replace(/^\d+/, '').replace(/^(?:(?:\s*из\s*10)|(?:\/10))?\s*(?:-|—|–)?\s*/i, '') : flexStr);
+                
+                return (
+                  <div className="flex items-start gap-4">
+                    <div className="flex flex-col w-32 shrink-0">
+                      <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1.5">
+                        <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, score * 10)}%` }}></div>
+                      </div>
+                      <span className="text-[11px] text-amber-500/80 mt-1.5 font-medium">{score} из 10</span>
+                    </div>
+                    <div className="w-px bg-amber-900/50 self-stretch shrink-0"></div>
+                    <div className="flex-1 text-xs text-amber-400 leading-relaxed">
+                      {desc || 'Не указано'}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

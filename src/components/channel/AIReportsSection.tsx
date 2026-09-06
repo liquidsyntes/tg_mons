@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Layers, Users, Download } from 'lucide-react';
+import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2 } from 'lucide-react';
+import { AILoadingStatus } from '@/components/AILoadingStatus';
 import { AISummaryReport } from '@/components/AISummaryReport';
 import { AICompareReport } from '@/components/AICompareReport';
 import { AIAudienceReport } from '@/components/AIAudienceReport';
@@ -21,22 +22,27 @@ export function AIReportsSection({ channelId, channel, myChannel, period }: AIRe
   const [aiSummary, setAiSummary] = useState<any | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuccess, setAiSuccess] = useState(false);
 
   const [aiSuperSummary, setAiSuperSummary] = useState<any | null>(null);
   const [aiSuperLoading, setAiSuperLoading] = useState(false);
   const [aiSuperError, setAiSuperError] = useState<string | null>(null);
+  const [aiSuperSuccess, setAiSuperSuccess] = useState(false);
 
   const [aiCompareSummary, setAiCompareSummary] = useState<any | null>(null);
   const [aiCompareLoading, setAiCompareLoading] = useState(false);
   const [aiCompareError, setAiCompareError] = useState<string | null>(null);
+  const [aiCompareSuccess, setAiCompareSuccess] = useState(false);
 
   const [aiAudience, setAiAudience] = useState<any | null>(null);
   const [aiAudienceLoading, setAiAudienceLoading] = useState(false);
   const [aiAudienceError, setAiAudienceError] = useState<string | null>(null);
+  const [aiAudienceSuccess, setAiAudienceSuccess] = useState(false);
 
   const [aiPersona, setAiPersona] = useState<any | null>(null);
   const [aiPersonaLoading, setAiPersonaLoading] = useState(false);
   const [aiPersonaError, setAiPersonaError] = useState<string | null>(null);
+  const [aiPersonaSuccess, setAiPersonaSuccess] = useState(false);
 
   const days = period === '30d' ? 30 : period === '7d' ? 7 : 1;
 
@@ -142,7 +148,7 @@ ${data.conclusion?.summary}
   const aiAudienceToMarkdown = (data: any) => {
     if (!data) return '';
     return `
-# Анализ Целевой Аудитории
+# Анализ предполагаемой целевой аудитории
 
 **Резюме:** ${data.summary}
 
@@ -180,7 +186,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
       if (json.summary) {
-        try { setAiSummary(JSON.parse(json.summary)); }
+        try { setAiSummary(JSON.parse(json.summary)); setAiSuccess(true); }
         catch { setAiError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
       } else { setAiError('Пустой ответ от нейросети.'); }
     } catch (err: any) { setAiError(err.message); }
@@ -199,7 +205,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
       if (json.summary) {
-        try { setAiSuperSummary(JSON.parse(json.summary)); }
+        try { setAiSuperSummary(JSON.parse(json.summary)); setAiSuperSuccess(true); }
         catch { setAiSuperError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
       } else { setAiSuperError('Пустой ответ от нейросети.'); }
     } catch (err: any) { setAiSuperError(err.message); }
@@ -218,7 +224,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
       if (json.summary) {
-        try { setAiCompareSummary(JSON.parse(json.summary)); }
+        try { setAiCompareSummary(JSON.parse(json.summary)); setAiCompareSuccess(true); }
         catch { setAiCompareError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
       } else { setAiCompareError('Пустой ответ от нейросети.'); }
     } catch (err: any) { setAiCompareError(err.message); }
@@ -237,7 +243,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
       if (json.audience) {
-        try { setAiAudience(JSON.parse(json.audience)); }
+        try { setAiAudience(JSON.parse(json.audience)); setAiAudienceSuccess(true); }
         catch { setAiAudienceError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
       } else { setAiAudienceError('Пустой ответ от нейросети.'); }
     } catch (err: any) { setAiAudienceError(err.message); }
@@ -256,7 +262,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
       if (json.persona) {
-        try { setAiPersona(JSON.parse(json.persona)); }
+        try { setAiPersona(JSON.parse(json.persona)); setAiPersonaSuccess(true); }
         catch { setAiPersonaError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
       } else { setAiPersonaError('Пустой ответ от нейросети.'); }
     } catch (err: any) { setAiPersonaError(err.message); }
@@ -266,20 +272,21 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
   return (
     <>
       {/* AI Summary Section */}
-      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-accent">
+      <div className="bg-surface border border-accent/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-accent shadow-[0_0_15px_rgba(56,189,248,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              AI-анализ контента
+              <Bot className="w-4 h-4 text-accent" />
+              Экспресс-отчёт на основе контента
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">Нейросеть проанализирует посты канала и сделает выжимку</p>
           </div>
           <button onClick={fetchAiSummary} disabled={aiLoading}
             className="w-[220px] justify-center py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-            {aiLoading ? 'Анализирую...' : 'Сгенерировать саммари'}
+            {aiLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Формирую...</> : 'Сгенерировать саммари'}
           </button>
         </div>
+        <AILoadingStatus isRunning={aiLoading} success={aiSuccess} onSuccessClear={() => setAiSuccess(false)} messages={['Сбор публикаций канала...', 'Анализ тональности и контекста...', 'Нейросеть формирует саммари...', 'Почти готово...']} />
         {aiError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiError}</div>}
         {aiSummary && (
           <div className="space-y-4 mt-6">
@@ -295,7 +302,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       </div>
 
       {/* AI Super Report Section */}
-      <div className="bg-surface border border-orange-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
+      <div className="bg-surface border border-orange-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -306,9 +313,10 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
           </div>
           <button onClick={fetchAiSuperSummary} disabled={aiSuperLoading}
             className="w-[220px] justify-center py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-            {aiSuperLoading ? 'Анализирую...' : 'Супер Отчет'}
+            {aiSuperLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Формирую...</> : 'Супер Отчет'}
           </button>
         </div>
+        <AILoadingStatus isRunning={aiSuperLoading} success={aiSuperSuccess} onSuccessClear={() => setAiSuperSuccess(false)} messages={['Сбор архива постов (до 150 шт)...', 'Анализ долгосрочных трендов...', 'Нейросеть формирует глубокий отчет...', 'Структурируем выводы...', 'Почти готово...']} />
         {aiSuperError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiSuperError}</div>}
         {aiSuperSummary && (
           <div className="space-y-4 mt-6">
@@ -325,7 +333,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
 
       {/* AI Comparative Section */}
       {!isMine && myChannel && (
-        <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-violet-500">
+        <div className="bg-surface border border-violet-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -336,9 +344,10 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
             </div>
             <button onClick={fetchAiCompare} disabled={aiCompareLoading}
               className="w-[220px] justify-center py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-              {aiCompareLoading ? 'Сравниваю...' : 'Сравнить каналы'}
+              {aiCompareLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Сравниваю...</> : 'Сравнить каналы'}
             </button>
           </div>
+          <AILoadingStatus isRunning={aiCompareLoading} success={aiCompareSuccess} onSuccessClear={() => setAiCompareSuccess(false)} messages={['Сбор данных обоих каналов...', 'Сравнение стилистики и метрик...', 'Нейросеть выявляет ключевые отличия...', 'Формируем таблицу...', 'Почти готово...']} />
           {aiCompareError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiCompareError}</div>}
           {aiCompareSummary && (
             <div className="space-y-4 mt-6">
@@ -355,20 +364,21 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       )}
 
       {/* AI Audience Section */}
-      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-emerald-500">
+      <div className="bg-surface border border-emerald-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Users className="w-4 h-4 text-emerald-400" />
-              Анализ Целевой Аудитории
+              Анализ предполагаемой целевой аудитории
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">Предполагаемая аудитория на основе контента канала</p>
           </div>
           <button onClick={fetchAiAudience} disabled={aiAudienceLoading}
             className="w-[220px] justify-center py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-            {aiAudienceLoading ? 'Анализирую...' : 'Сгенерировать отчет'}
+            {aiAudienceLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Анализирую...</> : 'Сгенерировать отчет'}
           </button>
         </div>
+        <AILoadingStatus isRunning={aiAudienceLoading} success={aiAudienceSuccess} onSuccessClear={() => setAiAudienceSuccess(false)} messages={['Анализируем язык и стиль постов...', 'Вычисляем демографические маркеры...', 'Нейросеть составляет портрет читателя...', 'Почти готово...']} />
         {aiAudienceError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiAudienceError}</div>}
         {aiAudience && (
           <div className="space-y-4 mt-6">
@@ -384,20 +394,21 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
       </div>
 
       {/* AI Persona Section */}
-      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-rose-500">
+      <div className="bg-surface border border-rose-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <span className="text-rose-500 text-lg">🎭</span>
-              Психологический портрет (Persona)
+              <Brain className="w-4 h-4 text-rose-500" />
+              Психологический портрет
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Глубокий психологический и BDSM профиль автора на основе текстов</p>
+            <p className="text-xs text-slate-400 mt-0.5">Глубокий психологический профиль автора на основе текстов</p>
           </div>
           <button onClick={fetchAiPersona} disabled={aiPersonaLoading}
             className="w-[220px] justify-center py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-            {aiPersonaLoading ? 'Анализирую...' : 'Сгенерировать портрет'}
+            {aiPersonaLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Анализирую...</> : 'Сгенерировать портрет'}
           </button>
         </div>
+        <AILoadingStatus isRunning={aiPersonaLoading} success={aiPersonaSuccess} onSuccessClear={() => setAiPersonaSuccess(false)} messages={['Анализируем психологические паттерны...', 'Определяем архетипы и BDSM-профиль...', 'Нейросеть составляет глубокий портрет...', 'Почти готово...']} />
         {aiPersonaError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiPersonaError}</div>}
         {aiPersona && (
           <div className="space-y-4 mt-6">
