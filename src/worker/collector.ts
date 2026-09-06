@@ -169,6 +169,7 @@ export async function collectChannelData(
         forwards,
         text,
         groupedId,
+        subscribersAtPublish: participantsCount,
       });
 
       await saveMentions(post.id, channel.id, uniqueMentions.map(m => ({

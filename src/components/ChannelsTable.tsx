@@ -58,7 +58,8 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
       'Постов (7д)',
       'Постов (30д)',
       'Просм. (avg 7д)',
-      'ERR (7д, %)',
+      'VR (7д, %)',
+      'ER (7д, %)',
       'Моя доля (%)'
     ];
 
@@ -76,6 +77,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
       c.posts30d,
       c.avgViews7d ?? '',
       c.vr7d ?? '',
+      c.er7d ?? '',
       c.comparison?.audienceSharePercent ?? ''
     ]);
 

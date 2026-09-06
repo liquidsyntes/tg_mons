@@ -68,6 +68,7 @@ model Post {
   comments      Int?
   forwards      Int?
   text          String?
+  subscribersAtPublish Int?    @map("subscribers_at_publish")
   channel       Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
   mentions      Mention[]
   snapshots     PostSnapshot[]

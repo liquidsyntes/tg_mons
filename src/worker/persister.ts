@@ -185,6 +185,7 @@ export async function upsertPostWithReactions(params: {
     forwards: number | null;
     text: string | null;
     groupedId: bigint | null;
+    subscribersAtPublish: number | null;
 }) {
     const post = await prisma.post.upsert({
         where: {
@@ -200,6 +201,7 @@ export async function upsertPostWithReactions(params: {
             forwards: params.forwards ?? undefined,
             text: params.text ?? undefined,
             groupedId: params.groupedId ?? undefined,
+            subscribersAtPublish: params.subscribersAtPublish ?? undefined,
         },
         create: params,
     });

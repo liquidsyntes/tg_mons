@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { ChannelMetrics } from '@/lib/types';
 
-export type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'err' | 'score' | 'ep' | 'lastFact';
+export type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'vr' | 'er' | 'score' | 'ep' | 'lastFact';
 export type SortOrder = 'asc' | 'desc';
 
 export function useChannelsData(channels: ChannelMetrics[]) {
@@ -91,9 +91,13 @@ export function useChannelsData(channels: ChannelMetrics[]) {
           valA = a.avgViews24h ?? a.avgViews7d ?? -1;
           valB = b.avgViews24h ?? b.avgViews7d ?? -1;
           break;
-        case 'err':
+        case 'vr':
           valA = a.vr24h ?? a.vr7d ?? -1;
           valB = b.vr24h ?? b.vr7d ?? -1;
+          break;
+        case 'er':
+          valA = a.er24h ?? a.er7d ?? -1;
+          valB = b.er24h ?? b.er7d ?? -1;
           break;
         case 'score':
           valA = a.contentScore ?? -1;

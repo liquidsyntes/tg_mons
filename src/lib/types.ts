@@ -33,6 +33,8 @@ export interface ChannelMetrics {
   vr30d: number | null;
   lastPostViews: number | null;
   trueErr7d: number | null;
+  er24h: number | null;
+  er7d: number | null;
   status: ChannelStatus;
   sparkline7d?: number[]; // Added for 7d trend mini-chart
   contentScore?: number;

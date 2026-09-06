@@ -1,6 +1,7 @@
 import { ChannelMetrics, ChannelStatus } from '../types';
 import { calculateDelta, calculateDeltaFromData, calculateVr } from './calculate';
 import { calculateContentScore } from '../scoring';
+import { aggregateChannelER } from './engagement';
 
 const MS_HOUR = 3600 * 1000;
 const MS_24H = 24 * MS_HOUR;
@@ -75,6 +76,15 @@ export function buildMetricsFromMaterialized(
   const avgPostsPerDay = Number((stats30d.postsCount / 30).toFixed(1));
   const scoreBreakdown = calculateContentScore(stats7d.trueErr, avgPostsPerDay, delta7d.percent, recentPosts.filter(p => p.text));
 
+  const posts24hList = recentPosts.filter(p => p.publishedAt.getTime() >= t24h.getTime());
+  const posts7dList = recentPosts.filter(p => p.publishedAt.getTime() >= t7d.getTime());
+  
+  const rawEr24h = aggregateChannelER(posts24hList);
+  const rawEr7d = aggregateChannelER(posts7dList);
+  
+  const er24h = rawEr24h !== null ? Number(rawEr24h.toFixed(2)) : null;
+  const er7d = rawEr7d !== null ? Number(rawEr7d.toFixed(2)) : null;
+
   return {
     id: channel.id,
     username: channel.username,
@@ -99,6 +109,8 @@ export function buildMetricsFromMaterialized(
     avgViews30d: stats30d.avgViews, vr30d,
     lastPostViews,
     trueErr7d: stats7d.trueErr,
+    er24h,
+    er7d,
     status: status as any,
     sparkline7d,
     contentScore: scoreBreakdown.total,
@@ -259,6 +271,15 @@ export function calculateChannelMetricsFromData(
     channelPosts.filter(p => p.text)
   );
 
+  const posts24hList = channelPosts.filter(p => p.publishedAt.getTime() >= t24h);
+  const posts7dList = channelPosts.filter(p => p.publishedAt.getTime() >= t7d);
+  
+  const rawEr24h = aggregateChannelER(posts24hList);
+  const rawEr7d = aggregateChannelER(posts7dList);
+  
+  const er24h = rawEr24h !== null ? Number(rawEr24h.toFixed(2)) : null;
+  const er7d = rawEr7d !== null ? Number(rawEr7d.toFixed(2)) : null;
+
   return {
     id: channel.id,
     username: channel.username,
@@ -291,6 +312,8 @@ export function calculateChannelMetricsFromData(
     vr30d,
     lastPostViews,
     trueErr7d,
+    er24h,
+    er7d,
     status,
     sparkline7d,
     contentScore: scoreBreakdown.total,
