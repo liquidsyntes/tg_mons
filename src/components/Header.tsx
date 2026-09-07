@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Activity, Plus, RefreshCw, Radio, Check, AlertCircle } from 'lucide-react';
+import { Activity, Plus, RefreshCw, Radio, Check, AlertCircle, Settings } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 import { AddChannelModal } from '@/components/AddChannelModal';
 
@@ -149,6 +149,16 @@ export function Header({
               <span>{collectMessage.text}</span>
             </div>
           )}
+
+          {/* Settings Link */}
+          <Link
+            href="/settings"
+            className="inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-border transition-colors"
+            title="Настройки"
+          >
+            <Settings className="w-4 h-4" />
+            <span className="hidden sm:inline sm:ml-2 text-xs font-medium">Настройки</span>
+          </Link>
 
           {/* Кнопка принудительного обновления данных по каналам */}
           <button

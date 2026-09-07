@@ -190,3 +190,13 @@ model AudienceDemographics {
   @@index([channelId, capturedAt])
   @@map("audience_demographics")
 }
+
+model SystemSetting {
+  id          String   @id @default("global")
+  aiProvider  String   @default("openrouter") @map("ai_provider")
+  aiModel     String   @default("meta-llama/llama-3.1-8b-instruct:free") @map("ai_model")
+  aiToken     String?  @map("ai_token")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
