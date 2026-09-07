@@ -29,6 +29,7 @@ model Channel {
   aiReports            AiReport[]
   mentions             Mention[]
   channelMetricDailies ChannelMetricDaily[]
+  demographics         AudienceDemographics[]
 
   @@map("channels")
 }
@@ -176,4 +177,16 @@ model ChannelMetricDaily {
   @@unique([channelId, date])
   @@index([date])
   @@map("channel_metrics_daily")
+}
+
+model AudienceDemographics {
+  id                Int      @id @default(autoincrement())
+  channelId         Int      @map("channel_id")
+  capturedAt        DateTime @default(now()) @map("captured_at")
+  languageBreakdown Json     @map("language_breakdown")
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, capturedAt])
+  @@map("audience_demographics")
 }

@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Crown, ExternalLink, LineChart, FileText, Users, ArrowUpRight } from 'lucide-react';
-import { ChannelMetrics } from '@/lib/types';
+import { ChannelMetrics, LanguageBreakdownItem } from '@/lib/types';
 import { DeltaBadge } from './DeltaBadge';
 import { StatusBadge } from './StatusBadge';
 import { formatNumber } from '@/lib/utils';
@@ -14,6 +14,20 @@ interface MyChannelCardProps {
 }
 
 export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
+  const [demographics, setDemographics] = useState<{ capturedAt: string, languages: LanguageBreakdownItem[] } | null>(null);
+
+  useEffect(() => {
+    if (channel?.id && channel?.isMine) {
+      fetch(`/api/stats/demographics/${channel.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.demographics) {
+            setDemographics(data.demographics);
+          }
+        })
+        .catch(err => console.error('Failed to load demographics', err));
+    }
+  }, [channel?.id, channel?.isMine]);
   if (!channel) {
     return (
       <div className="bg-surface border border-dashed border-border-subtle rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
@@ -174,6 +188,26 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
           </div>
         </div>
       </div>
+
+      {/* Demographics */}
+      {demographics && demographics.languages.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-border/50 flex flex-wrap items-center gap-3 relative z-10">
+          <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Языки аудитории:</span>
+          <div className="flex flex-wrap gap-2">
+            {demographics.languages.slice(0, 3).map(lang => {
+              const flags: Record<string, string> = { ru: '🇷🇺', en: '🇬🇧', uk: '🇺🇦', de: '🇩🇪', fr: '🇫🇷', es: '🇪🇸', it: '🇮🇹', tr: '🇹🇷', pt: '🇵🇹', uz: '🇺🇿', kk: '🇰🇿', be: '🇧🇾' };
+              const flag = flags[lang.code] || '🌍';
+              return (
+                <div key={lang.code} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/50 text-xs font-medium text-slate-300">
+                  <span title={lang.name}>{flag}</span>
+                  <span className="uppercase">{lang.code}</span>
+                  <span className="text-slate-400">{lang.percent}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

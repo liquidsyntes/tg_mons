@@ -2,11 +2,14 @@ import { logger } from '@/lib/logger';
 import cron from 'node-cron';
 import dotenv from 'dotenv';
 import { runCollectCycle } from './collector';
+import { runDemographicsCycle } from './demographics';
 
 dotenv.config();
 
 const cronSchedule = process.env.COLLECT_CRON || '0 * * * *';
+const demographicsCron = process.env.DEMOGRAPHICS_CRON || '0 3 * * 0'; // Weekly on Sunday 3:00 AM
 let isRunning = false;
+let isDemographicsRunning = false;
 
 async function executeCycle() {
   if (isRunning) {
@@ -24,6 +27,22 @@ async function executeCycle() {
   }
 }
 
+async function executeDemographicsCycle() {
+  if (isDemographicsRunning) {
+    logger.warn('Demographics cycle already in progress, skipping');
+    return;
+  }
+
+  isDemographicsRunning = true;
+  try {
+    await runDemographicsCycle();
+  } catch (err: any) {
+    logger.error('Error during demographics cycle', undefined, err);
+  } finally {
+    isDemographicsRunning = false;
+  }
+}
+
 async function startWorker() {
   logger.info('TG Monitor MTProto Collector Worker Started', { cronSchedule, dbConfigured: !!process.env.DATABASE_URL, tgSessionConfigured: !!process.env.TG_SESSION });
 
@@ -38,6 +57,14 @@ async function startWorker() {
   });
 
   logger.info('Worker started and waiting for schedule');
+
+  // Schedule weekly demographics collection
+  cron.schedule(demographicsCron, () => {
+    logger.info('Demographics cron triggered');
+    executeDemographicsCycle();
+  });
+
+  logger.info('Demographics cron scheduled', { demographicsCron });
 
   // Optionally trigger initial cycle if enabled
   if (process.env.COLLECT_ON_STARTUP === 'true') {

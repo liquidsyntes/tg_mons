@@ -128,3 +128,9 @@ export interface BestTimeRecommendation {
     score: number;
   }[];
 }
+
+export interface LanguageBreakdownItem {
+  code: string;   // "ru", "en", "de"
+  name: string;   // "Russian", "English", "German"
+  percent: number; // 45.2
+}
