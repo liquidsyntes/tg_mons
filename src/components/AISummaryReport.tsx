@@ -1,4 +1,5 @@
 import React from 'react';
+import { getEngagementBreakdown } from '@/lib/scoring';
 
 export interface AISummaryData {
   stats: { value: string; label: string }[];
@@ -24,9 +25,18 @@ export interface AISummaryData {
 
 interface Props {
   data: AISummaryData;
+  recentPosts?: any[];
 }
 
-export function AISummaryReport({ data }: Props) {
+export function AISummaryReport({ data, recentPosts }: Props) {
+  const aggregatedPost = (recentPosts || []).reduce((acc, p) => ({
+    views: acc.views + (p.views || 0),
+    reactions: acc.reactions + (p.reactions || 0),
+    comments: acc.comments + (p.comments || 0),
+    forwards: acc.forwards + (p.forwards || 0),
+  }), { views: 0, reactions: 0, comments: 0, forwards: 0 });
+  const breakdown = getEngagementBreakdown(aggregatedPost);
+
   return (
     <div className="bg-[#07111f] rounded-3xl p-6 sm:p-10 border border-[#1b3552] text-[#edf4fb] space-y-12">
       {/* 4 Key stats */}
@@ -112,6 +122,25 @@ export function AISummaryReport({ data }: Props) {
             <p className="text-[#91a6bc] text-sm m-0">{data.engagement.cta.text}</p>
           </div>
         </div>
+
+        {breakdown && breakdown.views > 0 && (
+          <div className="bg-[#0d1c2f] border border-[#1b3552] rounded-2xl p-6 shadow-lg mb-5">
+            <h3 className="font-bold mb-3">Структура вовлечённости (Breakdown)</h3>
+            <div className="flex h-4 w-full rounded-full overflow-hidden mb-3">
+              <div style={{ width: breakdown.views + '%' }} className="bg-sky-500" title={`Просмотры: %`}></div>
+              <div style={{ width: breakdown.reactions + '%' }} className="bg-emerald-500" title={`Реакции: %`}></div>
+              <div style={{ width: breakdown.comments + '%' }} className="bg-purple-500" title={`Комментарии: %`}></div>
+              <div style={{ width: breakdown.forwards + '%' }} className="bg-rose-500" title={`Репосты: %`}></div>
+            </div>
+            <div className="flex flex-wrap gap-4 text-xs font-medium">
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-sky-500"></div>Просмотры ({breakdown.views}%)</div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>Реакции ({breakdown.reactions}%)</div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-purple-500"></div>Комментарии ({breakdown.comments}%)</div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>Репосты ({breakdown.forwards}%)</div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-[#0d1c2f] border border-[#1b3552] rounded-2xl p-6 shadow-lg">
           <div className="p-4 border-l-2 border-[#5c9ee8] bg-[#183b62]/20 rounded-r-xl text-[#d9e8f7] m-0">
             {data.engagement.recommendation}

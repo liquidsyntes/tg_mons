@@ -125,3 +125,36 @@ export function calculateContentScore(
   };
 }
 
+
+
+export interface EngagementBreakdown {
+  reactions: number;
+  forwards: number;
+  comments: number;
+  views: number;
+}
+
+export function getEngagementBreakdown(post: {
+  views?: number | null;
+  reactions?: number | null;
+  comments?: number | null;
+  forwards?: number | null;
+}): EngagementBreakdown {
+  const views = post.views || 0;
+  const reactions = post.reactions || 0;
+  const comments = post.comments || 0;
+  const forwards = post.forwards || 0;
+
+  const total = views + reactions + comments + forwards;
+
+  if (total === 0) {
+    return { reactions: 0, forwards: 0, comments: 0, views: 0 };
+  }
+
+  return {
+    views: Number(((views / total) * 100).toFixed(1)),
+    reactions: Number(((reactions / total) * 100).toFixed(1)),
+    comments: Number(((comments / total) * 100).toFixed(1)),
+    forwards: Number(((forwards / total) * 100).toFixed(1)),
+  };
+}

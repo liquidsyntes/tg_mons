@@ -393,6 +393,9 @@ export async function getChannelDetailStats(
     messageId: p.messageId.toString(),
     publishedAt: p.publishedAt.toISOString(),
     views: p.views,
+    reactions: p.reactions,
+    comments: p.comments,
+    forwards: p.forwards,
     text: p.text,
   }));
 

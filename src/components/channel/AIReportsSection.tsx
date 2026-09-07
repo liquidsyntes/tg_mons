@@ -14,9 +14,10 @@ interface AIReportsSectionProps {
   channel: ChannelMetrics;
   myChannel: ChannelMetrics | null;
   period: '24h' | '7d' | '30d';
+  recentPosts?: any[];
 }
 
-export function AIReportsSection({ channelId, channel, myChannel, period }: AIReportsSectionProps) {
+export function AIReportsSection({ channelId, channel, myChannel, period, recentPosts }: AIReportsSectionProps) {
   const isMine = channel.isMine;
 
   const [aiSummary, setAiSummary] = useState<any | null>(null);
@@ -290,7 +291,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
         {aiError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiError}</div>}
         {aiSummary && (
           <div className="space-y-4 mt-6">
-            <AISummaryReport data={aiSummary} />
+            <AISummaryReport data={aiSummary} recentPosts={recentPosts} />
             <div className="flex justify-end">
               <button onClick={() => downloadMarkdown(aiDataToMarkdown(aiSummary), `summary_${channel.username || channel.id}.md`)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
@@ -320,7 +321,7 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
         {aiSuperError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiSuperError}</div>}
         {aiSuperSummary && (
           <div className="space-y-4 mt-6">
-            <AISummaryReport data={aiSuperSummary} />
+            <AISummaryReport data={aiSuperSummary} recentPosts={recentPosts} />
             <div className="flex justify-end">
               <button onClick={() => downloadMarkdown(aiDataToMarkdown(aiSuperSummary), `super_summary_${channel.username || channel.id}.md`)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>

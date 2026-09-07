@@ -105,6 +105,9 @@ export interface ChannelDetailStats {
     messageId: string;
     publishedAt: string;
     views: number | null;
+    reactions: number | null;
+    comments: number | null;
+    forwards: number | null;
     text: string | null;
   }[];
 }
