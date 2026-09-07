@@ -22,7 +22,9 @@ tg-monitor/
 
 Проект построен на Next.js App Router.
 - **Страницы (`page.tsx`)**: Отвечают за сборку макета и рендер компонентов.
-- **API Роуты (`route.ts`)**: Находятся в `src/app/api/`. Выступают связующим звеном между Frontend и Backend (вызывают функции из `src/lib/`).
+  - `src/app/page.tsx` — Главный дашборд.
+  - `src/app/settings/page.tsx` — Настройки системы (ИИ, провайдеры).
+- **API Роуты (`route.ts`)**: Находятся в `src/app/api/`. Выступают связующим звеном между Frontend и Backend (вызывают функции из `src/lib/`). Например, `/api/settings` или `/api/stats/demographics`.
 
 ---
 
@@ -47,12 +49,13 @@ tg-monitor/
 Отдельный от Next.js процесс, который запускается через `npx tsx src/worker/index.ts` и работает в фоне 24/7.
 
 ### Ключевые модули:
-- **`index.ts`**: Точка входа воркера. Содержит настройку `node-cron` для регулярного запуска.
+- **`index.ts`**: Точка входа воркера. Содержит настройку `node-cron` для регулярного запуска обходов (постов и демографии).
 - **`collector.ts`**: Главный цикл обхода (`runCollectCycle`).
   - Проходит по всем `isActive: true` каналам.
   - Собирает снапшоты (participants_count) и посты.
   - Обрабатывает таймауты и Rate Limits (`FLOOD_WAIT`) Telegram.
   - Отключает каналы при `consecutiveErrors` > 10.
+- **`demographics.ts`**: Цикл еженедельного сбора языковой и гео-разбивки (`languages_graph`) через MTProto метод `stats.getBroadcastStats`.
 - **`client.ts`**: Инициализация `TelegramClient` из библиотеки GramJS с использованием сессии из `.env`.
 - **`auth.ts`**: CLI-скрипт для первоначальной генерации строки `TG_SESSION`.
 

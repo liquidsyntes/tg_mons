@@ -93,16 +93,20 @@ C4Component
   title Component diagram for MTProto Worker
 
   Container_Boundary(worker_boundary, "MTProto Worker (Node.js)") {
-    Component(cron, "Cron Job", "node-cron (src/worker/index.ts)", "Запуск цикла сбора по расписанию.")
-    Component(collector, "Collector Loop", "src/worker/collector.ts", "Итерация по активным каналам, обработка ошибок, FLOOD_WAIT.")
+    Component(cron, "Cron Scheduler", "node-cron (src/worker/index.ts)", "Запуск цикла сбора по расписанию.")
+    Component(collector, "Collector Loop", "src/worker/collector.ts", "Итерация по каналам, сбор постов и снапшотов подписчиков.")
+    Component(demographics, "Demographics Job", "src/worker/demographics.ts", "Еженедельный сбор статистики (stats.getBroadcastStats).")
     Component(client, "Telegram Client", "GramJS", "Низкоуровневая обертка для MTProto сессии.")
   }
 
   ContainerDb(db, "PostgreSQL", "Database")
   System_Ext(telegram, "Telegram API")
 
-  Rel(cron, collector, "Триггер каждый час")
-  Rel(collector, client, "Вызов методов API (getMessages, getFullChannel)")
+  Rel(cron, collector, "Триггер сбора (часто)")
+  Rel(cron, demographics, "Триггер демографии (раз в неделю)")
+  Rel(collector, client, "Вызов API (getMessages, getFullChannel)")
+  Rel(demographics, client, "Вызов API (stats.getBroadcastStats)")
   Rel(client, telegram, "Сетевые запросы")
   Rel(collector, db, "Запись снапшотов и постов (Upsert)")
+  Rel(demographics, db, "Запись языковой разбивки")
 ```
