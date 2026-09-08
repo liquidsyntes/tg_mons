@@ -5,6 +5,7 @@ import { ChannelMetrics } from '@/lib/types';
 import { DeltaBadge } from '../DeltaBadge';
 import { StatusBadge } from '../StatusBadge';
 import { TrendCell } from './cells/TrendCell';
+import { MetricCell, getMetricReason } from './cells/MetricCell';
 import { formatNumber } from '@/lib/utils';
 
 interface ChannelsMobileListProps {
@@ -71,7 +72,11 @@ export function ChannelsMobileList({
                 <div className="flex items-center justify-end gap-4">
                   <div className="text-right">
                     <div className="text-base font-extrabold font-mono text-[lime] tabular-nums">
-                      {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
+                      <MetricCell 
+                        value={channel.lastPostViews} 
+                        formattedValue={channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : undefined} 
+                        {...getMetricReason('lastFact', channel)} 
+                      />
                     </div>
                     <div className="text-[10px] text-slate-400">Last Fact</div>
                   </div>
@@ -97,26 +102,30 @@ export function ChannelsMobileList({
               </div>
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">Просм.</div>
-                <div className="text-[11px] font-mono font-semibold text-white">
-                  {channel.avgViews7d ? formatNumber(channel.avgViews7d) : '-'}
+                <div className="text-[11px] font-mono font-semibold text-white leading-tight">
+                  <MetricCell 
+                    value={channel.avgViews7d} 
+                    formattedValue={channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : undefined} 
+                    {...getMetricReason('views7d', channel)} 
+                  />
                 </div>
               </div>
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">VR</div>
-                <div className="text-[11px] font-mono font-semibold text-white">
-                  {channel.vr7d !== null ? `${channel.vr7d}%` : '-'}
+                <div className="text-[11px] font-mono font-semibold text-white leading-tight">
+                  <MetricCell value={channel.vr7d} suffix="%" {...getMetricReason('vr7d', channel)} />
                 </div>
               </div>
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">ER</div>
-                <div className="text-[11px] font-mono font-semibold text-white">
-                  {channel.er7d !== null ? `${channel.er7d}%` : '-'}
+                <div className="text-[11px] font-mono font-semibold text-white leading-tight">
+                  <MetricCell value={channel.er7d} suffix="%" {...getMetricReason('er7d', channel)} />
                 </div>
               </div>
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">ERR</div>
-                <div className="text-[11px] font-mono font-semibold text-white">
-                  {channel.err7d !== null ? `${channel.err7d}%` : '-'}
+                <div className="text-[11px] font-mono font-semibold text-white leading-tight">
+                  <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />
                 </div>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { TrendCell } from './cells/TrendCell';
 import { ScoreCell, EpCell } from './cells/ScoreCell';
 import { ComparisonCell } from './cells/ComparisonCell';
 import { ChannelInfoCell } from './cells/ChannelInfoCell';
+import { MetricCell, getMetricReason } from './cells/MetricCell';
 import { SortField, SortOrder } from './useChannelsData';
 import { formatNumber } from '@/lib/utils';
 
@@ -193,44 +194,54 @@ export function ChannelsDesktopTable({
                     </div>
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono font-semibold tabular-nums text-[lime]">
-                    {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
+                    <MetricCell 
+                      value={channel.lastPostViews} 
+                      formattedValue={channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : undefined} 
+                      {...getMetricReason('lastFact', channel)} 
+                    />
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono tabular-nums">
-                    <span className="font-semibold text-sky-400">
-                      {channel.avgViews24h ? formatNumber(channel.avgViews24h) : '—'}
-                    </span>
+                    <MetricCell 
+                      value={channel.avgViews24h} 
+                      formattedValue={channel.avgViews24h !== null ? formatNumber(channel.avgViews24h) : undefined} 
+                      colorClass="font-semibold text-sky-400" 
+                      {...getMetricReason('views24h', channel)} 
+                    />
                     <span className="text-slate-500 mx-1">/</span>
-                    <span className="text-slate-300">
-                      {channel.avgViews7d ? formatNumber(channel.avgViews7d) : '—'}
-                    </span>
+                    <MetricCell 
+                      value={channel.avgViews7d} 
+                      formattedValue={channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : undefined} 
+                      colorClass="text-slate-300" 
+                      {...getMetricReason('views7d', channel)} 
+                    />
                   </td>
                   <td className="py-3.5 px-3 text-center font-mono tabular-nums">
                     <div>
                       <div className="font-semibold text-slate-200 text-sm">
-                        {channel.vr24h !== null ? `${channel.vr24h}%` : '—'}
+                        <MetricCell value={channel.vr24h} suffix="%" {...getMetricReason('vr24h', channel)} />
                       </div>
-                      <div className={`text-[10px] mt-0.5 ${channel.vr7d !== null ? (channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-400') : 'text-slate-500'}`}>
-                        {channel.vr7d !== null ? `${channel.vr7d}%` : '—'}
+                      <div className={`text-[10px] mt-0.5 ${channel.vr7d !== null ? (channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
+                        <MetricCell value={channel.vr7d} suffix="%" {...getMetricReason('vr7d', channel)} />
                       </div>
                     </div>
                   </td>
                   <td className="py-3.5 px-3 text-center font-mono tabular-nums">
                     <div>
                       <div className="font-semibold text-slate-200 text-sm">
-                        {channel.er24h !== null ? `${channel.er24h}%` : '—'}
+                        <MetricCell value={channel.er24h} suffix="%" {...getMetricReason('er24h', channel)} />
                       </div>
-                      <div className={`text-[10px] mt-0.5 ${channel.er7d !== null ? (channel.er7d > 2 ? 'text-emerald-400' : channel.er7d > 1 ? 'text-amber-400' : 'text-slate-400') : 'text-slate-500'}`}>
-                        {channel.er7d !== null ? `${channel.er7d}%` : '—'}
+                      <div className={`text-[10px] mt-0.5 ${channel.er7d !== null ? (channel.er7d > 2 ? 'text-emerald-400' : channel.er7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
+                        <MetricCell value={channel.er7d} suffix="%" {...getMetricReason('er7d', channel)} />
                       </div>
                     </div>
                   </td>
                   <td className="py-3.5 px-3 text-center font-mono tabular-nums">
                     <div>
                       <div className="font-semibold text-slate-200 text-sm">
-                        {channel.err24h !== null ? `${channel.err24h}%` : '—'}
+                        <MetricCell value={channel.err24h} suffix="%" {...getMetricReason('err24h', channel)} />
                       </div>
-                      <div className={`text-[10px] mt-0.5 ${channel.err7d !== null ? (channel.err7d > 2 ? 'text-emerald-400' : channel.err7d > 1 ? 'text-amber-400' : 'text-slate-400') : 'text-slate-500'}`}>
-                        {channel.err7d !== null ? `${channel.err7d}%` : '—'}
+                      <div className={`text-[10px] mt-0.5 ${channel.err7d !== null ? (channel.err7d > 2 ? 'text-emerald-400' : channel.err7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
+                        <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />
                       </div>
                     </div>
                   </td>
