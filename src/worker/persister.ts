@@ -201,7 +201,6 @@ export async function upsertPostWithReactions(params: {
             forwards: params.forwards ?? undefined,
             text: params.text ?? undefined,
             groupedId: params.groupedId ?? undefined,
-            subscribersAtPublish: params.subscribersAtPublish ?? undefined,
         },
         create: params,
     });

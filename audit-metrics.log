@@ -1,0 +1,217 @@
+=== АУДИТ МЕТРИК tg_mons ===
+Время запуска: 2026-09-08T16:18:46.548Z 
+
+--- Последние SyncJob ---
+#177 COMPLETED | старт: 2026-09-08T16:00:00.163Z | ок: 28 / 28 | ошибок: 0 | постов: 4488
+#176 COMPLETED | старт: 2026-09-08T15:00:00.482Z | ок: 28 / 28 | ошибок: 0 | постов: 4487
+#175 COMPLETED | старт: 2026-09-08T14:00:00.792Z | ок: 28 / 28 | ошибок: 0 | постов: 4487
+#174 PARTIAL | старт: 2026-09-08T13:00:00.987Z | ок: 28 / 29 | ошибок: 1 | постов: 4488
+#173 PARTIAL | старт: 2026-09-08T12:00:00.381Z | ок: 28 / 29 | ошибок: 1 | постов: 4487
+
+--- Каналы (29) ---
+
+[1] Seniorita`s BDSM (@senioritas_bdsm) [МОЙ]
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:05.199Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 121 | последний: 744 подп.
+  постов 24ч/7д: 2/10 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[2] Девайси (Україна) (@devices_ua) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:09.574Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 129 | последний: 993 подп.
+  постов 24ч/7д: 3/10 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[4] Поговоримо про БДСМ 🇺🇦 (@lynxbdsm) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:14.587Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 129 | последний: 2675 подп.
+  постов 24ч/7д: 1/2 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[5] Shibari_ua (@shibari_ua) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:19.187Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 129 | последний: 3038 подп.
+  постов 24ч/7д: 0/1 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч)
+
+[6] The House of Cats / Wood and Leather Handmade Workshop (@dragonrattancanes) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:23.800Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 129 | последний: 776 подп.
+  постов 24ч/7д: 1/4 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[7] F-простір (@fspacekyiv) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:28.176Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 129 | последний: 6001 подп.
+  постов 24ч/7д: 1/7 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[8] Gin Garden #УкрТґ 🇺🇦 (@gin_garden) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:32.044Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 129 | последний: 577 подп.
+  постов 24ч/7д: 0/0 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | ER/ERR/Views 7d + Last Fact (нет постов за 7д)
+
+[9] SexPositive (@sp_movement) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:36.832Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 126 | последний: 1963 подп.
+  постов 24ч/7д: 0/0 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | ER/ERR/Views 7d + Last Fact (нет постов за 7д)
+
+[10] Фетиш Україна 🇺🇦 | Чат Знайомства Спілкування (@fetish_ua) 
+  тип: group | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:41.267Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 125 | последний: 1518 подп.
+  постов 24ч/7д: 1195/6697 | без subscribersAtPublish (7д): 0 | с views=null (7д): 6693
+  ПУСТЫЕ ЯЧЕЙКИ: ERR 24h (нет просмотров)
+
+[11] Sad Elf Ropes (@Sad_Elf_Ropes) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:46.023Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 96 | последний: 290 подп.
+  постов 24ч/7д: 0/0 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | ER/ERR/Views 7d + Last Fact (нет постов за 7д)
+
+[12] БДСМ студія "Спокуса" Київ (@spokusastudio) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:49.882Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 96 | последний: 1694 подп.
+  постов 24ч/7д: 0/0 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | ER/ERR/Views 7d + Last Fact (нет постов за 7д)
+
+[13] Lady Ista channel #УкрТґ (@Lady_Ista) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:54.850Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 96 | последний: 6641 подп.
+  постов 24ч/7д: 1/5 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[14] 💚Розумна Кловер💚 (@shibari_clover) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:00:59.157Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 92 | последний: 1327 подп.
+  постов 24ч/7д: 0/0 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | ER/ERR/Views 7d + Last Fact (нет постов за 7д)
+
+[15] Kinky Events UA 🔞🇺🇦 (@kinky_events_ua) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:03.871Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 92 | последний: 16295 подп.
+  постов 24ч/7д: 0/2 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч)
+
+[16] OБРІЙ (@obreey_space) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:08.346Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 91 | последний: 7781 подп.
+  постов 24ч/7д: 1/4 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[17] Покоління Бонобо (@bonobo_gen) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:12.846Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 91 | последний: 467 подп.
+  постов 24ч/7д: 1/9 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ERR 24h (все реакции 0/скрыты)
+
+[18] sNaked Diary #УкрТґ (@painpleasure) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:17.835Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 91 | последний: 3846 подп.
+  постов 24ч/7д: 0/6 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | ERR 7d (все реакции 0/скрыты)
+
+[19] Хтивий Батя 🇺🇦🔞#УкрТґ (@gedonist_notes) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:22.646Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 91 | последний: 2532 подп.
+  постов 24ч/7д: 0/0 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | ER/ERR/Views 7d + Last Fact (нет постов за 7д)
+
+[20] ⚜️Femdom University⚜️ (@femdom_university_bdsm) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:26.707Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 92 | последний: 579 подп.
+  постов 24ч/7д: 0/0 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | ER/ERR/Views 7d + Last Fact (нет постов за 7д)
+
+[21] Shadow&Sun каталог виробів (@s_skatalog) 
+  тип: group | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:31.737Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 67 | последний: 81 подп.
+  постов 24ч/7д: 0/3 | без subscribersAtPublish (7д): 0 | с views=null (7д): 3
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | Views/VR/ERR 7d (просмотры null, типично для групп)
+
+[22] Kinbaku | Україна (@kinbaku_ukraine) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:35.791Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 63 | последний: 285 подп.
+  постов 24ч/7д: 2/5 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[23] Locus UA (@locusua) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:40.680Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 63 | последний: 1965 подп.
+  постов 24ч/7д: 3/5 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ERR 24h (все реакции 0/скрыты) | ERR 7d (все реакции 0/скрыты)
+
+[24] Нотатки на полях #УкрТґ (@sombra_events) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:45.444Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 63 | последний: 300 подп.
+  постов 24ч/7д: 0/1 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч)
+
+[25] Sombra #УкрТґ (@sombra_side) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:50.197Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 63 | последний: 675 подп.
+  постов 24ч/7д: 2/5 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[26] Val 🇺🇦 (@valeev_sm) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:54.838Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 63 | последний: 1538 подп.
+  постов 24ч/7д: 0/1 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч)
+
+[27] BDSM Dating UA🇺🇦 (@bdsmdatingua) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:01:59.913Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 63 | последний: 1631 подп.
+  постов 24ч/7д: 0/1 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч)
+
+[28] Sexology_matter (@sexology_matters) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:02:04.891Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 63 | последний: 2082 подп.
+  постов 24ч/7д: 1/3 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  все ключевые ячейки должны быть заполнены
+
+[29] S❤️W🌹I🍓N😈G🍒 (@SexWifeiCuckold) 
+  тип: channel | active: true | ошибок подряд: 0 | lastError: нет
+  последний сбор: 2026-09-08T16:02:09.373Z
+  движок: MATERIALIZED | daily-строк за 30д: 31 | снапшотов всего: 35 | последний: 1427 подп.
+  постов 24ч/7д: 0/2 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч)
+
+[30] Шахматная Королева 👑 (@Chess_Queen_Ksenia) 
+  тип: channel | active: false | ошибок подряд: 10 | lastError: No user has "chess_queen_ksenia" as username
+  последний сбор: 2026-09-07T11:02:15.146Z
+  движок: MATERIALIZED | daily-строк за 30д: 30 | снапшотов всего: 19 | последний: 44 подп.
+  постов 24ч/7д: 0/11 | без subscribersAtPublish (7д): 0 | с views=null (7д): 0
+  ПУСТЫЕ ЯЧЕЙКИ: ER/ERR 24h (нет постов за 24ч) | Views 24h (сегодняшняя daily-строка еще не создана, UTC-дата)
+
+--- Глобально ---
+Постов без subscribersAtPublish (вся БД): 0
