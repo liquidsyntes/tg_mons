@@ -118,7 +118,7 @@ export function ChannelsDesktopTable({
               <th
                 onClick={() => onSort('err')}
                 className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
-                title="Engagement Rate by Reach (считает вовлечённость только от охвата / просмотров)"
+                title="Engagement Rate by Reach (реакции + комментарии + репосты от просмотров)"
               >
                 <div>ERR {renderSortIcon('err')}</div>
                 <div className="text-[10px] text-slate-500 font-normal mt-0.5">(24h / 7d)</div>

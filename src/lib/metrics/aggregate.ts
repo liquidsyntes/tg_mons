@@ -1,5 +1,5 @@
 import { ChannelMetrics, ChannelStatus } from '../types';
-import { calculateDelta, calculateDeltaFromData, calculateVr } from './calculate';
+import { calculateDelta, calculateDeltaFromData, calculateVr, computeAvgViews24h } from './calculate';
 import { calculateContentScore } from '../scoring';
 import { aggregateChannelER, aggregateChannelERR } from './engagement';
 
@@ -52,7 +52,8 @@ export function buildMetricsFromMaterialized(
   const stats7d = getMetricsForPeriod(t7d);
   const stats30d = getMetricsForPeriod(t30d);
 
-  const vr24h = calculateVr(stats24h.avgViews, currentMembers);
+  const avgViews24h = computeAvgViews24h(recentPosts, now);
+  const vr24h = calculateVr(avgViews24h, currentMembers);
   const vr7d = calculateVr(stats7d.avgViews, currentMembers);
   const vr30d = calculateVr(stats30d.avgViews, currentMembers);
 
@@ -118,7 +119,7 @@ export function buildMetricsFromMaterialized(
     delta24h, delta7d, delta30d,
     posts24h: stats24h.postsCount, posts7d: stats7d.postsCount, posts30d: stats30d.postsCount,
     avgPostsPerDay,
-    avgViews24h: stats24h.avgViews, vr24h,
+    avgViews24h, vr24h,
     avgViews7d: stats7d.avgViews, vr7d,
     avgViews30d: stats30d.avgViews, vr30d,
     lastPostViews,
@@ -169,15 +170,12 @@ export function calculateChannelMetricsFromData(
   let posts24h = 0;
   let posts7d = 0;
   let posts30d = 0;
-  let totalViews24h = 0;
-  let viewPosts24h = 0;
   let totalViews7d = 0;
   let viewPosts7d = 0;
   let totalViews30d = 0;
   let viewPosts30d = 0;
 
   const t24h = date24hAgo.getTime();
-  const t48h = date24hAgo.getTime() - MS_24H;
   const t7d = date7dAgo.getTime();
   const t30d = date30dAgo.getTime();
 
@@ -199,11 +197,6 @@ export function calculateChannelMetricsFromData(
           if (p.views !== null) {
             totalViews7d += p.views;
             viewPosts7d++;
-            
-            if (pt >= t48h) {
-              totalViews24h += p.views;
-              viewPosts24h++;
-            }
           }
         }
       }
@@ -233,14 +226,9 @@ export function calculateChannelMetricsFromData(
   const trueAvgViews = trueViews7d.length > 0 ? trueViews7d.reduce((a,b)=>a+b,0) / trueViews7d.length : 0;
   const trueErr7d = trueAvgViews > 0 ? (trueAvgEngagement / trueAvgViews) * 100 : null;
 
-  if (viewPosts24h === 0 && viewPosts7d > 0) {
-    totalViews24h = totalViews7d;
-    viewPosts24h = viewPosts7d;
-  }
-
   const avgPostsPerDay = Number((posts30d / 30).toFixed(1));
 
-  const avgViews24h = viewPosts24h > 0 ? Math.round(totalViews24h / viewPosts24h) : null;
+  const avgViews24h = computeAvgViews24h(channelPosts, now);
   const vr24h = calculateVr(avgViews24h, currentMembers);
 
   const avgViews7d = viewPosts7d > 0 ? Math.round(totalViews7d / viewPosts7d) : null;

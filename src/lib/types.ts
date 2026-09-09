@@ -35,7 +35,7 @@ export interface ChannelMetrics {
   trueErr7d: number | null;
   er24h: number | null;
   er7d: number | null;
-  err24h: number | null; // null if all reactions are 0 (likely hidden)
+  err24h: number | null; // null if all engagements (reactions+comments+forwards) are 0 (likely hidden)
   err7d: number | null;
   cr7d: number | null;
   status: ChannelStatus;

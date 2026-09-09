@@ -45,37 +45,42 @@ export function aggregateChannelER(
 export function calculatePostERR(post: {
   views?: number | null;
   reactions?: number | null;
+  comments?: number | null;
+  forwards?: number | null;
 }): number | null {
   if (!post.views || post.views <= 0) {
     return null;
   }
-  const reactions = post.reactions || 0;
-  return (reactions / post.views) * 100;
+  const total = (post.reactions || 0) + (post.comments || 0) + (post.forwards || 0);
+  return (total / post.views) * 100;
 }
 
 export function aggregateChannelERR(
   posts: {
     views?: number | null;
     reactions?: number | null;
+    comments?: number | null;
+    forwards?: number | null;
   }[]
 ): number | null {
   let sumERR = 0;
   let count = 0;
-  let allReactionsZero = true;
+  let allZero = true;
 
   for (const post of posts) {
     const err = calculatePostERR(post);
     if (err !== null) {
       sumERR += err;
       count++;
-      if ((post.reactions || 0) > 0) {
-        allReactionsZero = false;
+      const total = (post.reactions || 0) + (post.comments || 0) + (post.forwards || 0);
+      if (total > 0) {
+        allZero = false;
       }
     }
   }
 
   if (count === 0) return null;
-  if (allReactionsZero) return null;
+  if (allZero) return null;
 
   return sumERR / count;
 }

@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { calculatePostER, aggregateChannelER, calculatePostERR, aggregateChannelERR } from '../engagement';
 
 describe('Engagement Metrics', () => {
@@ -91,22 +91,22 @@ describe('Engagement Metrics', () => {
   });
   describe('calculatePostERR', () => {
     it('calculates ERR correctly for a standard post', () => {
-      const post = { views: 1000, reactions: 50 };
-      expect(calculatePostERR(post)).toBe(5);
+      const post = { views: 1000, reactions: 50, comments: 20, forwards: 30 }; // Total = 100
+      expect(calculatePostERR(post)).toBe(10);
     });
 
     it('returns null if views is 0', () => {
-      const post = { views: 0, reactions: 50 };
+      const post = { views: 0, reactions: 50, comments: 10 };
       expect(calculatePostERR(post)).toBeNull();
     });
 
     it('returns null if views is missing', () => {
-      const post = { reactions: 50 };
+      const post = { reactions: 50, comments: 10 };
       expect(calculatePostERR(post)).toBeNull();
     });
 
-    it('handles posts with 0 reactions', () => {
-      const post = { views: 1000, reactions: 0 };
+    it('handles posts with 0 engagements', () => {
+      const post = { views: 1000, reactions: 0, comments: 0, forwards: 0 };
       expect(calculatePostERR(post)).toBe(0);
     });
   });
@@ -115,25 +115,25 @@ describe('Engagement Metrics', () => {
     it('aggregates average ERR across multiple posts', () => {
       const posts = [
         { views: 1000, reactions: 50 }, // 5%
-        { views: 2000, reactions: 200 }, // 10%
-        { views: 1500, reactions: 225 }, // 15%
+        { views: 2000, reactions: 100, comments: 100 }, // 10%
+        { views: 1000, forwards: 150 }, // 15%
       ];
       expect(aggregateChannelERR(posts)).toBe(10);
     });
 
-    it('returns null if all posts have 0 reactions (hidden)', () => {
+    it('returns null if all posts have 0 engagements (hidden)', () => {
       const posts = [
-        { views: 1000, reactions: 0 },
-        { views: 2000, reactions: 0 },
+        { views: 1000, reactions: 0, comments: 0, forwards: 0 },
+        { views: 2000 },
       ];
       expect(aggregateChannelERR(posts)).toBeNull();
     });
 
-    it('returns 0 if at least one post has > 0 reactions but average is low', () => {
+    it('returns >0 if at least one post has >0 comments but 0 reactions', () => {
       const posts = [
-        { views: 1000, reactions: 0 }, // 0%
-        { views: 1000, reactions: 0 }, // 0%
-        { views: 1000, reactions: 30 }, // 3%
+        { views: 1000, reactions: 0, comments: 0 }, // 0%
+        { views: 1000, reactions: 0, comments: 0 }, // 0%
+        { views: 1000, comments: 30 }, // 3%
       ];
       expect(aggregateChannelERR(posts)).toBe(1);
     });

@@ -57,3 +57,38 @@ export function calculateVr(avgViews: number | null, currentMembers: number | nu
   }
   return null;
 }
+
+export function computeAvgViews24h(
+  posts: { publishedAt: Date; views: number | null }[],
+  now: Date
+): number | null {
+  const t24h = now.getTime() - 24 * 3600 * 1000;
+  const t48h = t24h - 24 * 3600 * 1000;
+  const t7d = now.getTime() - 7 * 24 * 3600 * 1000;
+
+  let totalViews24h = 0;
+  let viewPosts24h = 0;
+  let totalViews7d = 0;
+  let viewPosts7d = 0;
+
+  for (const p of posts) {
+    const pt = p.publishedAt.getTime();
+    if (pt >= t7d && pt < t24h) {
+      if (p.views !== null) {
+        totalViews7d += p.views;
+        viewPosts7d++;
+        if (pt >= t48h) {
+          totalViews24h += p.views;
+          viewPosts24h++;
+        }
+      }
+    }
+  }
+
+  if (viewPosts24h === 0 && viewPosts7d > 0) {
+    totalViews24h = totalViews7d;
+    viewPosts24h = viewPosts7d;
+  }
+
+  return viewPosts24h > 0 ? Math.round(totalViews24h / viewPosts24h) : null;
+}
