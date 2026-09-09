@@ -89,6 +89,16 @@ export function buildMetricsFromMaterialized(
   const err24h = rawErr24h !== null ? Number(rawErr24h.toFixed(2)) : null;
   const err7d = rawErr7d !== null ? Number(rawErr7d.toFixed(2)) : null;
 
+  let cr7d: number | null = null;
+  if (currentMembers && currentMembers > 0 && posts7dList.length > 0) {
+    let totalComments = 0;
+    for (const p of posts7dList) {
+      totalComments += p.comments || 0;
+    }
+    const avgComments = totalComments / posts7dList.length;
+    cr7d = Number(((avgComments / currentMembers) * 100).toFixed(2));
+  }
+
   return {
     id: channel.id,
     username: channel.username,
@@ -117,6 +127,7 @@ export function buildMetricsFromMaterialized(
     er7d,
     err24h,
     err7d,
+    cr7d,
     status: status as any,
     sparkline7d,
     contentScore: scoreBreakdown.total,
@@ -290,6 +301,16 @@ export function calculateChannelMetricsFromData(
   const err24h = rawErr24h !== null ? Number(rawErr24h.toFixed(2)) : null;
   const err7d = rawErr7d !== null ? Number(rawErr7d.toFixed(2)) : null;
 
+  let cr7d: number | null = null;
+  if (currentMembers && currentMembers > 0 && posts7dList.length > 0) {
+    let totalComments = 0;
+    for (const p of posts7dList) {
+      totalComments += p.comments || 0;
+    }
+    const avgComments = totalComments / posts7dList.length;
+    cr7d = Number(((avgComments / currentMembers) * 100).toFixed(2));
+  }
+
   return {
     id: channel.id,
     username: channel.username,
@@ -326,6 +347,7 @@ export function calculateChannelMetricsFromData(
     er7d,
     err24h,
     err7d,
+    cr7d,
     status,
     sparkline7d,
     contentScore: scoreBreakdown.total,

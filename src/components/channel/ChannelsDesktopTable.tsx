@@ -236,14 +236,22 @@ export function ChannelsDesktopTable({
                     </div>
                   </td>
                   <td className="py-3.5 px-3 text-center font-mono tabular-nums">
-                    <div>
-                      <div className="font-semibold text-slate-200 text-sm">
-                        <MetricCell value={channel.err24h} suffix="%" {...getMetricReason('err24h', channel)} />
+                    {channel.type === 'group' ? (
+                      <div title="Comments Rate: ответы / подписчики" className="flex flex-col items-center justify-center">
+                        <div className="font-semibold text-slate-200 text-sm">
+                          <MetricCell value={channel.cr7d} suffix="% CR" />
+                        </div>
                       </div>
-                      <div className={`text-[10px] mt-0.5 ${channel.err7d !== null ? (channel.err7d > 2 ? 'text-emerald-400' : channel.err7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
-                        <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />
+                    ) : (
+                      <div>
+                        <div className="font-semibold text-slate-200 text-sm">
+                          <MetricCell value={channel.err24h} suffix="%" {...getMetricReason('err24h', channel)} />
+                        </div>
+                        <div className={`text-[10px] mt-0.5 ${channel.err7d !== null ? (channel.err7d > 2 ? 'text-emerald-400' : channel.err7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
+                          <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono tabular-nums">
                     <ComparisonCell 

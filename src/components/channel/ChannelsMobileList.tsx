@@ -122,12 +122,21 @@ export function ChannelsMobileList({
                   <MetricCell value={channel.er7d} suffix="%" {...getMetricReason('er7d', channel)} />
                 </div>
               </div>
-              <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
-                <div className="text-[9px] text-slate-400 mb-0.5">ERR</div>
-                <div className="text-[11px] font-mono font-semibold text-white leading-tight">
-                  <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />
+              {channel.type === 'group' ? (
+                <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center" title="Comments Rate: ответы / подписчики">
+                  <div className="text-[9px] text-slate-400 mb-0.5">CR</div>
+                  <div className="text-[11px] font-mono font-semibold text-white leading-tight">
+                    <MetricCell value={channel.cr7d} suffix="%" />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
+                  <div className="text-[9px] text-slate-400 mb-0.5">ERR</div>
+                  <div className="text-[11px] font-mono font-semibold text-white leading-tight">
+                    <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/60 text-xs">
