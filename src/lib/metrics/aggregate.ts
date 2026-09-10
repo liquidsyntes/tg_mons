@@ -44,9 +44,9 @@ export function buildMetricsFromMaterialized(
     currentMembers = sorted[0].followers;
   }
   
-  const delta24h = calculateDelta(dailyMetrics, t24h, currentMembers);
-  const delta7d = calculateDelta(dailyMetrics, t7d, currentMembers);
-  const delta30d = calculateDelta(dailyMetrics, t30d, currentMembers);
+  const delta24h = calculateDelta(dailyMetrics, t24h, currentMembers, now);
+  const delta7d = calculateDelta(dailyMetrics, t7d, currentMembers, now);
+  const delta30d = calculateDelta(dailyMetrics, t30d, currentMembers, now);
 
   const stats24h = getMetricsForPeriod(t24h);
   const stats7d = getMetricsForPeriod(t7d);
@@ -163,9 +163,9 @@ export function calculateChannelMetricsFromData(
   const latestSnapshot = channelSnapshots.length > 0 ? channelSnapshots[0] : null;
   const currentMembers = latestSnapshot ? latestSnapshot.membersCount : null;
 
-  const delta24h = calculateDeltaFromData(channelSnapshots, date24hAgo, currentMembers);
-  const delta7d = calculateDeltaFromData(channelSnapshots, date7dAgo, currentMembers);
-  const delta30d = calculateDeltaFromData(channelSnapshots, date30dAgo, currentMembers);
+  const delta24h = calculateDeltaFromData(channelSnapshots, date24hAgo, currentMembers, now);
+  const delta7d = calculateDeltaFromData(channelSnapshots, date7dAgo, currentMembers, now);
+  const delta30d = calculateDeltaFromData(channelSnapshots, date30dAgo, currentMembers, now);
 
   let posts24h = 0;
   let posts7d = 0;

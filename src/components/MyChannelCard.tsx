@@ -119,7 +119,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
             <Users className="w-3.5 h-3.5 text-slate-500" />
             <span>Дин. 24ч</span>
           </div>
-          <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="md" />
+          <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} coverageDays={channel.delta24h.coverageDays} nominalDays={1} size="md" />
         </div>
 
         {/* Delta 7d */}
@@ -128,7 +128,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
             <Users className="w-3.5 h-3.5 text-slate-500" />
             <span>Дин. 7д</span>
           </div>
-          <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="md" />
+          <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} coverageDays={channel.delta7d.coverageDays} nominalDays={7} size="md" />
         </div>
 
         {/* Delta 30d */}
@@ -137,7 +137,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
             <Users className="w-3.5 h-3.5 text-slate-500" />
             <span>Дин. 30д</span>
           </div>
-          <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} size="md" />
+          <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} coverageDays={channel.delta30d.coverageDays} nominalDays={30} size="md" />
         </div>
 
         {/* Posts Frequency */}

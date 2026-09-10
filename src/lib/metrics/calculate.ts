@@ -1,9 +1,10 @@
 export function calculateDeltaFromData(
   snapshots: { collectedAt: Date; membersCount: number }[],
   dateLimit: Date,
-  currentMembers: number | null
-): { abs: number | null; percent: number | null } {
-  let baseline: { membersCount: number } | null = null;
+  currentMembers: number | null,
+  now: Date = new Date()
+): { abs: number | null; percent: number | null; coverageDays: number | null } {
+  let baseline: { collectedAt: Date; membersCount: number } | null = null;
   for (const s of snapshots) {
     if (s.collectedAt.getTime() <= dateLimit.getTime()) {
       baseline = s;
@@ -21,19 +22,21 @@ export function calculateDeltaFromData(
   }
 
   if (currentMembers === null || !baseline || baseline.membersCount === 0) {
-    return { abs: null, percent: null };
+    return { abs: null, percent: null, coverageDays: null };
   }
 
   const abs = currentMembers - baseline.membersCount;
   const percent = Number(((abs / baseline.membersCount) * 100).toFixed(2));
-  return { abs, percent };
+  const coverageDays = Math.round((now.getTime() - baseline.collectedAt.getTime()) / (1000 * 3600 * 24));
+  return { abs, percent, coverageDays };
 }
 
 export function calculateDelta(
   dailyMetrics: any[],
   dateLimit: Date,
-  currentMembers: number | null
-): { abs: number | null; percent: number | null } {
+  currentMembers: number | null,
+  now: Date = new Date()
+): { abs: number | null; percent: number | null; coverageDays: number | null } {
   let baseline = null;
   for (const m of dailyMetrics) {
     if (new Date(m.date).getTime() <= dateLimit.getTime()) {
@@ -45,10 +48,11 @@ export function calculateDelta(
     baseline = dailyMetrics[dailyMetrics.length - 1];
   }
   
-  if (currentMembers === null || !baseline || baseline.followers === 0) return { abs: null, percent: null };
+  if (currentMembers === null || !baseline || baseline.followers === 0) return { abs: null, percent: null, coverageDays: null };
   const abs = currentMembers - baseline.followers;
   const percent = Number(((abs / baseline.followers) * 100).toFixed(2));
-  return { abs, percent };
+  const coverageDays = Math.round((now.getTime() - new Date(baseline.date).getTime()) / (1000 * 3600 * 24));
+  return { abs, percent, coverageDays };
 }
 
 export function calculateVr(avgViews: number | null, currentMembers: number | null): number | null {

@@ -98,7 +98,7 @@ export function ChannelsMobileList({
             <div className="grid grid-cols-5 gap-1.5 pt-3 border-t border-border/60 text-center">
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">Δ 7д</div>
-                <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="sm" />
+                <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} coverageDays={channel.delta7d.coverageDays} nominalDays={7} size="sm" />
               </div>
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">Просм.</div>

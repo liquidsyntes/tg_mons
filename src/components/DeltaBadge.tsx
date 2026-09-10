@@ -7,6 +7,8 @@ import { cn, formatNumber, formatPercent } from '@/lib/utils';
 interface DeltaBadgeProps {
   abs: number | null | undefined;
   percent: number | null | undefined;
+  coverageDays?: number | null;
+  nominalDays?: number;
   showAbs?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -15,6 +17,8 @@ interface DeltaBadgeProps {
 export function DeltaBadge({
   abs,
   percent,
+  coverageDays,
+  nominalDays,
   showAbs = true,
   size = 'md',
   className,
@@ -77,6 +81,14 @@ export function DeltaBadge({
         {!showAbs && percent !== null && percent !== undefined && (
           <span className="font-semibold">
             {formatPercent(percent)}
+          </span>
+        )}
+        {coverageDays !== null && coverageDays !== undefined && nominalDays !== undefined && Math.abs(coverageDays - nominalDays) > 1 && (
+          <span 
+            className="text-[9px] text-slate-500 ml-0.5" 
+            title={`данные за ${coverageDays} дней из ${nominalDays}`}
+          >
+            ({coverageDays}д)
           </span>
         )}
       </div>

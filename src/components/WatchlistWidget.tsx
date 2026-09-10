@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { ChannelMetrics } from '@/lib/types';
 import { Star, Eye, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -51,7 +51,7 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
                     {formatNumber(channel.currentMembers)}
                   </div>
                 </div>
-                <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="sm" />
+                <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} coverageDays={channel.delta7d.coverageDays} nominalDays={7} size="sm" />
               </div>
               
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">

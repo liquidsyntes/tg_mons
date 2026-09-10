@@ -1,0 +1,86 @@
+diff --git a/.env.example b/.env.example
+index 34ffde0..b9a2a33 100644
+--- a/.env.example
++++ b/.env.example
+@@ -25,9 +25,12 @@ COLLECT_CRON="0 * * * *"
+ # Запуск первичного сбора при старте воркера (true / false)
+ COLLECT_ON_STARTUP="true"
+ 
+-# Секретный Bearer-токен для ручного запуска сбора через POST /api/collect/run
+-# ВНИМАНИЕ: Не используйте "supersecrettoken" в production!
+-# Сгенерируйте случайную строку: openssl rand -hex 16
++# URL for internal API calls from worker to web (e.g., http://localhost:4000 or http://web:4000 in Docker)
++WEB_INTERNAL_URL="http://localhost:4000"
++
++# Bearer-токен для ручного запуска сбора через POST /api/collect/run
++# ВАЖНО: Не используйте "supersecrettoken" в production!
++# Для случайной строки: openssl rand -hex 16
+ COLLECT_API_TOKEN=""
+ 
+ # Начальный юзернейм «Моего канала» (опционально)
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 373a077..bc7cf75 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -47,6 +47,8 @@ services:
+       COLLECT_ON_STARTUP: ${COLLECT_ON_STARTUP:-true}
+       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
++      COLLECT_API_TOKEN: ${COLLECT_API_TOKEN}
++      WEB_INTERNAL_URL: ${WEB_INTERNAL_URL:-http://web:4000}
+     depends_on:
+       - postgres
+ 
+diff --git a/src/app/api/internal/invalidate-cache/route.ts b/src/app/api/internal/invalidate-cache/route.ts
+new file mode 100644
+index 0000000..1393e3b
+--- /dev/null
++++ b/src/app/api/internal/invalidate-cache/route.ts
+@@ -0,0 +1,17 @@
++import { NextRequest, NextResponse } from 'next/server';
++import { verifyBearerToken } from '@/lib/auth';
++import { metricsCache, bestTimeCache } from '@/lib/cache';
++
++export const dynamic = 'force-dynamic';
++
++export async function POST(req: NextRequest) {
++  const authResult = verifyBearerToken(req);
++  if (!authResult.authorized) {
++    return authResult.response;
++  }
++
++  metricsCache.invalidate();
++  bestTimeCache.invalidate();
++
++  return NextResponse.json({ success: true });
++}
+diff --git a/src/worker/collector.ts b/src/worker/collector.ts
+index 7ed391d..1d78175 100644
+--- a/src/worker/collector.ts
++++ b/src/worker/collector.ts
+@@ -277,6 +277,25 @@ export async function runCollectCycle(): Promise<{
+       await finalizeSyncJob(syncJobId, durationMs, successCount, errorCount, activeChannels.length, totalPosts, fatalError)
+         .catch((err) => logger.error('Final SyncJob update failed', undefined, err));
+     }
++    
++    const webInternalUrl = process.env.WEB_INTERNAL_URL;
++    const token = process.env.COLLECT_API_TOKEN;
++    if (webInternalUrl && token) {
++      try {
++        await fetch(`${webInternalUrl}/api/internal/invalidate-cache`, {
++          method: 'POST',
++          headers: {
++            'Authorization': `Bearer ${token}`
++          }
++        });
++        logger.info('Successfully invalidated web cache');
++      } catch (err: any) {
++        logger.warn('Failed to invalidate web cache', undefined, err);
++      }
++    } else {
++       logger.warn('Skipping web cache invalidation: WEB_INTERNAL_URL or COLLECT_API_TOKEN is not set');
++    }
++
+     logger.info('Cycle completed', { durationMs, successCount, errorCount, totalSnapshots, totalPosts });
+   }
+ 

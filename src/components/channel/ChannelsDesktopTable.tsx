@@ -172,13 +172,13 @@ export function ChannelsDesktopTable({
                     <TrendCell sparkline={channel.sparkline7d} deltaAbs={channel.delta7d.abs} />
                   </td>
                   <td className="py-3.5 px-1 text-center">
-                    <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="sm" />
+                    <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} coverageDays={channel.delta24h.coverageDays} nominalDays={1} size="sm" />
                   </td>
                   <td className="py-3.5 px-1 text-center">
-                    <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="sm" />
+                    <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} coverageDays={channel.delta7d.coverageDays} nominalDays={7} size="sm" />
                   </td>
                   <td className="py-3.5 px-1 text-center">
-                    <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} size="sm" />
+                    <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} coverageDays={channel.delta30d.coverageDays} nominalDays={30} size="sm" />
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono tabular-nums">
                     <div className="flex flex-col items-center">

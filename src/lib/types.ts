@@ -18,9 +18,9 @@ export interface ChannelMetrics {
 
   // Calculated metrics
   currentMembers: number | null;
-  delta24h: { abs: number | null; percent: number | null };
-  delta7d: { abs: number | null; percent: number | null };
-  delta30d: { abs: number | null; percent: number | null };
+  delta24h: { abs: number | null; percent: number | null; coverageDays?: number | null };
+  delta7d: { abs: number | null; percent: number | null; coverageDays?: number | null };
+  delta30d: { abs: number | null; percent: number | null; coverageDays?: number | null };
   posts24h: number;
   posts7d: number;
   posts30d: number;
