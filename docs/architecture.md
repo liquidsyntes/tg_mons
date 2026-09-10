@@ -47,6 +47,7 @@ C4Container
   
   Rel(worker, telegram, "Сбор данных", "MTProto (TCP)")
   Rel(worker, db, "Сохраняет сырые данные", "TCP/5432")
+  Rel(worker, web, "Сбрасывает кэш после цикла", "HTTP POST /api/internal/invalidate-cache, Bearer")
 ```
 
 ## 3. Component Diagram (Web App & API)
@@ -62,8 +63,10 @@ C4Component
     
     Component(api_stats, "Stats Route Handlers", "Next.js Route Handlers", "Отдают JSON с метриками (/api/stats/overview, /api/channels).")
     Component(api_ai, "AI Route Handlers", "Next.js Route Handlers", "Пайплайны сбора данных для промпта и обращения к LLM.")
+    Component(api_cache, "Internal Cache Invalidation", "/api/internal/invalidate-cache", "Проверяет Bearer-токен и очищает кэши метрик и Best Time.")
     
-    Component(lib_metrics, "Metrics Engine", "src/lib/metrics.ts", "Бизнес-логика: расчет VR, ER, ERR, дельт, агрегация.")
+    Component(lib_metrics, "Metrics Engine", "src/lib/metrics/*", "Бизнес-логика: ER, ERR, CR, VR, дельты и агрегация исходных или дневных данных.")
+    Component(lib_cache, "In-memory Cache", "src/lib/cache.ts", "Хранит metricsCache и bestTimeCache.")
     Component(lib_ep, "EP Calculator", "src/lib/ep.ts", "Вычисление Effective Point (EP), CEI, Z-score нормализация.")
     Component(lib_prisma, "Prisma Client", "src/lib/prisma.ts", "Доступ к базе данных.")
   }
@@ -78,6 +81,7 @@ C4Component
   Rel(api_stats, lib_ep, "Запрашивает рейтинги")
   Rel(api_ai, lib_metrics, "Собирает данные для промпта")
   Rel(api_ai, openrouter, "Отправляет промпт")
+  Rel(api_cache, lib_cache, "Очищает metricsCache и bestTimeCache")
 
   Rel(lib_metrics, lib_prisma, "SQL запросы")
   Rel(lib_ep, lib_prisma, "SQL запросы")
@@ -100,6 +104,7 @@ C4Component
   }
 
   ContainerDb(db, "PostgreSQL", "Database")
+  Container(web, "Web App & API", "Next.js", "Принимает внутренний запрос на инвалидацию кэша.")
   System_Ext(telegram, "Telegram API")
 
   Rel(cron, collector, "Триггер сбора (часто)")
@@ -108,5 +113,10 @@ C4Component
   Rel(demographics, client, "Вызов API (stats.getBroadcastStats)")
   Rel(client, telegram, "Сетевые запросы")
   Rel(collector, db, "Запись снапшотов и постов (Upsert)")
+  Rel(collector, web, "POST /api/internal/invalidate-cache", "Bearer COLLECT_API_TOKEN")
   Rel(demographics, db, "Запись языковой разбивки")
 ```
+
+## Поток инвалидации кэша
+
+После завершения `runCollectCycle` worker берёт `WEB_INTERNAL_URL` и `COLLECT_API_TOKEN` из окружения и отправляет `POST /api/internal/invalidate-cache` с Bearer-токеном. Маршрут веб-процесса очищает `metricsCache` и `bestTimeCache`. Ошибка этого HTTP-вызова логируется в worker и не отменяет завершённый цикл сбора.

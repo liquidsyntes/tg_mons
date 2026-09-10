@@ -111,3 +111,11 @@ Healthcheck эндпоинт. Проверяет жизнеспособност�
 ### `POST /api/collect/run`
 Ручной триггер запуска цикла сбора MTProto Worker.
 **Требует:** Заголовок `Authorization: Bearer <COLLECT_API_TOKEN>`.
+
+### `POST /api/internal/invalidate-cache`
+Внутренний endpoint, который worker вызывает в конце `runCollectCycle`.
+
+- **Авторизация:** `Authorization: Bearer <COLLECT_API_TOKEN>`.
+- **Тело:** не требуется; worker отправляет пустой запрос.
+- **Успешный ответ:** `200 OK` с телом `{ "success": true }`.
+- **Действие:** очищает in-memory кэши `metricsCache` и `bestTimeCache` веб-процесса.

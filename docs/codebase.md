@@ -8,6 +8,7 @@
 tg-monitor/
 ├── docker-compose.yml       # Конфигурация сервисов (web, worker, db)
 ├── prisma/                  # Схема базы данных (schema.prisma) и миграции
+├── scripts/                 # Одноразовые утилиты обслуживания и диагностики БД
 ├── src/
 │   ├── app/                 # Next.js App Router (UI и API Route Handlers)
 │   ├── components/          # React-компоненты (UI kit, графики, секции)
@@ -36,11 +37,14 @@ tg-monitor/
 - **`ep.ts`**: Содержит алгоритм **EP (Effective Point)** и **CEI (Channel Expansion Index)**. Это сердце рейтинговой системы, использующее Z-score нормализацию и логарифмический Confidence Penalty.
 - **`scoring.ts`**: Оценка контента (Content Score) и выдача буквенных грейдов (A+, B, C) на основе вовлеченности, рекламы и частоты.
 - **`metrics.ts`**: Глубокий файл с агрегацией и экспортами.
-- **`metrics/`**: Разделенная логика метрик: `queries.ts` (выборки), `aggregate.ts` (построение сводки), `engagement.ts` (расчет ER и ERR).
+- **`metrics/`**: Разделенная логика метрик: `queries.ts` (выборки), `aggregate.ts` (построение сводки), `engagement.ts` (расчет ER и ERR), `calculate.ts` (дельты, VR и `computeAvgViews24h`).
 - **`materialize.ts`**: Логика материализации сырых данных в агрегированные таблицы (например, `ChannelMetricDaily`).
 - **`openrouter.ts` & `ai-reports.ts`**: Обертки для вызова LLM (OpenRouter) и формирования отчетов.
 - **`prisma.ts`**: Инициализация Prisma Client.
 - **`cache.ts`**: In-memory кэширование для ускорения API ответов.
+
+### Компоненты метрик
+- **`src/components/channel/cells/MetricCell.tsx`**: Выводит значение метрики или её причину отсутствия; `getMetricReason` выбирает подпись для статуса сбора, отсутствия постов, групп и скрытой вовлечённости.
 
 ---
 
@@ -58,6 +62,13 @@ tg-monitor/
 - **`demographics.ts`**: Цикл еженедельного сбора языковой и гео-разбивки (`languages_graph`) через MTProto метод `stats.getBroadcastStats`.
 - **`client.ts`**: Инициализация `TelegramClient` из библиотеки GramJS с использованием сессии из `.env`.
 - **`auth.ts`**: CLI-скрипт для первоначальной генерации строки `TG_SESSION`.
+
+---
+
+## 4. Служебные скрипты (`scripts/`)
+
+- **`repair-subscribers.ts`**: Восстанавливает `subscribersAtPublish` постов по снапшотам аудитории, предпочитая снапшот на момент публикации или раньше.
+- **`audit-metrics.ts`**: Только читает БД и выводит диагностику пустых метрик по каналам и состоянию последних циклов сбора.
 
 ---
 
