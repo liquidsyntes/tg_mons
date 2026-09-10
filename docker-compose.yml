@@ -47,6 +47,8 @@ services:
       COLLECT_ON_STARTUP: ${COLLECT_ON_STARTUP:-true}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      COLLECT_API_TOKEN: ${COLLECT_API_TOKEN}
+      WEB_INTERNAL_URL: ${WEB_INTERNAL_URL:-http://web:4000}
     depends_on:
       - postgres
 

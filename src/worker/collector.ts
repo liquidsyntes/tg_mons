@@ -277,6 +277,25 @@ export async function runCollectCycle(): Promise<{
       await finalizeSyncJob(syncJobId, durationMs, successCount, errorCount, activeChannels.length, totalPosts, fatalError)
         .catch((err) => logger.error('Final SyncJob update failed', undefined, err));
     }
+    
+    const webInternalUrl = process.env.WEB_INTERNAL_URL;
+    const token = process.env.COLLECT_API_TOKEN;
+    if (webInternalUrl && token) {
+      try {
+        await fetch(`${webInternalUrl}/api/internal/invalidate-cache`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        logger.info('Successfully invalidated web cache');
+      } catch (err: any) {
+        logger.warn('Failed to invalidate web cache', undefined, err);
+      }
+    } else {
+       logger.warn('Skipping web cache invalidation: WEB_INTERNAL_URL or COLLECT_API_TOKEN is not set');
+    }
+
     logger.info('Cycle completed', { durationMs, successCount, errorCount, totalSnapshots, totalPosts });
   }
 
