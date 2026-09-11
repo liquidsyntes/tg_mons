@@ -30,6 +30,8 @@ model Channel {
   mentions             Mention[]
   channelMetricDailies ChannelMetricDaily[]
   demographics         AudienceDemographics[]
+  alertRules           AlertRule[]
+  fraudSignals         FraudSignal[]
 
   @@map("channels")
 }
@@ -192,11 +194,44 @@ model AudienceDemographics {
 }
 
 model SystemSetting {
-  id          String   @id @default("global")
-  aiProvider  String   @default("openrouter") @map("ai_provider")
-  aiModel     String   @default("meta-llama/llama-3.1-8b-instruct:free") @map("ai_model")
-  aiToken     String?  @map("ai_token")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String    @id @default("global")
+  aiProvider   String    @default("openrouter") @map("ai_provider")
+  aiModel      String    @default("meta-llama/llama-3.1-8b-instruct:free") @map("ai_model")
+  aiToken      String?   @map("ai_token")
+  digestEnabled Boolean  @default(false) @map("digest_enabled")
+  digestHour   Int       @default(9) @map("digest_hour")
+  lastDigestAt DateTime? @map("last_digest_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@map("system_settings")
+}
+
+model AlertRule {
+  id          Int       @id @default(autoincrement())
+  channelId   Int?      @map("channel_id")
+  metric      String // "followers" | "delta24h" | "delta7d" | "er7d" | "err7d" | "vr7d" | "avgViews7d" | "posts7d" | "contentScore"
+  operator    String // "lt" | "gt"
+  threshold   Float
+  enabled     Boolean   @default(true)
+  lastFiredAt DateTime? @map("last_fired_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@map("alert_rules")
+}
+
+model FraudSignal {
+  id         Int      @id @default(autoincrement())
+  channelId  Int      @map("channel_id")
+  signalType String   @map("signal_type")
+  value      Float
+  reason     String
+  detectedAt DateTime @default(now()) @map("detected_at")
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, detectedAt])
+  @@map("fraud_signals")
 }
