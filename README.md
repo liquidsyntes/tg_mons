@@ -43,6 +43,8 @@ Fullstack-платформа для непрерывного мониторин�
 ### Event Scanner
 `POST /api/events/scan` — LLM-парсинг анонсов мероприятий из постов за 14 дней: keyword-фильтр кандидатов + извлечение структурированных событий (дата, время, организатор, цены) в таблицу `events`. Просмотр — страница `/events`.
 
+<img width="1828" height="1392" alt="image" src="https://github.com/user-attachments/assets/572bfc17-db08-40bc-8f79-6c3ac121b476" />
+
 ---
 
 ## Быстрый старт
