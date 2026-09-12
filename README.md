@@ -5,6 +5,7 @@ Fullstack-платформа для непрерывного мониторин�
 **Стек:** Next.js 15 (App Router) · React 19 · TypeScript · Prisma 6 + **PostgreSQL 15** · GramJS (MTProto) · node-cron · Tailwind CSS · Recharts · Vitest · Docker Compose · GitHub Actions
 
 ---
+<img width="1825" height="1297" alt="image" src="https://github.com/user-attachments/assets/3ba1e2c7-7505-4623-b18c-9b77fb4caa66" />
 
 ## Возможности
 
