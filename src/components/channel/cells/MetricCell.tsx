@@ -20,6 +20,28 @@ export function MetricCell({ value, suffix = '', reason, reasonTitle, colorClass
     );
   }
 
+  if (reason === 'не постил 7д') {
+    return (
+      <span 
+        className="inline-flex items-center justify-center px-1.5 py-[1px] text-[8px] font-bold text-white bg-pink-600 rounded-md"
+        title={reasonTitle || reason}
+      >
+        nP7D
+      </span>
+    );
+  }
+
+  if (reason === 'нет постов за 24ч') {
+    return (
+      <span 
+        className="inline-flex items-center justify-center px-1.5 py-[1px] text-[8px] font-bold text-white bg-orange-500 rounded-md"
+        title={reasonTitle || reason}
+      >
+        nP24h
+      </span>
+    );
+  }
+
   if (reason) {
     return (
       <span 
