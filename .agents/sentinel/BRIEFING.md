@@ -1,7 +1,7 @@
-# BRIEFING — 2026-09-13T16:07:02Z
+# BRIEFING — 2026-09-13T18:57:48Z
 
 ## Mission
-Oversee implementation of uniform ERR detection (checkUniformReactionRatio), unified fraud score (runFraudAudit), and UI badge via SWE Light path. Conduct independent victory audit.
+Oversee documentation update for TgMon project (anti-fraud metrics, unified fraudScore, architecture, formulas, ADR, JSDoc) via General orchestrator path. Conduct independent victory audit upon completion.
 
 ## 🔒 My Identity
 - Archetype: sentinel
@@ -13,6 +13,10 @@ Oversee implementation of uniform ERR detection (checkUniformReactionRatio), uni
 - Sentinel Victory Auditor: 329125b0-9661-4d14-ba47-5de2b7989765
 - Cron 1 (Progress Reporting): task-26
 - Cron 2 (Liveness Check): task-28
+- Active Orchestrator (General): a06c8c87-a15a-4cb4-8185-e793f738a58f
+- Victory Auditor (Current Task): bfcb5c5a-7056-41a0-b309-81752d56c62e
+- Cron 1 (Progress Reporting, Current Task): task-26
+- Cron 2 (Liveness Check, Current Task): task-28
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
@@ -21,13 +25,19 @@ Oversee implementation of uniform ERR detection (checkUniformReactionRatio), uni
 - Keep context ultra-light
 
 ## Routing Decision
-- **Route**: SWE Light (`teamwork_preview_swe`)
-- **Rationale**: User explicitly specified "This is a single self-contained fix; keep it small and focused." It is a single self-contained feature/fix with clear boundaries, satisfying both SWE Light conditions.
+- **Route**: General (`teamwork_preview_orchestrator`)
+- **Rationale**: Multi-part documentation update spanning multiple docs, README, new ADR, and inline JSDoc across codebase with no explicit lightness signal.
 
 ## User Context
-- **Last user request**: Implement checkUniformReactionRatio, runFraudAudit (0-100 fraudScore), and "Risk of Artificial Traffic" badge on channel card.
+- **Last user request**: Update all project documentation (README.md, docs/, inline JSDocs) for anti-fraud metrics, fraudScore, ADR, formulas.
 - **Pending clarifications**: none
-- **Delivered results**: Uniform ERR detection check (checkUniformReactionRatio), unified 0-100 fraudScore (runFraudAudit), Risk of Artificial Traffic UI badge (RiskBadge), comprehensive unit tests (200/200 passing), verified by independent Victory Auditor.
+- **Delivered results**: 
+  - docs/architecture.md & docs/overview.md: Updated with C4 diagrams, anti-fraud pipelines, and unified fraudScore.
+  - README.md: Updated feature descriptions and test suite statistics.
+  - docs/analytics-formulas.md: Full LaTeX formulas for CV (growth), views/subs ratio, spike thresholds, logarithmic citation index, and uniform ERR CV.
+  - docs/adr/0001-anti-fraud-detection-architecture.md: New comprehensive ADR for anti-fraud detection architecture.
+  - src/lib/fraudDetector.ts & src/lib/citationIndex.ts: Exhaustive JSDoc comments for all exported interfaces and functions.
+  - Independent Victory Audit: VICTORY CONFIRMED (0 type errors, 200/200 tests passing, 0 lint errors, production build clean).
 
 ## Project Status
 - **Phase**: complete
@@ -41,5 +51,7 @@ Oversee implementation of uniform ERR detection (checkUniformReactionRatio), uni
 - c:\TgMon\.agents\ORIGINAL_REQUEST.md — Verbatim user request record
 - c:\TgMon\.agents\sentinel\BRIEFING.md — Sentinel persistent working memory
 - c:\TgMon\.agents\sentinel\handoff.md — Sentinel handoff report
-- c:\TgMon\.agents\teamwork_preview_swe_3\handoff.md — SWE Orchestrator handoff report
-- c:\TgMon\.agents\teamwork_preview_victory_auditor_4\handoff.md — Independent Victory Auditor handoff report
+- c:\TgMon\.agents\teamwork_preview_orchestrator_1\handoff.md — Orchestrator handoff report
+- c:\TgMon\.agents\teamwork_preview_victory_auditor_5\handoff.md — Independent Victory Auditor handoff report
+- c:\TgMon\docs\adr\0001-anti-fraud-detection-architecture.md — Anti-fraud Architecture Decision Record
+

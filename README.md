@@ -22,7 +22,16 @@ Fullstack-платформа для непрерывного мониторин�
 - **Метрики таблицы:** ER учитывает просмотры, реакции, комментарии и репосты; ERR — реакции, комментарии и репосты относительно просмотров. Для групп вместо ERR показывается CR по комментариям за 7 дней. Пустые значения объясняются прямо в ячейке.
 - **EP-скоринг** (`src/lib/ep.ts`): engagement-показатель канала с z-нормализацией по нише. Компоненты: CEI, VR, ERR; веса — рост 0.45 / views-ratio 0.30 / ERR 0.25. Формулы всех метрик — в `docs/analytics-formulas.md`.
 - **Content Score** (`src/lib/scoring.ts`) и оценка рекламных постов (`src/lib/adDetector.ts`).
-- **Антифрод (Fraud Detection):** автоматическое выявление накруток через оценку неестественной гладкости роста аудитории (`checkGrowthSmoothness`) и аномального соотношения просмотров к числу подписчиков (`checkViewsToSubsRatio`). Результаты проверок (`src/lib/fraudDetector.ts`) сохраняются в таблицу `fraud_signals`.
+- **Антифрод (Fraud Detection) и скоринг накруток:**
+  - 4 автоматические эвристики (`src/lib/fraudDetector.ts`):
+    - неестественно ровный рост аудитории (`checkGrowthSmoothness`, $CV < 0.1$);
+    - всплески подписчиков без постов и упоминаний (`checkUncorrelatedSpikes`);
+    - аномальное отношение просмотров к числу подписчиков (`checkViewsToSubsRatio`, $<5\%$ или $>150\%$);
+    - шаблонное роботизированное распределение реакций (`checkUniformReactionRatio`, $CV_{ERR} < 0.1$).
+  - Сохранение результатов фонового скрининга в PostgreSQL таблицу `fraud_signals`.
+  - **Индекс цитирования (Citation Index)** (`src/lib/citationIndex.ts`): количественный логарифмический индекс по входящим упоминаниям с учетом веса цитирующих каналов; детекция накрутки при быстром росте без упоминаний (`checkLowCitationGrowth`).
+  - **Единый скоринг накрутки (0–100)** (`runFraudAudit`): консолидация 4 проверок по 25 баллов за сработавший триггер.
+  - **Индикатор риска "Risk of Artificial Traffic"** (`RiskBadge`): 3 уровня риска (0% Зеленый, 1–49% Янтарный, $\ge 50\%$ Красный) с детальным тултипом на карточке канала, в шапке и в таблице.
 - Детальная страница канала: Wrapped-карточка, heatmap активности, Content LTV, сеть цитирований, динамика подписчиков с оверлеем «Моего канала».
 - Подбор лучшего времени публикации (`/api/stats/best-time`), тренды ниши, топ gainers/losers.
 
@@ -109,7 +118,7 @@ Route handler'ы API (мутирующие и внутренние маршру�
 ## Разработка
 
 ```bash
-npm test              # vitest, 54 теста (collector, reconnect, timeout, ep, adDetector, utils, health)
+npm test              # vitest, 200 тестов в 19 тестовых файлах (collector, reconnect, timeout, ep, adDetector, fraudDetector, citationIndex, RiskBadge, utils, health)
 npm run test:coverage # покрытие v8
 npx tsc --noEmit      # typecheck
 npx eslint src        # линт
@@ -147,6 +156,7 @@ CI (`.github/workflows/ci.yml`): на каждый push/PR — typecheck, eslint
 - `docs/architecture.md` — C4-архитектура и потоки данных
 - `docs/codebase.md` — навигатор по кодовой базе
 - `docs/analytics-formulas.md` — все метрики, формулы (VR, ERR, CEI, EP, Content Score) и антифрод
+- `docs/adr/0001-anti-fraud-detection-architecture.md` — ADR: архитектура антифрод-модуля и пороги накрутки
 - `docs/api-reference.md` — REST API маршруты
 - `docs/deployment.md` — развёртывание на VPS
 - `docs/git-workflow.md` — git-процесс

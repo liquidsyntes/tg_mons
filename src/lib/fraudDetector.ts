@@ -1,12 +1,25 @@
 import { calculateCitationIndex, CitationMention } from './citationIndex';
 
+/**
+ * Result of the views-to-subscribers ratio anomaly check (`checkViewsToSubsRatio`).
+ * 
+ * @property flag - Whether an anomalous views-to-subscribers ratio was detected (`true` if ratio < 0.05 or > 1.5).
+ * @property ratio - Calculated ratio of average post views to total channel subscribers (`avgViews / currentMembers`).
+ * @property reason - Human-readable diagnostic description of the result in Russian.
+ */
 export interface FraudSignalResult {
   flag: boolean;
   ratio: number;
   reason: string;
 }
 
-
+/**
+ * Result of the subscriber growth smoothness anomaly check (`checkGrowthSmoothness`).
+ * 
+ * @property flag - Whether unnaturally linear growth was detected (`true` if CV < 0.1 across >= 14 daily deltas).
+ * @property cv - Coefficient of Variation of daily subscriber deltas (standard deviation divided by mean delta: `stdDev / avgDelta`).
+ * @property reason - Human-readable diagnostic description of the result in Russian.
+ */
 export interface GrowthSmoothnessResult {
   flag: boolean;
   cv: number; // Coefficient of Variation
@@ -14,10 +27,24 @@ export interface GrowthSmoothnessResult {
 }
 
 /**
- * Первая проверка на накрутку: аномальное соотношение просмотров к подписчикам.
- * 
- * @param posts Список последних постов (ожидается, что передаются последние 20-30 постов)
- * @param currentMembers Текущее число подписчиков канала
+ * Первая проверка на накрутку: аномальное соотношение просмотров к подписчикам (`checkViewsToSubsRatio`).
+ *
+ * Compares average post views over recent publications against the channel's total subscriber count.
+ * Natural Telegram channels typically maintain a views-to-subscribers ratio between 5% and 150%.
+ *
+ * Mathematical Formula:
+ * - Average views: `avgViews = sum(views_i) / N` for valid posts where `views_i > 0`.
+ * - Ratio: `ratio = avgViews / currentMembers`.
+ *
+ * Threshold Rules:
+ * - If `currentMembers <= 0`: Cleared (`flag: false`, insufficient members).
+ * - If valid posts `< 5`: Cleared (`flag: false`, insufficient posts for statistical significance).
+ * - If `ratio < 0.05` (5%): Flagged (`flag: true`, suspicious inflated subscriber count / inactive audience).
+ * - If `ratio > 1.50` (150%): Flagged (`flag: true`, suspicious artificial view inflation / view bots).
+ * - Otherwise: Cleared (`flag: false`, ratio within normal parameters).
+ *
+ * @param posts - Array of recent post objects containing view counts (`views`). Evaluates up to 20-30 posts.
+ * @param currentMembers - Current total member/subscriber count of the channel.
  * @returns {FraudSignalResult} Результат проверки (flag: true означает подозрение на накрутку)
  */
 export function checkViewsToSubsRatio(
@@ -60,10 +87,28 @@ export function checkViewsToSubsRatio(
 }
 
 /**
- * Вторая проверка на накрутку: выявление неестественно гладкого графика роста подписчиков.
+ * Вторая проверка на накрутку: выявление неестественно гладкого графика роста подписчиков (`checkGrowthSmoothness`).
+ *
+ * Analyzes daily follower snapshots to detect linear, automated bot-addition scripts.
+ * Natural organic growth exhibits high variance (peaks on active days, troughs on quiet days),
+ * whereas bot farms often inject a rigid daily quota of subscribers, resulting in an unnaturally low
+ * Coefficient of Variation (CV).
+ *
+ * Mathematical Formula:
+ * - Daily deltas: `delta_i = followers_i - followers_{i-1}` for chronological pairs `i = 1 .. N-1`.
+ * - Mean delta: `avgDelta = (1 / (N - 1)) * sum(delta_i)`.
+ * - Population Variance: `variance = (1 / (N - 1)) * sum((delta_i - avgDelta)^2)`.
+ * - Population Standard Deviation: `stdDev = sqrt(variance)`.
+ * - Coefficient of Variation: `CV = stdDev / avgDelta`.
+ *
+ * Threshold Rules:
+ * - Requires at least 14 daily metrics (`metrics.length >= 14`). If fewer, returns `flag: false`.
+ * - If `avgDelta <= 0`: Cleared (`flag: false`, no positive monotonic growth).
+ * - If `CV < 0.1` (relative variation < 10%): Flagged (`flag: true`, suspiciously uniform linear growth).
+ * - Otherwise: Cleared (`flag: false`, normal organic growth fluctuations).
  * 
- * @param metrics Список ежедневных метрик канала
- * @returns {GrowthSmoothnessResult} Результат проверки
+ * @param metrics - Array of daily channel metrics containing snapshot dates and follower counts.
+ * @returns {GrowthSmoothnessResult} Результат проверки с флагом, значением CV и диагностическим сообщением.
  */
 export function checkGrowthSmoothness(
   metrics: Array<{ date: Date; followers: number }>
@@ -103,6 +148,14 @@ export function checkGrowthSmoothness(
   return { flag: false, cv, reason: "Рост в пределах нормы (естественные колебания)" };
 }
 
+/**
+ * Result of the uncorrelated subscriber spikes check (`checkUncorrelatedSpikes`).
+ * 
+ * @property flag - Whether unexplained subscriber spikes were detected (`true` if >= 1 spike lacks matching post/mention).
+ * @property spikesCount - Total number of anomalous, uncorrelated spikes found.
+ * @property dates - List of calendar dates (in `YYYY-MM-DD` format) on which anomalous spikes occurred.
+ * @property reason - Human-readable diagnostic description of the result in Russian.
+ */
 export interface UncorrelatedSpikesResult {
   flag: boolean;
   spikesCount: number;
@@ -111,12 +164,34 @@ export interface UncorrelatedSpikesResult {
 }
 
 /**
- * Третья проверка: выявление резких скачков подписчиков в дни без публикаций и упоминаний.
+ * Третья проверка: выявление резких скачков подписчиков в дни без публикаций и упоминаний (`checkUncorrelatedSpikes`).
+ *
+ * Detects sudden influxes of subscribers that occur on days without channel publications
+ * and without incoming external citations/mentions. Organic spikes in Telegram are almost
+ * always driven by viral content (new posts) or external promotion (mentions in other channels).
+ *
+ * Mathematical Formula & Thresholds:
+ * 1. Daily deltas: `delta_i = followers_i - followers_{i-1}` for positive increments (`delta_i > 0`).
+ * 2. Dynamic Spike Threshold:
+ *    `threshold = max(3 * avgDelta, 50, 0.005 * maxFollowers)`
+ *    - `3 * avgDelta`: Spike must exceed 3x the average daily delta across the historical period.
+ *    - `50`: Absolute noise floor preventing false flags on small channels from natural minor variations.
+ *    - `0.005 * maxFollowers` (0.5%): Scales threshold for large channels to ignore routine daily flux.
+ * 3. Event Correlation Window:
+ *    Inspects a 2-day temporal window encompassing the day of the spike and the preceding day (`[t - 1, t]`).
+ *    `hasEvent = hasPost(t, t-1) || hasMention(t, t-1)`.
+ * 4. Anomaly Identification:
+ *    A candidate spike is marked anomalous if neither a publication nor a mention occurred in the 2-day window.
+ *
+ * Threshold Rules:
+ * - Requires at least 2 days of metrics. If fewer, returns `flag: false`.
+ * - If any anomalous spikes exist (`anomalousSpikes.length >= 1`): Flagged (`flag: true`).
+ * - Otherwise: Cleared (`flag: false`).
  * 
- * @param metrics Список ежедневных метрик канала
- * @param postsDates Даты публикаций на канале
- * @param mentionsDates Даты упоминаний канала
- * @returns {UncorrelatedSpikesResult} Результат проверки
+ * @param metrics - Chronological or un-ordered array of daily channel metrics with date and follower count.
+ * @param postsDates - Array of publication dates (`Date[]`) for posts on the channel.
+ * @param mentionsDates - Array of dates (`Date[]`) when the channel was mentioned/reposted by other channels.
+ * @returns {UncorrelatedSpikesResult} Результат проверки с флагом, числом скачков, датами и диагностикой.
  */
 export function checkUncorrelatedSpikes(
   metrics: Array<{ date: Date; followers: number }>,
@@ -195,6 +270,16 @@ export function checkUncorrelatedSpikes(
   };
 }
 
+/**
+ * Result of the low citation index growth validation check (`checkLowCitationGrowth`).
+ * 
+ * @property flag - Whether the channel exhibits rapid growth without external citations (`true` if growth > minGrowth and CI <= maxCitationIndex).
+ * @property citationIndex - Computed logarithmic citation index of the channel.
+ * @property growthRate - 30-day subscriber growth percentage (e.g. 15.5 for 15.5%).
+ * @property growthPercent - Alias for `growthRate` representing subscriber growth percentage.
+ * @property value - Evaluated citation index value used for metric logging.
+ * @property reason - Human-readable diagnostic description of the result in Russian.
+ */
 export interface LowCitationGrowthResult {
   flag: boolean;
   citationIndex: number;
@@ -238,16 +323,31 @@ function parseCitationIndexParam(val: unknown): number | null {
 }
 
 /**
- * Четвертая проверка: выявление быстрого роста подписчиков при околонулевом индексе цитирования.
+ * Четвертая проверка: выявление быстрого роста подписчиков при околонулевом индексе цитирования (`checkLowCitationGrowth`).
  * 
- * Если канал за последние 30 дней вырос более чем на 5%, но при этом индекс цитирования
- * остается около нуля (отсутствуют или крайне малы упоминания в других каналах),
- * это сигнализирует о вероятной накрутке ботами/мотивированным трафиком.
+ * Correlates 30-day subscriber growth percentage with external citation authority.
+ * Organic channel growth in Telegram is driven by external discoverability: mentions, reposts,
+ * and PR campaigns. A channel expanding rapidly without external citations is a classic indicator
+ * of artificial subscriber injections (bot farming or paid incentivized traffic).
+ *
+ * Mathematical Formula:
+ * - 30-day Growth: `G_30d = ((followers_now - followers_30d) / followers_30d) * 100%`.
+ * - Citation Index: `CI = sum(mentions_i * log10(citing_subscribers_i))` over the last 30 days.
+ *
+ * Threshold Rules:
+ * - Default thresholds: `minGrowth = 5%`, `maxCitationIndex = 1.0`.
+ * - If `G_30d > minGrowth` AND `CI <= maxCitationIndex`: Flagged (`flag: true`, suspicious growth with near-zero citations).
+ * - If `G_30d <= minGrowth`: Cleared (`flag: false`, growth rate does not exceed suspicion threshold).
+ * - If `CI > maxCitationIndex`: Cleared (`flag: false`, citation index justifies subscriber growth rate).
+ *
+ * Flexible Input Support:
+ * - Accepts a growth number/string/bigint or channel object with various property naming conventions (`growthRate`, `growth30d`, `delta30d.percent`).
+ * - Accepts citation index value, array of `CitationMention`, or derives CI from the channel object.
  * 
- * @param growthOrChannel Рост за 30 дней (%) или объект канала
- * @param citationIndexOrMentions Индекс цитирования или список упоминаний
+ * @param growthOrChannel Рост за 30 дней (%) или объект канала (поддерживает delta30d, growthRate, mentions и др.)
+ * @param citationIndexOrMentions Индекс цитирования (число) или список упоминаний (CitationMention[])
  * @param options Настройки порогов (по умолчанию minGrowth = 5, maxCitationIndex = 1)
- * @returns {LowCitationGrowthResult} Результат проверки
+ * @returns {LowCitationGrowthResult} Результат проверки с флагом, темпом роста, индексом цитирования и описанием.
  */
 export function checkLowCitationGrowth(
   growthOrChannel: number | string | bigint | {
@@ -341,6 +441,16 @@ export function checkLowCitationGrowth(
   };
 }
 
+/**
+ * Result of the uniform reaction ratio (ERR) check across recent posts (`checkUniformReactionRatio`).
+ * 
+ * @property flag - Whether suspiciously uniform engagement rates were detected (`true` if CV < 0.1 across >= 10 posts).
+ * @property cv - Coefficient of Variation of ERR across recent posts (`stdDev / avgErr`).
+ * @property reason - Human-readable diagnostic description of the result in Russian.
+ * @property avgErr - Optional average Engagement Rate by Reach across analyzed posts.
+ * @property postsCount - Optional count of valid posts included in the analysis window (up to 20).
+ * @property signal - Optional structured `FraudSignal` record created when flagged.
+ */
 export interface UniformReactionRatioResult {
   flag: boolean;
   cv: number; // Coefficient of Variation
@@ -350,6 +460,16 @@ export interface UniformReactionRatioResult {
   signal?: FraudSignal;
 }
 
+/**
+ * Persistent or transient fraud signal record representing an identified anomaly.
+ * 
+ * @property id - Optional database primary key identifier for persisted signals.
+ * @property channelId - Optional ID of the channel associated with the detected anomaly.
+ * @property signalType - Category of the signal (`views_to_subs_ratio`, `growth_smoothness`, `uncorrelated_spikes`, `uniform_err`).
+ * @property value - Numerical metric value associated with the trigger (e.g. CV value, ratio, or spike count).
+ * @property reason - Human-readable diagnostic explanation of why the signal was triggered.
+ * @property detectedAt - Timestamp when the anomaly was detected or recorded.
+ */
 export interface FraudSignal {
   id?: number;
   channelId?: number;
@@ -359,6 +479,17 @@ export interface FraudSignal {
   detectedAt?: Date | string;
 }
 
+/**
+ * Consolidated audit result aggregating all four primary anti-fraud checks into a unified score (`runFraudAudit`).
+ * 
+ * @property fraudScore - Aggregated risk score from 0 to 100, where each triggered heuristic contributes 25 points.
+ * @property signals - List of triggered `FraudSignal` objects representing identified anomalies.
+ * @property details - Detailed breakdown of constituent check results:
+ *   - `viewsToSubsRatio`: Result from `checkViewsToSubsRatio`.
+ *   - `growthSmoothness`: Result from `checkGrowthSmoothness`.
+ *   - `uncorrelatedSpikes`: Result from `checkUncorrelatedSpikes`.
+ *   - `uniformReactionRatio`: Result from `checkUniformReactionRatio`.
+ */
 export interface FraudAuditResult {
   fraudScore: number; // 0 to 100 (each flag contributes 25 points)
   signals: FraudSignal[];
@@ -438,14 +569,33 @@ function extractPostERR(post: any): number | null {
 }
 
 /**
- * Проверка на равномерность реакций (ERR): выявление неестественно одинакового ERR по недавним публикациям.
+ * Четвертая проверка на накрутку: равномерность реакций (ERR) по недавним публикациям (`checkUniformReactionRatio`).
  * 
- * Анализирует последние 15-20 постов. Вычисляет коэффициент вариации (CV = StdDev / Mean).
- * Если CV < 0.1 (отклонение менее 10%), возвращает flag: true (подозрение на шаблонные накрутки ботами).
- * Для каналов с < 10 постов возвращает flag: false (недостаточно данных).
+ * Identifies suspiciously uniform Engagement Rate by Reach (ERR) across recent publications.
+ * Organic posts naturally vary in engagement depending on content quality, timing, topic, and formatting.
+ * Bot services that automatically deliver fixed reaction and comment quotas to every new post generate
+ * an unnaturally consistent ERR profile across posts.
+ *
+ * Mathematical Formula:
+ * 1. Post ERR:
+ *    `ERR_k = ((reactions_k + comments_k + forwards_k) / views_k) * 100%`
+ * 2. Sampling Window:
+ *    Extracts the last 15-20 publications sorted descending by date.
+ *    Requires at least 10 valid posts (`postsCount >= 10`). If fewer, returns `flag: false` (insufficient data).
+ * 3. Statistical Dispersion:
+ *    - Mean ERR: `avgErr = (1 / N) * sum(ERR_k)`.
+ *    - Population Variance: `variance = (1 / N) * sum((ERR_k - avgErr)^2)`.
+ *    - Population Standard Deviation: `stdDev = sqrt(variance)`.
+ *    - Coefficient of Variation: `CV = stdDev / avgErr`.
+ *
+ * Threshold Rules:
+ * - If `postsCount < 10`: Cleared (`flag: false`, insufficient data for reliable analysis).
+ * - If `avgErr <= 0`: Cleared (`flag: false`, zero or negative engagement).
+ * - If `CV < 0.1` (relative standard deviation < 10%): Flagged (`flag: true`, suspiciously uniform reaction pattern).
+ * - Otherwise: Cleared (`flag: false`, normal organic engagement fluctuations).
  * 
  * @param channel Объект канала с постами или массив постов
- * @returns {UniformReactionRatioResult}
+ * @returns {UniformReactionRatioResult} Результат проверки с флагом, CV, средним ERR, числом постов и сигналом
  */
 export function checkUniformReactionRatio(channel: any): UniformReactionRatioResult {
   let rawPosts: any[] = [];
@@ -564,14 +714,32 @@ function hasTriggerKey(triggers: unknown, keys: string[]): boolean {
 }
 
 /**
- * Консолидированный аудит накруток: агрегирует 4 основные проверки
+ * Консолидированный аудит накруток: агрегирует 4 основные проверки (`runFraudAudit`)
  * (views/subs ratio, smooth growth, uncorrelated spikes, uniform ERR).
  * 
- * Возвращает комбинированный fraudScore от 0 до 100 (каждый сработавший флаг даёт 25 очков)
- * и список сработавших сигналов FraudSignal.
+ * Consolidates four foundational fraud detection heuristics into an interpretable metric:
+ * 1. `views_to_subs_ratio` (Соотношение просмотров к подписчикам): Ratio < 0.05 or > 1.50 (+25 pts).
+ * 2. `growth_smoothness` (Гладкость роста): Daily subscriber delta CV < 0.1 over >= 14 days (+25 pts).
+ * 3. `uncorrelated_spikes` (Нескоррелированные скачки): >= 1 subscriber spike without post or mention (+25 pts).
+ * 4. `uniform_err` (Равномерность ERR): Post-to-post ERR CV < 0.1 over 10-20 posts (+25 pts).
+ *
+ * Mathematical Formula:
+ * `fraudScore = sum(flag_j * 25) = 25 * K` where `K in {0, 1, 2, 3, 4}`.
+ *
+ * Discretized Risk Tiers:
+ * - `0`: Чистый канал / Низкий риск (Clean, 0 аномалий).
+ * - `25`: Низкий риск (Low Risk, 1 аномалия).
+ * - `50`: Умеренный риск (Moderate Risk, 2 аномалии).
+ * - `75`: Высокий риск (High Risk, 3 аномалии).
+ * - `100`: Критический риск (Critical Risk, все 4 аномалии).
+ *
+ * Flexibility & Overrides:
+ * - Accepts raw channel data (with posts, metrics, mentions) to run live calculations.
+ * - Accepts precomputed `fraudSignals` arrays from database persistence.
+ * - Accepts boolean flags/overrides or `triggers` sets for synthetic simulation and testing.
  * 
- * @param channel Данные канала или симулированные флаги
- * @returns {FraudAuditResult}
+ * @param channel Данные канала, симулированные флаги или объект канала из БД с relations
+ * @returns {FraudAuditResult} Итоговый результат аудита с комбинированным fraudScore (0-100), сигналами и детализацией проверок
  */
 export function runFraudAudit(channel: any): FraudAuditResult {
   if (!channel || typeof channel !== 'object') {

@@ -1,3 +1,28 @@
+/**
+ * Represents an individual inbound citation or mention of a Telegram channel.
+ *
+ * Supports flexible property naming conventions to accommodate diverse database query outputs,
+ * raw API payloads, and synthetic test fixtures.
+ *
+ * @property mentions - Total count of mentions/reposts in this citation record.
+ * @property count - Alias for `mentions` count.
+ * @property citing_subscribers - Subscriber count of the citing channel (snake_case convention).
+ * @property citingSubscribers - Subscriber count of the citing channel (camelCase convention).
+ * @property subscribers - Subscriber count of the citing channel (general alias).
+ * @property membersCount - Member count of citing channel from snapshot model (camelCase).
+ * @property members_count - Member count of citing channel (snake_case alias).
+ * @property currentMembers - Current member count of citing channel (camelCase).
+ * @property current_members - Current member count of citing channel (snake_case alias).
+ * @property sourceChannelId - Database ID of the citing channel (used for self-citation exclusion).
+ * @property channelId - Alternative channel ID identifier.
+ * @property sourceChannel - Nested source channel object containing member metrics.
+ * @property citingChannel - Nested citing channel object containing member metrics.
+ * @property channel - Nested channel reference containing member metrics.
+ * @property createdAt - Timestamp when the citation occurred (used for 30-day temporal window).
+ * @property publishedAt - Publication timestamp alias.
+ * @property date - General date timestamp alias.
+ * @property timestamp - Raw epoch or date timestamp alias.
+ */
 export interface CitationMention {
   mentions?: number | string | bigint;
   count?: number | string | bigint;
@@ -31,6 +56,20 @@ export interface CitationMention {
   timestamp?: Date | string;
 }
 
+/**
+ * Flexible input container for channel citation index calculations.
+ *
+ * Accommodates channel models, database query payloads, or custom objects containing
+ * mention collections under various naming conventions.
+ *
+ * @property id - Unique channel ID (used to filter out self-citations).
+ * @property channelId - Alternative channel ID alias.
+ * @property mentions - Array of `CitationMention` records or numeric mention count.
+ * @property citations - Array of `CitationMention` records.
+ * @property inboundMentions - Array of inbound `CitationMention` records (camelCase).
+ * @property inbound_mentions - Array of inbound `CitationMention` records (snake_case).
+ * @property inbound - Array of inbound citation records.
+ */
 export interface CitationChannelInput {
   id?: number;
   channelId?: number;
@@ -124,19 +163,29 @@ function extractSubscribers(m: any): number {
 }
 
 /**
- * Calculates a quantitative "citation index" based on channel mentions/reposts.
- * This index weights citations logarithmically by the referring channel's size:
- * sum(mentions * log10(citing_subscribers))
+ * Calculates a quantitative "citation index" based on channel mentions and reposts (`calculateCitationIndex`).
+ *
+ * This index weights incoming citations logarithmically by the referring channel's subscriber base:
+ * CI = sum(count_i * log10(citing_subscribers_i))
+ *
+ * Logarithmic Weighting Rationale:
+ * A logarithmic scale ensures that citations from large channels carry significantly more authority
+ * without completely overwhelming the index:
+ * - 1,000 subscribers     => log10(1,000) = 3.0
+ * - 10,000 subscribers    => log10(10,000) = 4.0
+ * - 100,000 subscribers   => log10(100,000) = 5.0
+ * - 1,000,000 subscribers => log10(1,000,000) = 6.0
+ *
+ * Normalization & Edge Case Handling:
+ * 1. Clamping: Citing channels with subscribers <= 1 receive 0 weight (prevents log10(1) = 0, log10(0) = -Infinity, or negative values).
+ * 2. Temporal Window: Mentions are strictly filtered to the last 30 days (`0 <= now - mentionDate <= 30 days`, with a 24-hour future tolerance for clock skew).
+ * 3. Self-Citations: Excludes any citation where citing channel matches the target channel (`sourceChannelId === targetChannelId`).
+ * 4. Precision & Bounds: Clamped to >= 0 and rounded to 2 decimal places (`Number(totalScore.toFixed(2))`).
+ * 5. Input Resilience: Safely handles empty arrays, 0 mentions, null, undefined, strings, numbers, and BigInts without crashing.
  * 
- * Normalization details:
- * - Only counts mentions from the last 30 days (if a date timestamp is provided).
- * - Weights are clamped to 0 for citing subscriber counts <= 1 to avoid negative or -Infinity values.
- * - Results are rounded to 2 decimal places.
- * - Safely handles edge cases like 0 mentions, null/undefined inputs, empty arrays without crashing.
- * 
- * @param channel Object containing mentions/citations, or an array of mentions
- * @param now Reference date for the 30-day window (defaults to new Date())
- * @returns Normalized citation index score (number >= 0)
+ * @param channel - Object containing mentions/citations, an array of `CitationMention`, or a numeric mention count.
+ * @param now - Reference date for the 30-day lookback window (defaults to `new Date()`).
+ * @returns {number} Normalized citation index score (number >= 0, rounded to 2 decimal places).
  */
 export function calculateCitationIndex(
   channel: CitationChannelInput | CitationMention[] | number | bigint | string | null | undefined,
@@ -273,8 +322,18 @@ export function calculateCitationIndex(
 }
 
 /**
- * Database helper to query inbound mentions for a single channel over the last 30 days
- * and compute its citation index.
+ * Database helper: Queries inbound mentions for a single channel over the last 30 days and computes its citation index.
+ *
+ * Performs a Prisma database aggregation on the `mention` table:
+ * 1. Matches incoming mentions by `targetUsername` (with and without '@' prefix) or `targetTgId`.
+ * 2. Excludes self-citations where `sourceChannelId === channel.id`.
+ * 3. Restricts citations to the specified date window (`createdAt >= dateLimit`).
+ * 4. Resolves subscriber counts of citing channels using their latest `Snapshot` (with fallback to post `subscribersAtPublish`).
+ * 5. Computes and returns the logarithmic citation index score.
+ *
+ * @param channel - Target channel object containing `id`, optional `username`, and optional `tgId`.
+ * @param dateLimit - Cutoff date for the citation lookback window (defaults to 30 days prior to current time).
+ * @returns {Promise<number>} A Promise resolving to the calculated citation index score (number >= 0). Returns 0 on error or if no mentions exist.
  */
 export async function getCitationIndexForChannel(
   channel: { id: number; username: string | null; tgId: bigint | string | number | null },
@@ -356,7 +415,17 @@ export async function getCitationIndexForChannel(
 }
 
 /**
- * Database helper to batch calculate citation indices for multiple channels.
+ * Database helper: Batch calculates citation indices for multiple channels in an optimized query.
+ *
+ * Efficiently aggregates inbound mentions for an array of channels in a single database round-trip:
+ * 1. Collects unique target usernames and Telegram IDs across all provided channels.
+ * 2. Fetches matching inbound mentions from the Prisma `mention` table within the lookback window (`createdAt >= dateLimit`).
+ * 3. Retrieves latest subscriber counts for all citing source channels in one `Snapshot` query (with fallback to post `subscribersAtPublish`).
+ * 4. Disaggregates mentions per channel, filters out self-citations, and computes the logarithmic citation index for each channel.
+ *
+ * @param channels - Array of target channel objects, each containing `id`, optional `username`, and optional `tgId`.
+ * @param dateLimit - Cutoff date for the lookback window (defaults to 30 days prior to current time).
+ * @returns {Promise<Map<number, number>>} A Promise resolving to a Map where keys are channel IDs and values are computed citation index scores.
  */
 export async function getCitationIndicesForChannels(
   channels: Array<{ id: number; username: string | null; tgId: bigint | string | number | null }>,
