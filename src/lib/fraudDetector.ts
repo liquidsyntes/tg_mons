@@ -4,6 +4,12 @@ export interface FraudSignalResult {
   reason: string;
 }
 
+export interface GrowthSmoothnessResult {
+  flag: boolean;
+  cv: number; // Coefficient of Variation
+  reason: string;
+}
+
 /**
  * Первая проверка на накрутку: аномальное соотношение просмотров к подписчикам.
  * 
@@ -49,3 +55,48 @@ export function checkViewsToSubsRatio(
 
   return { flag: false, ratio, reason: "Соотношение в пределах нормы" };
 }
+
+/**
+ * Вторая проверка на накрутку: выявление неестественно гладкого графика роста подписчиков.
+ * 
+ * @param metrics Список ежедневных метрик канала
+ * @returns {GrowthSmoothnessResult} Результат проверки
+ */
+export function checkGrowthSmoothness(
+  metrics: Array<{ date: Date; followers: number }>
+): GrowthSmoothnessResult {
+  if (metrics.length < 14) {
+    return { flag: false, cv: 0, reason: "Недостаточно данных для анализа (менее 14 дней)" };
+  }
+
+  // Обязательно отсортировать метрики по дате по возрастанию
+  const sortedMetrics = [...metrics].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Вычислить дневные дельты (приросты)
+  const deltas: number[] = [];
+  for (let i = 1; i < sortedMetrics.length; i++) {
+    deltas.push(sortedMetrics[i].followers - sortedMetrics[i - 1].followers);
+  }
+
+  // Вычислить средний прирост
+  const avgDelta = deltas.reduce((sum, d) => sum + d, 0) / deltas.length;
+
+  if (avgDelta <= 0) {
+    return { flag: false, cv: 0, reason: "Нет монотонного роста (средний прирост <= 0)" };
+  }
+
+  // Вычислить стандартное отклонение
+  const sumOfSquaredDifferences = deltas.reduce((sum, d) => sum + Math.pow(d - avgDelta, 2), 0);
+  const stdDev = Math.sqrt(sumOfSquaredDifferences / deltas.length);
+
+  // Коэффициент вариации (CV = StdDev / AvgDelta)
+  const cv = stdDev / avgDelta;
+
+  // Если CV < 0.1 (отклонение менее 10%), вернуть flag: true (аномально гладкий рост)
+  if (cv < 0.1) {
+    return { flag: true, cv, reason: "Аномально гладкий рост (CV < 0.1): подозрение на накрутку" };
+  }
+
+  return { flag: false, cv, reason: "Рост в пределах нормы (естественные колебания)" };
+}
+

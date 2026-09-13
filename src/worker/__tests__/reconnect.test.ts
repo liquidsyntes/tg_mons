@@ -17,9 +17,13 @@ vi.mock('@/lib/prisma', () => ({
     },
     channelMetricDaily: {
       upsert: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     post: {
       findMany: vi.fn().mockResolvedValue([]),
+    },
+    fraudSignal: {
+      create: vi.fn(),
     },
     syncJob: {
       create: vi.fn().mockResolvedValue({ id: 1 }),

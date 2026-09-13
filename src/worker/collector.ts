@@ -22,7 +22,10 @@ import {
   upsertPostWithReactions,
   saveMentions,
   updateChannelTitle,
+  saveFraudSignal,
 } from './persister';
+import { prisma } from '../lib/prisma';
+import { checkViewsToSubsRatio, checkGrowthSmoothness } from '../lib/fraudDetector';
 import {
   sendTelegramAnomalyAlert,
   handleChannelError,
@@ -245,6 +248,50 @@ export async function runCollectCycle(): Promise<{
         await materializeDailyMetrics(channel.id, 30).catch((err) => {
           logger.error('Materialization failed', { title: channel.title }, err);
         });
+
+        try {
+          const recentMetrics = await prisma.channelMetricDaily.findMany({
+            where: { channelId: channel.id },
+            orderBy: { date: 'desc' },
+            take: 30,
+          });
+
+          if (recentMetrics.length > 0) {
+            const smoothnessResult = checkGrowthSmoothness(recentMetrics);
+            if (smoothnessResult.flag) {
+              await saveFraudSignal(
+                channel.id,
+                'growth_smoothness',
+                smoothnessResult.cv,
+                smoothnessResult.reason
+              );
+            }
+          }
+
+          const recentPosts = await prisma.post.findMany({
+            where: { channelId: channel.id },
+            orderBy: { publishedAt: 'desc' },
+            take: 30,
+            select: { views: true }
+          });
+
+          const latestSnapshot = await getPreviousSnapshot(channel.id);
+          const currentMembers = latestSnapshot?.membersCount || 0;
+
+          if (currentMembers > 0) {
+            const ratioResult = checkViewsToSubsRatio(recentPosts, currentMembers);
+            if (ratioResult.flag) {
+              await saveFraudSignal(
+                channel.id,
+                'views_to_subs_ratio',
+                ratioResult.ratio,
+                ratioResult.reason
+              );
+            }
+          }
+        } catch (fraudErr) {
+          logger.error('Fraud detection failed', { title: channel.title }, fraudErr);
+        }
 
         logger.info('Channel processed successfully', { title: channel.title, durationMs: result.durationMs, snapshotsAdded: result.snapshotsAdded, postsAdded: result.postsAdded });
       } catch (err: any) {

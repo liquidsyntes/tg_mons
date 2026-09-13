@@ -9,8 +9,9 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     channel: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     snapshot: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
-    post: { findMany: vi.fn(), count: vi.fn(), upsert: vi.fn() },
-    channelMetricDaily: { upsert: vi.fn() },
+    post: { findMany: vi.fn().mockResolvedValue([]), count: vi.fn(), upsert: vi.fn() },
+    channelMetricDaily: { upsert: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
+    fraudSignal: { create: vi.fn() },
     $transaction: vi.fn(),
   },
 }));

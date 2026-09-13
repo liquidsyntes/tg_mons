@@ -237,3 +237,19 @@ export async function saveMentions(
         });
     }
 }
+
+export async function saveFraudSignal(
+  channelId: number,
+  signalType: string,
+  value: number,
+  reason: string
+) {
+  return await prisma.fraudSignal.create({
+    data: {
+      channelId,
+      signalType,
+      value,
+      reason,
+    },
+  });
+}
