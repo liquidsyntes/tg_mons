@@ -3,6 +3,7 @@ import cron from 'node-cron';
 import dotenv from 'dotenv';
 import { runCollectCycle } from './collector';
 import { runDemographicsCycle } from './demographics';
+import { runAdReachCycle } from './ad-reach';
 
 dotenv.config();
 
@@ -10,6 +11,7 @@ const cronSchedule = process.env.COLLECT_CRON || '0 * * * *';
 const demographicsCron = process.env.DEMOGRAPHICS_CRON || '0 3 * * 0'; // Weekly on Sunday 3:00 AM
 let isRunning = false;
 let isDemographicsRunning = false;
+let isAdReachRunning = false;
 
 async function executeCycle() {
   if (isRunning) {
@@ -43,6 +45,22 @@ async function executeDemographicsCycle() {
   }
 }
 
+async function executeAdReachCycle() {
+  if (isAdReachRunning) {
+    logger.warn('Ad Reach cycle already in progress, skipping');
+    return;
+  }
+
+  isAdReachRunning = true;
+  try {
+    await runAdReachCycle();
+  } catch (err: any) {
+    logger.error('Error during ad reach cycle', undefined, err);
+  } finally {
+    isAdReachRunning = false;
+  }
+}
+
 async function startWorker() {
   logger.info('TG Monitor MTProto Collector Worker Started', { cronSchedule, dbConfigured: !!process.env.DATABASE_URL, tgSessionConfigured: !!process.env.TG_SESSION });
 
@@ -65,6 +83,14 @@ async function startWorker() {
   });
 
   logger.info('Demographics cron scheduled', { demographicsCron });
+
+  // Schedule hourly ad reach collection
+  cron.schedule('15 * * * *', () => {
+    logger.info('Ad Reach cron triggered');
+    executeAdReachCycle();
+  });
+  
+  logger.info('Ad Reach cron scheduled (hourly at minute 15)');
 
   // Optionally trigger initial cycle if enabled
   if (process.env.COLLECT_ON_STARTUP === 'true') {

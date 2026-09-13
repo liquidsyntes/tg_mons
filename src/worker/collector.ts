@@ -26,6 +26,7 @@ import {
 } from './persister';
 import { prisma } from '../lib/prisma';
 import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, checkUniformReactionRatio } from '../lib/fraudDetector';
+import { detectAd } from '../lib/adDetector';
 import {
   sendTelegramAnomalyAlert,
   handleChannelError,
@@ -162,6 +163,9 @@ export async function collectChannelData(
       const uniqueMentionsStr = Array.from(new Set(extractedMentions.map(m => JSON.stringify(m))));
       const uniqueMentions = uniqueMentionsStr.map(s => JSON.parse(s));
 
+      const adDetection = detectAd(text);
+      const isAd = adDetection.isAd || adDetection.isPartner;
+
       const post = await upsertPostWithReactions({
         channelId: channel.id,
         messageId: targetMessageId,
@@ -173,6 +177,7 @@ export async function collectChannelData(
         text,
         groupedId,
         subscribersAtPublish: participantsCount,
+        isAd,
       });
 
       await saveMentions(post.id, channel.id, uniqueMentions.map(m => ({

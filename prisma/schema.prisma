@@ -10,20 +10,20 @@ generator client {
 }
 
 model Channel {
-  id                   Int                  @id @default(autoincrement())
-  username             String?              @unique
-  tgId                 BigInt?              @unique
+  id                   Int                    @id @default(autoincrement())
+  username             String?                @unique
+  tgId                 BigInt?                @unique
   title                String
   type                 String // "channel" | "group"
-  niche                String               @default("general")
-  isMine               Boolean              @default(false)
-  isFavorite           Boolean              @default(false)
-  isActive             Boolean              @default(true)
-  consecutiveErrors    Int                  @default(0)
+  niche                String                 @default("general")
+  isMine               Boolean                @default(false)
+  isFavorite           Boolean                @default(false)
+  isActive             Boolean                @default(true)
+  consecutiveErrors    Int                    @default(0)
   lastMessageId        BigInt?
   lastError            String?
   lastCollectedAt      DateTime?
-  createdAt            DateTime             @default(now())
+  createdAt            DateTime               @default(now())
   snapshots            Snapshot[]
   posts                Post[]
   aiReports            AiReport[]
@@ -61,21 +61,23 @@ model Snapshot {
 }
 
 model Post {
-  id            Int            @id @default(autoincrement())
-  channelId     Int            @map("channel_id")
-  messageId     BigInt         @map("message_id")
-  groupedId     BigInt?        @map("grouped_id")
-  publishedAt   DateTime       @map("published_at")
-  views         Int?
-  reactions     Int?
-  comments      Int?
-  forwards      Int?
-  text          String?
-  subscribersAtPublish Int?    @map("subscribers_at_publish")
-  channel       Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  mentions      Mention[]
-  snapshots     PostSnapshot[]
-  eventMentions EventMention[]
+  id                   Int                @id @default(autoincrement())
+  channelId            Int                @map("channel_id")
+  messageId            BigInt             @map("message_id")
+  groupedId            BigInt?            @map("grouped_id")
+  publishedAt          DateTime           @map("published_at")
+  views                Int?
+  reactions            Int?
+  comments             Int?
+  forwards             Int?
+  text                 String?
+  subscribersAtPublish Int?               @map("subscribers_at_publish")
+  isAd                 Boolean            @default(false) @map("is_ad")
+  channel              Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  mentions             Mention[]
+  snapshots            PostSnapshot[]
+  viewSnapshots        PostViewSnapshot[]
+  eventMentions        EventMention[]
 
   @@unique([channelId, messageId])
   @@index([channelId, groupedId])
@@ -194,14 +196,14 @@ model AudienceDemographics {
 }
 
 model SystemSetting {
-  id           String    @id @default("global")
-  aiProvider   String    @default("openrouter") @map("ai_provider")
-  aiModel      String    @default("meta-llama/llama-3.1-8b-instruct:free") @map("ai_model")
-  aiToken      String?   @map("ai_token")
-  digestEnabled Boolean  @default(false) @map("digest_enabled")
-  digestHour   Int       @default(9) @map("digest_hour")
-  lastDigestAt DateTime? @map("last_digest_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id            String    @id @default("global")
+  aiProvider    String    @default("openrouter") @map("ai_provider")
+  aiModel       String    @default("meta-llama/llama-3.1-8b-instruct:free") @map("ai_model")
+  aiToken       String?   @map("ai_token")
+  digestEnabled Boolean   @default(false) @map("digest_enabled")
+  digestHour    Int       @default(9) @map("digest_hour")
+  lastDigestAt  DateTime? @map("last_digest_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   @@map("system_settings")
 }
@@ -234,4 +236,18 @@ model FraudSignal {
 
   @@index([channelId, detectedAt])
   @@map("fraud_signals")
+}
+
+model PostViewSnapshot {
+  id             Int      @id @default(autoincrement())
+  postId         Int      @map("post_id")
+  hoursAfterPost Int      @map("hours_after_post")
+  viewsCount     Int      @map("views_count")
+  capturedAt     DateTime @default(now()) @map("captured_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, hoursAfterPost])
+  @@index([postId])
+  @@map("post_view_snapshots")
 }

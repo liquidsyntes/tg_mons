@@ -616,3 +616,14 @@ export async function getBestTimeRecommendation() {
     }))
   };
 }
+
+export async function getAdReachCurve(postId: number) {
+  const snapshots = await prisma.postViewSnapshot.findMany({
+    where: { postId },
+    orderBy: { hoursAfterPost: 'asc' },
+  });
+  return snapshots.map(s => ({
+    hoursAfterPost: s.hoursAfterPost,
+    views: s.viewsCount,
+  }));
+}
