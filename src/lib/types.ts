@@ -1,3 +1,5 @@
+import type { FraudSignal } from './fraudDetector';
+
 export type ChannelType = 'channel' | 'group';
 export type ChannelStatus = 'success' | 'error' | 'stale';
 
@@ -46,6 +48,8 @@ export interface ChannelMetrics {
   ep?: number;
   epBreakdown?: any;
   citationIndex?: number | null;
+  fraudScore?: number | null;
+  fraudSignals?: FraudSignal[];
 
 
   // Comparison with "My Channel"

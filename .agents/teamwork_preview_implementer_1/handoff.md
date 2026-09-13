@@ -1,57 +1,76 @@
-# Handoff Report: Quantitative Citation Index & Fraud Signal
+# Handoff Report: Uniform ERR Detection & Unified Fraud Score with Risk Badge
 
-## Summary of Changes
+## Summary of Implementation
 
-### 1. Citation Index Calculation (`src/lib/citationIndex.ts`, `src/lib/metrics.ts`)
-- Implemented `calculateCitationIndex(channel, now)` adhering to the logarithmic formula:
-  $$\sum (\text{mentions} \times \log_{10}(\text{citing\_subscribers}))$$
-- Filters mentions to only include those within the last 30 days when dates are provided.
-- Handles edge cases gracefully without crashes:
-  - Returns `0` when channel is `null`, `undefined`, empty array, or has 0 mentions.
-  - Returns `0` for citing subscribers $\le 1$ to prevent negative weights or $-\infty$ from $\log_{10}(0)$.
-  - Supports flexible mention objects (`mentions`, `count`, `citing_subscribers`, `citingSubscribers`, `subscribers`, `sourceChannel.currentMembers`, etc.).
-  - Normalizes the output as a clean float rounded to 2 decimal places.
-- Added database helper functions:
-  - `getCitationIndexForChannel(channel, dateLimit)`: computes the citation index for a single channel from database mentions and latest source snapshots.
-  - `getCitationIndicesForChannels(channels, dateLimit)`: batch computes citation indices for multiple channels in one query to avoid N+1 query overhead.
-- Re-exported `calculateCitationIndex` from `src/lib/metrics.ts`.
+### 1. Uniform ERR Detection (`src/lib/fraudDetector.ts`)
+- Implemented `checkUniformReactionRatio(channel)`:
+  - Extracts Engagement Rate by Reach (ERR) for the last 15-20 posts using `(reactions + comments + forwards) / views * 100` (or `err`/`ERR` if already provided).
+  - Computes the Coefficient of Variation ($CV = \frac{\sigma}{\mu}$) across the post ERR series.
+  - Flags the channel (`flag: true`) for suspicious, template-like bot reactions when $CV < 0.1$ (less than 10% deviation).
+  - Handles cases with insufficient data (<10 valid posts) by returning `flag: false`, `cv: 0`, and a diagnostic Russian reason string.
+  - Constructs a `FraudSignal` result (`signalType: 'uniform_err'`, `value: cv`, `reason`).
+  - Supports flexible calling conventions: channel object with `posts` or `recentPosts`, direct array of post objects, or raw array of numeric ERR values.
 
-### 2. Fraud Detection Signal (`src/lib/fraudDetector.ts`)
-- Implemented `checkLowCitationGrowth(growthOrChannel, citationIndexOrMentions, options)`:
-  - Flags a channel as suspicious (`flag: true`) if 30-day subscriber growth exceeds 5% while the citation index is near zero ($\le 1$).
-  - Clears channels (`flag: false`) when growth is $\le 5\%$ or when citation index is sufficiently high.
-  - Produces structured diagnostic output with detailed Russian rationale text.
-  - Flexible calling conventions support passing numeric growth & citation index, numeric growth & mentions array, or channel objects.
+### 2. Consolidated Fraud Audit (`src/lib/fraudDetector.ts`)
+- Implemented `runFraudAudit(channel)`:
+  - Aggregates all four existing fraud detection checks:
+    1. Views to subscribers ratio (`checkViewsToSubsRatio`)
+    2. Growth smoothness (`checkGrowthSmoothness`)
+    3. Uncorrelated subscriber spikes (`checkUncorrelatedSpikes`)
+    4. Uniform reaction ratio / uniform ERR (`checkUniformReactionRatio`)
+  - Calculates a combined `fraudScore` between 0 and 100, where each flagged check contributes exactly 25 points ($0, 25, 50, 75, 100$).
+  - Collects all triggered signals into a typed `FraudSignal[]` list (`signalType`, `value`, `reason`, `channelId`).
+  - Supports both full raw channel data (posts, daily metrics, members) and simulated trigger combinations (e.g. `triggers: [...]`, `viewsToSubsRatio: true`, `simulatedFlags`, or pre-computed results) for testing and pipeline flexibility.
 
-### 3. Metric Aggregation & Database Queries (`src/lib/types.ts`, `src/lib/metrics/aggregate.ts`, `src/lib/metrics/queries.ts`)
-- Added `citationIndex?: number | null;` to `ChannelMetrics` in `src/lib/types.ts`.
-- Updated `buildMetricsFromMaterialized` and `calculateChannelMetricsFromData` in `src/lib/metrics/aggregate.ts` to assign `citationIndex`.
-- Updated `calculateChannelMetrics` and `getOverviewStats` in `src/lib/metrics/queries.ts` to populate `citationIndex` from database mentions.
+### 3. Worker Integration (`src/worker/collector.ts`)
+- Updated `collector.ts` to query `reactions`, `comments`, `forwards`, and `publishedAt` on recent posts.
+- Added `checkUniformReactionRatio(recentPosts)` to the collection cycle fraud detection block.
+- Persists flagged signals to the `fraud_signals` database table via `saveFraudSignal(channel.id, 'uniform_err', cv, reason)`.
 
-### 4. UI Integration (`src/components/MyChannelCard.tsx`, `src/components/ChannelsTable.tsx`, `src/components/channel/ChannelsDesktopTable.tsx`, `src/components/channel/useChannelsData.ts`)
-- **Channel Card (`MyChannelCard.tsx`)**:
-  - Added "Индекс цит. (30д)" card in the key metrics grid with `Share2` icon, emerald highlight when positive, and fallback dash when empty.
-  - Upgraded grid columns from `grid-cols-2 lg:grid-cols-6` to `grid-cols-2 sm:grid-cols-3 lg:grid-cols-7`.
-- **Channel Table (`ChannelsDesktopTable.tsx`, `ChannelsTable.tsx`, `useChannelsData.ts`)**:
-  - Added "CI (30d)" column with sortable header and font-mono numerical display.
-  - Added `citationIndex` as an active sort field in `useChannelsData.ts`.
-  - Added "ИЦ (30д)" to the CSV export in `ChannelsTable.tsx`.
+### 4. Metrics & Type Definitions (`src/lib/types.ts`, `src/lib/metrics/queries.ts`)
+- Extended `ChannelMetrics` in `src/lib/types.ts` with optional `fraudScore?: number | null` and `fraudSignals?: any[]`.
+- Updated `getOverviewStats` and `getChannelDetailStats` in `src/lib/metrics/queries.ts` to compute and attach `fraudScore` and `fraudSignals` via `runFraudAudit`.
 
-### 5. Unit Tests (`src/lib/__tests__/citationIndex.test.ts`, `src/lib/__tests__/fraudDetector.test.ts`)
-- Added comprehensive unit test suite in `citationIndex.test.ts`:
-  - Verified exact logarithmic scaling for single and multiple citing channels ($1{,}000 \to 3$, $10{,}000 \to 4$, $100{,}000 \to 5$, $1{,}000{,}000 \to 6$).
-  - Verified edge cases: 0 mentions, null/undefined, empty array, citing subscribers $\le 1$, negative subscribers.
-  - Verified 30-day temporal window filtering.
-- Extended `fraudDetector.test.ts` with `checkLowCitationGrowth` tests:
-  - Verified flagging channels with $>5\%$ growth and 0 mentions / 0 citation index.
-  - Verified clearing channels with $>5\%$ growth and high citation index.
-  - Verified non-flagging for growth $\le 5\%$ (including 5% boundary, 4%, 0%, and negative growth).
+### 5. UI Integration (`src/components/RiskBadge.tsx`, `src/components/MyChannelCard.tsx`, `src/components/channel/ChannelHeader.tsx`)
+- Created `RiskBadge` (`FraudScoreBadge`) in `src/components/RiskBadge.tsx`:
+  - Renders a pill badge with the exact label `"Risk of Artificial Traffic: {score}%"`.
+  - Dynamically styled according to risk tier:
+    - Low Risk (0%): Emerald styling (`bg-emerald-500/15 text-emerald-400 border-emerald-500/30`) with `ShieldCheck` icon.
+    - Medium Risk (25%): Amber styling (`bg-amber-500/15 text-amber-400 border-amber-500/30`) with `AlertTriangle` icon.
+    - High Risk (50%, 75%, 100%): Rose styling (`bg-rose-500/15 text-rose-400 border-rose-500/30`) with `AlertTriangle` icon.
+  - Detailed tooltip (`title`) lists all triggered audit signals and diagnostic reasons.
+- Integrated `RiskBadge` into:
+  - `MyChannelCard.tsx`: Displayed in the header badge cluster next to `StatusBadge` on the main overview dashboard.
+  - `ChannelHeader.tsx`: Displayed in the header badge cluster next to `StatusBadge` on the channel detail page (`/channel/[id]`).
+
+### 6. Unit Testing (`src/lib/__tests__/fraudDetector.test.ts`)
+- Added comprehensive unit tests covering:
+  - `checkUniformReactionRatio`:
+    - Insufficient data (<10 posts, 0 posts, 5 posts, 9 posts boundary).
+    - Heterogeneous organic ERR series ($CV \ge 0.1$, `flag: false`).
+    - Nearly identical template bot ERR series ($CV < 0.1$, `flag: true`).
+    - Strictly identical ERR series ($CV = 0$, `flag: true`).
+    - Boundary test at exactly 10 posts.
+    - Raw number series, posts with comments/forwards, posts with zero engagement.
+    - Null/undefined/empty input tolerance.
+    - Date ordering priority.
+  - `runFraudAudit`:
+    - Simulated trigger combinations verifying exact scores:
+      - 0 triggers $\to$ `fraudScore: 0`
+      - 1 trigger $\to$ `fraudScore: 25`
+      - 2 triggers $\to$ `fraudScore: 50`
+      - 3 triggers $\to$ `fraudScore: 75`
+      - 4 triggers $\to$ `fraudScore: 100`
+    - Array trigger notation (`triggers: ['views_to_subs_ratio', ...]`).
+    - Realistic synthetic channel dataset triggering multiple checks simultaneously.
+    - Null/undefined/empty channel tolerance.
 
 ---
 
 ## Verification Record
 
-- **TypeScript (`npx tsc --noEmit`)**: Passed with 0 errors.
-- **Unit Tests (`npm test`)**: 18 test files, 131 tests passed (0 failed).
-- **Linter (`npm run lint`)**: Passed with 0 warnings and 0 errors.
-- **Production Build (`npm run build`)**: Next.js production build succeeded with all routes optimized.
+- **Unit Tests (`npx vitest run src/lib/__tests__/fraudDetector.test.ts`)**: 55 passed in 18ms.
+- **Full Test Suite (`npm test`)**: All 18 test files passed, 172 tests passed in 16.11s.
+- **TypeScript Compilation (`npx tsc --noEmit`)**: 0 errors.
+- **Linting (`npm run lint`)**: 0 warnings, 0 errors.
+- **Production Build (`npm run build`)**: Generated Prisma client and built Next.js App Router static and dynamic routes cleanly.

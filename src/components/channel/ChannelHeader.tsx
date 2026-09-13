@@ -5,6 +5,8 @@ import { ArrowLeft, Crown, ExternalLink } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
 import { DeltaBadge } from '@/components/DeltaBadge';
 import { StatusBadge } from '@/components/StatusBadge';
+import { RiskBadge } from '@/components/RiskBadge';
+import { runFraudAudit } from '@/lib/fraudDetector';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
 import { ExportWrappedButton } from '@/components/channel/ExportWrappedButton';
 import { formatNumber } from '@/lib/utils';
@@ -16,6 +18,9 @@ interface ChannelHeaderProps {
 }
 
 export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeaderProps) {
+  const fraudAudit = (channel && (channel.fraudScore == null || !channel.fraudSignals)) ? runFraudAudit(channel) : null;
+  const fraudScore = channel?.fraudScore ?? fraudAudit?.fraudScore ?? 0;
+  const fraudSignals = channel?.fraudSignals ?? fraudAudit?.signals ?? [];
   return (
     <>
       {/* Top Bar */}
@@ -64,6 +69,7 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
                 lastCollectedAt={channel.lastCollectedAt}
                 lastError={channel.lastError}
               />
+              <RiskBadge score={fraudScore} signals={fraudSignals} />
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">

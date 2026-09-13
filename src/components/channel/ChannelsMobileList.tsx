@@ -5,6 +5,7 @@ import { ChannelMetrics } from '@/lib/types';
 import { checkLowCitationGrowth } from '@/lib/fraudDetector';
 import { DeltaBadge } from '../DeltaBadge';
 import { StatusBadge } from '../StatusBadge';
+import { RiskBadge } from '../RiskBadge';
 import { TrendCell } from './cells/TrendCell';
 import { MetricCell, getMetricReason } from './cells/MetricCell';
 import { formatNumber } from '@/lib/utils';
@@ -141,11 +142,14 @@ export function ChannelsMobileList({
             </div>
 
             <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/60 text-xs">
-              <StatusBadge
-                status={channel.status}
-                lastCollectedAt={channel.lastCollectedAt}
-                lastError={channel.lastError}
-              />
+              <div className="flex items-center gap-2 flex-wrap">
+                <StatusBadge
+                  status={channel.status}
+                  lastCollectedAt={channel.lastCollectedAt}
+                  lastError={channel.lastError}
+                />
+                <RiskBadge score={channel.fraudScore} signals={channel.fraudSignals} />
+              </div>
               <div className="flex items-center gap-2.5">
                 {channel.citationIndex !== null && channel.citationIndex !== undefined && (() => {
                   const fraud = checkLowCitationGrowth(channel);

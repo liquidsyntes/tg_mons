@@ -3,6 +3,7 @@ import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
 import { calculateContentScore } from '../scoring';
 import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
+import { runFraudAudit } from '../fraudDetector';
 
 
 const MS_HOUR = 3600 * 1000;
@@ -140,9 +141,34 @@ export async function getOverviewStats(): Promise<OverviewStats> {
   }
 
   const citationMap = await getCitationIndicesForChannels(allChannels, date30dAgo);
-  for (const metrics of channelMetricsList) {
+  const recentFraudSignals = await prisma.fraudSignal.findMany({
+    where: {
+      channelId: { in: channelIds },
+      detectedAt: { gte: date30dAgo },
+    },
+    orderBy: { detectedAt: 'desc' },
+  });
 
+  const fraudSignalsByChannel = new Map<number, any[]>();
+  for (const sig of recentFraudSignals) {
+    if (!fraudSignalsByChannel.has(sig.channelId)) fraudSignalsByChannel.set(sig.channelId, []);
+    fraudSignalsByChannel.get(sig.channelId)!.push(sig);
+  }
+
+  for (const metrics of channelMetricsList) {
     metrics.citationIndex = citationMap.get(metrics.id) ?? 0;
+    const chPosts = postsByChannel.get(metrics.id) || [];
+    const chDaily = metricsByChannel.get(metrics.id) || [];
+    const chFraudSignals = fraudSignalsByChannel.get(metrics.id) || [];
+    const audit = runFraudAudit({
+      id: metrics.id,
+      posts: chPosts,
+      metrics: chDaily.map((m: any) => ({ date: m.date, followers: m.followers })),
+      currentMembers: metrics.currentMembers,
+      fraudSignals: chFraudSignals,
+    });
+    metrics.fraudScore = audit.fraudScore;
+    metrics.fraudSignals = audit.signals;
   }
 
   const myChannel = channelMetricsList.find((c) => c.isMine) || null;
@@ -425,6 +451,38 @@ export async function getChannelDetailStats(
     channel.delta7d?.percent || 0,
     recentPosts.filter(p => p.text)
   );
+
+  const fraudPosts = await prisma.post.findMany({
+    where: { channelId },
+    orderBy: { publishedAt: 'desc' },
+    take: 20,
+    select: {
+      id: true,
+      publishedAt: true,
+      views: true,
+      reactions: true,
+      comments: true,
+      forwards: true,
+    },
+  });
+
+  const dbFraudSignals = await prisma.fraudSignal.findMany({
+    where: {
+      channelId,
+      detectedAt: { gte: new Date(now.getTime() - MS_30D) },
+    },
+    orderBy: { detectedAt: 'desc' },
+  });
+
+  const detailAudit = runFraudAudit({
+    id: channel.id,
+    posts: fraudPosts.length >= 10 ? fraudPosts : recentPosts,
+    metrics: membersHistory.map((m) => ({ date: new Date(m.collectedAt), followers: m.membersCount })),
+    currentMembers: channel.currentMembers,
+    fraudSignals: dbFraudSignals,
+  });
+  channel.fraudScore = detailAudit.fraudScore;
+  channel.fraudSignals = detailAudit.signals;
 
   return {
     channel,

@@ -25,7 +25,7 @@ import {
   saveFraudSignal,
 } from './persister';
 import { prisma } from '../lib/prisma';
-import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes } from '../lib/fraudDetector';
+import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, checkUniformReactionRatio } from '../lib/fraudDetector';
 import {
   sendTelegramAnomalyAlert,
   handleChannelError,
@@ -316,7 +316,7 @@ export async function runCollectCycle(): Promise<{
             where: { channelId: channel.id },
             orderBy: { publishedAt: 'desc' },
             take: 30,
-            select: { views: true }
+            select: { views: true, reactions: true, comments: true, forwards: true, publishedAt: true }
           });
 
           const latestSnapshot = await getPreviousSnapshot(channel.id);
@@ -332,6 +332,16 @@ export async function runCollectCycle(): Promise<{
                 ratioResult.reason
               );
             }
+          }
+
+          const uniformResult = checkUniformReactionRatio(recentPosts);
+          if (uniformResult.flag) {
+            await saveFraudSignal(
+              channel.id,
+              'uniform_err',
+              uniformResult.cv,
+              uniformResult.reason
+            );
           }
         } catch (fraudErr) {
           logger.error('Fraud detection failed', { title: channel.title }, fraudErr);

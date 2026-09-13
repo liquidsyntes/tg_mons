@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { Crown, ExternalLink, LineChart, FileText, Users, ArrowUpRight, Share2, AlertTriangle } from 'lucide-react';
 
 import { ChannelMetrics, LanguageBreakdownItem } from '@/lib/types';
-import { checkLowCitationGrowth } from '@/lib/fraudDetector';
+import { checkLowCitationGrowth, runFraudAudit } from '@/lib/fraudDetector';
 import { DeltaBadge } from './DeltaBadge';
 import { StatusBadge } from './StatusBadge';
+import { RiskBadge } from './RiskBadge';
 import { formatNumber } from '@/lib/utils';
 
 interface MyChannelCardProps {
@@ -17,6 +18,10 @@ interface MyChannelCardProps {
 
 export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
   const [demographics, setDemographics] = useState<{ capturedAt: string, languages: LanguageBreakdownItem[] } | null>(null);
+
+  const fraudAudit = (channel && (channel.fraudScore == null || !channel.fraudSignals)) ? runFraudAudit(channel) : null;
+  const fraudScore = channel?.fraudScore ?? fraudAudit?.fraudScore ?? 0;
+  const fraudSignals = channel?.fraudSignals ?? fraudAudit?.signals ?? [];
 
   useEffect(() => {
     if (channel?.id && channel?.isMine) {
@@ -73,6 +78,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
               lastCollectedAt={channel.lastCollectedAt}
               lastError={channel.lastError}
             />
+            <RiskBadge score={fraudScore} signals={fraudSignals} />
           </div>
 
           <div className="flex items-baseline gap-3">
