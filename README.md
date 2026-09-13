@@ -22,6 +22,7 @@ Fullstack-платформа для непрерывного мониторин�
 - **Метрики таблицы:** ER учитывает просмотры, реакции, комментарии и репосты; ERR — реакции, комментарии и репосты относительно просмотров. Для групп вместо ERR показывается CR по комментариям за 7 дней. Пустые значения объясняются прямо в ячейке.
 - **EP-скоринг** (`src/lib/ep.ts`): engagement-показатель канала с z-нормализацией по нише. Компоненты: CEI, VR, ERR; веса — рост 0.45 / views-ratio 0.30 / ERR 0.25. Формулы всех метрик — в `docs/analytics-formulas.md`.
 - **Content Score** (`src/lib/scoring.ts`) и оценка рекламных постов (`src/lib/adDetector.ts`).
+- **Антифрод (Fraud Detection):** автоматическое выявление накруток через оценку неестественной гладкости роста аудитории (`checkGrowthSmoothness`) и аномального соотношения просмотров к числу подписчиков (`checkViewsToSubsRatio`). Результаты проверок (`src/lib/fraudDetector.ts`) сохраняются в таблицу `fraud_signals`.
 - Детальная страница канала: Wrapped-карточка, heatmap активности, Content LTV, сеть цитирований, динамика подписчиков с оверлеем «Моего канала».
 - Подбор лучшего времени публикации (`/api/stats/best-time`), тренды ниши, топ gainers/losers.
 
@@ -142,15 +143,14 @@ CI (`.github/workflows/ci.yml`): на каждый push/PR — typecheck, eslint
 
 ## Документация
 
-- `docs/analytics-formulas.md` — все метрики и формулы (VR, ERR, CEI, EP, Content Score)
 - `docs/overview.md` — обзор продукта
-- `docs/tg-monitoring-observability-audit.md` — аудит наблюдаемости бэкенда
-- `docs/telegram-timeout-review.md` — ревью реализации таймаутов GramJS
+- `docs/architecture.md` — C4-архитектура и потоки данных
+- `docs/codebase.md` — навигатор по кодовой базе
+- `docs/analytics-formulas.md` — все метрики, формулы (VR, ERR, CEI, EP, Content Score) и антифрод
+- `docs/api-reference.md` — REST API маршруты
 - `docs/deployment.md` — развёртывание на VPS
 - `docs/git-workflow.md` — git-процесс
-- `docs/report_dev_2026-08-30.md` — технический аудит проекта (2026-08-30)
-- `docs/fix_prompts_2026-08-30.md` — план устранения найденных проблем
-- `docs/archives/` — архивные документы (ТЗ, старые статусы)
+- `docs/codex-workflow.md` — практическое руководство для кодинг-агентов
 
 ---
 

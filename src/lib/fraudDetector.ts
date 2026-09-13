@@ -100,3 +100,94 @@ export function checkGrowthSmoothness(
   return { flag: false, cv, reason: "Рост в пределах нормы (естественные колебания)" };
 }
 
+export interface UncorrelatedSpikesResult {
+  flag: boolean;
+  spikesCount: number;
+  dates: string[]; // dates in YYYY-MM-DD format
+  reason: string;
+}
+
+/**
+ * Третья проверка: выявление резких скачков подписчиков в дни без публикаций и упоминаний.
+ * 
+ * @param metrics Список ежедневных метрик канала
+ * @param postsDates Даты публикаций на канале
+ * @param mentionsDates Даты упоминаний канала
+ * @returns {UncorrelatedSpikesResult} Результат проверки
+ */
+export function checkUncorrelatedSpikes(
+  metrics: Array<{ date: Date; followers: number }>,
+  postsDates: Date[],
+  mentionsDates: Date[]
+): UncorrelatedSpikesResult {
+  if (metrics.length < 2) {
+    return { flag: false, spikesCount: 0, dates: [], reason: "Недостаточно данных для анализа" };
+  }
+
+  const sortedMetrics = [...metrics].sort((a, b) => a.date.getTime() - b.date.getTime());
+  
+  const deltas: { date: Date; delta: number; followers: number }[] = [];
+  for (let i = 1; i < sortedMetrics.length; i++) {
+    deltas.push({
+      date: sortedMetrics[i].date,
+      delta: sortedMetrics[i].followers - sortedMetrics[i - 1].followers,
+      followers: sortedMetrics[i].followers,
+    });
+  }
+
+  const positiveDeltas = deltas.filter(d => d.delta > 0);
+  if (positiveDeltas.length === 0) {
+    return { flag: false, spikesCount: 0, dates: [], reason: "Нет положительных приростов" };
+  }
+
+  const avgDelta = deltas.reduce((sum, d) => sum + d.delta, 0) / deltas.length;
+  const maxFollowers = Math.max(...sortedMetrics.map(m => m.followers));
+
+  // Динамический порог для определения скачка
+  const threshold = Math.max(avgDelta * 3, 50, maxFollowers * 0.005);
+
+  const spikes = positiveDeltas.filter(d => d.delta > threshold);
+
+  if (spikes.length === 0) {
+    return { flag: false, spikesCount: 0, dates: [], reason: "Аномальных скачков не обнаружено" };
+  }
+
+  // Вспомогательная функция для проверки наличия события в окне [день скачка, предыдущий день]
+  const getStartOfDay = (date: Date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  };
+
+  const hasEventInWindow = (targetDate: Date, eventDates: Date[]) => {
+    const targetTime = getStartOfDay(targetDate);
+    
+    const prevDate = new Date(targetTime);
+    prevDate.setDate(prevDate.getDate() - 1);
+    const prevTime = prevDate.getTime();
+    
+    return eventDates.some(ed => {
+      const et = getStartOfDay(ed);
+      return et === targetTime || et === prevTime;
+    });
+  };
+
+  const anomalousSpikes = spikes.filter(spike => {
+    const hasPost = hasEventInWindow(spike.date, postsDates);
+    const hasMention = hasEventInWindow(spike.date, mentionsDates);
+    return !hasPost && !hasMention;
+  });
+
+  if (anomalousSpikes.length === 0) {
+    return { flag: false, spikesCount: 0, dates: [], reason: "Все скачки обоснованы публикациями или упоминаниями" };
+  }
+
+  const datesStr = anomalousSpikes.map(s => s.date.toISOString().split('T')[0]);
+  
+  return {
+    flag: true,
+    spikesCount: anomalousSpikes.length,
+    dates: datesStr,
+    reason: `Обнаружено ${anomalousSpikes.length} необъяснимых скачков подписчиков: ${datesStr.join(', ')}`
+  };
+}

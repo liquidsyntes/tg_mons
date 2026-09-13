@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkViewsToSubsRatio, checkGrowthSmoothness } from '../fraudDetector';
+import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes } from '../fraudDetector';
 
 describe('Fraud Detector', () => {
   describe('checkViewsToSubsRatio', () => {
@@ -116,6 +116,81 @@ describe('Fraud Detector', () => {
       expect(result.flag).toBe(false);
       expect(result.cv).toBeGreaterThan(0.1);
       expect(result.reason).toContain('Рост в пределах нормы');
+    });
+  });
+
+  describe('checkUncorrelatedSpikes', () => {
+    const today = new Date('2024-01-10T12:00:00Z');
+    
+    it('returns flag false if insufficient data', () => {
+      const result = checkUncorrelatedSpikes([{ date: today, followers: 100 }], [], []);
+      expect(result.flag).toBe(false);
+      expect(result.reason).toContain('Недостаточно данных');
+    });
+
+    it('returns flag false for normal growth', () => {
+      const followers = [100, 110, 105, 120, 125];
+      const metrics = followers.map((f, i) => ({
+        date: new Date(today.getTime() + i * 86400000),
+        followers: f
+      }));
+      const result = checkUncorrelatedSpikes(metrics, [], []);
+      expect(result.flag).toBe(false);
+      expect(result.reason).toContain('Аномальных скачков не обнаружено');
+    });
+
+    it('returns flag false for justified spike (post on same day)', () => {
+      const followers = [100, 110, 120, 130, 2000];
+      const metrics = followers.map((f, i) => ({
+        date: new Date(today.getTime() + i * 86400000),
+        followers: f
+      }));
+      const spikeDate = new Date(today.getTime() + 4 * 86400000);
+      const postsDates = [spikeDate];
+      const result = checkUncorrelatedSpikes(metrics, postsDates, []);
+      expect(result.flag).toBe(false);
+      expect(result.reason).toContain('обоснованы');
+    });
+
+    it('returns flag false for justified spike (mention on previous day)', () => {
+      const followers = [100, 110, 120, 130, 2000];
+      const metrics = followers.map((f, i) => ({
+        date: new Date(today.getTime() + i * 86400000), // days 0 to 4
+        followers: f
+      }));
+      // Spike on day 4. Mention on day 3.
+      const mentionDate = new Date(today.getTime() + 3 * 86400000);
+      const mentionsDates = [mentionDate];
+      const result = checkUncorrelatedSpikes(metrics, [], mentionsDates);
+      expect(result.flag).toBe(false);
+      expect(result.reason).toContain('обоснованы');
+    });
+
+    it('returns flag true for anomalous spike (no post, no mention)', () => {
+      const followers = [100, 110, 120, 130, 2000];
+      const metrics = followers.map((f, i) => ({
+        date: new Date(today.getTime() + i * 86400000),
+        followers: f
+      }));
+      // No posts, no mentions.
+      const result = checkUncorrelatedSpikes(metrics, [], []);
+      expect(result.flag).toBe(true);
+      expect(result.spikesCount).toBe(1);
+      expect(result.reason).toContain('необъяснимых скачков');
+    });
+
+    it('protects large channels from false positives', () => {
+      // Very large channel, spike of 400.
+      const followers = [100000, 100100, 100200, 100300, 100700];
+      const metrics = followers.map((f, i) => ({
+        date: new Date(today.getTime() + i * 86400000),
+        followers: f
+      }));
+      const result = checkUncorrelatedSpikes(metrics, [], []);
+      // threshold: max(100 * 3 = 300, 50, 100700 * 0.005 = 503.5) = 503.5
+      // jump is 400 < 503.5 => no anomalous spike
+      expect(result.flag).toBe(false);
+      expect(result.reason).toContain('Аномальных скачков не обнаружено');
     });
   });
 });

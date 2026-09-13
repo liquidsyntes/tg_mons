@@ -39,6 +39,7 @@ tg-monitor/
 - **`metrics.ts`**: Глубокий файл с агрегацией и экспортами.
 - **`metrics/`**: Разделенная логика метрик: `queries.ts` (выборки), `aggregate.ts` (построение сводки), `engagement.ts` (расчет ER и ERR), `calculate.ts` (дельты, VR и `computeAvgViews24h`).
 - **`materialize.ts`**: Логика материализации сырых данных в агрегированные таблицы (например, `ChannelMetricDaily`).
+- **`fraudDetector.ts`**: Алгоритмы антифрода для выявления накруток (`checkGrowthSmoothness`, `checkViewsToSubsRatio`).
 - **`openrouter.ts` & `ai-reports.ts`**: Обертки для вызова LLM (OpenRouter) и формирования отчетов.
 - **`prisma.ts`**: Инициализация Prisma Client.
 - **`cache.ts`**: In-memory кэширование для ускорения API ответов.
@@ -57,8 +58,9 @@ tg-monitor/
 - **`collector.ts`**: Главный цикл обхода (`runCollectCycle`).
   - Проходит по всем `isActive: true` каналам.
   - Собирает снапшоты (participants_count) и посты.
-  - Обрабатывает таймауты и Rate Limits (`FLOOD_WAIT`) Telegram.
-  - Отключает каналы при `consecutiveErrors` > 10.
+  - Обрабатывает таймауты и Rate Limits (`FLOOD_WAIT`) Telegram с экспоненциальной задержкой.
+  - При получении `TelegramTimeoutError` пытается принудительно переподключить (`reconnect`) клиент для восстановления "мертвого" сокета и продолжения цикла.
+  - Ведет счетчик `consecutiveErrors` (подряд идущих ошибок) для каждого канала. Отключает каналы при `consecutiveErrors` > 10, защищая общую очередь от зависаний.
 - **`demographics.ts`**: Цикл еженедельного сбора языковой и гео-разбивки (`languages_graph`) через MTProto метод `stats.getBroadcastStats`.
 - **`client.ts`**: Инициализация `TelegramClient` из библиотеки GramJS с использованием сессии из `.env`.
 - **`auth.ts`**: CLI-скрипт для первоначальной генерации строки `TG_SESSION`.

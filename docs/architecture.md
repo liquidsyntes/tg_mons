@@ -100,6 +100,7 @@ C4Component
     Component(cron, "Cron Scheduler", "node-cron (src/worker/index.ts)", "Запуск цикла сбора по расписанию.")
     Component(collector, "Collector Loop", "src/worker/collector.ts", "Итерация по каналам, сбор постов и снапшотов подписчиков.")
     Component(demographics, "Demographics Job", "src/worker/demographics.ts", "Еженедельный сбор статистики (stats.getBroadcastStats).")
+    Component(fraud_detector, "Fraud Detector", "src/lib/fraudDetector.ts", "Анализ аномалий роста и просмотров.")
     Component(client, "Telegram Client", "GramJS", "Низкоуровневая обертка для MTProto сессии.")
   }
 
@@ -112,7 +113,8 @@ C4Component
   Rel(collector, client, "Вызов API (getMessages, getFullChannel)")
   Rel(demographics, client, "Вызов API (stats.getBroadcastStats)")
   Rel(client, telegram, "Сетевые запросы")
-  Rel(collector, db, "Запись снапшотов и постов (Upsert)")
+  Rel(collector, fraud_detector, "Проверяет аномалии")
+  Rel(collector, db, "Запись снапшотов, постов и fraud_signals (Upsert)")
   Rel(collector, web, "POST /api/internal/invalidate-cache", "Bearer COLLECT_API_TOKEN")
   Rel(demographics, db, "Запись языковой разбивки")
 ```

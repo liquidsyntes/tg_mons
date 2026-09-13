@@ -25,7 +25,7 @@ import {
   saveFraudSignal,
 } from './persister';
 import { prisma } from '../lib/prisma';
-import { checkViewsToSubsRatio, checkGrowthSmoothness } from '../lib/fraudDetector';
+import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes } from '../lib/fraudDetector';
 import {
   sendTelegramAnomalyAlert,
   handleChannelError,
@@ -264,6 +264,50 @@ export async function runCollectCycle(): Promise<{
                 'growth_smoothness',
                 smoothnessResult.cv,
                 smoothnessResult.reason
+              );
+            }
+
+            const sortedDesc = [...recentMetrics].sort((a, b) => b.date.getTime() - a.date.getTime());
+            const oldestMetricDate = sortedDesc[sortedDesc.length - 1].date;
+            const minDate = new Date(oldestMetricDate.getTime() - 86400000);
+
+            const postsInRange = await prisma.post.findMany({
+              where: {
+                channelId: channel.id,
+                publishedAt: { gte: minDate }
+              },
+              select: { publishedAt: true }
+            });
+
+            const mentionConditions: any[] = [];
+            if (channel.username) {
+              mentionConditions.push({ targetUsername: channel.username.toLowerCase() });
+            }
+            if (channel.tgId) {
+              mentionConditions.push({ targetTgId: channel.tgId });
+            }
+
+            let mentionsDates: Date[] = [];
+            if (mentionConditions.length > 0) {
+              const mentionsInRange = await prisma.mention.findMany({
+                where: {
+                  createdAt: { gte: minDate },
+                  OR: mentionConditions
+                },
+                select: { createdAt: true }
+              });
+              mentionsDates = mentionsInRange.map(m => m.createdAt);
+            }
+
+            const postsDates = postsInRange.map(p => p.publishedAt);
+            const spikeResult = checkUncorrelatedSpikes(recentMetrics, postsDates, mentionsDates);
+            
+            if (spikeResult.flag) {
+              await saveFraudSignal(
+                channel.id,
+                'uncorrelated_spikes',
+                spikeResult.spikesCount,
+                spikeResult.reason
               );
             }
           }
