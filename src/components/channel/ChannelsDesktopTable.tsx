@@ -1,6 +1,7 @@
 import React from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Power } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Power, AlertTriangle } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
+import { checkLowCitationGrowth } from '@/lib/fraudDetector';
 import { DeltaBadge } from '../DeltaBadge';
 import { TrendCell } from './cells/TrendCell';
 import { ScoreCell, EpCell } from './cells/ScoreCell';
@@ -141,6 +142,14 @@ export function ChannelsDesktopTable({
               >
                 EP {renderSortIcon('ep')}
               </th>
+              <th
+                onClick={() => onSort('citationIndex')}
+                className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                title="Индекс цитирования (взвешенная сумма упоминаний за 30 дней)"
+              >
+                <div>CI {renderSortIcon('citationIndex')}</div>
+                <div className="text-[10px] text-slate-500 font-normal mt-0.5">(30d)</div>
+              </th>
               <th className="py-3.5 pl-2 pr-4 text-center">Act.</th>
             </tr>
           </thead>
@@ -265,6 +274,35 @@ export function ChannelsDesktopTable({
                   </td>
                   <td className="py-3.5 px-4 text-center">
                     <EpCell ep={channel.ep} />
+                  </td>
+                  <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                    {(() => {
+                      const ci = channel.citationIndex;
+                      const hasCi = ci !== null && ci !== undefined;
+                      const fraud = hasCi ? checkLowCitationGrowth(channel) : null;
+                      const isFraud = fraud?.flag ?? false;
+                      return (
+                        <span
+                          className={
+                            isFraud
+                              ? "text-rose-400 font-bold text-xs inline-flex items-center gap-1 justify-center"
+                              : hasCi && ci > 0
+                              ? "text-emerald-400 font-semibold text-xs"
+                              : "text-slate-400 text-xs"
+                          }
+                          title={
+                            isFraud
+                              ? fraud?.reason
+                              : hasCi
+                              ? `Индекс цитирования: ${ci}`
+                              : undefined
+                          }
+                        >
+                          {hasCi ? ci : '—'}
+                          {isFraud && <AlertTriangle className="w-3 h-3 text-rose-400" />}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="py-3.5 pl-2 pr-4 text-center">
                     <div className="inline-flex items-center gap-1.5 justify-center">

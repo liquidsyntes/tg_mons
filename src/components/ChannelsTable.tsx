@@ -61,6 +61,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
       'VR (7д, %)',
       'ER (7д, %)',
       'ERR (7д, %)',
+      'ИЦ (30д)',
       'Моя доля (%)'
     ];
 
@@ -80,6 +81,7 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
       c.vr7d ?? '',
       c.er7d ?? '',
       c.err7d ?? '',
+      c.citationIndex ?? '',
       c.comparison?.audienceSharePercent ?? ''
     ]);
 

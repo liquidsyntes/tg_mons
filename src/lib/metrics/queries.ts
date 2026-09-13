@@ -2,6 +2,8 @@ import { prisma } from '../prisma';
 import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
 import { calculateContentScore } from '../scoring';
+import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
+
 
 const MS_HOUR = 3600 * 1000;
 const MS_24H = 24 * MS_HOUR;
@@ -22,13 +24,17 @@ export async function calculateChannelMetrics(
     orderBy: { date: 'desc' },
   });
 
+  const citationIndex = await getCitationIndexForChannel(channel, date30dAgo);
+
   if (dailyMetrics.length > 0) {
     const recentPosts = await prisma.post.findMany({
       where: { channelId, publishedAt: { gte: date30dAgo } },
       orderBy: { publishedAt: 'desc' },
       select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true },
     });
-    return buildMetricsFromMaterialized(channel, dailyMetrics, recentPosts, now);
+    const metrics = buildMetricsFromMaterialized(channel, dailyMetrics, recentPosts, now);
+    metrics.citationIndex = citationIndex;
+    return metrics;
   }
 
   // fallback
@@ -43,7 +49,9 @@ export async function calculateChannelMetrics(
     select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true },
   });
 
-  return calculateChannelMetricsFromData(channel, allSnapshots, allPosts, now);
+  const metrics = calculateChannelMetricsFromData(channel, allSnapshots, allPosts, now);
+  metrics.citationIndex = citationIndex;
+  return metrics;
 }
 
 export async function getOverviewStats(): Promise<OverviewStats> {
@@ -131,7 +139,14 @@ export async function getOverviewStats(): Promise<OverviewStats> {
     }
   }
 
+  const citationMap = await getCitationIndicesForChannels(allChannels, date30dAgo);
+  for (const metrics of channelMetricsList) {
+
+    metrics.citationIndex = citationMap.get(metrics.id) ?? 0;
+  }
+
   const myChannel = channelMetricsList.find((c) => c.isMine) || null;
+
 
   const channelsWithComparison = channelMetricsList.map((ch) => {
     if (!myChannel || ch.id === myChannel.id) return ch;

@@ -1,7 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
-import { Crown, Star, ExternalLink } from 'lucide-react';
+import { Crown, Star, ExternalLink, AlertTriangle } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
+import { checkLowCitationGrowth } from '@/lib/fraudDetector';
 import { DeltaBadge } from '../DeltaBadge';
 import { StatusBadge } from '../StatusBadge';
 import { TrendCell } from './cells/TrendCell';
@@ -145,7 +146,31 @@ export function ChannelsMobileList({
                 lastCollectedAt={channel.lastCollectedAt}
                 lastError={channel.lastError}
               />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
+                {channel.citationIndex !== null && channel.citationIndex !== undefined && (() => {
+                  const fraud = checkLowCitationGrowth(channel);
+                  const isFraud = fraud.flag;
+                  return (
+                    <span
+                      className="text-[11px] font-mono text-slate-400 inline-flex items-center gap-1"
+                      title={isFraud ? fraud.reason : `Индекс цитирования: ${channel.citationIndex}`}
+                    >
+                      ИЦ:{' '}
+                      <strong
+                        className={
+                          isFraud
+                            ? 'text-rose-400 font-bold'
+                            : channel.citationIndex > 0
+                            ? 'text-emerald-400 font-semibold'
+                            : 'text-slate-300'
+                        }
+                      >
+                        {channel.citationIndex}
+                      </strong>
+                      {isFraud && <AlertTriangle className="w-3 h-3 text-rose-400 inline" />}
+                    </span>
+                  );
+                })()}
                 <Link
                   href={`/channel/${channel.id}`}
                   className="px-2.5 py-1 rounded bg-slate-800 text-slate-200 text-[11px]"

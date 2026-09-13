@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Crown, ExternalLink, LineChart, FileText, Users, ArrowUpRight } from 'lucide-react';
+import { Crown, ExternalLink, LineChart, FileText, Users, ArrowUpRight, Share2, AlertTriangle } from 'lucide-react';
+
 import { ChannelMetrics, LanguageBreakdownItem } from '@/lib/types';
+import { checkLowCitationGrowth } from '@/lib/fraudDetector';
 import { DeltaBadge } from './DeltaBadge';
 import { StatusBadge } from './StatusBadge';
 import { formatNumber } from '@/lib/utils';
@@ -112,7 +114,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
       </div>
 
       {/* Grid of Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-[6px] mt-6 pt-5 border-t border-border/80">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-[6px] mt-6 pt-5 border-t border-border/80">
         {/* Delta 24h */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
@@ -185,6 +187,43 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
             ) : (
               <span className="text-slate-300">—</span>
             )}
+          </div>
+        </div>
+
+        {/* Citation Index (Индекс цитирования) */}
+        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <Share2 className="w-3.5 h-3.5 text-slate-500" />
+            <span>Индекс цит. (30д)</span>
+          </div>
+          <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
+            {(() => {
+              const ci = channel.citationIndex;
+              const hasCi = ci !== null && ci !== undefined;
+              const fraud = hasCi ? checkLowCitationGrowth(channel) : null;
+              const isFraud = fraud?.flag ?? false;
+              return (
+                <span
+                  className={
+                    isFraud
+                      ? "text-rose-400 font-bold inline-flex items-center gap-1"
+                      : hasCi && ci > 0
+                      ? "text-emerald-400 font-bold"
+                      : "text-slate-300"
+                  }
+                  title={
+                    isFraud
+                      ? fraud?.reason
+                      : hasCi
+                      ? `Индекс цитирования: ${ci}`
+                      : undefined
+                  }
+                >
+                  {hasCi ? ci : '—'}
+                  {isFraud && <AlertTriangle className="w-3.5 h-3.5 text-rose-400 inline" />}
+                </span>
+              );
+            })()}
           </div>
         </div>
       </div>

@@ -45,6 +45,8 @@ export interface ChannelMetrics {
   niche?: string;
   ep?: number;
   epBreakdown?: any;
+  citationIndex?: number | null;
+
 
   // Comparison with "My Channel"
   comparison?: {

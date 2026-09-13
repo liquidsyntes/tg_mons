@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { ChannelMetrics } from '@/lib/types';
 
-export type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'vr' | 'er' | 'err' | 'score' | 'ep' | 'lastFact';
+export type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'vr' | 'er' | 'err' | 'score' | 'ep' | 'lastFact' | 'citationIndex';
+
 export type SortOrder = 'asc' | 'desc';
 
 export function useChannelsData(channels: ChannelMetrics[]) {
@@ -114,6 +115,10 @@ export function useChannelsData(channels: ChannelMetrics[]) {
         case 'lastFact':
           valA = a.lastPostViews ?? -1;
           valB = b.lastPostViews ?? -1;
+          break;
+        case 'citationIndex':
+          valA = a.citationIndex ?? -1;
+          valB = b.citationIndex ?? -1;
           break;
       }
 

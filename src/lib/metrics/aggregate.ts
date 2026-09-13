@@ -133,7 +133,9 @@ export function buildMetricsFromMaterialized(
     sparkline7d,
     contentScore: scoreBreakdown.total,
     contentGrade: scoreBreakdown.grade,
+    citationIndex: (channel as any).citationIndex ?? 0,
   };
+
 }
 
 export function calculateChannelMetricsFromData(
@@ -340,5 +342,7 @@ export function calculateChannelMetricsFromData(
     sparkline7d,
     contentScore: scoreBreakdown.total,
     contentGrade: scoreBreakdown.grade,
+    citationIndex: (channel as any).citationIndex ?? 0,
   };
+
 }

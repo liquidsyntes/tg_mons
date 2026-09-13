@@ -1,8 +1,11 @@
+import { calculateCitationIndex, CitationMention } from './citationIndex';
+
 export interface FraudSignalResult {
   flag: boolean;
   ratio: number;
   reason: string;
 }
+
 
 export interface GrowthSmoothnessResult {
   flag: boolean;
@@ -189,5 +192,151 @@ export function checkUncorrelatedSpikes(
     spikesCount: anomalousSpikes.length,
     dates: datesStr,
     reason: `Обнаружено ${anomalousSpikes.length} необъяснимых скачков подписчиков: ${datesStr.join(', ')}`
+  };
+}
+
+export interface LowCitationGrowthResult {
+  flag: boolean;
+  citationIndex: number;
+  growthRate: number;
+  growthPercent: number;
+  value: number;
+  reason: string;
+}
+
+function parseGrowth(val: unknown): number {
+  if (typeof val === 'number') return isFinite(val) ? val : 0;
+  if (typeof val === 'bigint') {
+    const n = Number(val);
+    return isFinite(n) ? n : 0;
+  }
+  if (typeof val === 'string') {
+    const clean = val.replace(/%/g, '').replace(/[\s,_]/g, '').trim();
+    if (clean !== '') {
+      const n = Number(clean);
+      return isFinite(n) ? n : 0;
+    }
+  }
+  return 0;
+}
+
+function parseCitationIndexParam(val: unknown): number | null {
+  if (val === undefined || val === null) return null;
+  if (typeof val === 'number') return isFinite(val) ? Math.max(0, val) : 0;
+  if (typeof val === 'bigint') {
+    const n = Number(val);
+    return isFinite(n) ? Math.max(0, n) : 0;
+  }
+  if (typeof val === 'string') {
+    const clean = val.replace(/[\s,_]/g, '').trim();
+    if (clean !== '') {
+      const n = Number(clean);
+      if (isFinite(n)) return Math.max(0, n);
+    }
+  }
+  return null;
+}
+
+/**
+ * Четвертая проверка: выявление быстрого роста подписчиков при околонулевом индексе цитирования.
+ * 
+ * Если канал за последние 30 дней вырос более чем на 5%, но при этом индекс цитирования
+ * остается около нуля (отсутствуют или крайне малы упоминания в других каналах),
+ * это сигнализирует о вероятной накрутке ботами/мотивированным трафиком.
+ * 
+ * @param growthOrChannel Рост за 30 дней (%) или объект канала
+ * @param citationIndexOrMentions Индекс цитирования или список упоминаний
+ * @param options Настройки порогов (по умолчанию minGrowth = 5, maxCitationIndex = 1)
+ * @returns {LowCitationGrowthResult} Результат проверки
+ */
+export function checkLowCitationGrowth(
+  growthOrChannel: number | string | bigint | {
+    growthRate?: number | string | bigint;
+    growth30d?: number | string | bigint;
+    growthRate30d?: number | string | bigint;
+    growthPercent?: number | string | bigint;
+    delta30d?: { percent: number | null };
+    citationIndex?: number | string | bigint | null;
+    mentions?: any[];
+    [key: string]: any;
+  } | null | undefined,
+  citationIndexOrMentions?: number | string | bigint | CitationMention[] | any,
+  options?: { minGrowth?: number; maxCitationIndex?: number }
+): LowCitationGrowthResult {
+  const minGrowth = options?.minGrowth ?? 5;
+  const maxCitationIndex = options?.maxCitationIndex ?? 1;
+
+  let growthRate = 0;
+  let citationIndex = 0;
+
+  if (typeof growthOrChannel === 'number' || typeof growthOrChannel === 'bigint' || typeof growthOrChannel === 'string') {
+    growthRate = parseGrowth(growthOrChannel);
+    const parsedCi = parseCitationIndexParam(citationIndexOrMentions);
+    if (parsedCi !== null) {
+      citationIndex = parsedCi;
+    } else if (citationIndexOrMentions !== undefined && citationIndexOrMentions !== null) {
+      citationIndex = calculateCitationIndex(citationIndexOrMentions as any);
+    }
+  } else if (growthOrChannel && typeof growthOrChannel === 'object') {
+    const rawGrowth: unknown =
+      growthOrChannel.delta30d?.percent ??
+      growthOrChannel.growthRate30d ??
+      growthOrChannel.growth30d ??
+      growthOrChannel.growthPercent ??
+      growthOrChannel.growthRate;
+
+    growthRate = parseGrowth(rawGrowth);
+
+    const parsedCiParam = parseCitationIndexParam(citationIndexOrMentions);
+    if (parsedCiParam !== null) {
+      citationIndex = parsedCiParam;
+    } else if (citationIndexOrMentions !== undefined && citationIndexOrMentions !== null) {
+      citationIndex = calculateCitationIndex(citationIndexOrMentions as any);
+    } else {
+      const parsedChannelCi = parseCitationIndexParam(growthOrChannel.citationIndex);
+      if (parsedChannelCi !== null) {
+        citationIndex = parsedChannelCi;
+      } else {
+        citationIndex = calculateCitationIndex(growthOrChannel);
+      }
+    }
+  }
+
+  growthRate = isFinite(growthRate) ? growthRate : 0;
+  citationIndex = isFinite(citationIndex) ? Math.max(0, citationIndex) : 0;
+
+  // Флаг накрутки: рост > minGrowth (5%) и индекс цитирования <= maxCitationIndex (1)
+  const isHighGrowth = growthRate > minGrowth;
+  const isNearZeroCitation = citationIndex <= maxCitationIndex;
+
+  if (isHighGrowth && isNearZeroCitation) {
+    return {
+      flag: true,
+      citationIndex,
+      growthRate,
+      growthPercent: growthRate,
+      value: citationIndex,
+      reason: `Подозрение на накрутку: рост подписчиков за 30 дней (> ${minGrowth}%: ${growthRate}%) при околонулевом индексе цитирования (${citationIndex})`
+    };
+  }
+
+  if (!isHighGrowth) {
+    return {
+      flag: false,
+      citationIndex,
+      growthRate,
+      growthPercent: growthRate,
+      value: citationIndex,
+      reason: `Рост подписчиков за 30 дней (${growthRate}%) не превышает порог ${minGrowth}%`
+    };
+  }
+
+  return {
+    flag: false,
+    citationIndex,
+    growthRate,
+    growthPercent: growthRate,
+    value: citationIndex,
+    reason: `Индекс цитирования (${citationIndex}) достаточен для темпов роста (${growthRate}%)`
   };
 }
