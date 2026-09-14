@@ -18,6 +18,7 @@ interface MyChannelCardProps {
 
 export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
   const [demographics, setDemographics] = useState<{ capturedAt: string, languages: LanguageBreakdownItem[] } | null>(null);
+  const [adPrice, setAdPrice] = useState<{ estimatedPricePerPost: number | null, cpm: number, confidence: 'high'|'low' } | null>(null);
 
   const fraudAudit = (channel && (channel.fraudScore == null || !channel.fraudSignals)) ? runFraudAudit(channel) : null;
   const fraudScore = channel?.fraudScore ?? fraudAudit?.fraudScore ?? 0;
@@ -33,6 +34,20 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
           }
         })
         .catch(err => console.error('Failed to load demographics', err));
+        
+      fetch(`/api/channels/${channel.id}/ad-price`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.error) {
+            setAdPrice(data);
+          } else {
+            setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low' });
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load ad price', err);
+          setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low' });
+        });
     }
   }, [channel?.id, channel?.isMine]);
   if (!channel) {
@@ -120,7 +135,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
       </div>
 
       {/* Grid of Key Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-[6px] mt-6 pt-5 border-t border-border/80">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-[6px] mt-6 pt-5 border-t border-border/80">
         {/* Delta 24h */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
@@ -230,6 +245,38 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
                 </span>
               );
             })()}
+          </div>
+        </div>
+
+        {/* Ad Price Estimate */}
+        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50 relative group">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <span className="text-slate-500">₽</span>
+            <span title="Ориентировочная цена размещения">Оценка рекламы</span>
+          </div>
+          <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
+            {adPrice ? (
+              adPrice.estimatedPricePerPost ? (
+                <>
+                  <span className={adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}>
+                    {formatNumber(adPrice.estimatedPricePerPost)} ₽
+                  </span>
+                  {adPrice.confidence === 'low' && (
+                    <span title="Мало данных: оценка может быть неточной" className="inline-flex items-center">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 inline" />
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-slate-400">—</span>
+              )
+            ) : (
+              <span className="text-slate-500 animate-pulse">...</span>
+            )}
+          </div>
+          {/* Disclaimer tooltip */}
+          <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 text-[10px] text-slate-300 p-2 rounded-lg -top-12 left-0 w-48 shadow-xl pointer-events-none z-20">
+            Ориентировочная алгоритмическая оценка (не фактическая цена) на базе бенчмарков {adPrice?.cpm ? `CPM ${adPrice.cpm}₽` : ''}.
           </div>
         </div>
       </div>
