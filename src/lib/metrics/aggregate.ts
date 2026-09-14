@@ -2,6 +2,7 @@ import { ChannelMetrics, ChannelStatus } from '../types';
 import { calculateDelta, calculateDeltaFromData, calculateVr, computeAvgViews24h } from './calculate';
 import { calculateContentScore } from '../scoring';
 import { aggregateChannelER, aggregateChannelERR } from './engagement';
+import { calculateAdShare } from './adShare';
 
 const MS_HOUR = 3600 * 1000;
 const MS_24H = 24 * MS_HOUR;
@@ -100,6 +101,8 @@ export function buildMetricsFromMaterialized(
     cr7d = Number(((avgComments / currentMembers) * 100).toFixed(2));
   }
 
+  const adShare7d = calculateAdShare(recentPosts, 7, now);
+
   return {
     id: channel.id,
     username: channel.username,
@@ -129,6 +132,7 @@ export function buildMetricsFromMaterialized(
     err24h,
     err7d,
     cr7d,
+    adShare7d,
     status: status as any,
     sparkline7d,
     contentScore: scoreBreakdown.total,
@@ -155,7 +159,7 @@ export function calculateChannelMetricsFromData(
     niche: string;
   },
   channelSnapshots: { collectedAt: Date; membersCount: number }[],
-  channelPosts: { publishedAt: Date; views: number | null; text: string | null; reactions?: number | null; comments?: number | null; forwards?: number | null }[],
+  channelPosts: { publishedAt: Date; views: number | null; text: string | null; reactions?: number | null; comments?: number | null; forwards?: number | null; isAd?: boolean | null }[],
   now: Date = new Date()
 ): ChannelMetrics {
   const date24hAgo = new Date(now.getTime() - MS_24H);
@@ -301,6 +305,8 @@ export function calculateChannelMetricsFromData(
     cr7d = Number(((avgComments / currentMembers) * 100).toFixed(2));
   }
 
+  const adShare7d = calculateAdShare(channelPosts, 7, now);
+
   return {
     id: channel.id,
     username: channel.username,
@@ -338,6 +344,7 @@ export function calculateChannelMetricsFromData(
     err24h,
     err7d,
     cr7d,
+    adShare7d,
     status,
     sparkline7d,
     contentScore: scoreBreakdown.total,

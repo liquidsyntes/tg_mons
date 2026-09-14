@@ -97,7 +97,7 @@ export function ChannelsMobileList({
               </div>
             </div>
 
-            <div className="grid grid-cols-5 gap-1.5 pt-3 border-t border-border/60 text-center">
+            <div className="grid grid-cols-6 gap-1.5 pt-3 border-t border-border/60 text-center">
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">Δ 7д</div>
                 <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} coverageDays={channel.delta7d.coverageDays} nominalDays={7} size="sm" />
@@ -116,6 +116,17 @@ export function ChannelsMobileList({
                 <div className="text-[9px] text-slate-400 mb-0.5">VR</div>
                 <div className="text-[11px] font-mono font-semibold text-white leading-tight">
                   <MetricCell value={channel.vr7d} suffix="%" {...getMetricReason('vr7d', channel)} />
+                </div>
+              </div>
+              <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
+                <div className="text-[9px] text-slate-400 mb-0.5">Ad Load</div>
+                <div className={`text-[11px] font-mono font-semibold leading-tight ${
+                  channel.adShare7d?.level === 'high' ? 'text-rose-400' :
+                  channel.adShare7d?.level === 'medium' ? 'text-amber-400' :
+                  channel.adShare7d?.level === 'low' ? 'text-emerald-400' :
+                  'text-white'
+                }`}>
+                  {channel.adShare7d && channel.adShare7d.level !== 'none' ? `${channel.adShare7d.percent}%` : '—'}
                 </div>
               </div>
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">

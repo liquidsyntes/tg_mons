@@ -31,7 +31,7 @@ export async function calculateChannelMetrics(
     const recentPosts = await prisma.post.findMany({
       where: { channelId, publishedAt: { gte: date30dAgo } },
       orderBy: { publishedAt: 'desc' },
-      select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true },
+      select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true, isAd: true },
     });
     const metrics = buildMetricsFromMaterialized(channel, dailyMetrics, recentPosts, now);
     metrics.citationIndex = citationIndex;
@@ -47,7 +47,7 @@ export async function calculateChannelMetrics(
 
   const allPosts = await prisma.post.findMany({
     where: { channelId, publishedAt: { gte: date30dAgo } },
-    select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true },
+    select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true, isAd: true },
   });
 
   const metrics = calculateChannelMetricsFromData(channel, allSnapshots, allPosts, now);
@@ -77,7 +77,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
 
   const recentPosts = await prisma.post.findMany({
     where: { channelId: { in: channelIds }, publishedAt: { gte: date7dAgo } },
-    select: { channelId: true, publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true },
+    select: { channelId: true, publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true, isAd: true },
     orderBy: { publishedAt: 'desc' },
   });
 
@@ -105,7 +105,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
       metrics = buildMetricsFromMaterialized(ch, dailyMetrics, posts, now);
     } else {
       const snapshots = await prisma.snapshot.findMany({ where: { channelId: ch.id }, orderBy: { collectedAt: 'desc' }, select: { collectedAt: true, membersCount: true } });
-      const posts = await prisma.post.findMany({ where: { channelId: ch.id, publishedAt: { gte: date30dAgo } }, select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true } });
+      const posts = await prisma.post.findMany({ where: { channelId: ch.id, publishedAt: { gte: date30dAgo } }, select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true, isAd: true } });
       metrics = calculateChannelMetricsFromData(ch, snapshots, posts, now);
     }
     

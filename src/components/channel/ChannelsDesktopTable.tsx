@@ -125,6 +125,14 @@ export function ChannelsDesktopTable({
                 <div className="text-[10px] text-slate-500 font-normal mt-0.5">(24h / 7d)</div>
               </th>
               <th
+                onClick={() => onSort('adShare')}
+                className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                title="Ad Load Share (рекламные посты за 7 дней)"
+              >
+                <div>Ad Load {renderSortIcon('adShare')}</div>
+                <div className="text-[10px] text-slate-500 font-normal mt-0.5">(7d)</div>
+              </th>
+              <th
                 onClick={() => onSort('share')}
                 className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
               >
@@ -260,6 +268,20 @@ export function ChannelsDesktopTable({
                           <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />
                         </div>
                       </div>
+                    )}
+                  </td>
+                  <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                    {channel.adShare7d ? (
+                      <div className={`font-semibold text-sm ${
+                        channel.adShare7d.level === 'high' ? 'text-rose-400' :
+                        channel.adShare7d.level === 'medium' ? 'text-amber-400' :
+                        channel.adShare7d.level === 'low' ? 'text-emerald-400' :
+                        'text-slate-400'
+                      }`}>
+                        {channel.adShare7d.level === 'none' ? '—' : `${channel.adShare7d.percent}%`}
+                      </div>
+                    ) : (
+                      <div className="text-slate-500 text-sm">—</div>
                     )}
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono tabular-nums">

@@ -40,6 +40,7 @@ export interface ChannelMetrics {
   err24h: number | null; // null if all engagements (reactions+comments+forwards) are 0 (likely hidden)
   err7d: number | null;
   cr7d: number | null;
+  adShare7d?: { percent: number; level: 'none' | 'low' | 'medium' | 'high' };
   status: ChannelStatus;
   sparkline7d?: number[]; // Added for 7d trend mini-chart
   contentScore?: number;
