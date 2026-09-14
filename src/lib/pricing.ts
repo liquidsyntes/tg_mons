@@ -2,19 +2,19 @@ import { prisma } from './prisma';
 import { getAdReachCurve } from './metrics/queries';
 
 const CPM_BENCHMARKS: Record<string, number> = {
-  general: 500,
-  crypto: 1200,
-  investments: 1000,
-  it: 800,
-  business: 750,
-  marketing: 600,
-  news: 250,
-  entertainment: 150,
-  humor: 150,
-  education: 500,
+  general: 200,
+  crypto: 500,
+  investments: 400,
+  it: 300,
+  business: 300,
+  marketing: 250,
+  news: 100,
+  entertainment: 60,
+  humor: 60,
+  education: 200,
 };
 
-const DEFAULT_CPM = 350;
+const DEFAULT_CPM = 150;
 
 export async function estimateAdPrice(channelId: number) {
   const channel = await prisma.channel.findUnique({
@@ -37,11 +37,12 @@ export async function estimateAdPrice(channelId: number) {
   const confidence = adPosts.length >= 3 ? 'high' : 'low';
 
   if (adPosts.length === 0) {
-    return { estimatedPricePerPost: null, cpm, confidence, averageAdReach: null };
+    return { estimatedPricePerPost: null, cpm, confidence, averageAdReach: null, averageReachCurve: [] };
   }
 
   let totalReach = 0;
   let validPostsCount = 0;
+  const allCurves: { hoursAfterPost: number; views: number }[][] = [];
 
   for (const post of adPosts) {
     const curve = await getAdReachCurve(post.id);
@@ -54,6 +55,8 @@ export async function estimateAdPrice(channelId: number) {
       continue;
     }
 
+    allCurves.push(curve);
+
     const pt48 = curve.find((c: any) => c.hoursAfterPost === 48);
     const pt24 = curve.find((c: any) => c.hoursAfterPost === 24);
     const ptMax = curve[curve.length - 1];
@@ -64,8 +67,31 @@ export async function estimateAdPrice(channelId: number) {
   }
 
   if (validPostsCount === 0) {
-    return { estimatedPricePerPost: null, cpm, confidence, averageAdReach: null };
+    return { estimatedPricePerPost: null, cpm, confidence, averageAdReach: null, averageReachCurve: [] };
   }
+
+  const averageCurveMap = new Map<number, { sum: number; count: number }>();
+  for (const curve of allCurves) {
+    for (const pt of curve) {
+      const current = averageCurveMap.get(pt.hoursAfterPost) || { sum: 0, count: 0 };
+      current.sum += pt.views;
+      current.count += 1;
+      averageCurveMap.set(pt.hoursAfterPost, current);
+    }
+  }
+
+  let maxViews = 0;
+  const averageReachCurve = Array.from(averageCurveMap.entries())
+    .map(([hoursAfterPost, data]) => ({
+      hoursAfterPost,
+      views: Math.round(data.sum / data.count)
+    }))
+    .sort((a, b) => a.hoursAfterPost - b.hoursAfterPost)
+    .map(pt => {
+      if (pt.views > maxViews) maxViews = pt.views;
+      else pt.views = maxViews;
+      return pt;
+    });
 
   const averageAdReach = totalReach / validPostsCount;
   const estimatedPricePerPost = Math.round((averageAdReach / 1000) * cpm);
@@ -74,6 +100,7 @@ export async function estimateAdPrice(channelId: number) {
     estimatedPricePerPost,
     cpm,
     confidence,
-    averageAdReach: Math.round(averageAdReach)
+    averageAdReach: Math.round(averageAdReach),
+    averageReachCurve
   };
 }

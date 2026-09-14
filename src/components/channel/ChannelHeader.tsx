@@ -17,7 +17,30 @@ interface ChannelHeaderProps {
   onPeriodChange: (period: '24h' | '7d' | '30d') => void;
 }
 
+import { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
+
 export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeaderProps) {
+  const [adPrice, setAdPrice] = useState<{ estimatedPricePerPost: number | null, cpm: number, confidence: 'high'|'low' } | null>(null);
+
+  useEffect(() => {
+    if (channel?.id) {
+      fetch(`/api/channels/${channel.id}/ad-price`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.error) {
+            setAdPrice(data);
+          } else {
+            setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low' });
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load ad price', err);
+          setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low' });
+        });
+    }
+  }, [channel?.id]);
+
   const fraudAudit = (channel && (channel.fraudScore == null || !channel.fraudSignals)) ? runFraudAudit(channel) : null;
   const fraudScore = channel?.fraudScore ?? fraudAudit?.fraudScore ?? 0;
   const fraudSignals = channel?.fraudSignals ?? fraudAudit?.signals ?? [];
@@ -114,7 +137,7 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
         </div>
 
         {/* KPI Cards Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-border/70">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6 pt-5 border-t border-border/70">
           <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
             <span className="text-[11px] text-slate-400 block mb-1">Δ 24 часа</span>
             <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="md" />
@@ -134,6 +157,38 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
               <span className="text-slate-400 font-normal">({channel.avgPostsPerDay}/д)</span>
             </div>
           </div>
+          
+          <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50 relative group">
+            <div className="text-[11px] text-slate-400 mb-1 flex items-center gap-1.5">
+              <span className="text-slate-500">₴</span>
+              <span title="Ориентировочная цена размещения">Оценка рекламы</span>
+            </div>
+            <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
+              {adPrice ? (
+                adPrice.estimatedPricePerPost ? (
+                  <>
+                    <span className={adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}>
+                      {formatNumber(adPrice.estimatedPricePerPost)} ₴
+                    </span>
+                    {adPrice.confidence === 'low' && (
+                      <span title="Мало данных: оценка может быть неточной" className="inline-flex items-center">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 inline" />
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-slate-400">—</span>
+                )
+              ) : (
+                <span className="text-slate-500 animate-pulse">...</span>
+              )}
+            </div>
+            {/* Disclaimer tooltip */}
+            <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 text-[10px] text-slate-300 p-2 rounded-lg -top-12 left-0 w-48 shadow-xl pointer-events-none z-20">
+              Ориентировочная алгоритмическая оценка (не фактическая цена) на базе бенчмарков {adPrice?.cpm ? `CPM ${adPrice.cpm}₴` : ''}.
+            </div>
+          </div>
+
         </div>
       </div>
     </>

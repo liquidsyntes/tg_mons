@@ -251,7 +251,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
         {/* Ad Price Estimate */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50 relative group">
           <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <span className="text-slate-500">₽</span>
+            <span className="text-slate-500">₴</span>
             <span title="Ориентировочная цена размещения">Оценка рекламы</span>
           </div>
           <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
@@ -259,7 +259,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
               adPrice.estimatedPricePerPost ? (
                 <>
                   <span className={adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}>
-                    {formatNumber(adPrice.estimatedPricePerPost)} ₽
+                    {formatNumber(adPrice.estimatedPricePerPost)} ₴
                   </span>
                   {adPrice.confidence === 'low' && (
                     <span title="Мало данных: оценка может быть неточной" className="inline-flex items-center">
@@ -276,7 +276,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
           </div>
           {/* Disclaimer tooltip */}
           <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 text-[10px] text-slate-300 p-2 rounded-lg -top-12 left-0 w-48 shadow-xl pointer-events-none z-20">
-            Ориентировочная алгоритмическая оценка (не фактическая цена) на базе бенчмарков {adPrice?.cpm ? `CPM ${adPrice.cpm}₽` : ''}.
+            Ориентировочная алгоритмическая оценка (не фактическая цена) на базе бенчмарков {adPrice?.cpm ? `CPM ${adPrice.cpm}₴` : ''}.
           </div>
         </div>
       </div>
