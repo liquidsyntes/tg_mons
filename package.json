@@ -26,8 +26,8 @@
     "html2canvas-pro": "^2.3.9",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
-    "next": "^15.2.1",
-    "node-cron": "^3.0.3",
+    "next": "^15.5.25",
+    "node-cron": "^4.6.0",
     "react": "^19.0.0",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.0.0",
@@ -40,7 +40,6 @@
   "devDependencies": {
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.13.9",
-    "@types/node-cron": "^3.0.11",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitest/coverage-v8": "^4.1.11",
@@ -60,10 +59,20 @@
     "core-js@3.50.0": true,
     "es5-ext@0.10.64": true,
     "esbuild@0.28.2": true,
-    "sharp@0.34.5": true,
+    "sharp@0.35.4": true,
     "unrs-resolver@1.12.2": true,
     "utf-8-validate@5.0.10": true,
-    "@prisma/engines@7.10.0": true,
-    "prisma@7.10.0": true
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.26",
+      "sharp": "0.35.4"
+    },
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    }
   }
 }
