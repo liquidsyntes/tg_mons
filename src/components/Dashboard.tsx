@@ -97,7 +97,7 @@ export function Dashboard() {
             <Activity className="w-4 h-4 text-accent" />
             <span className="text-xs font-semibold uppercase tracking-wider">Средний ERR</span>
           </div>
-          <span className="text-2xl font-bold text-white">{formatPercent(stats.avgErr)}</span>
+          <span className="text-2xl font-bold text-white">{formatPercent(stats.avgErr, false)}</span>
         </div>
 
         <div className="bg-surface border border-border rounded-2xl p-5 flex flex-col justify-between">
@@ -143,7 +143,7 @@ export function Dashboard() {
                   }}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }}
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '3px' }}
                   itemStyle={{ color: '#0ea5e9' }}
                   labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
                   formatter={(value: number) => [formatNumber(value), 'Подписчиков']}
@@ -186,7 +186,7 @@ export function Dashboard() {
                   axisLine={false}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }}
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '3px' }}
                   itemStyle={{ color: '#a855f7' }}
                   labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
                   formatter={(value: number) => [value, 'Постов']}

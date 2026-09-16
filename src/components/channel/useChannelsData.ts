@@ -10,7 +10,6 @@ export function useChannelsData(channels: ChannelMetrics[]) {
   const [sortField, setSortField] = useState<SortField>('members');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [localFavorites, setLocalFavorites] = useState<Record<number, boolean>>({});
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
@@ -142,8 +141,6 @@ export function useChannelsData(channels: ChannelMetrics[]) {
     handleSort,
     localFavorites,
     toggleFavorite,
-    actionLoadingId,
-    setActionLoadingId,
     processedChannels
   };
 }

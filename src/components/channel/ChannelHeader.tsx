@@ -47,8 +47,8 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
   return (
     <>
       {/* Top Bar */}
-      <div className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="border-b border-border bg-surface/80 backdrop-blur sticky top-16 z-20">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-16 py-3 gap-3 flex flex-wrap items-center justify-between">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
@@ -63,6 +63,7 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
               <button
                 key={p}
                 onClick={() => onPeriodChange(p)}
+                aria-pressed={period === p}
                 className={`px-3 py-1 text-xs font-mono font-medium rounded-lg transition-all ${
                   period === p
                     ? 'bg-accent text-slate-950 font-bold shadow-sm'
@@ -82,7 +83,7 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               {channel.isMine && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-accent/20 text-accent font-semibold border border-accent/30">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs bg-accent/20 text-accent font-semibold border border-accent/30">
                   <Crown className="w-3.5 h-3.5" />
                   Мой канал
                 </span>
@@ -112,9 +113,9 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
             )}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="text-left md:text-right mr-4 border-r border-border/70 pr-4">
-              <div className="text-3xl sm:text-4xl font-extrabold font-mono tabular-nums" style={{ color: 'lime' }}>
+              <div className="text-3xl sm:text-4xl font-extrabold font-mono tabular-nums text-sky-400">
                 {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
               </div>
               <div className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Last Fact</div>
@@ -138,19 +139,19 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
 
         {/* KPI Cards Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6 pt-5 border-t border-border/70">
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
+          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
             <span className="text-[11px] text-slate-400 block mb-1">Δ 24 часа</span>
             <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="md" />
           </div>
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
+          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
             <span className="text-[11px] text-slate-400 block mb-1">Δ 7 дней</span>
             <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="md" />
           </div>
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
+          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
             <span className="text-[11px] text-slate-400 block mb-1">Δ 30 дней</span>
             <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} size="md" />
           </div>
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50">
+          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
             <span className="text-[11px] text-slate-400 block mb-1">Публикаций (30д)</span>
             <div className="text-xs font-mono font-semibold text-white">
               {channel.posts30d}{' '}
@@ -158,7 +159,7 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
             </div>
           </div>
           
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-border/50 relative group">
+          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50 relative group">
             <div className="text-[11px] text-slate-400 mb-1 flex items-center gap-1.5">
               <span className="text-slate-500">₴</span>
               <span title="Ориентировочная цена размещения">Оценка рекламы</span>

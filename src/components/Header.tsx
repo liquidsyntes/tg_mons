@@ -82,12 +82,12 @@ export function Header({
   return (
     <>
     <header className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Левая часть хедера: Логотип, название проекта и навигация */}
         <div className="flex items-center gap-3">
           
           {/* Блок с логотипом и названием (ведет на главную) */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
             
             {/* Иконка / Логотип проекта (tg_mon_logo.png) */}
             <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center">
@@ -96,9 +96,9 @@ export function Header({
             
             {/* Текстовая часть: Название проекта и бейдж (Live/EF) */}
             <div>
-              <span className="font-bold text-lg tracking-tight text-white flex items-center gap-[26px]">
+              <span className="font-bold text-sm sm:text-lg tracking-tight text-white flex items-center gap-3">
                 TG Monitor
-                <img src="/ef.png" alt="Live Badge" className="h-[22px] w-auto object-contain" />
+                <img src="/ef.png" alt="Live Badge" className="hidden sm:block h-[22px] w-auto object-contain" />
               </span>
             </div>
           </Link>
@@ -125,7 +125,7 @@ export function Header({
           {/* Информация о статусе работы: сколько каналов мониторится и когда было последнее обновление */}
           <div className="hidden lg:flex items-center gap-3 text-xs text-slate-400 font-mono border-r border-border pr-4">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="w-2 h-2 rounded bg-emerald-400 animate-pulse"></span>
               {displayActive} из {displayTotal} активны
             </span>
             <span>•</span>
@@ -153,7 +153,7 @@ export function Header({
           {/* Settings Link */}
           <Link
             href="/settings"
-            className="inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-border transition-colors"
+            className="inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-border transition-colors"
             title="Настройки"
           >
             <Settings className="w-4 h-4" />
@@ -164,7 +164,7 @@ export function Header({
           <button
             onClick={handleTriggerCollect}
             disabled={isCollecting}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-border transition-colors disabled:opacity-50"
+            className="inline-flex min-h-9 items-center justify-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-border transition-colors disabled:opacity-50"
             title="Запустить цикл сбора данных вручную"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isCollecting ? 'animate-spin text-accent' : ''}`} />
@@ -176,10 +176,11 @@ export function Header({
           {/* Главная целевая кнопка: добавление нового канала для мониторинга */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent hover:bg-accent-hover text-slate-950 transition-colors shadow-sm shadow-accent/20"
+            aria-label="Добавить канал"
+            className="inline-flex min-h-9 items-center gap-2 px-2 sm:px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent hover:bg-accent-hover text-slate-950 transition-colors shadow-sm shadow-accent/20"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Добавить канал</span>
+            <span className="hidden sm:inline">Добавить канал</span>
           </button>
         </div>
       </div>

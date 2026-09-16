@@ -1,22 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { BestTimeRecommendation } from '@/lib/types';
-import { Clock, Eye, Activity, Sparkles, TrendingUp } from 'lucide-react';
-import { formatNumber } from '@/lib/utils';
+import { Sparkles, TrendingUp } from 'lucide-react';
+import { formatNumber, formatPercent } from '@/lib/utils';
+
+type UpcomingSlot = BestTimeRecommendation['heatmap'][number] & { nextDate: Date };
 
 export function BestTimeWidget() {
   const [data, setData] = useState<BestTimeRecommendation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [upcomingSlots, setUpcomingSlots] = useState<any[]>([]);
+  const [upcomingSlots, setUpcomingSlots] = useState<UpcomingSlot[]>([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch('/api/stats/best-time')
-      .then(res => res.json())
-      .then(resData => {
+      .then(res => {
+        if (!res.ok) throw new Error('Не удалось загрузить рекомендации');
+        return res.json();
+      })
+      .then((resData: BestTimeRecommendation | null) => {
         setData(resData);
         setLoading(false);
       })
       .catch(err => {
         console.error('Failed to load best time stats:', err);
+        setError(true);
         setLoading(false);
       });
   }, []);
@@ -63,14 +70,23 @@ export function BestTimeWidget() {
     return (
       <div className="bg-surface border border-border rounded-2xl p-6 h-32 animate-pulse flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-800"></div>
+          <div className="w-8 h-8 rounded bg-slate-800"></div>
           <div className="h-3 w-48 bg-slate-800 rounded"></div>
         </div>
       </div>
     );
   }
 
-  if (!data || (data as any).error || upcomingSlots.length === 0) return null;
+  if (error || !data || upcomingSlots.length === 0) {
+    return (
+      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-3">
+        <h3 className="text-base font-bold text-white">Лучшее время для поста</h3>
+        <p className="text-sm text-slate-400" role={error ? 'alert' : undefined}>
+          {error ? 'Не удалось загрузить рекомендации. Попробуйте обновить страницу.' : 'Недостаточно публикаций для рекомендации времени.'}
+        </p>
+      </div>
+    );
+  }
 
   const daysFull = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
   
@@ -91,7 +107,7 @@ export function BestTimeWidget() {
   };
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-[6px]">
+    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-emerald-400" />
         <h3 className="text-base font-bold text-white">Лучшее время для поста</h3>
@@ -115,8 +131,8 @@ export function BestTimeWidget() {
               <div className="font-semibold text-slate-200">{formatNumber(bestSlot.avgViews)}</div>
             </div>
             <div>
-              <div className="text-slate-500 mb-0.5">Средний ERR</div>
-              <div className="font-semibold text-slate-200">{Number((bestSlot.avgErr * 100).toFixed(1))}%</div>
+              <div className="text-slate-400 mb-0.5" title="View Rate: просмотры относительно аудитории">Средний VR</div>
+              <div className="font-semibold text-slate-200">{formatPercent(bestSlot.avgVr, false)}</div>
             </div>
             <div>
               <div className="text-slate-500 mb-0.5">Постов (30д)</div>
@@ -143,8 +159,8 @@ export function BestTimeWidget() {
                 <div className="font-semibold text-slate-200">{formatNumber(secondSlot.avgViews)}</div>
               </div>
               <div>
-                <div className="text-slate-500 mb-0.5">Средний ERR</div>
-                <div className="font-semibold text-slate-200">{Number((secondSlot.avgErr * 100).toFixed(1))}%</div>
+                <div className="text-slate-400 mb-0.5" title="View Rate: просмотры относительно аудитории">Средний VR</div>
+                <div className="font-semibold text-slate-200">{formatPercent(secondSlot.avgVr, false)}</div>
               </div>
               <div>
                 <div className="text-slate-500 mb-0.5">Постов (30д)</div>
@@ -155,8 +171,8 @@ export function BestTimeWidget() {
         )}
       </div>
       
-      <p className="text-[11px] text-slate-500 leading-relaxed">
-        Время рассчитано на основе анализа охватов, вовлеченности (ERR) и уровня конкуренции (количества публикаций) среди всех отслеживаемых чужих каналов за последние 30 дней. Указано ближайшее окно.
+      <p className="text-xs text-slate-400 leading-relaxed">
+        Время рассчитано на основе охвата относительно аудитории (VR) и количества публикаций отслеживаемых чужих каналов за последние 30 дней. Указано ближайшее окно.
       </p>
     </div>
   );

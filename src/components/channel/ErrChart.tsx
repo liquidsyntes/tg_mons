@@ -79,7 +79,7 @@ export function ErrChart({ vrHistory, period, benchmarkErr: initialBenchmarkErr 
               <YAxis yAxisId="left" stroke="#fbbf24" fontSize={11} tickLine={false} axisLine={{ stroke: '#1e293b' }} tickFormatter={(v) => formatNumber(v)} orientation="left" />
               <YAxis yAxisId="right" stroke="#10b981" fontSize={11} tickLine={false} axisLine={{ stroke: '#1e293b' }} tickFormatter={(v) => `${v}%`} orientation="right" />
               <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px', color: '#f8fafc' }}
+                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '3px', fontSize: '12px', color: '#f8fafc' }}
                 labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
                 formatter={(value: number, name: string) => [name === 'ERR' ? `${value}%` : formatNumber(value), name]}
               />

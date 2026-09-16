@@ -59,7 +59,7 @@ export function PostsActivity({ postsDistribution, channel, period }: PostsActiv
               <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#1e293b' }} />
               <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={{ stroke: '#1e293b' }} allowDecimals={false} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px', color: '#f8fafc' }}
+                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '3px', fontSize: '12px', color: '#f8fafc' }}
                 labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
               />
               <Bar dataKey="posts" name="Количество постов" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={40} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Power, AlertTriangle } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
 import { checkLowCitationGrowth } from '@/lib/fraudDetector';
 import { DeltaBadge } from '../DeltaBadge';
@@ -18,8 +18,6 @@ interface ChannelsDesktopTableProps {
   onSort: (field: SortField) => void;
   localFavorites: Record<number, boolean>;
   onToggleFavorite: (e: React.MouseEvent, channelId: number, currentFav: boolean) => void;
-  actionLoadingId: number | null;
-  onToggleActive: (channelId: number, currentActive: boolean) => void;
 }
 
 export function ChannelsDesktopTable({
@@ -29,136 +27,185 @@ export function ChannelsDesktopTable({
   onSort,
   localFavorites,
   onToggleFavorite,
-  actionLoadingId,
-  onToggleActive,
 }: ChannelsDesktopTableProps) {
   const renderSortIcon = (field: SortField) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="w-3 h-3 opacity-40 ml-1 inline" />;
+      return <ArrowUpDown className="w-3 h-3 opacity-40 shrink-0" />;
     }
     return sortOrder === 'asc' ? (
-      <ArrowUp className="w-3 h-3 text-accent ml-1 inline" />
+      <ArrowUp className="w-3 h-3 text-accent shrink-0" />
     ) : (
-      <ArrowDown className="w-3 h-3 text-accent ml-1 inline" />
+      <ArrowDown className="w-3 h-3 text-accent shrink-0" />
     );
   };
 
+  const renderHeaderLabel = (label: string, field?: SortField, period?: string) => (
+    <span className="flex h-10 flex-col items-center justify-start gap-1 text-center">
+      <span className="inline-flex h-5 items-center justify-center gap-1 whitespace-nowrap leading-5">
+        <span>{label}</span>
+        {field && renderSortIcon(field)}
+      </span>
+      <span aria-hidden={period ? undefined : true} className="h-4 text-[11px] font-normal leading-4 text-slate-400">
+        {period}
+      </span>
+    </span>
+  );
+
   return (
     <div className="hidden md:block bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse text-xs">
+      <div className="overflow-x-auto focus-visible:outline-offset-[-2px]" tabIndex={0} role="region" aria-label="Channel metrics — прокрутка таблицы">
+        <table className="w-full text-left border-separate border-spacing-0 text-xs [&_th]:whitespace-nowrap [&_th]:align-middle [&_td]:border-b [&_td]:border-border/60">
           <thead>
             <tr className="border-b border-border bg-slate-900/70 text-slate-400 font-medium select-none">
               <th
-                onClick={() => onSort('title')}
-                className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors"
+                scope="col"
+                aria-sort={sortField === 'title' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="sticky left-0 z-20 bg-slate-900 py-3.5 px-2 w-[220px] min-w-[220px] text-center hover:text-white transition-colors"
               >
-                Channel {renderSortIcon('title')}
+                <button type="button" onClick={() => onSort('title')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Channel', 'title')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('members')}
-                className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-right"
+                scope="col"
+                aria-sort={sortField === 'members' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center"
               >
-                Subscribers {renderSortIcon('members')}
+                <button type="button" onClick={() => onSort('members')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Subscribers', 'members')}
+                </button>
               </th>
-              <th className="py-3.5 px-3 text-center">Trend (7d)</th>
+              <th scope="col" className="py-3.5 px-2 text-center">{renderHeaderLabel('Trend', undefined, '(7d)')}</th>
               <th
-                onClick={() => onSort('delta24h')}
-                className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
+                scope="col"
+                aria-sort={sortField === 'delta24h' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-1 hover:text-white transition-colors text-center"
               >
-                Δ 24h {renderSortIcon('delta24h')}
-              </th>
-              <th
-                onClick={() => onSort('delta7d')}
-                className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
-              >
-                Δ 7d {renderSortIcon('delta7d')}
-              </th>
-              <th
-                onClick={() => onSort('delta30d')}
-                className="py-3.5 px-1 cursor-pointer hover:text-white transition-colors text-center"
-              >
-                Δ 30d {renderSortIcon('delta30d')}
+                <button type="button" onClick={() => onSort('delta24h')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Δ 24h', 'delta24h')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('posts7d')}
-                className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                scope="col"
+                aria-sort={sortField === 'delta7d' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-1 hover:text-white transition-colors text-center"
               >
-                Publ (7d / 30d) {renderSortIcon('posts7d')}
+                <button type="button" onClick={() => onSort('delta7d')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Δ 7d', 'delta7d')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('lastFact')}
-                className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                scope="col"
+                aria-sort={sortField === 'delta30d' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-1 hover:text-white transition-colors text-center"
               >
-                <div className="flex flex-col items-center">
-                  <span>Last</span>
-                  <span>Fact {renderSortIcon('lastFact')}</span>
-                </div>
+                <button type="button" onClick={() => onSort('delta30d')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Δ 30d', 'delta30d')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('views')}
-                className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                scope="col"
+                aria-sort={sortField === 'posts7d' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center"
               >
-                Views (avg 24h / 7d) {renderSortIcon('views')}
+                <button type="button" onClick={() => onSort('posts7d')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Posts', 'posts7d', '(7d / 30d)')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('vr')}
-                className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                scope="col"
+                aria-sort={sortField === 'lastFact' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
               >
-                <div>VR {renderSortIcon('vr')}</div>
-                <div className="text-[10px] text-slate-500 font-normal mt-0.5">(24h / 7d)</div>
+                <button type="button" onClick={() => onSort('lastFact')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Last Fact', 'lastFact')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('er')}
-                className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                scope="col"
+                aria-sort={sortField === 'views' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center"
+              >
+                <button type="button" onClick={() => onSort('views')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Avg Views', 'views', '(24h / 7d)')}
+                </button>
+              </th>
+              <th
+                scope="col"
+                aria-sort={sortField === 'vr' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
+              >
+                <button type="button" onClick={() => onSort('vr')} className="w-full rounded text-center">
+                  {renderHeaderLabel('VR', 'vr', '(24h / 7d)')}
+                </button>
+              </th>
+              <th
+                scope="col"
+                aria-sort={sortField === 'er' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
                 title="Engagement Rate (считает вовлечённость от всей аудитории / подписчиков)"
               >
-                <div>ER {renderSortIcon('er')}</div>
-                <div className="text-[10px] text-slate-500 font-normal mt-0.5">(24h / 7d)</div>
+                <button type="button" onClick={() => onSort('er')} className="w-full rounded text-center">
+                  {renderHeaderLabel('ER', 'er', '(24h / 7d)')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('err')}
-                className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                scope="col"
+                aria-sort={sortField === 'err' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
                 title="Engagement Rate by Reach (реакции + комментарии + репосты от просмотров)"
               >
-                <div>ERR {renderSortIcon('err')}</div>
-                <div className="text-[10px] text-slate-500 font-normal mt-0.5">(24h / 7d)</div>
+                <button type="button" onClick={() => onSort('err')} className="w-full rounded text-center">
+                  {renderHeaderLabel('ERR', 'err', '(24h / 7d)')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('adShare')}
-                className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                scope="col"
+                aria-sort={sortField === 'adShare' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
                 title="Ad Load Share (рекламные посты за 7 дней)"
               >
-                <div>Ad Load {renderSortIcon('adShare')}</div>
-                <div className="text-[10px] text-slate-500 font-normal mt-0.5">(7d)</div>
+                <button type="button" onClick={() => onSort('adShare')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Ad Load', 'adShare', '(7d)')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('share')}
-                className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                scope="col"
+                aria-sort={sortField === 'share' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center"
               >
-                % of mine {renderSortIcon('share')}
+                <button type="button" onClick={() => onSort('share')} className="w-full rounded text-center">
+                  {renderHeaderLabel('% of mine', 'share')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('score')}
-                className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                scope="col"
+                aria-sort={sortField === 'score' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center"
               >
-                Score {renderSortIcon('score')}
+                <button type="button" onClick={() => onSort('score')} className="w-full rounded text-center">
+                  {renderHeaderLabel('Score', 'score')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('ep')}
-                className="py-3.5 px-4 cursor-pointer hover:text-white transition-colors text-center"
+                scope="col"
+                aria-sort={sortField === 'ep' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center"
               >
-                EP {renderSortIcon('ep')}
+                <button type="button" onClick={() => onSort('ep')} className="w-full rounded text-center">
+                  {renderHeaderLabel('EP', 'ep')}
+                </button>
               </th>
               <th
-                onClick={() => onSort('citationIndex')}
-                className="py-3.5 px-3 cursor-pointer hover:text-white transition-colors text-center leading-tight"
+                scope="col"
+                aria-sort={sortField === 'citationIndex' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
                 title="Индекс цитирования (взвешенная сумма упоминаний за 30 дней)"
               >
-                <div>CI {renderSortIcon('citationIndex')}</div>
-                <div className="text-[10px] text-slate-500 font-normal mt-0.5">(30d)</div>
+                <button type="button" onClick={() => onSort('citationIndex')} className="w-full rounded text-center">
+                  {renderHeaderLabel('CI', 'citationIndex', '(30d)')}
+                </button>
               </th>
-              <th className="py-3.5 pl-2 pr-4 text-center">Act.</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -175,17 +222,17 @@ export function ChannelsDesktopTable({
                       : 'opacity-60 bg-slate-950/40 hover:bg-slate-900/50'
                   }`}
                 >
-                  <td className="py-3.5 px-4">
+                  <td className={`sticky left-0 z-10 py-3.5 px-2 border-r border-border ${isMineRow ? 'bg-[#102238]' : 'bg-surface'}`}>
                     <ChannelInfoCell 
                       channel={channel} 
                       isFavorite={localFavorites[channel.id] ?? channel.isFavorite} 
                       onToggleFavorite={onToggleFavorite} 
                     />
                   </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-bold text-white tabular-nums text-sm">
+                  <td className="py-3.5 px-2 text-right font-mono font-bold text-white tabular-nums text-sm">
                     {formatNumber(channel.currentMembers)}
                   </td>
-                  <td className="py-3.5 px-3 text-center">
+                  <td className="py-3.5 px-2 text-center">
                     <TrendCell sparkline={channel.sparkline7d} deltaAbs={channel.delta7d.abs} />
                   </td>
                   <td className="py-3.5 px-1 text-center">
@@ -197,7 +244,7 @@ export function ChannelsDesktopTable({
                   <td className="py-3.5 px-1 text-center">
                     <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} coverageDays={channel.delta30d.coverageDays} nominalDays={30} size="sm" />
                   </td>
-                  <td className="py-3.5 px-4 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     <div className="flex flex-col items-center">
                       <div className="font-semibold text-slate-200 text-sm">
                         {channel.posts7d}
@@ -205,19 +252,19 @@ export function ChannelsDesktopTable({
                       <div className="text-xs text-slate-400 mt-0.5">
                         {channel.posts30d}
                       </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">
+                      <div className="text-[11px] text-slate-400 mt-0.5">
                         {channel.avgPostsPerDay}/д
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-center font-mono font-semibold tabular-nums text-[lime]">
+                  <td className="py-3.5 px-2 text-center font-mono font-semibold tabular-nums text-sky-400">
                     <MetricCell 
                       value={channel.lastPostViews} 
                       formattedValue={channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : undefined} 
                       {...getMetricReason('lastFact', channel)} 
                     />
                   </td>
-                  <td className="py-3.5 px-4 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     <MetricCell 
                       value={channel.avgViews24h} 
                       formattedValue={channel.avgViews24h !== null ? formatNumber(channel.avgViews24h) : undefined} 
@@ -232,27 +279,27 @@ export function ChannelsDesktopTable({
                       {...getMetricReason('views7d', channel)} 
                     />
                   </td>
-                  <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     <div>
                       <div className="font-semibold text-slate-200 text-sm">
                         <MetricCell value={channel.vr24h} suffix="%" {...getMetricReason('vr24h', channel)} />
                       </div>
-                      <div className={`text-[10px] mt-0.5 ${channel.vr7d !== null ? (channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
+                      <div className={`text-[11px] mt-0.5 ${channel.vr7d !== null ? (channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
                         <MetricCell value={channel.vr7d} suffix="%" {...getMetricReason('vr7d', channel)} />
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     <div>
                       <div className="font-semibold text-slate-200 text-sm">
                         <MetricCell value={channel.er24h} suffix="%" {...getMetricReason('er24h', channel)} />
                       </div>
-                      <div className={`text-[10px] mt-0.5 ${channel.er7d !== null ? (channel.er7d > 2 ? 'text-emerald-400' : channel.er7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
+                      <div className={`text-[11px] mt-0.5 ${channel.er7d !== null ? (channel.er7d > 2 ? 'text-emerald-400' : channel.er7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
                         <MetricCell value={channel.er7d} suffix="%" {...getMetricReason('er7d', channel)} />
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     {channel.type === 'group' ? (
                       <div title="Comments Rate: ответы / подписчики" className="flex flex-col items-center justify-center">
                         <div className="font-semibold text-slate-200 text-sm">
@@ -264,13 +311,13 @@ export function ChannelsDesktopTable({
                         <div className="font-semibold text-slate-200 text-sm">
                           <MetricCell value={channel.err24h} suffix="%" {...getMetricReason('err24h', channel)} />
                         </div>
-                        <div className={`text-[10px] mt-0.5 ${channel.err7d !== null ? (channel.err7d > 2 ? 'text-emerald-400' : channel.err7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
+                        <div className={`text-[11px] mt-0.5 ${channel.err7d !== null ? (channel.err7d > 2 ? 'text-emerald-400' : channel.err7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
                           <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />
                         </div>
                       </div>
                     )}
                   </td>
-                  <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     {channel.adShare7d ? (
                       <div className={`font-semibold text-sm ${
                         channel.adShare7d.level === 'high' ? 'text-rose-400' :
@@ -284,20 +331,20 @@ export function ChannelsDesktopTable({
                       <div className="text-slate-500 text-sm">—</div>
                     )}
                   </td>
-                  <td className="py-3.5 px-4 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     <ComparisonCell 
                       isMine={!!isMineRow} 
                       audienceSharePercent={channel.comparison?.audienceSharePercent} 
                       growthRateDiff7d={channel.comparison?.growthRateDiff7d} 
                     />
                   </td>
-                  <td className="py-3.5 px-4 text-center">
+                  <td className="py-3.5 px-2 text-center">
                     <ScoreCell score={channel.contentScore} grade={channel.contentGrade} />
                   </td>
-                  <td className="py-3.5 px-4 text-center">
+                  <td className="py-3.5 px-2 text-center">
                     <EpCell ep={channel.ep} />
                   </td>
-                  <td className="py-3.5 px-3 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     {(() => {
                       const ci = channel.citationIndex;
                       const hasCi = ci !== null && ci !== undefined;
@@ -325,22 +372,6 @@ export function ChannelsDesktopTable({
                         </span>
                       );
                     })()}
-                  </td>
-                  <td className="py-3.5 pl-2 pr-4 text-center">
-                    <div className="inline-flex items-center gap-1.5 justify-center">
-                      <button
-                        onClick={() => onToggleActive(channel.id, channel.isActive)}
-                        disabled={actionLoadingId === channel.id}
-                        className={`p-1.5 rounded-lg transition-colors ${
-                          channel.isActive
-                            ? 'text-slate-400 hover:text-amber-400 hover:bg-slate-800'
-                            : 'text-amber-400 hover:text-emerald-400 hover:bg-slate-800'
-                        }`}
-                        title={channel.isActive ? 'Поставить на паузу' : 'Возобновить сбор'}
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
                   </td>
                 </tr>
               );

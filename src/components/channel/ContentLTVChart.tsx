@@ -74,7 +74,7 @@ export default function ContentLTVChart({ channelId }: { channelId: number }) {
             <XAxis dataKey="hour" stroke="#475569" fontSize={12} tickLine={false} tickFormatter={(val) => `${val}ч`} />
             <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
             <Tooltip
-              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '0.75rem' }}
+              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '3px' }}
               itemStyle={{ color: '#f8fafc' }}
               formatter={(value: number) => [`${value}%`, 'Набрано просмотров']}
               labelFormatter={(label) => `Прошло ${label} ч.`}

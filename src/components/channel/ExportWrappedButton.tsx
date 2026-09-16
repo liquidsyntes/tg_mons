@@ -40,7 +40,7 @@ export function ExportWrappedButton({ filename = 'tgmon-wrapped.png' }: { filena
     <button
       onClick={handleExport}
       disabled={loading}
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-pink-500 hover:bg-pink-600 text-white transition-colors border border-pink-400 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      className="inline-flex min-h-9 items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
       Wrapped Сторис

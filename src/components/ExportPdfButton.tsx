@@ -129,7 +129,7 @@ export function ExportPdfButton({ reportContainerId, channelTitle, period }: Exp
     <button
       onClick={handleExport}
       disabled={exporting}
-      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-800 border border-border hover:border-accent hover:bg-slate-700 text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="inline-flex min-h-9 items-center justify-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-slate-800 border border-border hover:border-accent hover:bg-slate-700 text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
       data-pdf-hide
     >
       {exporting ? (

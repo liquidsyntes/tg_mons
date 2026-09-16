@@ -4,6 +4,7 @@ import { Star, Eye, Users } from 'lucide-react';
 import Link from 'next/link';
 import { formatNumber, formatPercent } from '@/lib/utils';
 import { DeltaBadge } from './DeltaBadge';
+import { MetricCell, getMetricReason } from './channel/cells/MetricCell';
 
 interface WatchlistWidgetProps {
   channels: ChannelMetrics[];
@@ -15,7 +16,7 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
   if (favorites.length === 0) return null;
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-[6px]">
+    <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
       <div className="flex items-center gap-2">
         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
         <h3 className="text-base font-bold text-white tracking-tight">Избранное</h3>
@@ -26,15 +27,15 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
           <Link 
             key={channel.id} 
             href={`/channel/${channel.id}`}
-            className="block bg-slate-900 border border-border hover:border-amber-500/50 rounded-xl p-4 transition-colors group"
+            className="block bg-slate-900 border border-border hover:border-accent/50 rounded-xl p-4 transition-colors group"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="min-w-0">
-                <h4 className="text-sm font-bold text-slate-100 group-hover:text-amber-400 truncate">
+                <h4 className="text-sm font-bold text-slate-100 group-hover:text-accent truncate">
                   {channel.title}
                 </h4>
                 {channel.username && (
-                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
                     @{channel.username}
                   </div>
                 )}
@@ -44,7 +45,7 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
             <div className="space-y-3">
               <div className="flex items-end justify-between">
                 <div>
-                  <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1">
+                  <div className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">
                     Подписчики
                   </div>
                   <div className="text-lg font-bold text-white font-mono leading-none">
@@ -56,19 +57,21 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
               
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
                 <div>
-                  <div className="text-[9px] text-slate-500 font-semibold uppercase mb-0.5">
+                  <div className="text-[11px] text-slate-400 font-semibold uppercase mb-0.5">
                     Просмотры 7д
                   </div>
                   <div className="text-xs font-mono text-slate-300">
-                    {channel.avgViews7d ? formatNumber(channel.avgViews7d) : '—'}
+                    {channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : '—'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[9px] text-slate-500 font-semibold uppercase mb-0.5">
-                    ERR 7д
+                  <div className="text-[11px] text-slate-400 font-semibold uppercase mb-0.5">
+                    {channel.type === 'group' ? 'CR 7д' : 'ERR 7д'}
                   </div>
                   <div className="text-xs font-mono text-slate-300">
-                    {channel.vr7d !== null ? `${channel.vr7d}%` : '—'}
+                    {channel.type === 'group'
+                      ? <MetricCell value={channel.cr7d} suffix="%" />
+                      : <MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} />}
                   </div>
                 </div>
               </div>

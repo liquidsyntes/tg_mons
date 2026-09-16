@@ -20,24 +20,17 @@ export function MetricCell({ value, suffix = '', reason, reasonTitle, colorClass
     );
   }
 
-  if (reason === 'не постил 7д') {
+  if (reason === 'не постил 7д' || reason === 'нет постов за 24ч') {
+    const isWeek = reason === 'не постил 7д';
+    const label = reasonTitle || (isWeek ? 'Нет постов за последние 7 дней' : 'Нет постов за последние 24 часа');
     return (
-      <span 
-        className="inline-flex items-center justify-center px-1.5 py-[1px] text-[8px] font-bold text-white bg-pink-600 rounded-md"
-        title={reasonTitle || reason}
+      <span
+        role="img"
+        aria-label={label}
+        className="inline-flex h-4 w-4 items-center justify-center align-middle"
+        title={label}
       >
-        nP7D
-      </span>
-    );
-  }
-
-  if (reason === 'нет постов за 24ч') {
-    return (
-      <span 
-        className="inline-flex items-center justify-center px-1.5 py-[1px] text-[8px] font-bold text-white bg-orange-500 rounded-md"
-        title={reasonTitle || reason}
-      >
-        nP24h
+        <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${isWeek ? 'bg-pink-400' : 'bg-sky-400'}`} />
       </span>
     );
   }
@@ -45,7 +38,7 @@ export function MetricCell({ value, suffix = '', reason, reasonTitle, colorClass
   if (reason) {
     return (
       <span 
-        className="text-[10px] text-slate-500 font-normal leading-tight inline-block align-middle text-center" 
+        className="text-[11px] text-slate-400 font-normal leading-tight inline-block align-middle text-center"
         title={reasonTitle || reason}
       >
         {reason}

@@ -105,8 +105,6 @@ export default function OverviewPage() {
             {/* Comparative Channels Table */}
             <ChannelsTable
               channels={stats.channels}
-              myChannel={stats.myChannel}
-              onRefresh={fetchOverview}
             />
           </>
         ) : null}

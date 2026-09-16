@@ -10,6 +10,7 @@ import { AudienceDemographics } from './AudienceDemographics';
 import { DeltaBadge } from './DeltaBadge';
 import { StatusBadge } from './StatusBadge';
 import { RiskBadge } from './RiskBadge';
+import { MetricCell, getMetricReason } from './channel/cells/MetricCell';
 import { formatNumber } from '@/lib/utils';
 
 interface MyChannelCardProps {
@@ -45,7 +46,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
     return (
       <div className="bg-surface border border-dashed border-border-subtle rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
         <div className="space-y-2 text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-accent/10 text-accent font-medium">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-accent/10 text-accent font-medium">
             <Crown className="w-3.5 h-3.5" />
             <span>Базовый канал не выбран</span>
           </div>
@@ -69,13 +70,13 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
   return (
     <div className="bg-gradient-to-br from-surface to-slate-900 border border-accent/25 rounded-2xl p-5 sm:p-6 relative shadow-lg shadow-accent/5 overflow-hidden">
       {/* Background ambient glow */}
-      <div className="absolute -top-24 -right-24 w-60 h-60 bg-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute -top-24 -right-24 w-60 h-60 bg-accent/10 rounded-lg blur-3xl pointer-events-none"></div>
 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
         {/* Channel Info */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs bg-accent/20 text-accent font-semibold border border-accent/30">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs bg-accent/20 text-accent font-semibold border border-accent/30">
               <Crown className="w-3.5 h-3.5" />
               Мой канал
             </span>
@@ -87,7 +88,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
             <RiskBadge score={fraudScore} signals={fraudSignals} />
           </div>
 
-          <div className="flex items-baseline gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
               {channel.title}
             </h2>
@@ -126,11 +127,11 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
       </div>
 
       {/* Grid of Key Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-[6px] mt-6 pt-5 border-t border-border/80">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-[6px] mt-6 pt-5 border-t border-border/80">
         {/* Delta 24h */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-slate-500" />
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
+            <Users className="w-3.5 h-3.5 shrink-0 text-slate-400" />
             <span>Дин. 24ч</span>
           </div>
           <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} coverageDays={channel.delta24h.coverageDays} nominalDays={1} size="md" />
@@ -138,8 +139,8 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
 
         {/* Delta 7d */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-slate-500" />
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
+            <Users className="w-3.5 h-3.5 shrink-0 text-slate-400" />
             <span>Дин. 7д</span>
           </div>
           <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} coverageDays={channel.delta7d.coverageDays} nominalDays={7} size="md" />
@@ -147,8 +148,8 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
 
         {/* Delta 30d */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-slate-500" />
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
+            <Users className="w-3.5 h-3.5 shrink-0 text-slate-400" />
             <span>Дин. 30д</span>
           </div>
           <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} coverageDays={channel.delta30d.coverageDays} nominalDays={30} size="md" />
@@ -156,11 +157,11 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
 
         {/* Posts Frequency */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-slate-500" />
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
+            <FileText className="w-3.5 h-3.5 shrink-0 text-slate-400" />
             <span>Посты 7д/30д</span>
           </div>
-          <div className="text-xs font-mono text-white tabular-nums font-semibold flex items-center gap-1.5">
+          <div className="text-xs font-mono text-white tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
             <span>{channel.posts7d}</span>
             <span className="text-slate-500">/</span>
             <span>{channel.posts30d}</span>
@@ -172,43 +173,43 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
 
         {/* Avg Views */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-slate-500" />
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
+            <FileText className="w-3.5 h-3.5 shrink-0 text-slate-400" />
             <span>Просмотры (24ч/7д)</span>
           </div>
-          <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
-            <span className="text-sky-400">{channel.avgViews24h ? formatNumber(channel.avgViews24h) : '—'}</span>
+          <div className="text-xs font-mono tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
+            <span className="text-sky-400">{channel.avgViews24h !== null ? formatNumber(channel.avgViews24h) : '—'}</span>
             <span className="text-slate-500">/</span>
-            <span className="text-slate-300">{channel.avgViews7d ? formatNumber(channel.avgViews7d) : '—'}</span>
+            <span className="text-slate-300">{channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : '—'}</span>
           </div>
         </div>
 
         {/* ERR */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-slate-500" />
-            <span>ERR (24ч/7д)</span>
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
+            <FileText className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+            <span>{channel.type === 'group' ? 'CR (7д)' : 'ERR (24ч/7д)'}</span>
           </div>
-          <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
-            <span className="text-slate-200">{channel.vr24h !== null ? `${channel.vr24h}%` : '—'}</span>
-            <span className="text-slate-500">/</span>
-            {channel.vr7d !== null ? (
-              <span className={channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-300'}>
-                {channel.vr7d}%
-              </span>
+          <div className="text-xs font-mono tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
+            {channel.type === 'group' ? (
+              <MetricCell value={channel.cr7d} suffix="%" />
             ) : (
-              <span className="text-slate-300">—</span>
+              <>
+                <MetricCell value={channel.err24h} suffix="%" colorClass="text-slate-200" {...getMetricReason('err24h', channel)} />
+                <span className="text-slate-500">/</span>
+                <MetricCell value={channel.err7d} suffix="%" colorClass="text-slate-300" {...getMetricReason('err7d', channel)} />
+              </>
             )}
           </div>
         </div>
 
         {/* Citation Index (Индекс цитирования) */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <Share2 className="w-3.5 h-3.5 text-slate-500" />
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
+            <Share2 className="w-3.5 h-3.5 shrink-0 text-slate-400" />
             <span>Индекс цит. (30д)</span>
           </div>
-          <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
+          <div className="text-xs font-mono tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
             {(() => {
               const ci = channel.citationIndex;
               const hasCi = ci !== null && ci !== undefined;
@@ -241,11 +242,11 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
 
         {/* Ad Price Estimate */}
         <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50 relative group">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
             <span className="text-slate-500">₴</span>
             <span title="Ориентировочная цена размещения">Оценка рекламы</span>
           </div>
-          <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
+          <div className="text-xs font-mono tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
             {adPrice ? (
               adPrice.estimatedPricePerPost ? (
                 <>

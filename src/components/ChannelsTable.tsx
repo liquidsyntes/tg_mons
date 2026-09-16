@@ -10,11 +10,9 @@ import { ChannelsMobileList } from './channel/ChannelsMobileList';
 
 interface ChannelsTableProps {
   channels: ChannelMetrics[];
-  myChannel: ChannelMetrics | null;
-  onRefresh: () => Promise<void>;
 }
 
-export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableProps) {
+export function ChannelsTable({ channels }: ChannelsTableProps) {
   const {
     searchQuery,
     setSearchQuery,
@@ -23,26 +21,8 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
     handleSort,
     localFavorites,
     toggleFavorite,
-    actionLoadingId,
-    setActionLoadingId,
     processedChannels
   } = useChannelsData(channels);
-
-  const handleToggleActive = async (channelId: number, currentActive: boolean) => {
-    setActionLoadingId(channelId);
-    try {
-      const res = await fetch(`/api/channels/${channelId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !currentActive }),
-      });
-      if (res.ok) await onRefresh();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
 
   const handleExportCSV = () => {
     const headers = [
@@ -103,13 +83,13 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
   return (
     <div className="space-y-[6px]">
       <div className="bg-slate-800/40 border border-border rounded-2xl p-4 sm:p-5 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-base font-bold text-white tracking-tight">
             Сравнительный мониторинг каналов
           </h3>
           <Link
             href="/compare"
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 border border-border hover:border-accent hover:bg-slate-700 text-slate-200 transition-colors"
+            className="inline-flex min-h-9 items-center justify-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 border border-border hover:border-accent hover:bg-slate-700 text-slate-200 transition-colors"
           >
             <GitCompareArrows className="w-3.5 h-3.5" />
             Сравнить каналы
@@ -149,8 +129,6 @@ export function ChannelsTable({ channels, myChannel, onRefresh }: ChannelsTableP
         onSort={handleSort}
         localFavorites={localFavorites}
         onToggleFavorite={toggleFavorite}
-        actionLoadingId={actionLoadingId}
-        onToggleActive={handleToggleActive}
       />
 
       <ChannelsMobileList

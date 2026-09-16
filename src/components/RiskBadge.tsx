@@ -41,7 +41,7 @@ export function RiskBadge({ score, signals = [], className = '' }: RiskBadgeProp
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors ${colorStyles} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-semibold border transition-colors ${colorStyles} ${className}`}
       title={tooltip}
       data-testid="risk-badge"
     >

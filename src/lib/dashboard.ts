@@ -1,4 +1,4 @@
-﻿import { prisma } from './prisma';
+import { prisma } from './prisma';
 import { getOverviewStats } from './metrics';
 import { subDays, format, startOfDay } from 'date-fns';
 
@@ -7,7 +7,7 @@ export interface DashboardStats {
   totalSubscribers: number;
   totalPosts30d: number;
   avgGrowthRate: number;
-  avgErr: number;
+  avgErr: number | null;
   avgScore?: number;
   topGainers: Array<{
     id: number;
@@ -49,10 +49,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     : 0;
 
   // average err 7d
-  const validErr = allMetrics.filter(c => c.vr7d !== null);
+  const validErr = allMetrics.flatMap(c =>
+    c.type === 'channel' && c.err7d !== null && Number.isFinite(c.err7d) ? [c.err7d] : []
+  );
   const avgErr = validErr.length > 0 
-    ? validErr.reduce((sum, c) => sum + c.vr7d!, 0) / validErr.length 
-    : 0;
+    ? validErr.reduce((sum, err) => sum + err, 0) / validErr.length
+    : null;
 
   const validScore = allMetrics.filter(c => c.contentScore !== undefined);
   const avgScore = validScore.length > 0
@@ -156,6 +158,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalPosts30d,
     avgGrowthRate,
     avgErr,
+    avgScore,
     topGainers: gainers,
     topLosers: losers,
     postsTimeline,

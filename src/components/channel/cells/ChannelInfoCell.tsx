@@ -35,7 +35,7 @@ export function ChannelInfoCell({ channel, isFavorite, onToggleFavorite }: Chann
   const lastCollectedStr = channel.lastCollectedAt ? new Date(channel.lastCollectedAt).toLocaleString('ru-RU') : 'Никогда';
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex w-[204px] items-center gap-2">
       {isMineRow ? (
         <div 
           className={`w-7 h-7 rounded-lg border flex items-center justify-center flex-shrink-0 ${getAvatarStyles(channel)}`}
@@ -51,7 +51,7 @@ export function ChannelInfoCell({ channel, isFavorite, onToggleFavorite }: Chann
           {channel.type === 'group' ? 'Г' : 'К'}
         </div>
       )}
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {!isMineRow && (
             <button
@@ -68,18 +68,18 @@ export function ChannelInfoCell({ channel, isFavorite, onToggleFavorite }: Chann
           )}
           <Link
             href={`/channel/${channel.id}`}
-            className="font-semibold text-slate-100 hover:text-accent transition-colors truncate max-w-[180px] inline-block"
+            className="font-semibold text-slate-100 hover:text-accent transition-colors truncate min-w-0 inline-block"
             title={channel.title}
           >
             {channel.title}
           </Link>
           {isMineRow && (
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-accent/20 text-accent font-semibold">
+            <span className="shrink-0 text-[10px] px-1.5 py-0.2 rounded bg-accent/20 text-accent font-semibold">
               Мой
             </span>
           )}
           {!channel.isActive && (channel.consecutiveErrors || 0) > 0 && (
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-400 font-semibold" title={`Отключен из-за ${channel.consecutiveErrors} ошибок подряд`}>
+            <span className="shrink-0 text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-400 font-semibold" title={`Отключен из-за ${channel.consecutiveErrors} ошибок подряд`}>
               авто-off
             </span>
           )}
@@ -89,10 +89,10 @@ export function ChannelInfoCell({ channel, isFavorite, onToggleFavorite }: Chann
             href={`https://t.me/${channel.username}`}
             target="_blank"
             rel="noreferrer"
-            className="text-[11px] text-slate-400 hover:text-accent font-mono inline-flex items-center gap-1 transition-colors"
+            className="text-[11px] text-slate-400 hover:text-accent font-mono flex min-w-0 items-center gap-1 transition-colors"
           >
-            @{channel.username}
-            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+            <span className="truncate" title={`@${channel.username}`}>@{channel.username}</span>
+            <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-60" />
           </a>
         )}
       </div>
