@@ -77,7 +77,10 @@ async function startWorker() {
   logger.info('Worker started and waiting for schedule');
 
   // Schedule weekly demographics collection
-  cron.schedule(demographicsCron, () => {
+  if (!cron.validate(demographicsCron)) {
+    logger.warn('Invalid demographics schedule; using weekly default');
+  }
+  cron.schedule(cron.validate(demographicsCron) ? demographicsCron : '0 3 * * 0', () => {
     logger.info('Demographics cron triggered');
     executeDemographicsCycle();
   });
