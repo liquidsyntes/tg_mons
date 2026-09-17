@@ -1,260 +1,120 @@
-# Архитектура проекта TgMon (C4 Model)
+# Архитектура TgMon
 
-Этот документ описывает высокоуровневую архитектуру проекта TgMon, включая основные компоненты, их взаимодействие, пайплайн антифрод-мониторинга и внешние зависимости. Архитектура описана с использованием диаграмм C4 (Context, Container, Component) и Mermaid-схем.
+Состояние реализации: 17 сентября 2026 года. Источники — [Prisma-схема](../prisma/schema.prisma), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
 
-## 1. System Context Diagram
-
-Диаграмма контекста показывает систему TgMon в целом и ее взаимодействие с внешними системами и пользователями.
+## Контекст и процессы
 
 ```mermaid
-C4Context
-  title System Context diagram for TgMon
-
-  Person(user, "Пользователь", "Владелец Telegram-канала или маркетолог, анализирующий каналы и проверяющий их на накрутку.")
-  
-  System(tgmon, "TgMon", "Fullstack-система мониторинга, аналитики и антифрод-аудита Telegram-каналов.")
-  
-  System_Ext(telegram, "Telegram (MTProto)", "Платформа Telegram, откуда собираются сырые данные (подписчики, посты, просмотры, реакции, входящие упоминания).")
-  System_Ext(openrouter, "OpenRouter (LLM)", "Внешний API (Gemini/OpenAI/Claude) для генерации AI-сводок и аналитики.")
-
-  Rel(user, tgmon, "Просматривает дашборды, аналитику, бейджи риска накрутки (RiskBadge) и AI-отчеты", "HTTPS")
-  Rel(tgmon, telegram, "Собирает данные через клиентский протокол MTProto (GramJS)", "TCP")
-  Rel(tgmon, openrouter, "Запрашивает генерацию аналитики по промптам", "HTTPS/REST")
+flowchart LR
+    User[Пользователь] --> Web[Next.js UI и API :4000]
+    Web --> DB[(PostgreSQL)]
+    Web --> AI[OpenRouter]
+    Web -->|добавление канала и ручной сбор| TG[Telegram MTProto]
+    Worker[Worker: cron и GramJS] --> TG
+    Worker --> DB
+    Worker -->|уведомления| Bot[Telegram Bot API]
+    Worker -->|POST invalidate-cache| Web
 ```
 
-## 2. Container Diagram
+Web и worker — отдельные Node.js-процессы с общими модулями и БД. При этом web тоже импортирует коллектор: добавление канала выполняет resolve/backfill, а `POST /api/collect/run` ждёт завершения `runCollectCycle` непосредственно в web-процессе. Очереди задач и отдельного HTTP-сервера worker нет.
 
-Диаграмма контейнеров раскрывает внутреннюю структуру системы TgMon на уровне развертываемых единиц (контейнеров).
+`src/worker/index.ts` защищает каждое cron-задание своим флагом от повторного запуска того же задания внутри процесса. Межпроцессной блокировки нет; основной сбор, демография, рекламный сбор и ручной HTTP-вызов могут пересекаться. Несколько worker требуют отдельной координации.
 
-```mermaid
-C4Container
-  title Container diagram for TgMon
+## Слои приложения
 
-  Person(user, "Пользователь", "Анализирует дашборд и риски накрутки")
+| Слой | Модули и ответственность |
+| --- | --- |
+| UI | `src/app/`, `src/components/`: страницы, интерактивные таблицы, графики, отчёты; главная и детализация загружают метрики через API |
+| API | `src/app/api/`: чтение и управление каналами, статистика, AI, события, настройки, health, экспорт |
+| Метрики | `src/lib/metrics/queries.ts`, `aggregate.ts`, `calculate.ts`, `engagement.ts`, `adShare.ts`; публичные реэкспорты в `src/lib/metrics.ts` |
+| Производные оценки | `ep.ts`, `scoring.ts`, `fraudDetector.ts`, `citationIndex.ts`, `pricing.ts` |
+| Сбор | `client.ts` → `fetcher.ts` → `collector.ts` → `persister.ts`; обработка ошибок в `retry-policy.ts` |
+| Дополнительные задания | `worker/demographics.ts`, `worker/ad-reach.ts` |
+| Хранение и кэш | `prisma.ts`, `materialize.ts`, `cache.ts` |
 
-  System_Boundary(tgmon_boundary, "TgMon System") {
-    Container(web, "Web App & API", "Next.js 15 (App Router)", "Отображает UI (включая RiskBadge и Citation Index), предоставляет REST API, рассчитывает метрики 'на лету', вычисляет Citation Index и консолидированный fraudScore (0–100), вызывает AI.")
-    Container(worker, "MTProto Worker", "Node.js (tsx) + GramJS", "Фоновый процесс (cron), который собирает данные из Telegram, материализует дневные метрики и запускает 4 эвристики антифрода с записью в fraud_signals.")
-    ContainerDb(db, "Database", "PostgreSQL 15", "Хранит историю каналов, снапшоты аудитории, посты, агрегаты метрик и сигналы аномалий (fraud_signals).")
-  }
+## Модель данных
 
-  System_Ext(telegram, "Telegram (MTProto)", "Telegram API")
-  System_Ext(openrouter, "OpenRouter (LLM)", "AI API")
+| Prisma-модель | Таблица | Назначение |
+| --- | --- | --- |
+| `Channel` | `channels` | Идентификаторы Telegram, тип, ниша, флаги, статус и ошибки сбора |
+| `Snapshot` | `snapshots` | История численности аудитории |
+| `Post` | `posts` | Текущие счётчики и текст публикации; unique `(channelId, messageId)` |
+| `Mention` | `mentions` | Ссылка из собранного поста на username/tgId; target не является внешним ключом на Channel |
+| `PostSnapshot` | `post_snapshots` | Нерегулярная история просмотров свежих постов для LTV |
+| `PostViewSnapshot` | `post_view_snapshots` | Рекламные контрольные точки; unique `(postId, hoursAfterPost)` |
+| `ChannelMetricDaily` | `channel_metrics_daily` | Дневные агрегаты UTC; unique `(channelId, date)` |
+| `FraudSignal` | `fraud_signals` | Тип, значение, причина и время срабатывания эвристики |
+| `AudienceDemographics` | `audience_demographics` | Языковые доли, дата снимка, nullable JSONB `countryBreakdown` |
+| `AiReport` | `ai_reports` | Тип и строковый JSON-ответ LLM, необязательный канал |
+| `Event`, `EventMention` | `events`, `event_mentions` | События и связи с исходными постами |
+| `SyncJob` | `sync_jobs` | Начало/конец цикла, статус, счётчики и краткая ошибка |
+| `SystemSetting` | `system_settings` | Запись `global` с настройками AI и полями digest |
+| `AlertRule` | `alert_rules` | Схема пользовательских правил; исполнения в worker пока нет |
 
-  Rel(user, web, "Использует интерфейс", "HTTPS")
-  Rel(web, db, "Читает/Пишет (Prisma ORM)", "TCP/5432")
-  Rel(web, openrouter, "Генерация отчетов", "HTTPS")
-  
-  Rel(worker, telegram, "Сбор данных (MTProto)", "TCP")
-  Rel(worker, db, "Сохраняет сырые данные, агрегаты и fraud_signals", "TCP/5432")
-  Rel(worker, web, "Сбрасывает кэш после цикла сбора", "HTTP POST /api/internal/invalidate-cache, Bearer")
-```
+Миграции находятся в `prisma/migrations/`. Последняя на дату сверки — `20260916213000_add_demographics_country`: добавление nullable JSONB без заполнения старых строк. `PostViewSnapshot` введён миграцией `20260913211244_add_post_view_snapshot`. Схема включает `pg_trgm` и GIN-индекс текста постов.
 
-## 3. Component Diagram (Web App & API)
+Отключение канала меняет `isActive`; физическое удаление использует каскады связей Prisma. `isMine` переносится транзакцией, но уникального ограничения в БД нет. `SystemSetting.aiToken` хранится и возвращается без маскирования. Параметры digest и `AlertRule` сами по себе не включают фоновые функции.
 
-Эта диаграмма детализирует внутреннюю структуру Next.js приложения, включая модули аналитики и антифрод-скоринга.
-
-```mermaid
-C4Component
-  title Component diagram for Web App & API
-
-  Container_Boundary(web_boundary, "Web App & API (Next.js)") {
-    Component(ui, "React UI Components", "React 19 (Server & Client)", "Рендер дашбордов, таблиц, графиков (Recharts), индикаторов RiskBadge и ячеек Citation Index.")
-    
-    Component(api_stats, "Stats Route Handlers", "Next.js Route Handlers", "Отдают JSON со сводными метриками (/api/stats/overview, /api/stats/channel/:id, /api/channels).")
-    Component(api_ai, "AI Route Handlers", "Next.js Route Handlers", "Пайплайны сбора данных для промпта и обращения к LLM через OpenRouter.")
-    Component(api_cache, "Internal Cache Invalidation", "/api/internal/invalidate-cache", "Проверяет Bearer-токен и очищает кэши metricsCache и bestTimeCache.")
-    
-    Component(lib_metrics, "Metrics Engine & Queries", "src/lib/metrics/*", "Бизнес-логика: ER, ERR, CR, VR, дельты, агрегация снапшотов и связывание каналов.")
-    Component(lib_fraud, "Fraud Detector", "src/lib/fraudDetector.ts", "Консолидированный аудит (runFraudAudit), расчет единого fraudScore (0–100) и проверка checkLowCitationGrowth.")
-    Component(lib_citation, "Citation Index", "src/lib/citationIndex.ts", "Логарифмический расчет индекса цитирования по входящим упоминаниям за 30 дней (calculateCitationIndex, getCitationIndicesForChannels).")
-    Component(lib_cache, "In-memory Cache", "src/lib/cache.ts", "Хранит metricsCache и bestTimeCache в оперативной памяти.")
-    Component(lib_ep, "EP Calculator", "src/lib/ep.ts", "Вычисление Effective Point (EP), CEI, Z-score нормализация по нишам.")
-    Component(lib_prisma, "Prisma Client", "src/lib/prisma.ts", "Типизированный ORM-доступ к PostgreSQL.")
-  }
-
-  ContainerDb(db, "PostgreSQL", "Database")
-  System_Ext(openrouter, "OpenRouter API")
-
-  Rel(ui, api_stats, "Запрашивает метрики (включая fraudScore, fraudSignals, citationIndex)", "JSON/REST")
-  Rel(ui, api_ai, "Запрашивает AI-генерацию", "JSON/REST")
-  
-  Rel(api_stats, lib_metrics, "Делегирует расчет сводных метрик")
-  Rel(api_stats, lib_ep, "Запрашивает EP-рейтинги")
-  Rel(api_stats, lib_fraud, "Запрашивает runFraudAudit(channel) для расчета fraudScore")
-  Rel(api_stats, lib_citation, "Запрашивает getCitationIndicesForChannels(channels)")
-  Rel(api_ai, lib_metrics, "Собирает контекст для промпта")
-  Rel(api_ai, openrouter, "Отправляет промпт")
-  Rel(api_cache, lib_cache, "Очищает metricsCache и bestTimeCache")
-
-  Rel(lib_metrics, lib_prisma, "SQL запросы каналов, постов, метрик")
-  Rel(lib_fraud, lib_prisma, "Чтение fraud_signals за последние 30 дней")
-  Rel(lib_citation, lib_prisma, "Чтение входящих упоминаний (mentions)")
-  Rel(lib_ep, lib_prisma, "SQL запросы исторических метрик")
-  Rel(lib_prisma, db, "Чтение/Запись данных", "TCP/5432")
-```
-
-## 4. Component Diagram (Worker)
-
-Детализация фонового процесса сбора данных и детекции аномалий.
-
-```mermaid
-C4Component
-  title Component diagram for MTProto Worker
-
-  Container_Boundary(worker_boundary, "MTProto Worker (Node.js)") {
-    Component(cron, "Cron Scheduler", "node-cron (src/worker/index.ts)", "Запуск цикла сбора по расписанию (COLLECT_CRON).")
-    Component(collector, "Collector Loop", "src/worker/collector.ts", "Итерация по каналам, сбор постов, снапшотов, упоминаний и запуск проверок.")
-    Component(demographics, "Demographics Job", "src/worker/demographics.ts", "Еженедельный сбор аудиторной статистики (stats.getBroadcastStats).")
-    Component(fraud_detector, "Fraud Detector", "src/lib/fraudDetector.ts", "4 эвристики: гладкость роста (CV), нескоррелированные скачки, ratio просмотров/подписчиков, равномерность ERR (CV).")
-    Component(persister, "Persister", "src/worker/persister.ts", "Сохранение постов, реакций, снапшотов и вызов saveFraudSignal().")
-    Component(client, "Telegram Client", "GramJS (src/worker/client.ts)", "Низкоуровневая обертка сессии MTProto с реконнектом и защитой от FLOOD_WAIT.")
-  }
-
-  ContainerDb(db, "PostgreSQL", "Database")
-  Container(web, "Web App & API", "Next.js", "Принимает внутренний запрос на инвалидацию кэша.")
-  System_Ext(telegram, "Telegram API")
-
-  Rel(cron, collector, "Триггер сбора (по расписанию)")
-  Rel(cron, demographics, "Триггер сбора демографии (раз в неделю)")
-  Rel(collector, client, "Вызовы API (getMessages, getFullChannel)")
-  Rel(demographics, client, "Вызовы API (stats.getBroadcastStats)")
-  Rel(client, telegram, "Сетевые MTProto-запросы", "TCP")
-  Rel(collector, fraud_detector, "Запуск 4 эвристик после материализации метрик")
-  Rel(collector, persister, "Передача собранных данных и обнаруженных аномалий")
-  Rel(persister, db, "Запись постов, снапшотов, агрегатов и fraud_signals", "Prisma/TCP")
-  Rel(collector, web, "POST /api/internal/invalidate-cache", "Bearer COLLECT_API_TOKEN")
-  Rel(demographics, persister, "Передача языковой разбивки для сохранения")
-```
-
-## 5. Пайплайн сбора данных и антифрод-аудита (Data Pipeline & Anti-Fraud Flow)
-
-Сквозной процесс обработки данных объединяет сбор в MTProto Worker, материализацию, фоновую фиксацию сигналов накруток, инвалидацию кэша и динамический аудит при запросах через Web API.
+## Основной цикл сбора
 
 ```mermaid
 sequenceDiagram
-  autonumber
-  actor User as Пользователь (Браузер)
-  participant UI as Next.js React UI
-  participant API as Web API (/api/stats/*)
-  participant Engine as Metrics & Fraud Engine
-  participant W as Worker (collector.ts)
-  participant DB as PostgreSQL (Prisma)
-  participant TG as Telegram (MTProto)
-
-  Note over W,TG: Фаза 1: Фоновый сбор данных (Worker)
-  W->>TG: Запрос сообщений, реакций и метаданных канала
-  TG-->>W: Сырые посты, просмотры, реакции, участники
-  W->>DB: Сохранение постов, снапшотов и упоминаний
-  W->>DB: materializeDailyMetrics(channelId, 30)
-
-  Note over W,DB: Фаза 2: Проверка 4 эвристик антифрода (Worker)
-  W->>Engine: checkGrowthSmoothness(recentMetrics)
-  W->>Engine: checkUncorrelatedSpikes(recentMetrics, postsDates, mentionsDates)
-  W->>Engine: checkViewsToSubsRatio(recentPosts, currentMembers)
-  W->>Engine: checkUniformReactionRatio(recentPosts)
-  alt Обнаружена аномалия
-    W->>DB: saveFraudSignal(channelId, type, value, reason) -> таблица fraud_signals
-  end
-  Note over W: Изоляция ошибок (try/catch): сбой антифрода не останавливает сбор
-
-  Note over W,API: Фаза 3: Инвалидация кэша
-  W->>API: POST /api/internal/invalidate-cache (Bearer auth)
-  API->>API: Очистка metricsCache и bestTimeCache
-
-  Note over User,UI: Фаза 4: Запрос дашборда и динамический аудит (On-Demand)
-  User->>UI: Открытие главной страницы или карточки канала
-  UI->>API: GET /api/stats/overview или /api/stats/channel/:id
-  API->>DB: getCitationIndicesForChannels() (входящие упоминания за 30 дней)
-  API->>DB: Запрос свежих fraud_signals (за последние 30 дней)
-  API->>Engine: runFraudAudit({ channel, posts, metrics, fraudSignals })
-  Engine-->>API: { fraudScore: 0..100, signals: FraudSignal[], details }
-  API-->>UI: JSON { ..., citationIndex, fraudScore, fraudSignals }
-
-  Note over UI: Фаза 5: Отрисовка UI-компонентов
-  UI->>UI: RiskBadge: расчет тира (0% Low, 1-49% Medium, >=50% High)
-  UI->>UI: Отрисовка подсказки с причинами (tooltip)
-  UI->>UI: Отображение колонки CI и алерта checkLowCitationGrowth
+    participant S as Cron или POST collect/run
+    participant C as runCollectCycle
+    participant T as Telegram
+    participant D as PostgreSQL
+    participant W as Web cache
+    S->>C: Запуск
+    C->>D: Активные каналы и SyncJob RUNNING
+    loop Каналы по id
+        C->>T: Resolve, FullChannel, сообщения
+        C->>D: Snapshot, upsert Post, Mention, PostSnapshot
+        C->>D: Статус канала и прогресс SyncJob
+        C->>D: materializeDailyMetrics(channelId, 30)
+        C->>D: Четыре эвристики и запись FraudSignal
+    end
+    C->>D: Завершить SyncJob
+    C->>W: POST /api/internal/invalidate-cache
 ```
 
-## 6. Поток инвалидации кэша
+1. Первый сбор получает до 1000 сообщений и оставляет последние 30 дней; последующие циклы перечитывают до 200 последних сообщений без `min_id`. `lastMessageId` хранит максимум, но не ограничивает текущий запрос.
+2. FullChannel даёт число участников. При изменении названия оно обновляется; отдельного суточного задания метаданных нет. Ошибка FullChannel может оставить доступный fallback-счётчик, таймаут передаётся выше.
+3. При изменении аудитории относительно предыдущего снимка на ≥1% по модулю **или** ≥500 участников отправляется опциональное Bot API-уведомление.
+4. Альбомы сводятся к существующему посту с тем же `groupedId`. Upsert обновляет известные счётчики/текст, а `subscribersAtPublish` задаёт только при создании. Для backfill это число участников во время сбора.
+5. Для постов моложе 7 суток с известными просмотрами создаётся `PostSnapshot`. Эти снимки не дедуплицируются по циклу. Упоминания при непустом новом списке удаляются и создаются заново; `createdAt` отражает время записи, не исходную дату публикации.
+6. `postsAdded` увеличивается на обработанное сообщение, включая обновления и части альбомов. Это не число новых уникальных строк Post.
+7. Материализация пересчитывает 30 календарных UTC-дней; её ошибка логируется отдельно. Затем общий `try/catch` обрабатывает блок антифрода: сбой в нём может пропустить оставшиеся проверки канала, но не отменяет сбор.
 
-После завершения `runCollectCycle` worker берёт `WEB_INTERNAL_URL` и `COLLECT_API_TOKEN` из окружения и отправляет `POST /api/internal/invalidate-cache` с Bearer-токеном. Маршрут веб-процесса очищает `metricsCache` и `bestTimeCache`. Ошибка этого HTTP-вызова логируется в worker и не отменяет завершённый цикл сбора.
+`fetcher.ts` делает паузу 1000–1299 мс перед попыткой и до трёх попыток при FLOOD_WAIT. Ожидание — указанное Telegram время + 2 секунды + jitter до 1499 мс; экспоненциального backoff в этом коде нет. Это задержка на вызов, а не распределённый глобальный rate limiter.
 
-## 7. Архитектура антифрода и оценка риска накрутки (Risk of Artificial Traffic)
+`retry-policy.ts` увеличивает `consecutiveErrors` и отключает канал при достижении `CHANNEL_MAX_CONSECUTIVE_ERRORS` (по умолчанию 10). Успех сбрасывает счётчик. При `TelegramTimeoutError` цикл пытается переподключить клиент; неудачный reconnect завершает цикл с fatal error. Некоторые ошибки чтения сообщений внутри `collectChannelData` только логируются, поэтому успешный статус не гарантирует полноту постов.
 
-Антифрод-система TgMon спроектирована по двухуровневой гибридной схеме:
+## Материализация, API и кэш
 
-### 7.1 Фоновый уровень детекции (Worker Heuristics & Persistence)
-В фоновом цикле `src/worker/collector.ts` после материализации дневных метрик (`materializeDailyMetrics`) автоматически запускаются 4 независимые эвристические проверки:
+API предпочитает `ChannelMetricDaily`, если за период есть хотя бы одна строка; иначе использует сырые Snapshot/Post. Worker рассчитывает дневные агрегаты, web — сводные метрики, EP, Content Score, CI и динамический антифрод. Это не модель «worker только пишет сырые данные».
 
-1. **Гладкость роста аудитории (`checkGrowthSmoothness`)**:
-   - Анализирует ежедневные дельты подписчиков за последние $\ge 14$ дней.
-   - Вычисляет коэффициент вариации $CV = \sigma / \mu$.
-   - Если $CV < 0.1$ (колебания прироста менее 10%), фиксируется неестественно прямолинейный рост (характерно для бот-ферм с фиксированной суточной нормой).
-2. **Нескоррелированные скачки подписчиков (`checkUncorrelatedSpikes`)**:
-   - Динамический порог всплеска: $\text{threshold} = \max(3\overline{\Delta}, 50, 0.005 \times N_{followers})$.
-   - Проверяет окно $[T-1, T]$ вокруг даты скачка: если в этот период не было ни публикаций новых постов, ни входящих упоминаний/репостов из других каналов, скачок помечается как аномальный.
-3. **Соотношение просмотров к подписчикам (`checkViewsToSubsRatio`)**:
-   - Анализирует последние посты (требуется $\ge 5$ постов с просмотрами).
-   - Вычисляет отношение $\text{ratio} = \overline{\text{views}} / \text{members}$.
-   - Флаг срабатывает при $\text{ratio} < 0.05$ (менее 5% просмотров — подозрение на "мертвых" ботов) или при $\text{ratio} > 1.5$ (более 150% просмотров — подозрение на накрутку просмотров).
-4. **Шаблонность вовлеченности / Равномерность ERR (`checkUniformReactionRatio`)**:
-   - Анализирует последние 15–20 постов (требуется $\ge 10$ постов).
-   - Для каждого поста вычисляет $ERR = \frac{\text{reactions} + \text{comments} + \text{forwards}}{\text{views}} \times 100$.
-   - Рассчитывает коэффициент вариации $CV_{ERR} = \sigma_{ERR} / \mu_{ERR}$.
-   - Флаг срабатывает при $CV_{ERR} < 0.1$, выявляя роботизированные накрутки реакций со стабильным соотношением.
+`metricsCache` живёт 5 минут, `bestTimeCache` — 30 минут. Кэш находится в памяти одного процесса. API добавления, PATCH/DELETE канала, ручного сбора и внутренней инвалидации очищают оба кэша. PUT избранного их не очищает. Перезапуск процесса очищает кэш; общего кэша между репликами нет.
 
-**Изоляция ошибок:** Весь блок проверок в worker обернут в `try { ... } catch (fraudErr)` с логированием через `logger.error('Fraud detection failed', ...)`. Сбой антифрода ни при каких обстоятельствах не нарушает основной цикл сбора данных Telegram.
+В `finally` основного цикла worker отправляет запрос на `WEB_INTERNAL_URL` с `COLLECT_API_TOKEN`, если оба заданы. Сетевое исключение логируется; текущий caller не проверяет HTTP-статус ответа. Запись об успешной инвалидации в логе поэтому не гарантирует HTTP 200.
 
-**Персистентность (`fraud_signals`):** При срабатывании любой эвристики вызывается функция `saveFraudSignal(channelId, signalType, value, reason)` (`src/worker/persister.ts`), создающая запись в PostgreSQL таблице `fraud_signals` через модель `FraudSignal`:
-```prisma
-model FraudSignal {
-  id         Int      @id @default(autoincrement())
-  channelId  Int      @map("channel_id")
-  signalType String   @map("signal_type")
-  value      Float
-  reason     String
-  detectedAt DateTime @default(now()) @map("detected_at")
-  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+## Антифрод
 
-  @@index([channelId, detectedAt])
-  @@map("fraud_signals")
-}
-```
+Worker анализирует до 30 дневных строк и до 30 последних постов, сохраняет только сработавшие сигналы. При чтении overview/detail web загружает сигналы за 30 дней и вызывает чистую функцию `runFraudAudit`; сама она не читает БД. Сохранённый сигнал соответствующего типа имеет приоритет перед повторным вычислением этого типа.
 
-### 7.2 Слой Web API, Индекс цитирования и On-Demand аудит
-На уровне веб-сервера (`src/lib/metrics/queries.ts`) при формировании дашборда (`getChannelsOverview`) и детальной карточки (`getChannelDetailStats`) выполняется синтез метрик в реальном времени:
+При отсутствии сохранённых сигналов расчёт использует переданные данные. Overview передаёт посты за 7 дней и дневные метрики за 30 дней; detail — последние 20 постов (либо recentPosts при короткой выборке) и сырую историю аудитории выбранного периода. Даты упоминаний эти вызовы не передают, поэтому динамическая проверка скачков не эквивалентна фоновой. [Формулы и ограничения](analytics-formulas.md), [ADR](adr/0001-anti-fraud-detection-architecture.md).
 
-1. **Индекс цитирования (`src/lib/citationIndex.ts`)**:
-   - Рассчитывается логарифмический индекс по формуле:
-     $$\text{CitationIndex} = \sum_{m \in \text{mentions}} \left( \text{count}_m \times \log_{10}(\text{citing\_subscribers}_m) \right)$$
-   - Учитываются только входящие упоминания за последние 30 дней.
-   - Исключаются самоцитирования (`sourceChannelId !== targetChannelId`).
-   - Для каналов с числом подписчиков $\le 1$ вес приравнивается к 0.
-   - Пакетная выборка для таблиц выполняется функцией `getCitationIndicesForChannels(channels, dateLimit)`.
-2. **Проверка низкого цитирования (`checkLowCitationGrowth`)**:
-   - Если канал вырос более чем на 5% за 30 дней, но его индекс цитирования $\le 1$, канал помечается подозрением на накрутку мотивированным трафиком без органического присутствия в инфополе Telegram.
-3. **Консолидированный скоринг (`runFraudAudit`)**:
-   - Объединяет 4 базовых эвристических сигнала (`views_to_subs_ratio`, `growth_smoothness`, `uncorrelated_spikes`, `uniform_err`).
-   - Функция поддерживает гибридный режим: проверяет как сохраненные в БД записи `fraud_signals` за 30 дней, так и динамически вычисляет флаги по переданным массивам постов и метрик (критично для только что добавленных каналов).
-   - Вычисляет единый показатель `fraudScore` от 0 до 100:
-     $$\text{fraudScore} = \text{triggeredCount} \times 25$$
-     Возможные значения: $0, 25, 50, 75, 100$.
+## Демография и рекламный охват
 
-### 7.3 Представление в UI: RiskBadge и индикаторы цитирования
-Результаты антифрод-аудита выводятся пользователю через компонент `RiskBadge` (`src/components/RiskBadge.tsx`), а также специальные ячейки таблиц и карточек:
+- Демография: `DEMOGRAPHICS_CRON`, default `0 3 * * 0`; только активные `isMine` broadcast-каналы без успешного снимка с начала текущей недели (воскресенье 00:00 по часовому поясу процесса). Проверка `canViewStats`, вызовы GetBroadcastStats/LoadAsyncGraph в `statsDc`, разбор последней общей точки. Ошибки изолированы от основного сбора. `countryBreakdown` остаётся SQL NULL.
+- Рекламный охват: фиксированный cron `15 * * * *`, посты с `isAd: true` не старше 50 часов. Фильтра `channel.isActive` здесь нет. Проверяются отсутствующие точки 1/12/24/48 часов с допуском 5 минут до срока. Все просроченные точки получают текущие просмотры; фактическое время хранится в `capturedAt`.
+- Дополнительные задания не запускаются автоматически при старте: `COLLECT_ON_STARTUP` относится только к основному циклу.
 
-- **Бейдж риска (`RiskBadge` / `FraudScoreBadge`)**:
-  - Текст: `Risk of Artificial Traffic: {safeScore}%`.
-  - 3 градации серьезности (severity tiers):
-    - **Низкий риск (Low Risk, score = 0)**: стиль `bg-emerald-500/15 text-emerald-400 border-emerald-500/30`, иконка `<ShieldCheck className="w-3.5 h-3.5" />`, всплывающая подсказка `Risk of Artificial Traffic: 0% (Низкий риск накрутки)`.
-    - **Средний риск (Medium Risk, 1 <= score < 50)**: стиль `bg-amber-500/15 text-amber-400 border-amber-500/30`, иконка `<AlertTriangle className="w-3.5 h-3.5" />`, всплывающая подсказка со списком сработавших факторов накрутки.
-    - **Высокий риск (High Risk, score >= 50)**: стиль `bg-rose-500/15 text-rose-400 border-rose-500/30`, иконка `<AlertTriangle className="w-3.5 h-3.5" />`, всплывающая подсказка со списком всех обнаруженных аномалий.
-  - Размещение:
-    - `MyChannelCard.tsx`: в строке статусов карточки «Мой канал».
-    - `ChannelHeader.tsx`: в верхней панели детальной страницы канала.
-    - `ChannelsMobileList.tsx`: в заголовке мобильной карточки каждого канала.
-- **Отображение индекса цитирования**:
-  - `ChannelsDesktopTable.tsx`: сортируемая колонка `CI`. При срабатывании `checkLowCitationGrowth` значение выводится розовым цветом с иконкой `<AlertTriangle />` и тултипом с описанием аномалии.
-  - `MyChannelCard.tsx`: отдельная плашка «Индекс цит. (30д)» с иконкой `<Share2 />`, цветовой индикацией и предупреждением при низком цитировании.
+Cron и часть heatmap используют часовой пояс Node.js-процесса; материализация использует UTC. Явного timezone в `cron.schedule` нет.
+
+## AI, события и граница доступа
+
+AI-обработчики формируют промпты из сохранённых данных, вызывают `callOpenRouter` и пытаются сохранить ответ через `saveAiReport`. Восемь типов отчётов описаны в [API](api-reference.md). Event Scanner отдельно извлекает события из текстов и связывает их с Post. Данные контента отправляются внешнему провайдеру при запуске этих функций.
+
+`callOpenRouter` читает `OPENROUTER_API_KEY`; `SystemSetting` не участвует в выборе провайдера, токена или модели. Экспорт отчёта возвращает HTML, а PDF/PNG формируют соответствующие компоненты интерфейса.
+
+`verifyBearerToken` проверяет заголовок в большинстве мутаций, но middleware предварительно добавляет его всем мутациям без Authorization. Проверки сессии, Origin или пользователя нет; `/api/settings` и `/api/events/scan` не вызывают verifier. Это требует внешнего ограничения доступа при сетевом размещении. [Эксплуатация](deployment.md).

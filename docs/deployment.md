@@ -1,205 +1,163 @@
-# Инструкция по развертыванию (Deploy) на VPS
+# Запуск и эксплуатация
 
-В этом руководстве описан процесс первоначального развертывания проекта TgMon на чистом VPS (Ubuntu 22.04/24.04) и настройка процесса регулярных обновлений.
+Сверено 17 сентября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже — инструкции для оператора, а не подтверждение выполненного деплоя.
 
----
+## Требования и подготовка
 
-## Часть 1: Первоначальная установка
-
-### Шаг 1: Подготовка сервера и установка Node.js
-Подключитесь к VPS по SSH, обновите систему и установите Node.js 20.x:
-
-```bash
-# Обновляем пакеты
-sudo apt update && sudo apt upgrade -y
-
-# Ставим базовые утилиты, Git и Nginx
-sudo apt install curl git build-essential nginx -y
-
-# Устанавливаем Node.js 20.x
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install nodejs -y
-
-# Проверяем установку
-node -v
-npm -v
-```
-
-### Шаг 2: Установка и настройка PostgreSQL
-TgMon использует PostgreSQL. Устанавливаем её и создаем базу:
+- Node.js 22 и npm — версия Node совпадает с Docker и CI.
+- PostgreSQL; штатный Compose использует postgres:15. Prisma-схема требует расширение pg_trgm. SQLite текущим кодом не поддерживается.
+- Для сбора — Telegram api_id/api_hash и пользовательская MTProto-сессия. Авторизация интерактивная: `npm run auth`.
+- Все команды из корня проекта. На Windows основной checkout — `C:\TgMon`; в WSL — `/mnt/c/TgMon`. Установленные node_modules следует использовать в том окружении, где они были установлены.
 
 ```bash
-sudo apt install postgresql postgresql-contrib -y
-
-# Заходим в консоль Postgres
-sudo -i -u postgres psql
-```
-Выполните SQL-команды в консоли:
-```sql
-CREATE DATABASE tgmon;
-CREATE USER tgmon_user WITH ENCRYPTED PASSWORD 'ваш_надежный_пароль';
-GRANT ALL PRIVILEGES ON DATABASE tgmon TO tgmon_user;
-\c tgmon
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-\q
+npm ci
+cp .env.example .env
 ```
 
-### Шаг 3: Деплой проекта
-Клонируем код и устанавливаем зависимости:
+Заполните конфигурацию, затем:
 
 ```bash
-cd /var/www
-sudo git clone https://github.com/liquidsyntes/tg_mons.git tgmon
-cd tgmon
-
-# Меняем владельца папки на текущего пользователя
-sudo chown -R $USER:$USER /var/www/tgmon
-
-npm install
+npm run prisma:generate
+npm run auth
 ```
 
-### Шаг 4: Настройка переменных окружения (.env)
-Создайте конфигурационный файл:
+Авторизация обновляет TG_API_ID, TG_API_HASH, TG_SESSION и при наличии TG_PHONE в `.env`; строка сессии также печатается в терминал. Не включайте этот вывод в отчёты и логи общего доступа.
+
+В `.env.example` остались комментарии про SQLite и неиспользуемый MY_CHANNEL_USERNAME. Ориентируйтесь на таблицу ниже и Prisma-схему. Runtime читает именно **TG_API_ID / TG_API_HASH / TG_SESSION**, не API_ID/API_HASH/TELEGRAM_SESSION.
+
+## Переменные окружения
+
+| Переменная | Потребитель | Default / смысл |
+| --- | --- | --- |
+| DATABASE_URL | Prisma, web, worker | URL PostgreSQL; для хоста адрес БД localhost/127.0.0.1, внутри Compose — postgres |
+| TG_API_ID, TG_API_HASH | auth, MTProto | Ключи приложения Telegram |
+| TG_PHONE | auth | Телефон; при отсутствии CLI запросит его |
+| TG_SESSION | MTProto в web и worker | Сохранённая сессия |
+| COLLECT_API_TOKEN | middleware, защищённые handlers, worker | Непустой общий токен; отсутствующий даёт 500 для мутаций |
+| COLLECT_CRON | worker | `0 * * * *`; невалидное значение заменяется этим default с логом |
+| COLLECT_ON_STARTUP | worker | Запуск только если значение строго `true`; пример и Compose задают true |
+| DEMOGRAPHICS_CRON | worker | `0 3 * * 0`; при невалидном значении weekly fallback |
+| WEB_INTERNAL_URL | worker | Нет default в коде collector; Compose default `http://web:4000` |
+| TELEGRAM_REQUEST_TIMEOUT_MS | fetcher в web/worker | 30000 мс |
+| CHANNEL_MAX_CONSECUTIVE_ERRORS | retry-policy | 10; отключение при достижении порога |
+| TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID | retry-policy | Необязательные уведомления об изменениях аудитории и отключении |
+| OPENROUTER_API_KEY | web AI/scanner | Обязателен для функций LLM |
+| HEALTH_STUCK_THRESHOLD_MINUTES | web health | 120 |
+| HEALTH_STALE_THRESHOLD_MINUTES | web health | 720 |
+| MY_CHANNEL_USERNAME | Никем не читается | Сохранён в примере, но не назначает «Мой канал» |
+
+DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры отсутствуют в `.env.example`. Compose не передаёт их, а также TELEGRAM_REQUEST_TIMEOUT_MS, в environment контейнеров. Одного добавления переменной в `.env` недостаточно для Docker: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
+
+Ни compose, ни cron.schedule не задают timezone. Расписание и часть графиков используют часовой пояс процесса; дневная материализация — UTC. Учитывайте его при выборе расписания.
+
+## Режим 1: web и worker на хосте
+
+PostgreSQL можно запустить из Compose:
+
 ```bash
-nano .env
-```
-Заполните его вашими данными:
-```env
-# База данных
-DATABASE_URL="postgresql://tgmon_user:ваш_надежный_пароль@localhost:5432/tgmon?schema=public"
-
-# Доступы к Telegram API
-API_ID="твой_api_id"
-API_HASH="твой_api_hash"
-
-# Токены сессий
-TELEGRAM_SESSION="..."
-
-# Настройки для алертов
-TELEGRAM_BOT_TOKEN="токен_бота"
-TELEGRAM_CHAT_ID="твой_id"
+docker compose up -d postgres
 ```
 
-### Шаг 5: Подготовка БД и Сборка
-Применяем миграции и собираем production-билд:
+После готовности БД задайте в `.env` DATABASE_URL с адресом `127.0.0.1:5432`, именем `tgmon` и учётными данными **вашей** базы. Штатный YAML использует демонстрационные postgres/password.
 
 ```bash
 npm run prisma:migrate
-npm run build
+npm run dev:all
 ```
 
-### Шаг 6: Запуск через PM2 (Менеджер процессов)
-Запускаем Web-сервер и фоновый воркер через PM2, чтобы они работали 24/7:
+Или два терминала: `npm run dev` и `npm run worker`. Web — [localhost:4000](http://localhost:4000). Для сброса кэша задайте WEB_INTERNAL_URL=http://localhost:4000.
+
+## Режим 2: Docker PostgreSQL/worker, Next.js на хосте
+
+Это локальная схема с hot reload web. Установите зависимости, сгенерируйте Prisma Client, выполните auth и миграции на хосте как выше. Для worker укажите WEB_INTERNAL_URL=http://host.docker.internal:4000, затем:
 
 ```bash
-sudo npm install -g pm2
-
-# Запускаем процессы
-pm2 start npm --name "tgmon-web" -- run start
-pm2 start npm --name "tgmon-worker" -- run worker
-
-# Сохраняем в автозагрузку
-pm2 save
-pm2 startup
-# (Выполните команду sudo, которую выдаст PM2)
+docker compose up -d --build postgres worker
+npm run dev
 ```
 
-### Шаг 7: Настройка Nginx
-```bash
-sudo nano /etc/nginx/sites-available/tgmon
-```
-Вставьте конфигурацию:
-```nginx
-server {
-    listen 80;
-    server_name ваш-домен.com или-айпи-сервера;
+На Docker Desktop адрес host.docker.internal используется для доступа к хосту. В Linux при необходимости добавьте worker `extra_hosts: ["host.docker.internal:host-gateway"]` в локальный override. Если имя недоступно, задайте доступный из контейнера адрес хоста. Web должен быть запущен к моменту инвалидации; ранний startup-cycle может завершиться до него.
 
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-Активируем сайт:
-```bash
-sudo ln -s /etc/nginx/sites-available/tgmon /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
+Встроенный Compose-default `http://web:4000` подходит для режима 3, но не для отсутствующего web-контейнера. Не запускайте одновременно второй обычный worker на хосте.
 
----
+## Режим 3: полный Compose
 
-## Часть 2: Процесс работы и обновление (CI/CD)
-
-Разработка ведется локально на компьютере. После того как вы написали новый код и отправили его на GitHub (`git commit`, `git push`), вам нужно обновить версию на сервере.
-
-### Скрипт автоматического обновления (Лайфхак)
-Создайте bash-скрипт в папке проекта на сервере:
+Сначала получите TG_SESSION. В `.env` задайте **WEB_INTERNAL_URL=http://web:4000**: значение localhost из примера иначе перекроет default YAML и направит worker к самому себе.
 
 ```bash
-nano update.sh
+docker compose up -d postgres
+docker compose build web worker
 ```
 
-Вставьте код:
+Дождитесь готовности PostgreSQL и примените миграции:
+
 ```bash
-#!/bin/bash
-echo "🔥 Начинаем обновление TgMon..."
-
-echo "📥 1. Скачиваем свежий код из Git..."
-git pull origin main
-
-echo "📦 2. Обновляем зависимости..."
-npm install
-
-echo "🗄 3. Обновляем базу данных..."
-npm run prisma:migrate
-
-echo "🏗 4. Собираем свежий билд Next.js..."
-npm run build
-
-echo "🚀 5. Перезапускаем процессы..."
-pm2 restart all
-
-echo "✅ Обновление успешно завершено!"
+docker compose run --rm --no-deps worker npm run prisma:migrate
+docker compose up -d web worker
 ```
 
-Сделайте файл исполняемым:
+`depends_on` задаёт порядок запуска, но без healthcheck не гарантирует готовность БД. Ни Dockerfile, ни CMD не выполняют migrate автоматически. DATABASE_URL обоих приложений в YAML задан явно и не наследует одноимённую переменную из `.env`.
+
+Web публикует 4000:4000, PostgreSQL — 5432:5432. Для сетевого размещения замените демонстрационный пароль согласованно в postgres и URL обоих приложений, ограничьте публикацию БД и доступ к web. Изменение POSTGRES_PASSWORD в YAML само по себе не меняет пароль существующего пользователя в уже созданном volume.
+
+`docker-compose.dev.yml` — дополнительный override, не самостоятельная конфигурация:
+
 ```bash
-chmod +x update.sh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-### Как обновляться в будущем
-Когда вы запушили изменения на GitHub, просто зайдите на сервер и выполните одну команду:
+Он включает `npm run dev` для web, `tsx watch` для worker и bind mount проекта с отдельными volumes для node_modules/.next. Этот режим сохраняет сборочные требования базовых Dockerfile и отличается от рекомендуемого локального web на хосте.
+
+## Миграции и демонстрационные данные
+
+- `npm run prisma:migrate` выполняет **prisma migrate deploy**: применяет существующие миграции, не создаёт новые.
+- `npm run prisma:generate` обновляет клиент, не меняя БД. `npm run build` также запускает генерацию перед Next build.
+- `npm run prisma:push` синхронизирует схему без истории миграций; не используйте его как обычную процедуру обновления существующей БД.
+- `npm run seed` удаляет посты, снимки и каналы, затем создаёт демонстрационные данные. Только отдельная тестовая база.
+- Для Windows EPERM при генерации проверьте Node-процессы именно этого проекта, которые могут удерживать Prisma engine; остановите нужные процессы перед повтором.
+
+Текущая последовательность миграций включает fraud_signals, post_view_snapshots и nullable country_breakdown. Последняя — `20260916213000_add_demographics_country`; она не заполняет географию и не переписывает языковые снимки. Перед обновлённым worker примените все миграции и пересоберите приложения.
+
+## Обновление существующего окружения
+
+Сделайте резервную копию БД и выберите проверенный revision. Для работающих сервисов согласуйте окно остановки: миграции и перезапуск могут прервать сбор. После получения кода и проверки конфигурации:
+
 ```bash
-./update.sh
+docker compose stop web worker
+docker compose build web worker
+docker compose run --rm --no-deps worker npm run prisma:migrate
+docker compose up -d web worker
 ```
-Скрипт автоматически скачает код, обновит зависимости, применит миграции базы данных, пересоберет проект и перезапустит PM2.
 
-## Исправления безопасности зависимостей
+Для запуска на хосте остановите процессы этого проекта, выполните `npm ci`, `npm run prisma:migrate`, `npm run build`, затем запустите `npm start` и `npm run worker` под выбранным менеджером процессов. В репозитории нет PM2 ecosystem-файла или update.sh, поэтому они не являются частью штатного деплоя. Не перезапускайте все процессы сервера общей командой.
 
-Для воспроизводимой установки используйте `npm ci` и зафиксированный `package-lock.json`.
-На 16 сентября 2026 года обновлены Next.js до 15.5.25, node-cron до 4.6.0 и
-js-yaml до 4.3.2. Node-cron 4 требует Node.js 20+ и содержит собственные типы;
-пакет `@types/node-cron` больше не нужен. Docker использует Node.js 22.
+Обратное переключение исходников не откатывает схему/данные. Стратегия отката зависит от SQL конкретной миграции и резервной копии. `docker compose down -v` удаляет volume БД и не нужен для обычного обновления.
 
-В `package.json` явно закреплены исправленные транзитивные зависимости:
+## Доступ и обратный прокси
 
-- `next -> postcss: 8.5.26`: исходная зависимость Next.js закреплена на уязвимой
-  версии 8.4.31; override устраняет предупреждения обработки CSS/source maps.
-- `next -> sharp: 0.35.4`: исправления библиотек обработки изображений.
-- `@prisma/config -> deepmerge-ts: 8.0.2`: исправление рекурсии при слиянии
-  циклических объектов без отката или смены основной версии Prisma 6.19.3.
-  Prisma использует `deepmerge` при загрузке конфигурации; этот путь проверен
-  отдельным тестом. Версия 8 меняет слияние Map, поэтому при добавлении таких
-  объектов в конфигурацию Prisma требуется отдельная проверка совместимости.
+Текущий middleware не аутентифицирует пользователя: он автоматически добавляет серверный Bearer в мутации без Authorization. GET /api/settings возвращает сохранённый aiToken; настройки и scanner не проверяют Bearer в handler. Публичный доступ к :4000 нельзя считать защищённым COLLECT_API_TOKEN. Размещайте приложение в доверенной сети либо за внешней аутентификацией/ограничением доступа.
 
-Overrides следует пересмотреть, когда родительские пакеты включат исправленные
-зависимости. Не заменяйте их массовым `npm audit fix --force`: он может предложить
-откат Prisma или несовместимое обновление. Проверяйте `npm audit`, `npm test`,
-`npm run lint` и `npm run build`, а после пересборки контейнеров — `/api/health`
-и оптимизацию локального логотипа через `/_next/image`.
-Изменения зависимостей не требуют миграции БД.
+Если используется Nginx, upstream — `http://127.0.0.1:4000`. Таймауты должны учитывать синхронный ручной сбор и AI/scanner (до 60/120 секунд для вызова LLM плюс работа с БД). Конфигурация Nginx/TLS и внешний вход в репозитории отсутствуют.
+
+## Проверка после запуска
+
+```bash
+docker compose ps
+curl -i http://localhost:4000/api/health
+```
+
+Логи нужного сервиса можно изучить локально через `docker compose logs --tail=100 worker` или `web`; они могут содержать данные каналов, поэтому перед публикацией их нужно обезличить.
+
+Health без SyncJob возвращает 503. Зависший незавершённый цикл старше 120 минут и завершённый старше 720 минут также дают 503. **Свежий FAILED/PARTIAL может вернуть 200**: проверяйте lastSyncStatus и channelsFailed в теле. UI отдельно считает канал stale после 3 часов.
+
+Проверьте доступность главной, добавленного канала и последних метрик. Отсутствие демографии не обязательно ошибка запуска: задание недельное и требует canViewStats. Рекламные точки появляются отдельным cron в :15, если найдены подходящие isAd-посты. Ни демография, ни рекламный сбор не выполняются startup-триггером основного цикла.
+
+## AI и настройки
+
+Для генерации задайте OPENROUTER_API_KEY web-процессу. `callOpenRouter` использует модель `z-ai/glm-5.3-flash`, JSON response format и timeout 60 секунд; scanner — 120 секунд. Фактическая доступность модели зависит от провайдера. Сохранение aiProvider/aiModel/aiToken через `/settings` пока не меняет работу этого клиента.
+
+## Зависимости и CI
+
+Используйте `npm ci` с зафиксированным lockfile. package.json содержит overrides: next → postcss 8.5.26 и sharp 0.35.4; @prisma/config → deepmerge-ts 8.0.2. Пересматривайте их при обновлении родительских пакетов; наличие override само по себе не подтверждает отсутствие уязвимостей.
+
+CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npx eslint src`, `npm test`, затем `npm run build`. Скрипт `npm run lint` всё ещё содержит next lint; ориентир проверки — команда ESLint из CI. Workflow срабатывает на push main/VPS_Ready, PR в main и вручную. Автоматического деплоя в нём нет. Совместимость cron и Prisma config проверяется отдельными unit-тестами; результаты нужно получать текущим запуском, а не брать из старых отчётов.
