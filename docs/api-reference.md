@@ -1,6 +1,6 @@
 # Справочник API
 
-Сверено со всеми `src/app/api/**/route.ts` 17 сентября 2026 года. Базовый URL локального web: `http://localhost:4000`. `:id` — внутренний ID PostgreSQL, а не Telegram ID. Типы сводных ответов: [src/lib/types.ts](../src/lib/types.ts).
+Сверено со всеми `src/app/api/**/route.ts` 20 сентября 2026 года. Базовый URL локального web: `http://localhost:4000`. `:id` — внутренний ID PostgreSQL, а не Telegram ID. Типы сводных ответов: [src/lib/types.ts](../src/lib/types.ts).
 
 ## Формат и доступ
 
@@ -90,7 +90,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `/api/ai/summary` | `{channelId, days?: 7}` | До 50 текстовых постов за период | `{summary: string}` | `summary` |
 | `/api/ai/super-report` | `{channelId}` | До 150 текстовых постов за фиксированные 42 дня | `{summary: string}` | `super_report` |
 | `/api/ai/compare` | `{channelId, days?: 7}` | Целевой канал и «Мой канал», до 50 постов каждого | `{summary: string}` | `compare` |
-| `/api/ai/trends` | Не требуется | До 100 текстовых постов активных конкурентов за 48 часов | JSON-объект LLM | `trend` |
+| `/api/ai/trends` | Не требуется | До 100 текстовых постов активных (`isActive: true`) каналов из избранного (Watchlist, `isFavorite: true`) и «Моего канала» (`isMine: true`) за 48 часов | JSON-объект LLM | `trend` |
 | `/api/ai/audience` | `{channelId, days?: 7}` | До 20 текстовых постов | `{audience: string}` | `audience` |
 | `/api/ai/persona` | `{channelId}` | До 30 последних текстовых постов | `{persona: string}` | `persona` |
 | `/api/ai/action-plan` | `{reportId}` | Существующий отчёт | `{summary: string}` | `action_plan` |

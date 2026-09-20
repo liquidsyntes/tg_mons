@@ -1,9 +1,10 @@
-﻿services:
+services:
   web:
     # Используем тот же образ, но переопределяем команду на dev
     command: npm run dev
     environment:
       - NODE_ENV=development
+      - WATCHPACK_POLLING=true
     volumes:
       # Пробрасываем текущую папку внутрь контейнера
       - .:/app
