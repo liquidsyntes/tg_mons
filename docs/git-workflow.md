@@ -1,4 +1,4 @@
-# Git Workflow — Solo Dev
+# Git Workflow
 
 ## Начало новой задачи
 
