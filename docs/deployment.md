@@ -1,13 +1,13 @@
 # Запуск и эксплуатация
 
-Сверено 17 сентября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже — инструкции для оператора, а не подтверждение выполненного деплоя.
+Сверено 23 сентября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже — инструкции для оператора, а не подтверждение выполненного деплоя.
 
 ## Требования и подготовка
 
 - Node.js 22 и npm — версия Node совпадает с Docker и CI.
 - PostgreSQL; штатный Compose использует postgres:15. Prisma-схема требует расширение pg_trgm. SQLite текущим кодом не поддерживается.
 - Для сбора — Telegram api_id/api_hash и пользовательская MTProto-сессия. Авторизация интерактивная: `npm run auth`.
-- Все команды из корня проекта. На Windows основной checkout — `C:\TgMon`; в WSL — `/mnt/c/TgMon`. Установленные node_modules следует использовать в том окружении, где они были установлены.
+- Все команды из корня проекта. На Windows основной checkout — `C:\TgMon`; в WSL — `/mnt/c/TgMon`. Установленные node_modules следует использовать в том окружении, где они были установлены. Prisma Client генерируется для целевой ОС: Windows-клиент не заменяет Linux-клиент в WSL, Docker генерирует свой клиент внутри образа.
 
 ```bash
 npm ci
@@ -108,6 +108,27 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 Он включает `npm run dev` для web, `tsx watch` для worker и bind mount проекта с отдельными volumes для node_modules/.next. Этот режим сохраняет сборочные требования базовых Dockerfile и отличается от рекомендуемого локального web на хосте.
 
+## Порт 4000 и Docker Desktop / WSL
+
+Полный Compose публикует TgMon на `http://localhost:4000/`. На этом порту не должен работать другой Next.js-проект или локальный `npm run dev` того же TgMon. Статуса `running` у контейнера недостаточно: в `docker compose ps` ожидается публикация вида `0.0.0.0:4000->4000/tcp`, а не только `4000/tcp`.
+
+```bash
+docker compose ps
+docker compose port web 4000
+curl -i http://localhost:4000/
+curl -i http://localhost:4000/api/health
+```
+
+Если браузер показывает другое приложение, страницу входа или 404 для health, определите владельца порта: в WSL — `ss -ltnp 'sport = :4000'`, в PowerShell — `Get-NetTCPConnection -State Listen -LocalPort 4000`. При работе через WSL проверьте обе стороны. Уточните рабочую папку процесса; не останавливайте все Node.js-процессы. После согласованной остановки конфликтующего сервиса можно повторно создать только web:
+
+```bash
+docker compose up -d --no-deps --force-recreate web
+```
+
+Команда использует текущий собранный образ web и заново применяет публикацию порта; новый образ не собирается, PostgreSQL и worker не пересоздаются. Повторите HTTP-проверки именно с хоста, а не только из контейнера. Внутренний успешный ответ не доказывает, что браузер попадает в нужное приложение.
+
+Если команда `docker` в WSL сообщает об отсутствии интеграции Docker Desktop, выполните те же команды в Windows PowerShell из `C:\TgMon` либо используйте установленный Windows `docker.exe`. Это проблема доступа к Docker, а не повод создавать другую копию проекта.
+
 ## Миграции и демонстрационные данные
 
 - `npm run prisma:migrate` выполняет **prisma migrate deploy**: применяет существующие миграции, не создаёт новые.
@@ -128,6 +149,15 @@ docker compose build web worker
 docker compose run --rm --no-deps worker npm run prisma:migrate
 docker compose up -d web worker
 ```
+
+Если миграций нет, образы можно собрать до переключения, пока старые сервисы работают:
+
+```bash
+docker compose build web worker
+docker compose up -d --no-deps web worker
+```
+
+Изменения MTProto-клиента и общего сборщика требуют обновления **web и worker**: ручной `/api/collect/run` выполняется в web. Для поддержки статей используется `teleproto@1.229.0` под alias `telegram`; новая миграция и повторная авторизация только из-за этой замены не требуются. Уже сохранённые статьи останутся текстом при смене версии клиента, но старый клиент не сможет получать новые rich-сообщения. [ADR 0002](adr/0002-telegram-rich-messages.md).
 
 Для запуска на хосте остановите процессы этого проекта, выполните `npm ci`, `npm run prisma:migrate`, `npm run build`, затем запустите `npm start` и `npm run worker` под выбранным менеджером процессов. В репозитории нет PM2 ecosystem-файла или update.sh, поэтому они не являются частью штатного деплоя. Не перезапускайте все процессы сервера общей командой.
 
@@ -150,7 +180,29 @@ curl -i http://localhost:4000/api/health
 
 Health без SyncJob возвращает 503. Зависший незавершённый цикл старше 120 минут и завершённый старше 720 минут также дают 503. **Свежий FAILED/PARTIAL может вернуть 200**: проверяйте lastSyncStatus и channelsFailed в теле. UI отдельно считает канал stale после 3 часов.
 
+При `COLLECT_ON_STARTUP=false` перезапуск worker не создаёт новый SyncJob: health до следующего цикла показывает прежний результат. Для проверки нового сборщика дождитесь cron или выполните один ручной сбор кнопкой в UI / `POST /api/collect/run`; не запускайте параллельно несколько циклов. Проверяйте `result.successCount/errorCount`, затем `lastSyncStatus=COMPLETED` и `channelsFailed=0`. Сам ответ `success:true` не гарантирует успех всех каналов.
+
 Проверьте доступность главной, добавленного канала и последних метрик. Отсутствие демографии не обязательно ошибка запуска: задание недельное и требует canViewStats. Рекламные точки появляются отдельным cron в :15, если найдены подходящие isAd-посты. Ни демография, ни рекламный сбор не выполняются startup-триггером основного цикла.
+
+## Восстановление ранее пустых статей
+
+После обновления обоих образов утилита читает старые пустые посты по ID, даже если они уже вне последних 200 сообщений. N — внутренний ID канала TgMon. Сначала выполните проверку:
+
+```bash
+docker compose exec worker npx tsx scripts/backfill-articles.ts --channel-id=N
+```
+
+Проверьте `recoverable` и `unavailable`, затем выполните сохранение:
+
+```bash
+docker compose exec worker npx tsx scripts/backfill-articles.ts --channel-id=N --apply
+```
+
+Обновляются только пустые тексты статей, их рекламная классификация и упоминания. Миграций, пересоздания постов и изменения счётчиков нет. Для больших выборок используйте `--limit` и `--after-id` по [инструкции](../scripts/README.md#восстановление-текста-статей). Не все пустые сообщения являются статьями; обычные медиа без подписи не получат вымышленный текст.
+
+Утилита не сбрасывает web-кэш. После записи дождитесь его истечения (метрики — 5 минут), вызовите штатный `POST /api/internal/invalidate-cache` с Bearer-токеном из защищённого окружения либо проверьте после следующего успешного основного сбора. Не вставляйте реальный токен в документацию или общий терминальный лог. Поиск `/api/posts/search` не кэшируется этим кэшем.
+
+Повторный dry-run не должен вновь предлагать уже восстановленные статьи. Откройте публикацию в TgMon, проверьте полный текст и прокрутку на десктопной и мобильной ширине. Сохранённые AI-отчёты не переписываются; нужные отчёты создайте заново через UI.
 
 ## AI и настройки
 
@@ -160,4 +212,4 @@ Health без SyncJob возвращает 503. Зависший незавер�
 
 Используйте `npm ci` с зафиксированным lockfile. package.json содержит overrides: next → postcss 8.5.26 и sharp 0.35.4; @prisma/config → deepmerge-ts 8.0.2. Пересматривайте их при обновлении родительских пакетов; наличие override само по себе не подтверждает отсутствие уязвимостей.
 
-CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npx eslint src`, `npm test`, затем `npm run build`. Скрипт `npm run lint` всё ещё содержит next lint; ориентир проверки — команда ESLint из CI. Workflow срабатывает на push main/VPS_Ready, PR в main и вручную. Автоматического деплоя в нём нет. Совместимость cron и Prisma config проверяется отдельными unit-тестами; результаты нужно получать текущим запуском, а не брать из старых отчётов.
+CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npx eslint src`, `npm test`, затем `npm run build`. Скрипт `npm run lint` вызывает работающий в Next.js 15, но устаревающий `next lint`; CI использует прямой вызов ESLint. При ограничениях запуска тестовых процессов можно проверить `npm test -- --maxWorkers=2`; это не меняет набор тестов. Workflow срабатывает на push main/VPS_Ready, PR в main и вручную. Автоматического деплоя в нём нет. Совместимость cron и Prisma config проверяется отдельными unit-тестами; результаты нужно получать текущим запуском, а не брать из старых отчётов.

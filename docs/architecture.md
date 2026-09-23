@@ -1,6 +1,6 @@
 # Архитектура TgMon
 
-Состояние реализации: 17 сентября 2026 года. Источники — [Prisma-схема](../prisma/schema.prisma), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
+Состояние реализации: 23 сентября 2026 года. Источники — [Prisma-схема](../prisma/schema.prisma), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
 
 ## Контекст и процессы
 
@@ -10,7 +10,7 @@ flowchart LR
     Web --> DB[(PostgreSQL)]
     Web --> AI[OpenRouter]
     Web -->|добавление канала и ручной сбор| TG[Telegram MTProto]
-    Worker[Worker: cron и GramJS] --> TG
+    Worker[Worker: cron и teleproto] --> TG
     Worker --> DB
     Worker -->|уведомления| Bot[Telegram Bot API]
     Worker -->|POST invalidate-cache| Web
@@ -28,7 +28,7 @@ Web и worker — отдельные Node.js-процессы с общими м
 | API | `src/app/api/`: чтение и управление каналами, статистика, AI, события, настройки, health, экспорт |
 | Метрики | `src/lib/metrics/queries.ts`, `aggregate.ts`, `calculate.ts`, `engagement.ts`, `adShare.ts`; публичные реэкспорты в `src/lib/metrics.ts` |
 | Производные оценки | `ep.ts`, `scoring.ts`, `fraudDetector.ts`, `citationIndex.ts`, `pricing.ts` |
-| Сбор | `client.ts` → `fetcher.ts` → `collector.ts` → `persister.ts`; обработка ошибок в `retry-policy.ts` |
+| Сбор | `client.ts` → `fetcher.ts` → `collector.ts` → `persister.ts`; текст в `message-content.ts`, упоминания в `post-mentions.ts`, ошибки в `retry-policy.ts` |
 | Дополнительные задания | `worker/demographics.ts`, `worker/ad-reach.ts` |
 | Хранение и кэш | `prisma.ts`, `materialize.ts`, `cache.ts` |
 
@@ -67,8 +67,16 @@ sequenceDiagram
     S->>C: Запуск
     C->>D: Активные каналы и SyncJob RUNNING
     loop Каналы по id
-        C->>T: Resolve, FullChannel, сообщения
-        C->>D: Snapshot, upsert Post, Mention, PostSnapshot
+        C->>T: Resolve и FullChannel
+        opt Доступна численность аудитории
+            C->>D: Snapshot
+        end
+        C->>T: Сообщения
+        opt Частичная статья
+            C->>T: getRichMessage с retry и timeout
+        end
+        C->>C: Текст, реклама и упоминания
+        C->>D: Upsert Post, Mention, PostSnapshot
         C->>D: Статус канала и прогресс SyncJob
         C->>D: materializeDailyMetrics(channelId, 30)
         C->>D: Четыре эвристики и запись FraudSignal
@@ -86,6 +94,16 @@ sequenceDiagram
 7. Материализация пересчитывает 30 календарных UTC-дней; её ошибка логируется отдельно. Затем общий `try/catch` обрабатывает блок антифрода: сбой в нём может пропустить оставшиеся проверки канала, но не отменяет сбор.
 
 `fetcher.ts` делает паузу 1000–1299 мс перед попыткой и до трёх попыток при FLOOD_WAIT. Ожидание — указанное Telegram время + 2 секунды + jitter до 1499 мс; экспоненциального backoff в этом коде нет. Это задержка на вызов, а не распределённый глобальный rate limiter.
+
+### Статьи Telegram
+
+Пакет `telegram` установлен как npm alias для `teleproto@1.229.0` (слой API 229), преемника GramJS. Импорты и формат `StringSession` сохранены. [Причины и последствия выбора](adr/0002-telegram-rich-messages.md). Старый слой 198 возвращал новые статьи как `MessageMediaUnsupported` без текста.
+
+`message-content.ts` преобразует `richMessage` в обычный текст с абзацами через `Rich.toPlainText`: заголовки, списки, таблицы, цитаты и подписи медиа. Изображения не скачиваются, OCR и воспроизведение оформления Telegram не выполняются. Для `part=true` полный текст догружается через `getRichMessage` с существующими ограничением частоты, повторными попытками и таймаутом. Ошибка догрузки изолирована: счётчики поста сохраняются, прежние текст, рекламная классификация и упоминания не перезаписываются неполным результатом.
+
+Полный текст сохраняется в существующее `Post.text`; миграция БД не нужна. Он доступен интерфейсу, поиску, рекламной классификации и новым AI-отчётам в пределах их существующих выборок и лимитов длины. Старые отчёты автоматически не пересчитываются. Восстановление пустых записей за пределами последних 200 сообщений описано в [инструкции утилиты](../scripts/README.md#восстановление-текста-статей).
+
+### Ошибки основного цикла
 
 `retry-policy.ts` увеличивает `consecutiveErrors` и отключает канал при достижении `CHANNEL_MAX_CONSECUTIVE_ERRORS` (по умолчанию 10). Успех сбрасывает счётчик. При `TelegramTimeoutError` цикл пытается переподключить клиент; неудачный reconnect завершает цикл с fatal error. Некоторые ошибки чтения сообщений внутри `collectChannelData` только логируются, поэтому успешный статус не гарантирует полноту постов.
 

@@ -1,6 +1,6 @@
 # Карта кодовой базы
 
-Сверено 17 сентября 2026 года. TgMon — один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
+Сверено 23 сентября 2026 года. TgMon — один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
 
 ## Структура
 
@@ -52,9 +52,11 @@ docs/                   продуктовая и техническая док�
 
 ## Worker
 
-- `client.ts` создаёт и переиспользует TelegramClient с `TG_SESSION`.
+- `client.ts` создаёт и переиспользует TelegramClient с `TG_SESSION`; пакет `telegram` — npm alias для `teleproto@1.229.0`.
 - `fetcher.ts` разбирает идентификаторы, выполняет resolve/FullChannel/getMessages, задержки, FLOOD_WAIT и таймауты.
 - `collector.ts` добавляет каналы, собирает/обновляет посты, запускает материализацию и антифрод, завершает SyncJob и сбрасывает кэш.
+- `message-content.ts` извлекает текст статьи и догружает `richMessage.part`; при неудаче возвращает признак недоступного содержания без частичного текста.
+- `post-mentions.ts` извлекает источники пересылок и упоминания из текста; общий модуль сборщика и восстановления статей.
 - `persister.ts` отвечает за Prisma-записи, объединение альбомов, снимки просмотров и сигналы.
 - `retry-policy.ts` записывает ошибки, отключает канал после порога и отправляет Bot API-уведомления.
 - `demographics.ts` собирает языковой граф с проверкой прав и statsDc. `src/lib/demographics.ts` валидирует граф и API-формат.
@@ -62,11 +64,14 @@ docs/                   продуктовая и техническая док�
 
 Worker рассчитывает дневные метрики. Ручной сбор и initial backfill также вызываются из web; распределённой блокировки нет. Подробности — в [архитектуре](architecture.md).
 
+`scripts/backfill-articles.ts` восстанавливает только пустые `Post.text` выбранного канала: dry-run по умолчанию, запись с `--apply`, транзакционное обновление текста, `isAd` и Mention. Схема БД не меняется. [Инструкция](../scripts/README.md#восстановление-текста-статей), [ADR 0002](adr/0002-telegram-rich-messages.md).
+
 ## Компоненты и отображение
 
 - `MyChannelCard`, `WatchlistWidget`, `Dashboard`, `TopGainersLosers` — обзор; ERR берётся из `err24h`/`err7d`, группы используют CR.
 - `channel/ChannelsDesktopTable`, `channel/ChannelsMobileList` — метрики, CI, Ad Load и RiskBadge. Управление удалением перенесено в `channel/ChannelDangerZone`.
 - `channel/cells/MetricCell` — значения и причины пропусков. Для отсутствия постов рисует цветную точку 8 px, остальные причины — текстом; ноль не скрывает.
+- `channel/RecentPosts` — поиск, карточки публикаций и окно полного текста с прокруткой. Статьи читаются из того же `Post.text`; при отсутствии текста используется нейтральная подпись «Текст недоступен».
 - `DeltaBadge` — дельта с фактическим покрытием истории.
 - `AudienceDemographics` — языки, дата, устаревание, отсутствие данных и недоступная география.
 - `BestTimeWidget` — VR слотов уже в процентах; `TrendSpotterWidget` — сохранённый AI-радар, свёрнутый по умолчанию.
@@ -84,6 +89,8 @@ Tailwind-токены находятся в `tailwind.config.js`, глобаль
 Модели, отношения и миграции: [prisma/schema.prisma](../prisma/schema.prisma), [архитектура](architecture.md). Команды и ограничения одноразовых утилит: [scripts/README.md](../scripts/README.md).
 
 ## Проверки и вспомогательные материалы
+
+Проверки статей: `src/worker/__tests__/message-content.test.ts` (текстовые блоки, догрузка, неполные и повреждённые данные), `article-collection.test.ts` (передача текста в сохранение, реклама/упоминания и продолжение сбора после ошибки).
 
 Vitest ищет `src/**/*.test.ts`, default environment — Node; часть UI-тестов использует jsdom. Тесты расположены рядом с lib, metrics, worker, компонентами и API. CI-команды и docs-only проверки — в [codex-workflow.md](codex-workflow.md).
 

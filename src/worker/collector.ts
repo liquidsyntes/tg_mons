@@ -27,6 +27,8 @@ import {
 import { prisma } from '../lib/prisma';
 import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, checkUniformReactionRatio } from '../lib/fraudDetector';
 import { detectAd } from '../lib/adDetector';
+import { readMessageContent } from './message-content';
+import { extractPostMentions } from './post-mentions';
 import {
   sendTelegramAnomalyAlert,
   handleChannelError,
@@ -117,7 +119,12 @@ export async function collectChannelData(
 
       const publishedAt = new Date(msgDateSec * 1000);
       const views = typeof msg.views === 'number' ? msg.views : null;
-      const text = msg.message || null;
+      const content = await readMessageContent(
+        msg,
+        () => client.getRichMessage(entity, msg.id),
+        { channelId: channel.id, messageId: msg.id },
+      );
+      const text = content.text;
       const forwards = typeof msg.forwards === 'number' ? msg.forwards : null;
       const comments = msg.replies && typeof msg.replies.replies === 'number' ? msg.replies.replies : null;
       const groupedId = msg.groupedId ? BigInt(msg.groupedId.toString()) : null;
@@ -133,38 +140,8 @@ export async function collectChannelData(
           if (existingGroupPost) targetMessageId = existingGroupPost.messageId;
       }
 
-      const extractedMentions: { type: string, targetUsername?: string | null, targetTgId?: any }[] = [];
-
-      if (msg.fwdFrom) {
-          const fromId = msg.fwdFrom.fromId;
-          if (fromId && fromId.className === 'PeerChannel') {
-              extractedMentions.push({ type: 'forward', targetTgId: fromId.channelId ? fromId.channelId.toString() : null });
-          }
-      }
-
-      if (text) {
-          const usernameRegex = /@([a-zA-Z0-9_]{4,})/g;
-          let match;
-          while ((match = usernameRegex.exec(text)) !== null) {
-              const uname = match[1].toLowerCase();
-              if (uname !== channel.username?.toLowerCase()) {
-                 extractedMentions.push({ type: 'mention', targetUsername: uname });
-              }
-          }
-          const linkRegex = /(?:t\.me\/|telegram\.me\/)([a-zA-Z0-9_]{4,})/g;
-          while ((match = linkRegex.exec(text)) !== null) {
-              const uname = match[1].toLowerCase();
-              if (uname !== channel.username?.toLowerCase() && uname !== 'joinchat') {
-                 extractedMentions.push({ type: 'mention', targetUsername: uname });
-              }
-          }
-      }
-      
-      const uniqueMentionsStr = Array.from(new Set(extractedMentions.map(m => JSON.stringify(m))));
-      const uniqueMentions = uniqueMentionsStr.map(s => JSON.parse(s));
-
       const adDetection = detectAd(text);
-      const isAd = adDetection.isAd || adDetection.isPartner;
+      const isAd = content.available ? adDetection.isAd || adDetection.isPartner : undefined;
 
       const post = await upsertPostWithReactions({
         channelId: channel.id,
@@ -180,10 +157,9 @@ export async function collectChannelData(
         isAd,
       });
 
-      await saveMentions(post.id, channel.id, uniqueMentions.map(m => ({
-          ...m,
-          targetTgId: m.targetTgId ? BigInt(m.targetTgId) : null,
-      })));
+      if (content.available) {
+        await saveMentions(post.id, channel.id, extractPostMentions(msg, text, channel.username));
+      }
 
       postsAdded++;
     }

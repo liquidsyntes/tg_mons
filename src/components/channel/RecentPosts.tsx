@@ -217,7 +217,7 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
                       )}
                     </div>
                     <div className="text-sm text-slate-300 line-clamp-3 leading-relaxed flex-1">
-                      {post.text ? highlightText(post.text, debouncedQ) : <span className="italic text-slate-500">Без текста (медиа)</span>}
+                      {post.text ? highlightText(post.text, debouncedQ) : <span className="italic text-slate-500">Текст недоступен</span>}
                     </div>
                   </div>
                 ))}
@@ -279,7 +279,7 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
               </button>
             </div>
             <div className="p-5 overflow-y-auto custom-scrollbar text-slate-200 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
-              {selectedPost.text ? highlightText(selectedPost.text, debouncedQ) : <span className="italic text-slate-500">Пост не содержит текста (возможно, это только фото или видео)</span>}
+              {selectedPost.text ? highlightText(selectedPost.text, debouncedQ) : <span className="italic text-slate-500">Текст публикации не получен. Это может быть медиа без подписи или неподдерживаемый формат Telegram.</span>}
             </div>
             <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end">
               <a

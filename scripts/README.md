@@ -1,20 +1,48 @@
-# Scripts
+# Служебные скрипты
 
-This directory contains utility scripts for database inspection and debugging.
+Сверено с содержимым `scripts/` 23 сентября 2026 года. Скрипты не запускаются автоматически при старте приложения. Рабочая папка — корень проекта, зависимости — из текущего lockfile. Утилиты с Prisma требуют доступной конфигурации БД; Telegram-утилиты — действующей MTProto-сессии.
 
-## Usage
+## Назначение и состояние
+
+| Файл | Поведение и ограничения |
+| --- | --- |
+| [backfill-articles.ts](backfill-articles.ts) | Проверка и восстановление пустых текстов статей одного канала; dry-run по умолчанию, запись только с `--apply` |
+| [audit-metrics.ts](audit-metrics.ts) | Читает SyncJob, каналы, агрегаты, снимки и посты; выводит диагностические данные, БД не изменяет |
+| [check_db_stats.ts](check_db_stats.ts) | Читает список каналов, количество постов и время сбора; вывод содержит данные каналов |
+| [check_db.ts](check_db.ts) | Печатает содержимое последнего `super_report`; это содержимое отчёта, а не безопасный health-check |
+| [rematerialize.ts](rematerialize.ts) | Пересчитывает ChannelMetricDaily за 30 дней для всех каналов, включая отключённые; пишет в БД |
+| [backfill-subscribers.ts](backfill-subscribers.ts) | Заполняет только null `subscribersAtPublish` по ближайшему Snapshot до публикации, при отсутствии — первому после неё; пишет в БД, dry-run нет |
+| [repair-subscribers.ts](repair-subscribers.ts) | Обходит все посты пакетами по 500 и перезаписывает `subscribersAtPublish` по тому же правилу; dry-run нет |
+| [check_gramjs.ts](check_gramjs.ts) | Историческая диагностика одного жёстко заданного канала; импортирует `resolveChannelEntity` из collector, где этого экспорта сейчас нет. Перед запуском требует исправления |
+| [inspect_msg.ts](inspect_msg.ts), [query_posts.ts](query_posts.ts) | Исторические одноразовые диагностики с жёстко заданными целями и некорректными относительными импортами `.../src/...`; не являются готовыми эксплуатационными командами |
+| [test_scrape.ts](test_scrape.ts) | Загружает HTML жёстко заданного публичного Telegram-превью через HTTPS; не используется сборщиком и не восстанавливает статьи в БД |
+| [fix_grouped_posts.ts](fix_grouped_posts.ts) | Историческое удаление дубликатов альбомов и обновление groupedId; некорректные импорты `.../src/...`, есть удаление данных, dry-run нет |
+| [patch_ai.js](patch_ai.js) | Одноразовые строковые замены в исходнике AIReportsSection; это изменение кода, не восстановление отчётов. Повторяемость и соответствие текущему файлу не гарантированы |
+
+Пример запуска проверенной по назначению утилиты: `npx tsx scripts/audit-metrics.ts`. Не публикуйте необезличенный вывод: диагностические скрипты могут печатать реальные каналы, сообщения и отчёты. Скрипты с исправлением данных запускаются только после выбора нужной БД, проверки области воздействия и резервной копии. Наличие файла в этой папке не означает, что его нужно запускать при обновлении.
+
+`backfill-subscribers` и `repair-subscribers` не восстанавливают точную историческую аудиторию, если нужного снимка нет. Они не заменяют миграции Prisma и не относятся к восстановлению текста статей.
+
+## Восстановление текста статей
+
+`backfill-articles.ts` использует установленный Telegram-клиент и существующую сессию. Требуются доступ к БД и Telegram. Запускайте после установки зависимостей из текущего lockfile и генерации Prisma-клиента. В Docker нужен пересобранный образ worker с новым кодом; изменение файлов на хосте не обновляет контейнер.
+
+Сначала проверка без записи (N — внутренний числовой ID канала в TgMon):
 
 ```bash
-# Example: Running a script using ts-node or Next.js tsx environment
-npx tsx scripts/check_db.ts
+npx tsx scripts/backfill-articles.ts --channel-id=N
 ```
 
-## Available Scripts
+После проверки результата — сохранение:
 
-- **check_db.ts**: Prints the latest generated `super_report` from the DB.
-- **check_db_stats.ts**: Inspects database metrics/stats.
-- **check_gramjs.ts**: Utility to verify Telegram GramJS client authentication.
-- **rematerialize.ts**: Runs manual metrics materialization.
-- **inspect_msg.ts**, **query_posts.ts**, **test_scrape.ts**: Local dev debugging utilities for scraping and Telegram messages.
+```bash
+npx tsx scripts/backfill-articles.ts --channel-id=N --apply
+```
 
-*Note: One-off dev scripts should be placed here, never in the root directory.*
+По умолчанию проверяются до 1000 записей с `text=null` или пустой строкой, без ограничения давности; `--limit=100` задаёт размер выборки (1–10000). Telegram читается пакетами по 100 ID. Восстанавливаются только статьи с полным непустым текстом. Существующий непустой текст, просмотры и снимки не изменяются. Вместе с текстом пересчитываются `isAd` и упоминания; одна публикация обновляется транзакционно, повторный запуск безопасен.
+
+Итоговая JSON-строка содержит счётчики `candidates`, `recoverable`, `updated`, `unavailable` и `lastScannedId`, без текста статей. Для следующей порции используйте `--after-id=K`, где K — полученный `lastScannedId`. После dry-run для записи используйте исходный курсор, иначе проверенная порция будет пропущена. Не переходите дальше при `unavailable>0`, если хотите повторить догрузку недоступных статей. Отсутствующие в ответе Telegram сообщения и обычные медиа остаются без изменений. `unavailable` считает ошибки чтения распознанных статей, а не все отсутствующие или неподдерживаемые сообщения; ноль в этом поле не доказывает полноту истории. `lastScannedId` — ID строки Post в БД, не messageId Telegram.
+
+Для запуска в Docker замените префикс `npx tsx` на `docker compose exec worker npx tsx`. Подробная последовательность обновления обоих образов — в [эксплуатации](../docs/deployment.md#восстановление-ранее-пустых-статей).
+
+После сохранения дождитесь истечения кэша метрик (5 минут) или выполните штатную инвалидацию. Нужные AI-отчёты создайте заново: утилита не меняет сохранённые отчёты и не вызывает AI.
