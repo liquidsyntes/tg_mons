@@ -1,6 +1,10 @@
 # Запуск и эксплуатация
 
+<<<<<<< HEAD
 Сверено 23 сентября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже — инструкции для оператора, а не подтверждение выполненного деплоя.
+=======
+Сверено 20 сентября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже — инструкции для оператора, а не подтверждение выполненного деплоя.
+>>>>>>> improve_visual_design
 
 ## Требования и подготовка
 
@@ -23,7 +27,7 @@ npm run auth
 
 Авторизация обновляет TG_API_ID, TG_API_HASH, TG_SESSION и при наличии TG_PHONE в `.env`; строка сессии также печатается в терминал. Не включайте этот вывод в отчёты и логи общего доступа.
 
-В `.env.example` остались комментарии про SQLite и неиспользуемый MY_CHANNEL_USERNAME. Ориентируйтесь на таблицу ниже и Prisma-схему. Runtime читает именно **TG_API_ID / TG_API_HASH / TG_SESSION**, не API_ID/API_HASH/TELEGRAM_SESSION.
+В `.env.example` приведены актуальные строки подключения к PostgreSQL (SQLite не поддерживается), а параметр MY_CHANNEL_USERNAME помечен как не используемый кодом. Ориентируйтесь на таблицу ниже и Prisma-схему. Runtime читает именно **TG_API_ID / TG_API_HASH / TG_SESSION**, не API_ID/API_HASH/TELEGRAM_SESSION.
 
 ## Переменные окружения
 
@@ -46,60 +50,89 @@ npm run auth
 | HEALTH_STALE_THRESHOLD_MINUTES | web health | 720 |
 | MY_CHANNEL_USERNAME | Никем не читается | Сохранён в примере, но не назначает «Мой канал» |
 
-DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры отсутствуют в `.env.example`. Compose не передаёт их, а также TELEGRAM_REQUEST_TIMEOUT_MS, в environment контейнеров. Одного добавления переменной в `.env` недостаточно для Docker: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
+Параметры DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры приведены в `.env.example` с дефолтными значениями. Compose по умолчанию не передаёт их, а также TELEGRAM_REQUEST_TIMEOUT_MS, в environment контейнеров. Одного добавления переменной в `.env` недостаточно для Docker: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
 
 Ни compose, ни cron.schedule не задают timezone. Расписание и часть графиков используют часовой пояс процесса; дневная материализация — UTC. Учитывайте его при выборе расписания.
 
-## Режим 1: web и worker на хосте
+## Режим 1: Локальная разработка в Docker (рекомендуемый, Hot Reload)
 
-PostgreSQL можно запустить из Compose:
+Это основной и рекомендуемый способ локальной разработки. Сервисы `web` и `worker` запускаются внутри контейнеров Docker с монтированием директории проекта и поддержкой Hot Reload (Fast Refresh) без пересборки образов при изменении исходного кода.
 
-```bash
-docker compose up -d postgres
-```
+### Пошаговая подготовка и запуск
 
-После готовности БД задайте в `.env` DATABASE_URL с адресом `127.0.0.1:5432`, именем `tgmon` и учётными данными **вашей** базы. Штатный YAML использует демонстрационные postgres/password.
+1. **Запуск базы данных PostgreSQL**:
+   ```bash
+   docker compose up -d postgres
+   ```
 
-```bash
-npm run prisma:migrate
-npm run dev:all
-```
+2. **Генерация Prisma Client и применение миграций к БД**:
+   ```bash
+   npm run prisma:generate
+   npm run prisma:migrate
+   ```
 
-Или два терминала: `npm run dev` и `npm run worker`. Web — [localhost:4000](http://localhost:4000). Для сброса кэша задайте WEB_INTERNAL_URL=http://localhost:4000.
+3. **Интерактивная авторизация в Telegram (если сессия ещё не создана)**:
+   ```bash
+   npm run auth
+   ```
+   Утилита авторизует MTProto-клиент и сохранит параметры `TG_API_ID`, `TG_API_HASH`, `TG_SESSION` в файл `.env`.
 
-## Режим 2: Docker PostgreSQL/worker, Next.js на хосте
+4. **Запуск web и worker в dev-режиме через Compose override**:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+   ```
 
-Это локальная схема с hot reload web. Установите зависимости, сгенерируйте Prisma Client, выполните auth и миграции на хосте как выше. Для worker укажите WEB_INTERNAL_URL=http://host.docker.internal:4000, затем:
+Web-интерфейс доступен по адресу [http://localhost:4000](http://localhost:4000). Встроенный Compose-default `WEB_INTERNAL_URL=http://web:4000` обеспечивает корректную связь воркера с web-сервисом внутри сети Docker.
 
-```bash
-docker compose up -d --build postgres worker
-npm run dev
-```
+### Как устроен Hot Reload в Docker
 
-На Docker Desktop адрес host.docker.internal используется для доступа к хосту. В Linux при необходимости добавьте worker `extra_hosts: ["host.docker.internal:host-gateway"]` в локальный override. Если имя недоступно, задайте доступный из контейнера адрес хоста. Web должен быть запущен к моменту инвалидации; ранний startup-cycle может завершиться до него.
+- Файл `docker-compose.dev.yml` переопределяет команду запуска сервиса `web` на `command: npm run dev` (`next dev -p 4000`), а `worker` — на `command: npx tsx watch src/worker/index.ts` (автоматический перезапуск воркера при изменениях в `src/worker/`).
+- **Монтирование томов (Volumes)**:
+  - `.:/app` — bind-mount рабочей директории хоста внутрь контейнера. Любые изменения файлов в `src/` мгновенно становятся видны в контейнере.
+  - `/app/node_modules` и `/app/.next` — анонимные тома Docker. Они изолируют зависимости и кэш сборки Next.js от хостовой файловой системы, предотвращая конфликты бинарных модулей между хостом (например, Windows) и Linux-контейнером.
+- **Опрос файловой системы**: в `docker-compose.dev.yml` задана переменная окружения `WATCHPACK_POLLING=true`. Это критически важно для сред Docker Desktop и WSL2 на Windows, где стандартные события файловой системы `inotify` могут не доставляться через bind-mount томов. Watchpack переходит на поллинг, корректно обнаруживает изменения и запускает Fast Refresh / Hot Reload без перезапуска контейнера.
+- **Предостережение**: не запускайте `npm run dev` на хосте параллельно с Docker-контейнерами во избежание конфликтов портов и ошибок блокировки файлов Prisma engine (Windows EPERM).
 
-Встроенный Compose-default `http://web:4000` подходит для режима 3, но не для отсутствующего web-контейнера. Не запускайте одновременно второй обычный worker на хосте.
+## Режим 2: Запуск web и worker на хосте (альтернативный / отладочный)
 
-## Режим 3: полный Compose
+Используется для быстрой изоляции проблем, отладки отдельных обработчиков или профилирования процессов на хосте без использования контейнеров для Node.js.
 
-Сначала получите TG_SESSION. В `.env` задайте **WEB_INTERNAL_URL=http://web:4000**: значение localhost из примера иначе перекроет default YAML и направит worker к самому себе.
+1. Запустите PostgreSQL из Compose:
+   ```bash
+   docker compose up -d postgres
+   ```
 
-```bash
-docker compose up -d postgres
-docker compose build web worker
-```
+2. Задайте в `.env` параметр `DATABASE_URL` с адресом `127.0.0.1:5432`, именем `tgmon` и учётными данными вашей базы (демонстрационные по умолчанию: `postgresql://postgres:password@localhost:5432/tgmon?schema=public`).
 
-Дождитесь готовности PostgreSQL и примените миграции:
+3. Примените миграции и запустите процессы:
+   ```bash
+   npm run prisma:migrate
+   npm run dev:all
+   ```
+   Или в двух отдельных терминалах: `npm run dev` и `npm run worker`. Web доступен на [http://localhost:4000](http://localhost:4000). Для сброса кэша из воркера задайте `WEB_INTERNAL_URL=http://localhost:4000`.
 
-```bash
-docker compose run --rm --no-deps worker npm run prisma:migrate
-docker compose up -d web worker
-```
+## Режим 3: Production-развёртывание (полный Compose)
+
+В production контейнеры компилируются в оптимизированные standalone-образы без монтирования локального исходного кода и без Hot Reload (`Dockerfile.web` выполняет `npm run build`, а запуск происходит через `npm start`).
+
+1. Убедитесь, что MTProto-сессия получена (`TG_SESSION` в `.env`).
+2. В `.env` задайте **`WEB_INTERNAL_URL=http://web:4000`**: значение `localhost` из примера перекроет default YAML и направит worker к самому себе.
+3. Запустите PostgreSQL и соберите production-образы:
+   ```bash
+   docker compose up -d postgres
+   docker compose build web worker
+   ```
+4. Дождитесь готовности PostgreSQL и примените миграции через одноразовый контейнер:
+   ```bash
+   docker compose run --rm --no-deps worker npm run prisma:migrate
+   docker compose up -d web worker
+   ```
 
 `depends_on` задаёт порядок запуска, но без healthcheck не гарантирует готовность БД. Ни Dockerfile, ни CMD не выполняют migrate автоматически. DATABASE_URL обоих приложений в YAML задан явно и не наследует одноимённую переменную из `.env`.
 
 Web публикует 4000:4000, PostgreSQL — 5432:5432. Для сетевого размещения замените демонстрационный пароль согласованно в postgres и URL обоих приложений, ограничьте публикацию БД и доступ к web. Изменение POSTGRES_PASSWORD в YAML само по себе не меняет пароль существующего пользователя в уже созданном volume.
 
+<<<<<<< HEAD
 `docker-compose.dev.yml` — дополнительный override, не самостоятельная конфигурация:
 
 ```bash
@@ -129,6 +162,8 @@ docker compose up -d --no-deps --force-recreate web
 
 Если команда `docker` в WSL сообщает об отсутствии интеграции Docker Desktop, выполните те же команды в Windows PowerShell из `C:\TgMon` либо используйте установленный Windows `docker.exe`. Это проблема доступа к Docker, а не повод создавать другую копию проекта.
 
+=======
+>>>>>>> improve_visual_design
 ## Миграции и демонстрационные данные
 
 - `npm run prisma:migrate` выполняет **prisma migrate deploy**: применяет существующие миграции, не создаёт новые.

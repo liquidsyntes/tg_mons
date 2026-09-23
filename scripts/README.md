@@ -35,9 +35,21 @@ npx tsx scripts/backfill-articles.ts --channel-id=N
 
 После проверки результата — сохранение:
 
+<<<<<<< HEAD
 ```bash
 npx tsx scripts/backfill-articles.ts --channel-id=N --apply
 ```
+=======
+- **audit-metrics.ts**: Аудит целостности сохранённых снимков и метрик каналов.
+- **backfill-subscribers.ts**: Восстанавливает исторические `subscribersAtPublish` для постов по ближайшим снимкам Snapshot.
+- **repair-subscribers.ts**: Пакетная корректировка нулевых или пропущенных `subscribersAtPublish`.
+- **fix_grouped_posts.ts**: Сведение разрозненных сообщений одного медиаальбома к единому посту по `groupedId`.
+- **check_db.ts**: Prints the latest generated `super_report` from the DB.
+- **check_db_stats.ts**: Inspects database metrics/stats.
+- **check_gramjs.ts**: Utility to verify Telegram GramJS client authentication.
+- **rematerialize.ts**: Runs manual metrics materialization.
+- **inspect_msg.ts**, **query_posts.ts**, **test_scrape.ts**: Local dev debugging utilities for scraping and Telegram messages.
+>>>>>>> improve_visual_design
 
 По умолчанию проверяются до 1000 записей с `text=null` или пустой строкой, без ограничения давности; `--limit=100` задаёт размер выборки (1–10000). Telegram читается пакетами по 100 ID. Восстанавливаются только статьи с полным непустым текстом. Существующий непустой текст, просмотры и снимки не изменяются. Вместе с текстом пересчитываются `isAd` и упоминания; одна публикация обновляется транзакционно, повторный запуск безопасен.
 

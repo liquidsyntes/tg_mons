@@ -89,3 +89,25 @@ Audit and update JSDoc comments in `src/lib/fraudDetector.ts` and `src/lib/citat
 - [ ] Programmatic: A new file exists in `docs/adr/` explicitly covering the anti-fraud architecture.
 - [ ] Agent-as-judge: A reviewer agent verifies that `docs/analytics-formulas.md` contains mathematical formulas for all four new fraud metrics.
 - [ ] Agent-as-judge: A reviewer agent verifies that all exported functions in `src/lib/fraudDetector.ts` and `src/lib/citationIndex.ts` have valid JSDoc descriptions.
+
+## 2026-09-20T13:48:35Z
+
+Conduct a comprehensive review of the project's current state and update the entire documentation suite to strictly reflect factual, up-to-date information.
+
+Working directory: c:\TgMon
+Integrity mode: development
+
+## Requirements
+
+### R1. Document Local Development Changes
+Update `docs/deployment.md` and `README.md` to clearly explain the latest Docker setup, including how Next.js is run inside Docker for local development (via `docker-compose.dev.yml`) with Hot Reload enabled.
+
+### R2. Global Factual Audit
+Audit ALL files in the `docs/` folder. Ensure everything matches the actual codebase state. Remove any outdated instructions, deprecated commands, conflicting guidelines, or speculative information. Preserve existing formatting and the Russian language.
+
+## Acceptance Criteria
+
+### Verification
+- [ ] Agent-as-judge: A reviewer agent verifies that `docs/deployment.md` explicitly includes the correct multi-file `docker compose -f ...` command for local development.
+- [ ] Agent-as-judge: A reviewer agent cross-references the updated `docs/` folder against `docker-compose.yml`, `package.json`, and the codebase to guarantee that no deprecated or contradictory instructions remain.
+- [ ] Programmatic: Project formatting or linters (e.g. Markdown lint if applicable) pass successfully on the updated files.

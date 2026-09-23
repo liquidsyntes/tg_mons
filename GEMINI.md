@@ -14,8 +14,7 @@
 - **CRITICAL**: Основной проект находится в C:\TgMon. Даже если система создала для вас изолированный worktree, вы ОБЯЗАНЫ выполнять все изменения файлов и консольные команды напрямую в C:\TgMon. Этот проект работает локально из этой папки (через Docker и т.д.), и изменения во временных worktree не будут видны пользователю.
 
 ## Docker & Local Development
-- **Dev Environment**: The \docker-compose.yml\ and \Dockerfile.web\ are configured for a **production** build. For local development with Hot Reload, do NOT run the \web\ container in Docker. Instead, run the database and worker via Docker (\docker-compose up -d postgres worker\), and run the Next.js web application locally on the host machine using \
-pm run dev\.
+- **Dev Environment**: The `docker-compose.yml` and `Dockerfile.web` are configured for a **production** build. For local development with Hot Reload, you MUST run the `web` container inside Docker. Use the provided override file by running `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`. This will mount the source code as a volume and run `npm run dev` so changes are instantly reflected in the container. Do NOT run `npm run dev` locally on the host machine.
 
 ## Documentation Generation
 - **ALWAYS** use the following specialized skills whenever creating, updating, or improving any form of documentation, diagrams, or architectural records:

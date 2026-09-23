@@ -1,6 +1,6 @@
 # ADR 0001: фоновые сигналы антифрода и аудит при чтении
 
-**Статус:** реализовано, описание актуализировано по коду 17 сентября 2026 года.
+**Статус:** реализовано, описание актуализировано по коду 20 сентября 2026 года.
 
 **Область:** [fraudDetector.ts](../../src/lib/fraudDetector.ts), [citationIndex.ts](../../src/lib/citationIndex.ts), [collector.ts](../../src/worker/collector.ts), [persister.ts](../../src/worker/persister.ts), [queries.ts](../../src/lib/metrics/queries.ts), [RiskBadge.tsx](../../src/components/RiskBadge.tsx).
 

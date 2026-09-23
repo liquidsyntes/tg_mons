@@ -1,6 +1,10 @@
 # Карта кодовой базы
 
+<<<<<<< HEAD
 Сверено 23 сентября 2026 года. TgMon — один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
+=======
+Сверено 20 сентября 2026 года. TgMon — один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
+>>>>>>> improve_visual_design
 
 ## Структура
 

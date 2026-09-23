@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Git-процесс
+=======
+# Git Workflow
+>>>>>>> improve_visual_design
 
 Памятка согласована с [AGENTS.md](../AGENTS.md) и [GEMINI.md](../GEMINI.md). Работа выполняется в основном checkout `C:\TgMon` / `/mnt/c/TgMon`; отдельный worktree не используется.
 

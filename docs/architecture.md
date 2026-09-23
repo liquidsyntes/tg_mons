@@ -1,6 +1,10 @@
 # Архитектура TgMon
 
+<<<<<<< HEAD
 Состояние реализации: 23 сентября 2026 года. Источники — [Prisma-схема](../prisma/schema.prisma), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
+=======
+Состояние реализации: 20 сентября 2026 года. Источники — [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
+>>>>>>> improve_visual_design
 
 ## Контекст и процессы
 
@@ -34,22 +38,27 @@ Web и worker — отдельные Node.js-процессы с общими м
 
 ## Модель данных
 
+Полная спецификация моделей PostgreSQL 15, типов полей, вторичных индексов, перечислений и каскадов приведена в документе [База данных и схема Prisma](database.md).
+
+Схема `prisma/schema.prisma` включает **15 моделей** и перечисление **`SyncStatus`** (`RUNNING`, `COMPLETED`, `PARTIAL`, `FAILED` — статус фонового цикла сбора в `SyncJob`):
+
 | Prisma-модель | Таблица | Назначение |
 | --- | --- | --- |
 | `Channel` | `channels` | Идентификаторы Telegram, тип, ниша, флаги, статус и ошибки сбора |
 | `Snapshot` | `snapshots` | История численности аудитории |
 | `Post` | `posts` | Текущие счётчики и текст публикации; unique `(channelId, messageId)` |
-| `Mention` | `mentions` | Ссылка из собранного поста на username/tgId; target не является внешним ключом на Channel |
 | `PostSnapshot` | `post_snapshots` | Нерегулярная история просмотров свежих постов для LTV |
 | `PostViewSnapshot` | `post_view_snapshots` | Рекламные контрольные точки; unique `(postId, hoursAfterPost)` |
+| `Mention` | `mentions` | Ссылка из собранного поста на username/tgId; target не является внешним ключом на Channel |
+| `SyncJob` | `sync_jobs` | Начало/конец цикла, статус (`SyncStatus`), счётчики и краткая ошибка |
 | `ChannelMetricDaily` | `channel_metrics_daily` | Дневные агрегаты UTC; unique `(channelId, date)` |
-| `FraudSignal` | `fraud_signals` | Тип, значение, причина и время срабатывания эвристики |
 | `AudienceDemographics` | `audience_demographics` | Языковые доли, дата снимка, nullable JSONB `countryBreakdown` |
 | `AiReport` | `ai_reports` | Тип и строковый JSON-ответ LLM, необязательный канал |
-| `Event`, `EventMention` | `events`, `event_mentions` | События и связи с исходными постами |
-| `SyncJob` | `sync_jobs` | Начало/конец цикла, статус, счётчики и краткая ошибка |
+| `Event` | `events` | Мероприятия и события, извлечённые из публикаций Telegram |
+| `EventMention` | `event_mentions` | Связи M:N событий с исходными постами; unique `(eventId, postId)` |
 | `SystemSetting` | `system_settings` | Запись `global` с настройками AI и полями digest |
 | `AlertRule` | `alert_rules` | Схема пользовательских правил; исполнения в worker пока нет |
+| `FraudSignal` | `fraud_signals` | Тип, значение, причина и время срабатывания эвристики |
 
 Миграции находятся в `prisma/migrations/`. Последняя на дату сверки — `20260916213000_add_demographics_country`: добавление nullable JSONB без заполнения старых строк. `PostViewSnapshot` введён миграцией `20260913211244_add_post_view_snapshot`. Схема включает `pg_trgm` и GIN-индекс текста постов.
 
@@ -131,7 +140,7 @@ Cron и часть heatmap используют часовой пояс Node.js-
 
 ## AI, события и граница доступа
 
-AI-обработчики формируют промпты из сохранённых данных, вызывают `callOpenRouter` и пытаются сохранить ответ через `saveAiReport`. Восемь типов отчётов описаны в [API](api-reference.md). Event Scanner отдельно извлекает события из текстов и связывает их с Post. Данные контента отправляются внешнему провайдеру при запуске этих функций.
+AI-обработчики формируют промпты из сохранённых данных, вызывают `callOpenRouter` и пытаются сохранить ответ через `saveAiReport`. Восемь типов отчётов описаны в [API](api-reference.md). Для анализа рыночных трендов (`/api/ai/trends`) посты отбираются исключительно из активных каналов (`isActive: true`), входящих в Watchlist (`isFavorite: true`) или являющихся «Моим каналом» (`isMine: true`) за последние 48 часов с непустым текстом (до 100 публикаций). Event Scanner отдельно извлекает события из текстов и связывает их с Post. Данные контента отправляются внешнему провайдеру при запуске этих функций.
 
 `callOpenRouter` читает `OPENROUTER_API_KEY`; `SystemSetting` не участвует в выборе провайдера, токена или модели. Экспорт отчёта возвращает HTML, а PDF/PNG формируют соответствующие компоненты интерфейса.
 
