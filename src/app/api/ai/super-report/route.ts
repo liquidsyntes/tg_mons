@@ -17,21 +17,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'channelId is required' }, { status: 400 });
     }
 
-    const days = 42; // 6 weeks
-    // Fetch posts for the last N days with text
-    const dateLimit = new Date(Date.now() - days * 24 * 3600 * 1000);
     const posts = await prisma.post.findMany({
       where: {
         channelId: Number(channelId),
-        publishedAt: { gte: dateLimit },
         text: { not: null },
       },
       orderBy: { publishedAt: 'desc' },
-      take: 150, // Increased limit for Super Report
+      take: 50,
     });
 
     if (posts.length === 0) {
-      return NextResponse.json({ error: 'Нет текстовых постов за выбранный период для анализа' }, { status: 404 });
+      return NextResponse.json({ error: 'Нет текстовых постов для анализа' }, { status: 404 });
     }
 
     const channel = await prisma.channel.findUnique({ where: { id: Number(channelId) } });
@@ -45,7 +41,7 @@ export async function POST(req: NextRequest) {
 Ты опытный маркетолог и аналитик Telegram-каналов с опытом контент-стратегии и SMM.
 
 ЗАДАЧА
-Проанализируй посты канала "${channel?.title || 'Unknown'}" за последние ${days} дней и составь структурированное саммари его контент-стратегии. Саммари должно быть пригодно для практического использования: чтобы автор канала или SMM-специалист мог принять решения по улучшению контента.
+Проанализируй последние ${posts.length} постов канала "${channel?.title || 'Unknown'}" и составь структурированное саммари его контент-стратегии. Саммари должно быть пригодно для практического использования: чтобы автор канала или SMM-специалист мог принять решения по улучшению контента.
 
 ИСХОДНЫЕ ДАННЫЕ
 Посты канала (склеены вместе, ограничено 80 000 символов):

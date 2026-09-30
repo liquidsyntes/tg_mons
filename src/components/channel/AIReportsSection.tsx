@@ -308,16 +308,16 @@ ${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-orange-500" />
-              Супер Отчет (6 недель)
+              Супер Отчет (50 постов)
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Глубокий анализ контента за последние 6 недель (до 150 постов)</p>
+            <p className="text-xs text-slate-400 mt-0.5">Глубокий анализ контента по последним 50 постам</p>
           </div>
           <button onClick={fetchAiSuperSummary} disabled={aiSuperLoading}
             className="w-[220px] justify-center py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
             {aiSuperLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Формирую...</> : 'Супер Отчет'}
           </button>
         </div>
-        <AILoadingStatus isRunning={aiSuperLoading} success={aiSuperSuccess} onSuccessClear={() => setAiSuperSuccess(false)} messages={['Сбор архива постов (до 150 шт)...', 'Анализ долгосрочных трендов...', 'Нейросеть формирует глубокий отчет...', 'Структурируем выводы...', 'Почти готово...']} />
+        <AILoadingStatus isRunning={aiSuperLoading} success={aiSuperSuccess} onSuccessClear={() => setAiSuperSuccess(false)} messages={['Сбор архива постов (последние 50 шт)...', 'Анализ долгосрочных трендов...', 'Нейросеть формирует глубокий отчет...', 'Структурируем выводы...', 'Почти готово...']} />
         {aiSuperError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiSuperError}</div>}
         {aiSuperSummary && (
           <div className="space-y-4 mt-6">

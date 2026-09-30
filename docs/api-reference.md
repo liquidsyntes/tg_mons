@@ -94,7 +94,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | Путь | Тело | Выборка / основание | Успешный ответ | Тип в AiReport |
 | --- | --- | --- | --- | --- |
 | `/api/ai/summary` | `{channelId, days?: 7}` | До 50 текстовых постов за период | `{summary: string}` | `summary` |
-| `/api/ai/super-report` | `{channelId}` | До 150 текстовых постов за фиксированные 42 дня | `{summary: string}` | `super_report` |
+| `/api/ai/super-report` | `{channelId}` | Последние 50 текстовых постов канала | `{summary: string}` | `super_report` |
 | `/api/ai/compare` | `{channelId, days?: 7}` | Целевой канал и «Мой канал», до 50 постов каждого | `{summary: string}` | `compare` |
 | `/api/ai/trends` | Не требуется | До 100 текстовых постов активных (`isActive: true`) каналов из избранного (Watchlist, `isFavorite: true`) и «Моего канала» (`isMine: true`) за 48 часов | JSON-объект LLM | `trend` |
 | `/api/ai/audience` | `{channelId, days?: 7}` | До 20 текстовых постов | `{audience: string}` | `audience` |
