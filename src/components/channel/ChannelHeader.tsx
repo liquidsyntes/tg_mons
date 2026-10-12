@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Crown, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Crown, ExternalLink, AlertTriangle } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
-import { DeltaBadge } from '@/components/DeltaBadge';
+import { SummaryMetric, GrowthMetric } from '@/components/SummaryMetric';
 import { StatusBadge } from '@/components/StatusBadge';
 import { RiskBadge } from '@/components/RiskBadge';
 import { runFraudAudit } from '@/lib/fraudDetector';
@@ -18,7 +18,6 @@ interface ChannelHeaderProps {
 }
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
 
 export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeaderProps) {
   const [adPrice, setAdPrice] = useState<{ estimatedPricePerPost: number | null, cpm: number, confidence: 'high'|'low' } | null>(null);
@@ -48,7 +47,7 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
     <>
       {/* Top Bar */}
       <div className="border-b border-border bg-surface/80 backdrop-blur sticky top-16 z-20">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-16 py-3 gap-3 flex flex-wrap items-center justify-between">
+        <div className="site-shell mx-auto px-3 sm:px-6 lg:px-8 min-h-16 py-3 gap-3 flex flex-wrap items-center justify-between">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
@@ -79,7 +78,7 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
 
       {/* Channel Hero */}
       <div className="bg-surface border border-border rounded-2xl p-6 relative overflow-hidden shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-6 lg:gap-x-10">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               {channel.isMine && (
@@ -113,83 +112,54 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="text-left md:text-right mr-4 border-r border-border/70 pr-4">
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="text-left lg:text-right border-r border-border/70 pr-6">
               <div className="text-3xl sm:text-4xl font-extrabold font-mono tabular-nums text-sky-400">
                 {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
               </div>
               <div className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Last Fact</div>
             </div>
-            <div className="text-left md:text-right">
+            <div className="text-left lg:text-right">
               <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tabular-nums">
                 {formatNumber(channel.currentMembers)}
               </div>
               <div className="text-xs text-slate-400">текущих подписчиков</div>
             </div>
-            <div className="flex flex-col gap-2">
-              <ExportPdfButton
-                reportContainerId="report-content"
-                channelTitle={channel.title}
-                period={period}
-              />
-              <ExportWrappedButton filename={`tgmon-wrapped-${channel.username || channel.id}.png`} />
-            </div>
+          </div>
+          <div className="flex flex-col items-start lg:items-stretch gap-2 lg:shrink-0">
+            <ExportPdfButton
+              reportContainerId="report-content"
+              channelTitle={channel.title}
+              period={period}
+            />
+            <ExportWrappedButton filename={`tgmon-wrapped-${channel.username || channel.id}.png`} />
           </div>
         </div>
 
-        {/* KPI Cards Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6 pt-5 border-t border-border/70">
-          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-            <span className="text-[11px] text-slate-400 block mb-1">Δ 24 часа</span>
-            <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} size="md" />
-          </div>
-          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-            <span className="text-[11px] text-slate-400 block mb-1">Δ 7 дней</span>
-            <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} size="md" />
-          </div>
-          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-            <span className="text-[11px] text-slate-400 block mb-1">Δ 30 дней</span>
-            <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} size="md" />
-          </div>
-          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-            <span className="text-[11px] text-slate-400 block mb-1">Публикаций (30д)</span>
-            <div className="text-xs font-mono font-semibold text-white">
-              {channel.posts30d}{' '}
-              <span className="text-slate-400 font-normal">({channel.avgPostsPerDay}/д)</span>
-            </div>
-          </div>
-          
-          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50 relative group">
-            <div className="text-[11px] text-slate-400 mb-1 flex items-center gap-1.5">
-              <span className="text-slate-500">₴</span>
-              <span title="Ориентировочная цена размещения">Оценка рекламы</span>
-            </div>
-            <div className="text-xs font-mono tabular-nums font-semibold flex items-center gap-1.5">
-              {adPrice ? (
+        <div className="mt-6 pt-5 border-t border-border/70">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px overflow-hidden rounded-xl border border-border/70 bg-border/70">
+            <GrowthMetric label="Динамика · 24ч" delta={channel.delta24h} nominalDays={1} />
+            <GrowthMetric label="Динамика · 7д" delta={channel.delta7d} nominalDays={7} />
+            <GrowthMetric label="Динамика · 30д" delta={channel.delta30d} nominalDays={30} />
+            <SummaryMetric
+              label="Посты · 30д"
+              value={channel.posts30d}
+              detail={`${channel.avgPostsPerDay}/д в среднем`}
+            />
+            <SummaryMetric
+              label="Реклама · пост"
+              title={`Ориентировочная алгоритмическая оценка, не фактическая цена${adPrice?.cpm ? `; CPM ${adPrice.cpm} ₴` : ''}`}
+              value={adPrice ? (
                 adPrice.estimatedPricePerPost ? (
-                  <>
-                    <span className={adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}>
-                      {formatNumber(adPrice.estimatedPricePerPost)} ₴
-                    </span>
-                    {adPrice.confidence === 'low' && (
-                      <span title="Мало данных: оценка может быть неточной" className="inline-flex items-center">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 inline" />
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-slate-400">—</span>
-                )
-              ) : (
-                <span className="text-slate-500 animate-pulse">...</span>
-              )}
-            </div>
-            {/* Disclaimer tooltip */}
-            <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 text-[10px] text-slate-300 p-2 rounded-lg -top-12 left-0 w-48 shadow-xl pointer-events-none z-20">
-              Ориентировочная алгоритмическая оценка (не фактическая цена) на базе бенчмарков {adPrice?.cpm ? `CPM ${adPrice.cpm}₴` : ''}.
-            </div>
+                  <span className={`inline-flex items-center gap-1 ${adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {formatNumber(adPrice.estimatedPricePerPost)} ₴
+                    {adPrice.confidence === 'low' && <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-label="Мало данных для оценки" />}
+                  </span>
+                ) : 'н/д'
+              ) : <span className="animate-pulse">...</span>}
+              detail={!adPrice ? 'Загрузка оценки' : !adPrice.estimatedPricePerPost ? 'Недостаточно данных' : adPrice.confidence === 'low' ? 'Низкая уверенность' : 'Оценка за пост'}
+            />
           </div>
-
         </div>
       </div>
     </>

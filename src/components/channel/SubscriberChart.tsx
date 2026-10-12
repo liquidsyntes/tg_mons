@@ -36,7 +36,7 @@ interface ChannelDetailStatsLike {
 }
 
 export function SubscriberChart({ data, channel, myChannel, isMine, period }: SubscriberChartProps) {
-  const [showMyChannelOverlay, setShowMyChannelOverlay] = useState(true);
+  const [showMyChannelOverlay, setShowMyChannelOverlay] = useState(false);
   const [chartMode, setChartMode] = useState<'absolute' | 'growth'>('absolute');
   const [showForecast, setShowForecast] = useState(false);
 
