@@ -1,10 +1,6 @@
 # Запуск и эксплуатация
 
-<<<<<<< HEAD
 Сверено 23 сентября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже — инструкции для оператора, а не подтверждение выполненного деплоя.
-=======
-Сверено 20 сентября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже — инструкции для оператора, а не подтверждение выполненного деплоя.
->>>>>>> improve_visual_design
 
 ## Требования и подготовка
 
@@ -132,15 +128,6 @@ Web-интерфейс доступен по адресу [http://localhost:4000
 
 Web публикует 4000:4000, PostgreSQL — 5432:5432. Для сетевого размещения замените демонстрационный пароль согласованно в postgres и URL обоих приложений, ограничьте публикацию БД и доступ к web. Изменение POSTGRES_PASSWORD в YAML само по себе не меняет пароль существующего пользователя в уже созданном volume.
 
-<<<<<<< HEAD
-`docker-compose.dev.yml` — дополнительный override, не самостоятельная конфигурация:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-```
-
-Он включает `npm run dev` для web, `tsx watch` для worker и bind mount проекта с отдельными volumes для node_modules/.next. Этот режим сохраняет сборочные требования базовых Dockerfile и отличается от рекомендуемого локального web на хосте.
-
 ## Порт 4000 и Docker Desktop / WSL
 
 Полный Compose публикует TgMon на `http://localhost:4000/`. На этом порту не должен работать другой Next.js-проект или локальный `npm run dev` того же TgMon. Статуса `running` у контейнера недостаточно: в `docker compose ps` ожидается публикация вида `0.0.0.0:4000->4000/tcp`, а не только `4000/tcp`.
@@ -162,8 +149,6 @@ docker compose up -d --no-deps --force-recreate web
 
 Если команда `docker` в WSL сообщает об отсутствии интеграции Docker Desktop, выполните те же команды в Windows PowerShell из `C:\TgMon` либо используйте установленный Windows `docker.exe`. Это проблема доступа к Docker, а не повод создавать другую копию проекта.
 
-=======
->>>>>>> improve_visual_design
 ## Миграции и демонстрационные данные
 
 - `npm run prisma:migrate` выполняет **prisma migrate deploy**: применяет существующие миграции, не создаёт новые.

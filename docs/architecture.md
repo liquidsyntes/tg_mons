@@ -1,10 +1,6 @@
 # Архитектура TgMon
 
-<<<<<<< HEAD
-Состояние реализации: 23 сентября 2026 года. Источники — [Prisma-схема](../prisma/schema.prisma), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
-=======
-Состояние реализации: 20 сентября 2026 года. Источники — [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
->>>>>>> improve_visual_design
+Состояние реализации: 23 сентября 2026 года. Источники: [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
 
 ## Контекст и процессы
 

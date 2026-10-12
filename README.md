@@ -2,11 +2,7 @@
 
 Веб-приложение для мониторинга и сравнения Telegram-каналов и групп. MTProto-сборщик сохраняет аудиторию и публикации в PostgreSQL; интерфейс показывает динамику, метрики вовлечённости, рекламную нагрузку, цитирование, эвристические сигналы риска и AI-отчёты.
 
-<<<<<<< HEAD
 Документация сверена с исходным кодом **23 сентября 2026 года**. Версии зависимостей и команды задаются в [package.json](package.json), точные установочные версии — в [package-lock.json](package-lock.json).
-=======
-Документация сверена с исходным кодом **20 сентября 2026 года**. Версии зависимостей и команды задаются в [package.json](package.json), точные установочные версии — в [package-lock.json](package-lock.json).
->>>>>>> improve_visual_design
 
 **Стек:** Next.js 15 / React 19 / TypeScript, Prisma 6 / PostgreSQL 15, teleproto (преемник GramJS, npm alias `telegram`), node-cron 4, Tailwind CSS 3, Recharts, Vitest 4. Docker и CI используют Node.js 22. Web слушает порт **4000**.
 

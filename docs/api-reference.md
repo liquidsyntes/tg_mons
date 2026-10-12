@@ -1,10 +1,6 @@
 # Справочник API
 
-<<<<<<< HEAD
 Сверено со всеми `src/app/api/**/route.ts` 23 сентября 2026 года. Базовый URL локального web: `http://localhost:4000`. `:id` — внутренний ID PostgreSQL, а не Telegram ID. Типы сводных ответов: [src/lib/types.ts](../src/lib/types.ts).
-=======
-Сверено со всеми `src/app/api/**/route.ts` 20 сентября 2026 года. Базовый URL локального web: `http://localhost:4000`. `:id` — внутренний ID PostgreSQL, а не Telegram ID. Типы сводных ответов: [src/lib/types.ts](../src/lib/types.ts).
->>>>>>> improve_visual_design
 
 ## Формат и доступ
 
