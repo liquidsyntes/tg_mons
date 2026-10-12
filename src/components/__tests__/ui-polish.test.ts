@@ -25,6 +25,26 @@ const report = {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('metric presentation', () => {
+  it('keeps the hero metrics and partial-history context visible', () => {
+    render(React.createElement(MyChannelCard, {
+      channel: {
+        ...channel,
+        delta7d: { abs: 10, percent: 1, coverageDays: 3 },
+        avgViews24h: 1050,
+        avgViews7d: 1190,
+        citationIndex: 3.43,
+      },
+      onOpenAddModal: vi.fn(),
+    }));
+
+    expect(screen.getByText('Динамика · 7д')).toBeDefined();
+    expect(screen.getByText('+1.0% · 3/7д')).toBeDefined();
+    expect(screen.getByText('30 за 30д · 1/д')).toBeDefined();
+    expect(screen.getByText('1 050')).toBeDefined();
+    expect(screen.getByText('1 190 за 7д')).toBeDefined();
+    expect(screen.getByText('3.43')).toBeDefined();
+  });
+
   it.each(['card', 'favorites'])('renders ERR rather than VR in %s', variant => {
     render(variant === 'card'
       ? React.createElement(MyChannelCard, { channel, onOpenAddModal: vi.fn() })
@@ -127,8 +147,42 @@ it('exposes sortable English headers as buttons and announces sorting', () => {
   expect(screen.queryByRole('columnheader', { name: 'Act.' })).toBeNull();
   expect(screen.queryByTitle('Поставить на паузу')).toBeNull();
   expect(screen.queryByTitle('Возобновить сбор')).toBeNull();
-  const header = screen.getByRole('columnheader', { name: 'Subscribers' });
+  const header = screen.getByRole('columnheader', { name: 'Subs' });
   expect(header.getAttribute('aria-sort')).toBe('descending');
-  fireEvent.click(screen.getByRole('button', { name: 'Subscribers' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Subs' }));
   expect(onSort).toHaveBeenCalledWith('members');
+});
+
+it('keeps table headers compact and explains their time windows on hover', () => {
+  render(React.createElement(ChannelsDesktopTable, {
+    channels: [{ ...channel, isMine: true, sparkline7d: [] }],
+    sortField: 'members', sortOrder: 'desc', onSort: vi.fn(),
+    localFavorites: {}, onToggleFavorite: vi.fn(),
+  }));
+
+  expect(screen.getByText('Trend').getAttribute('title')).toBe('тренд за 7 дней');
+  expect(screen.getByText('Posts').getAttribute('title')).toBe('Кол-во постов за 7 и 30 дней, среднее кол-во постов в день');
+  for (const label of ['Avg Views', 'VR', 'ER', 'ERR', 'Ads', '% of', 'CI']) {
+    expect(screen.getByText(label).getAttribute('title')).toBeTruthy();
+  }
+  expect(screen.queryByText('Ad Load')).toBeNull();
+  expect(screen.queryByText('% of mine')).toBeNull();
+  expect(screen.queryByText(/^\(7d\)$/)).toBeNull();
+  expect(screen.queryByText(/^\(7d \/ 30d\)$/)).toBeNull();
+  expect(screen.queryByText(/^\(24h \/ 7d\)$/)).toBeNull();
+  expect(screen.queryByText('100% (база)')).toBeNull();
+  expect(screen.getByText('100%')).toBeDefined();
+});
+
+it('shows view counts without thousands separators in the two compact columns', () => {
+  render(React.createElement(ChannelsDesktopTable, {
+    channels: [{ ...channel, lastPostViews: 1508, avgViews24h: 3042, avgViews7d: 2735, sparkline7d: [] }],
+    sortField: 'members', sortOrder: 'desc', onSort: vi.fn(),
+    localFavorites: {}, onToggleFavorite: vi.fn(),
+  }));
+
+  for (const value of ['1508', '3042', '2735']) {
+    expect(screen.getByText(value)).toBeDefined();
+  }
+  expect(screen.queryByText(/1[\s\u00a0]508|3[\s\u00a0]042|2[\s\u00a0]735/)).toBeNull();
 });

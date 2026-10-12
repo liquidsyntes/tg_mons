@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Crown, ExternalLink, LineChart, FileText, Users, ArrowUpRight, Share2, AlertTriangle } from 'lucide-react';
+import { Crown, ExternalLink, LineChart, ArrowUpRight, AlertTriangle } from 'lucide-react';
 
 import { ChannelMetrics } from '@/lib/types';
 import { checkLowCitationGrowth, runFraudAudit } from '@/lib/fraudDetector';
 import { AudienceDemographics } from './AudienceDemographics';
-import { DeltaBadge } from './DeltaBadge';
+import { SummaryMetric, GrowthMetric } from './SummaryMetric';
 import { StatusBadge } from './StatusBadge';
 import { RiskBadge } from './RiskBadge';
 import { MetricCell, getMetricReason } from './channel/cells/MetricCell';
@@ -66,6 +66,11 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
       </div>
     );
   }
+
+  const citationIndex = channel.citationIndex;
+  const hasCitationIndex = citationIndex !== null && citationIndex !== undefined;
+  const citationFraud = hasCitationIndex ? checkLowCitationGrowth(channel) : null;
+  const isCitationFraud = citationFraud?.flag ?? false;
 
   return (
     <div className="bg-gradient-to-br from-surface to-slate-900 border border-accent/25 rounded-2xl p-5 sm:p-6 relative shadow-lg shadow-accent/5 overflow-hidden">
@@ -126,150 +131,57 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
         </div>
       </div>
 
-      {/* Grid of Key Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-[6px] mt-6 pt-5 border-t border-border/80">
-        {/* Delta 24h */}
-        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
-            <Users className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-            <span>Дин. 24ч</span>
-          </div>
-          <DeltaBadge abs={channel.delta24h.abs} percent={channel.delta24h.percent} coverageDays={channel.delta24h.coverageDays} nominalDays={1} size="md" />
-        </div>
-
-        {/* Delta 7d */}
-        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
-            <Users className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-            <span>Дин. 7д</span>
-          </div>
-          <DeltaBadge abs={channel.delta7d.abs} percent={channel.delta7d.percent} coverageDays={channel.delta7d.coverageDays} nominalDays={7} size="md" />
-        </div>
-
-        {/* Delta 30d */}
-        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
-            <Users className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-            <span>Дин. 30д</span>
-          </div>
-          <DeltaBadge abs={channel.delta30d.abs} percent={channel.delta30d.percent} coverageDays={channel.delta30d.coverageDays} nominalDays={30} size="md" />
-        </div>
-
-        {/* Posts Frequency */}
-        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
-            <FileText className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-            <span>Посты 7д/30д</span>
-          </div>
-          <div className="text-xs font-mono text-white tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
-            <span>{channel.posts7d}</span>
-            <span className="text-slate-500">/</span>
-            <span>{channel.posts30d}</span>
-            <span className="text-[10px] text-slate-400 font-normal">
-              ({channel.avgPostsPerDay}/д)
-            </span>
-          </div>
-        </div>
-
-        {/* Avg Views */}
-        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
-            <FileText className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-            <span>Просмотры (24ч/7д)</span>
-          </div>
-          <div className="text-xs font-mono tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
-            <span className="text-sky-400">{channel.avgViews24h !== null ? formatNumber(channel.avgViews24h) : '—'}</span>
-            <span className="text-slate-500">/</span>
-            <span className="text-slate-300">{channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : '—'}</span>
-          </div>
-        </div>
-
-        {/* ERR */}
-        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
-            <FileText className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-            <span>{channel.type === 'group' ? 'CR (7д)' : 'ERR (24ч/7д)'}</span>
-          </div>
-          <div className="text-xs font-mono tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
-            {channel.type === 'group' ? (
-              <MetricCell value={channel.cr7d} suffix="%" />
-            ) : (
-              <>
-                <MetricCell value={channel.err24h} suffix="%" colorClass="text-slate-200" {...getMetricReason('err24h', channel)} />
-                <span className="text-slate-500">/</span>
-                <MetricCell value={channel.err7d} suffix="%" colorClass="text-slate-300" {...getMetricReason('err7d', channel)} />
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Citation Index (Индекс цитирования) */}
-        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
-            <Share2 className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-            <span>Индекс цит. (30д)</span>
-          </div>
-          <div className="text-xs font-mono tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
-            {(() => {
-              const ci = channel.citationIndex;
-              const hasCi = ci !== null && ci !== undefined;
-              const fraud = hasCi ? checkLowCitationGrowth(channel) : null;
-              const isFraud = fraud?.flag ?? false;
-              return (
-                <span
-                  className={
-                    isFraud
-                      ? "text-rose-400 font-bold inline-flex items-center gap-1"
-                      : hasCi && ci > 0
-                      ? "text-emerald-400 font-bold"
-                      : "text-slate-300"
-                  }
-                  title={
-                    isFraud
-                      ? fraud?.reason
-                      : hasCi
-                      ? `Индекс цитирования: ${ci}`
-                      : undefined
-                  }
-                >
-                  {hasCi ? ci : '—'}
-                  {isFraud && <AlertTriangle className="w-3.5 h-3.5 text-rose-400 inline" />}
-                </span>
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* Ad Price Estimate */}
-        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-border/50 relative group">
-          <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-2 min-h-8 flex items-start gap-1.5">
-            <span className="text-slate-500">₴</span>
-            <span title="Ориентировочная цена размещения">Оценка рекламы</span>
-          </div>
-          <div className="text-xs font-mono tabular-nums font-semibold flex flex-wrap items-center gap-1.5">
-            {adPrice ? (
+      {/* Key metrics */}
+      <div className="mt-6 pt-5 border-t border-border/80">
+        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-px overflow-hidden rounded-xl border border-border/70 bg-border/70">
+          <GrowthMetric label="Динамика · 24ч" delta={channel.delta24h} nominalDays={1} />
+          <GrowthMetric label="Динамика · 7д" delta={channel.delta7d} nominalDays={7} />
+          <GrowthMetric label="Динамика · 30д" delta={channel.delta30d} nominalDays={30} />
+          <SummaryMetric
+            label="Посты · 7д"
+            value={channel.posts7d}
+            detail={`${channel.posts30d} за 30д · ${channel.avgPostsPerDay}/д`}
+          />
+          <SummaryMetric
+            label="Просмотры · 24ч"
+            value={<span className="text-sky-400">{channel.avgViews24h !== null ? formatNumber(channel.avgViews24h) : 'н/д'}</span>}
+            detail={`${channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : 'н/д'} за 7д`}
+          />
+          <SummaryMetric
+            label={channel.type === 'group' ? 'CR · 7д' : 'ERR · 24ч'}
+            value={channel.type === 'group'
+              ? <MetricCell value={channel.cr7d} suffix="%" />
+              : <MetricCell value={channel.err24h} suffix="%" {...getMetricReason('err24h', channel)} />}
+            detail={channel.type === 'group'
+              ? 'От аудитории'
+              : <><MetricCell value={channel.err7d} suffix="%" {...getMetricReason('err7d', channel)} /> за 7д</>}
+          />
+          <SummaryMetric
+            label="Цитирование · 30д"
+            value={
+              <span
+                className={`inline-flex items-center gap-1 ${isCitationFraud ? 'text-rose-400' : hasCitationIndex && citationIndex > 0 ? 'text-emerald-400' : 'text-slate-300'}`}
+                title={isCitationFraud ? citationFraud?.reason : hasCitationIndex ? `Индекс цитирования: ${citationIndex}` : undefined}
+              >
+                {hasCitationIndex ? citationIndex : 'н/д'}
+                {isCitationFraud && <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+              </span>
+            }
+            detail="Взвешенный индекс"
+          />
+          <SummaryMetric
+            label="Реклама · пост"
+            title={`Ориентировочная алгоритмическая оценка, не фактическая цена${adPrice?.cpm ? `; CPM ${adPrice.cpm} ₴` : ''}`}
+            value={adPrice ? (
               adPrice.estimatedPricePerPost ? (
-                <>
-                  <span className={adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}>
-                    {formatNumber(adPrice.estimatedPricePerPost)} ₴
-                  </span>
-                  {adPrice.confidence === 'low' && (
-                    <span title="Мало данных: оценка может быть неточной" className="inline-flex items-center">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 inline" />
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span className="text-slate-400">—</span>
-              )
-            ) : (
-              <span className="text-slate-500 animate-pulse">...</span>
-            )}
-          </div>
-          {/* Disclaimer tooltip */}
-          <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-700 text-[10px] text-slate-300 p-2 rounded-lg -top-12 left-0 w-48 shadow-xl pointer-events-none z-20">
-            Ориентировочная алгоритмическая оценка (не фактическая цена) на базе бенчмарков {adPrice?.cpm ? `CPM ${adPrice.cpm}₴` : ''}.
-          </div>
+                <span className={`inline-flex items-center gap-1 ${adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {formatNumber(adPrice.estimatedPricePerPost)} ₴
+                  {adPrice.confidence === 'low' && <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-label="Мало данных для оценки" />}
+                </span>
+              ) : 'н/д'
+            ) : <span className="animate-pulse">...</span>}
+            detail={!adPrice ? 'Загрузка оценки' : !adPrice.estimatedPricePerPost ? 'Недостаточно данных' : adPrice.confidence === 'low' ? 'Низкая уверенность' : 'Оценка за пост'}
+          />
         </div>
       </div>
 

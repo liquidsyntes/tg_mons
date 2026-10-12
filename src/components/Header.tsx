@@ -82,7 +82,7 @@ export function Header({
   return (
     <>
     <header className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="site-shell mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Левая часть хедера: Логотип, название проекта и навигация */}
         <div className="flex items-center gap-3">
           

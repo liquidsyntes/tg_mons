@@ -8,7 +8,7 @@ interface ComparisonCellProps {
 
 export function ComparisonCell({ isMine, audienceSharePercent, growthRateDiff7d }: ComparisonCellProps) {
   if (isMine) {
-    return <span className="text-accent font-semibold text-xs">100% (база)</span>;
+    return <span className="text-accent font-semibold text-xs">100%</span>;
   }
 
   if (audienceSharePercent === null || audienceSharePercent === undefined) {

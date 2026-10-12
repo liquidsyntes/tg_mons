@@ -28,6 +28,12 @@ body {
   }
 }
 
+@layer components {
+  .site-shell {
+    max-width: calc(1300px + 4rem);
+  }
+}
+
 /* Custom subtle scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

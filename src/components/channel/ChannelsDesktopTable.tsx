@@ -39,15 +39,10 @@ export function ChannelsDesktopTable({
     );
   };
 
-  const renderHeaderLabel = (label: string, field?: SortField, period?: string) => (
-    <span className="flex h-10 flex-col items-center justify-start gap-1 text-center">
-      <span className="inline-flex h-5 items-center justify-center gap-1 whitespace-nowrap leading-5">
-        <span>{label}</span>
-        {field && renderSortIcon(field)}
-      </span>
-      <span aria-hidden={period ? undefined : true} className="h-4 text-[11px] font-normal leading-4 text-slate-400">
-        {period}
-      </span>
+  const renderHeaderLabel = (label: string, field?: SortField, hint?: string) => (
+    <span className="inline-flex h-5 items-center justify-center gap-1 whitespace-nowrap leading-5 text-center">
+      <span title={hint}>{label}</span>
+      {field && renderSortIcon(field)}
     </span>
   );
 
@@ -69,13 +64,13 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'members' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-2 hover:text-white transition-colors text-center"
+                className="py-3.5 px-1 w-[80px] min-w-[80px] hover:text-white transition-colors text-center"
               >
                 <button type="button" onClick={() => onSort('members')} className="w-full rounded text-center">
-                  {renderHeaderLabel('Subscribers', 'members')}
+                  {renderHeaderLabel('Subs', 'members')}
                 </button>
               </th>
-              <th scope="col" className="py-3.5 px-2 text-center">{renderHeaderLabel('Trend', undefined, '(7d)')}</th>
+              <th scope="col" className="py-3.5 px-2 text-center">{renderHeaderLabel('Trend', undefined, 'тренд за 7 дней')}</th>
               <th
                 scope="col"
                 aria-sort={sortField === 'delta24h' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
@@ -109,13 +104,13 @@ export function ChannelsDesktopTable({
                 className="py-3.5 px-2 hover:text-white transition-colors text-center"
               >
                 <button type="button" onClick={() => onSort('posts7d')} className="w-full rounded text-center">
-                  {renderHeaderLabel('Posts', 'posts7d', '(7d / 30d)')}
+                  {renderHeaderLabel('Posts', 'posts7d', 'Кол-во постов за 7 и 30 дней, среднее кол-во постов в день')}
                 </button>
               </th>
               <th
                 scope="col"
                 aria-sort={sortField === 'lastFact' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
+                className="py-3.5 px-1 w-[76px] min-w-[76px] hover:text-white transition-colors text-center leading-tight"
               >
                 <button type="button" onClick={() => onSort('lastFact')} className="w-full rounded text-center">
                   {renderHeaderLabel('Last Fact', 'lastFact')}
@@ -124,10 +119,10 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'views' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-2 hover:text-white transition-colors text-center"
+                className="py-3.5 px-1 w-[92px] min-w-[92px] hover:text-white transition-colors text-center"
               >
                 <button type="button" onClick={() => onSort('views')} className="w-full rounded text-center">
-                  {renderHeaderLabel('Avg Views', 'views', '(24h / 7d)')}
+                  {renderHeaderLabel('Avg Views', 'views', 'Средние просмотры: сверху показатель за 24 часа, снизу за 7 дней')}
                 </button>
               </th>
               <th
@@ -136,46 +131,43 @@ export function ChannelsDesktopTable({
                 className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
               >
                 <button type="button" onClick={() => onSort('vr')} className="w-full rounded text-center">
-                  {renderHeaderLabel('VR', 'vr', '(24h / 7d)')}
+                  {renderHeaderLabel('VR', 'vr', 'VR: просмотры относительно аудитории. Сверху за 24 часа, снизу за 7 дней')}
                 </button>
               </th>
               <th
                 scope="col"
                 aria-sort={sortField === 'er' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
-                title="Engagement Rate (считает вовлечённость от всей аудитории / подписчиков)"
               >
                 <button type="button" onClick={() => onSort('er')} className="w-full rounded text-center">
-                  {renderHeaderLabel('ER', 'er', '(24h / 7d)')}
+                  {renderHeaderLabel('ER', 'er', 'ER: просмотры и взаимодействия относительно подписчиков на момент публикации. Сверху за 24 часа, снизу за 7 дней')}
                 </button>
               </th>
               <th
                 scope="col"
                 aria-sort={sortField === 'err' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
-                title="Engagement Rate by Reach (реакции + комментарии + репосты от просмотров)"
               >
                 <button type="button" onClick={() => onSort('err')} className="w-full rounded text-center">
-                  {renderHeaderLabel('ERR', 'err', '(24h / 7d)')}
+                  {renderHeaderLabel('ERR', 'err', 'ERR: реакции, комментарии и пересылки относительно просмотров. Сверху за 24 часа, снизу за 7 дней; для групп показан CR за 7 дней')}
                 </button>
               </th>
               <th
                 scope="col"
                 aria-sort={sortField === 'adShare' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
-                title="Ad Load Share (рекламные посты за 7 дней)"
+                className="py-3.5 px-1 w-16 min-w-16 hover:text-white transition-colors text-center leading-tight"
               >
                 <button type="button" onClick={() => onSort('adShare')} className="w-full rounded text-center">
-                  {renderHeaderLabel('Ad Load', 'adShare', '(7d)')}
+                  {renderHeaderLabel('Ads', 'adShare', 'Доля рекламных и партнёрских постов за 7 дней')}
                 </button>
               </th>
               <th
                 scope="col"
                 aria-sort={sortField === 'share' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-2 hover:text-white transition-colors text-center"
+                className="py-3.5 px-1 w-16 min-w-16 hover:text-white transition-colors text-center"
               >
                 <button type="button" onClick={() => onSort('share')} className="w-full rounded text-center">
-                  {renderHeaderLabel('% of mine', 'share')}
+                  {renderHeaderLabel('% of', 'share', 'Аудитория канала в процентах от аудитории моего канала; ниже разница темпа роста за 7 дней')}
                 </button>
               </th>
               <th
@@ -200,10 +192,9 @@ export function ChannelsDesktopTable({
                 scope="col"
                 aria-sort={sortField === 'citationIndex' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
                 className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
-                title="Индекс цитирования (взвешенная сумма упоминаний за 30 дней)"
               >
                 <button type="button" onClick={() => onSort('citationIndex')} className="w-full rounded text-center">
-                  {renderHeaderLabel('CI', 'citationIndex', '(30d)')}
+                  {renderHeaderLabel('CI', 'citationIndex', 'Индекс цитирования: взвешенная сумма упоминаний за 30 дней')}
                 </button>
               </th>
             </tr>
@@ -229,7 +220,7 @@ export function ChannelsDesktopTable({
                       onToggleFavorite={onToggleFavorite} 
                     />
                   </td>
-                  <td className="py-3.5 px-2 text-right font-mono font-bold text-white tabular-nums text-sm">
+                  <td className="py-3.5 px-1 text-right font-mono font-bold text-white tabular-nums text-sm">
                     {formatNumber(channel.currentMembers)}
                   </td>
                   <td className="py-3.5 px-2 text-center">
@@ -257,24 +248,21 @@ export function ChannelsDesktopTable({
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-2 text-center font-mono font-semibold tabular-nums text-sky-400">
+                  <td className="py-3.5 px-1 text-center font-mono font-semibold tabular-nums text-sky-400">
                     <MetricCell 
                       value={channel.lastPostViews} 
-                      formattedValue={channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : undefined} 
                       {...getMetricReason('lastFact', channel)} 
                     />
                   </td>
-                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-1 text-center font-mono tabular-nums">
                     <MetricCell 
                       value={channel.avgViews24h} 
-                      formattedValue={channel.avgViews24h !== null ? formatNumber(channel.avgViews24h) : undefined} 
                       colorClass="font-semibold text-sky-400" 
                       {...getMetricReason('views24h', channel)} 
                     />
                     <span className="text-slate-500 mx-1">/</span>
                     <MetricCell 
                       value={channel.avgViews7d} 
-                      formattedValue={channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : undefined} 
                       colorClass="text-slate-300" 
                       {...getMetricReason('views7d', channel)} 
                     />
@@ -317,7 +305,7 @@ export function ChannelsDesktopTable({
                       </div>
                     )}
                   </td>
-                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-1 text-center font-mono tabular-nums">
                     {channel.adShare7d ? (
                       <div className={`font-semibold text-sm ${
                         channel.adShare7d.level === 'high' ? 'text-rose-400' :
@@ -331,7 +319,7 @@ export function ChannelsDesktopTable({
                       <div className="text-slate-500 text-sm">—</div>
                     )}
                   </td>
-                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-1 text-center font-mono tabular-nums">
                     <ComparisonCell 
                       isMine={!!isMineRow} 
                       audienceSharePercent={channel.comparison?.audienceSharePercent} 
