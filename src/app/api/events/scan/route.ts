@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOpenRouter } from '@/lib/openrouter';
+import { selectEventCandidatesWithJev } from '@/lib/events/jev';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,35 +27,39 @@ export async function POST() {
       take: 2000
     });
 
-    const keywords = ['вечеринка', 'старт', 'начало', 'билет', 'dj', 'вход', 'line-up', 'мероприятие', 'анонс', 'событие'];
-    
-    // Filter posts that contain any of the keywords
-    const candidatePosts = recentPosts.filter(p => {
-      if (!p.text) return false;
-      const lower = p.text.toLowerCase();
-      return keywords.some(kw => lower.includes(kw));
-    });
+    const textPosts = recentPosts
+      .filter(post => typeof post.text === 'string' && post.text.trim().length > 0)
+      .map(post => ({ ...post, text: post.text ?? '' }));
 
-    if (candidatePosts.length === 0) {
-      return NextResponse.json({ message: 'No new candidate posts found to scan.' });
+    if (textPosts.length === 0) {
+      return NextResponse.json({ success: true, savedCount: 0, parsedEvents: [], selectionMode: 'no_candidates' });
     }
 
-    // Format posts for AI
-    const payloadForAi = candidatePosts.map(p => ({
+    // Jev screens the full recent sample; keywords are only a fallback if it is unavailable.
+    const selection = await selectEventCandidatesWithJev(textPosts);
+    const keywords = ['вечеринка', 'старт', 'начало', 'билет', 'dj', 'вход', 'line-up', 'мероприятие', 'анонс', 'событие'];
+    const selectedPosts = (selection.mode === 'jev'
+      ? selection.posts
+      : selection.posts.filter(post => keywords.some(keyword => post.text.toLowerCase().includes(keyword)))
+    ).slice(0, 100);
+
+    if (selectedPosts.length === 0) {
+      return NextResponse.json({ success: true, savedCount: 0, parsedEvents: [], selectionMode: selection.mode });
+    }
+
+    // Format selected posts for the existing event extraction step.
+    const payloadForAi = selectedPosts.map(p => ({
       id: p.id,
       channel: p.channel.title,
       date: p.publishedAt.toISOString(),
       text: p.text
     }));
 
-    // If there are too many candidate posts, we limit to avoid token limits
-    const limitedPayload = payloadForAi.slice(0, 100);
-
     const prompt = `
 Твоя задача — извлечь анонсы будущих мероприятий (вечеринки, концерты, лекции и т.д.) из предоставленных постов.
 
 ВХОДНЫЕ ДАННЫЕ (JSON):
-${JSON.stringify(limitedPayload)}
+${JSON.stringify(payloadForAi)}
 
 ПРАВИЛА:
 1. Найди все посты, где анонсируется конкретное мероприятие.
@@ -130,7 +135,7 @@ ${JSON.stringify(limitedPayload)}
       if (evt.sourcePostIds && Array.isArray(evt.sourcePostIds)) {
         for (const pid of evt.sourcePostIds) {
           // Verify post exists in our candidate list
-          const exists = candidatePosts.find(p => p.id === pid);
+          const exists = selectedPosts.find(p => p.id === pid);
           if (exists) {
             try {
               await prisma.eventMention.upsert({
@@ -146,7 +151,7 @@ ${JSON.stringify(limitedPayload)}
       }
     }
 
-    return NextResponse.json({ success: true, savedCount, parsedEvents: events });
+    return NextResponse.json({ success: true, savedCount, parsedEvents: events, selectionMode: selection.mode });
   } catch (error: any) {
     logger.error('Error scanning events:', undefined, error);
     return NextResponse.json({ error: error.message }, { status: 500 });

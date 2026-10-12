@@ -41,7 +41,10 @@ export default function EventsPage() {
       const res = await fetch('/api/events/scan', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        alert(`Сканирование завершено. Найдено новых событий: ${data.savedCount}`);
+        const screeningNote = data.selectionMode === 'keyword_fallback'
+          ? '\nJev недоступен: использован прежний отбор по ключевым словам.'
+          : '';
+        alert(`Сканирование завершено. Найдено новых событий: ${data.savedCount}${screeningNote}`);
         fetchEvents();
       } else {
         alert(`Ошибка: ${data.error || data.message}`);

@@ -111,7 +111,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 ## События
 
 - `GET /api/events`: `{events}`, события по дате с привязанными постами и каналами; Bearer не проверяется. POST на этом пути не реализован.
-- `POST /api/events/scan`: без тела; выбирает до 2000 постов за 14 дней без eventMentions, фильтрует по ключевым словам, отправляет до 100 кандидатов в OpenRouter (120 секунд). Создаёт Event/EventMention; вернёт `{success:true,savedCount,parsedEvents}` или `{message}` при отсутствии кандидатов. Явной проверки Bearer нет; действует общий middleware.
+- `POST /api/events/scan`: без тела; выбирает до 2000 постов за 14 дней без eventMentions и передаёт непустые тексты в OpenRouter Decisions API. Модель `~typesafe/jev-latest` оценивает анонс и пять дополнительных признаков, отсеивает явные неанонсы и ранжирует остальных; при её ошибке включается прежний фильтр по ключевым словам. До 100 отобранных постов передаются в генеративную модель (таймаут 120 секунд) для извлечения деталей. Создаёт Event/EventMention; возвращает `{success:true,savedCount,parsedEvents,selectionMode}`, где `selectionMode` равен `jev`, `keyword_fallback` или `no_candidates`. Явной проверки Bearer нет; действует общий middleware.
 
 ## Настройки
 

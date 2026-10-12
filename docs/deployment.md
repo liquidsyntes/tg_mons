@@ -41,7 +41,7 @@ npm run auth
 | TELEGRAM_REQUEST_TIMEOUT_MS | fetcher в web/worker | 30000 мс |
 | CHANNEL_MAX_CONSECUTIVE_ERRORS | retry-policy | 10; отключение при достижении порога |
 | TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID | retry-policy | Необязательные уведомления об изменениях аудитории и отключении |
-| OPENROUTER_API_KEY | web AI/scanner | Обязателен для функций LLM |
+| OPENROUTER_API_KEY | web AI/scanner | Обязателен для генеративных отчётов и сканера событий, включая Jev через Decisions API |
 | HEALTH_STUCK_THRESHOLD_MINUTES | web health | 120 |
 | HEALTH_STALE_THRESHOLD_MINUTES | web health | 720 |
 | MY_CHANNEL_USERNAME | Никем не читается | Сохранён в примере, но не назначает «Мой канал» |
@@ -226,7 +226,25 @@ docker compose exec worker npx tsx scripts/backfill-articles.ts --channel-id=N -
 
 ## AI и настройки
 
-Для генерации задайте OPENROUTER_API_KEY web-процессу. `callOpenRouter` использует модель `z-ai/glm-5.3-flash`, JSON response format и timeout 60 секунд; scanner — 120 секунд. Фактическая доступность модели зависит от провайдера. Сохранение aiProvider/aiModel/aiToken через `/settings` пока не меняет работу этого клиента.
+Для генерации задайте OPENROUTER_API_KEY web-процессу. `callOpenRouter` использует модель `z-ai/glm-5.3-flash`, JSON response format и timeout 60 секунд; scanner использует 120 секунд. Перед извлечением событий Jev вызывается через OpenRouter Decisions API с тем же ключом и моделью `~typesafe/jev-latest`: до 2000 постов за запуск, до 10 постов за запрос, не более четырёх одновременных запросов, таймаут каждого 15 секунд, повтор при 429/529. При недоступности Jev сканер использует прежний отбор по ключевым словам и сообщает об этом в интерфейсе. Посты отправляются внешнему провайдеру при ручном сканировании. Фактическая доступность моделей зависит от провайдера. Сохранение aiProvider/aiModel/aiToken через `/settings` пока не меняет работу клиентов.
+
+### Обновление и проверка Jev в «Афише»
+
+Изменения Jev находятся в web, новых миграций и настроек окружения нет. Для работающего production Compose пересоберите только web и пересоздайте его контейнер:
+
+```bash
+docker compose build web
+docker compose up -d --no-deps --force-recreate web
+docker compose ps
+curl -i http://localhost:4000/
+curl -i http://localhost:4000/api/health
+```
+
+В Windows PowerShell вместо `curl -i` используйте `curl.exe -i`. Если команда `docker` недоступна в WSL, выполните шаги Compose из PowerShell в `C:\TgMon`.
+
+Затем откройте `/events` и проверьте загрузку страницы. Кнопка «Сканировать события» запускает `POST /api/events/scan`, вызывает внешние модели и может создать `Event` и `EventMention` в БД; не используйте её как проверку доступности web. Ответ сканера содержит `selectionMode`: `jev` при отборе моделью, `keyword_fallback` при возврате к фильтру по словам и `no_candidates`, когда нет непустых постов. Интерфейс отдельно сообщает о fallback.
+
+Порог основного признака 0.2 и веса дополнительных признаков пока не откалиброваны на размеченных постах TgMon. Jev передаёт в LLM неоднозначные посты и исключает только явные неанонсы. Оценки отдельных постов не сохраняются в БД; для предметной настройки потребуется отдельная выборка с проверенными вручную примерами.
 
 ## Зависимости и CI
 
