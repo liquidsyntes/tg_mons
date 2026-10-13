@@ -3,8 +3,47 @@ import { Calendar, Clock, MapPin, Tag, Users, Image as ImageIcon } from 'lucide-
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
+interface EventPost {
+  messageId: string;
+  channel: {
+    title: string;
+    username: string | null;
+    tgId: string | null;
+  } | null;
+}
+
+interface EventMention {
+  id: number;
+  post: EventPost | null;
+}
+
+interface EventCardData {
+  title: string;
+  date: string;
+  timeStr?: string | null;
+  organizer?: string | null;
+  prices?: string[] | null;
+  mentions?: EventMention[];
+}
+
 interface EventCardProps {
-  event: any; // Using any for simplicity here, can type it properly later
+  event: EventCardData;
+}
+
+function getTelegramPostUrl(post: EventPost | null): string | null {
+  if (!post || !/^[1-9]\d*$/.test(post.messageId)) return null;
+
+  const username = post.channel?.username?.trim().replace(/^@/, '');
+  if (username && /^[A-Za-z0-9_]{5,32}$/.test(username)) {
+    return `https://t.me/${username}/${post.messageId}`;
+  }
+
+  const tgId = post.channel?.tgId;
+  if (!tgId) return null;
+  const channelId = tgId.startsWith('-100') ? tgId.slice(4) : tgId;
+  return /^[1-9]\d*$/.test(channelId)
+    ? `https://t.me/c/${channelId}/${post.messageId}`
+    : null;
 }
 
 export function EventCard({ event }: EventCardProps) {
@@ -59,11 +98,28 @@ export function EventCard({ event }: EventCardProps) {
               Упоминания ({event.mentions.length})
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {event.mentions.map((m: any) => (
-                <span key={m.id} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/50 truncate max-w-[120px]">
-                  {m.post?.channel?.title || 'Канал'}
-                </span>
-              ))}
+              {event.mentions.map(mention => {
+                const channelTitle = mention.post?.channel?.title || 'Канал';
+                const url = getTelegramPostUrl(mention.post);
+                const badgeClass = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/50 truncate max-w-[120px]';
+
+                return url ? (
+                  <a
+                    key={mention.id}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Открыть пост ${mention.post?.messageId} канала ${channelTitle} в Telegram`}
+                    className={`${badgeClass} hover:text-accent hover:border-accent/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
+                  >
+                    {channelTitle}
+                  </a>
+                ) : (
+                  <span key={mention.id} title="Ссылка на сообщение недоступна" className={badgeClass}>
+                    {channelTitle}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
