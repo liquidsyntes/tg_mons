@@ -6,6 +6,7 @@ const CONCURRENT_BATCHES = 4;
 const MAX_TEXT_LENGTH = 4000;
 // Conservative pilot threshold: only clear negatives are excluded until labeled posts are available.
 const MIN_ANNOUNCEMENT_PROBABILITY = 0.2;
+const MIN_DIGEST_PROBABILITY = 0.8;
 const REQUEST_TIMEOUT_MS = 15000;
 const SIGNALS = [
   { id: 'announcement', weight: 0.6, question: 'Does the text announce or remind readers of a specific scheduled gathering, such as a concert, party, lecture or meetup? Product advertising, event reviews, general schedules and vague plans do not count.' },
@@ -14,6 +15,7 @@ const SIGNALS = [
   { id: 'invitation', weight: 0.08, question: 'Does the text invite readers to attend the gathering or ask them to take action to attend it?' },
   { id: 'tickets', weight: 0.06, question: 'Does the text mention admission tickets or a price for attending the gathering?' },
   { id: 'registration', weight: 0.06, question: 'Does the text mention registering, reserving or booking a place at the gathering?' },
+  { id: 'digest', weight: 0, question: 'Is this post primarily a roundup of several independent events, each with its own title, date or destination, rather than an announcement of one event? A multi-day festival or the program of one gathering is not a roundup.' },
 ] as const;
 
 export interface EventCandidate {
@@ -52,13 +54,17 @@ function readAnswers(value: unknown, posts: EventCandidate[]): Map<number, numbe
   const selected = new Map<number, number>();
   for (const post of posts) {
     let announcement = 0;
+    let digest = 0;
     let priority = 0;
     for (const signal of SIGNALS) {
       const probability = readProbability(answerMap, `${signal.id}_${post.id}`);
       if (signal.id === 'announcement') announcement = probability;
+      if (signal.id === 'digest') digest = probability;
       priority += signal.weight * probability;
     }
-    if (announcement >= MIN_ANNOUNCEMENT_PROBABILITY) selected.set(post.id, priority);
+    if (announcement >= MIN_ANNOUNCEMENT_PROBABILITY && digest < MIN_DIGEST_PROBABILITY) {
+      selected.set(post.id, priority);
+    }
   }
   return selected;
 }

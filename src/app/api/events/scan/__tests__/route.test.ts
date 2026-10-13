@@ -56,6 +56,21 @@ describe('POST /api/events/scan', () => {
     }));
   });
 
+  it('links a new announcement to a dismissed event without recreating it', async () => {
+    mocks.findEvents.mockResolvedValue([{
+      id: 10,
+      title: 'Вечеринка',
+      date: new Date('2026-10-17T00:00:00Z'),
+      dismissedAt: new Date('2026-10-13T00:00:00Z'),
+    }]);
+
+    const response = await POST();
+
+    expect(await response.json()).toMatchObject({ success: true, savedCount: 0 });
+    expect(mocks.createEvent).not.toHaveBeenCalled();
+    expect(mocks.upsertMention).toHaveBeenCalledOnce();
+  });
+
   it('skips extraction when Jev excludes every candidate', async () => {
     mocks.selectCandidates.mockResolvedValue({ posts: [], mode: 'jev' });
 
@@ -81,6 +96,39 @@ describe('POST /api/events/scan', () => {
     expect(response.status).toBe(200);
     expect(mocks.selectCandidates).toHaveBeenCalledWith([exhibition]);
     expect(mocks.callOpenRouter.mock.calls[0][0]).toContain('Выставка откроется');
+  });
+
+  it('does not send an explicit digest to Jev or the generative model', async () => {
+    const digest = {
+      id: 3,
+      text: '#дайджест\nКонцерт 12.10\nЛекция 15.10',
+      publishedAt: new Date('2026-10-12T12:00:00Z'),
+      channel: { title: 'Афиша' },
+    };
+    mocks.findPosts.mockResolvedValue([...posts, digest]);
+    mocks.callOpenRouter.mockResolvedValue('{"events":[]}');
+
+    await POST();
+
+    expect(mocks.selectCandidates).toHaveBeenCalledWith(posts);
+    expect(mocks.callOpenRouter.mock.calls[0][0]).not.toContain('#дайджест');
+  });
+
+  it('still excludes an explicit digest when Jev is unavailable', async () => {
+    const digest = {
+      id: 3,
+      text: '#дайджест\nКонцерт 12.10\nЛекция 15.10',
+      publishedAt: new Date('2026-10-12T12:00:00Z'),
+      channel: { title: 'Афиша' },
+    };
+    mocks.findPosts.mockResolvedValue([...posts, digest]);
+    mocks.selectCandidates.mockResolvedValue({ posts, mode: 'keyword_fallback' });
+    mocks.callOpenRouter.mockResolvedValue('{"events":[]}');
+
+    await POST();
+
+    expect(mocks.selectCandidates).toHaveBeenCalledWith(posts);
+    expect(mocks.callOpenRouter.mock.calls[0][0]).not.toContain('#дайджест');
   });
 
   it('uses the keyword filter if Jev is unavailable', async () => {

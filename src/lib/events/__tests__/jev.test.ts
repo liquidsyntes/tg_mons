@@ -7,7 +7,7 @@ const posts = [
   { id: 2, text: 'Вспоминаем концерт прошлого года.', publishedAt: new Date('2026-10-12T12:00:00Z') },
 ];
 
-function answersFor(id: number, announcement: number, support: number) {
+function answersFor(id: number, announcement: number, support: number, digest = 0) {
   const values: Record<string, number> = {
     announcement,
     date: support,
@@ -15,6 +15,7 @@ function answersFor(id: number, announcement: number, support: number) {
     invitation: support,
     tickets: support,
     registration: support,
+    digest,
   };
   return Object.fromEntries(Object.entries(values).map(([signal, probability]) => [
     `${signal}_${id}`, { type: 'noul', noul: probability },
@@ -73,6 +74,15 @@ describe('selectEventCandidatesWithJev', () => {
     }), { status: 200 })));
 
     expect(await selectEventCandidatesWithJev(posts)).toEqual({ posts: [posts[1], posts[0]], mode: 'jev' });
+  });
+
+  it('excludes a roundup even when it also contains event announcements', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      answers: { ...answersFor(1, 0.95, 1, 0.8), ...answersFor(2, 0.7, 0.5, 0.1) },
+    }), { status: 200 })));
+
+    expect(await selectEventCandidatesWithJev(posts)).toEqual({ posts: [posts[1]], mode: 'jev' });
   });
 
   it('preserves all candidates if the provider response is incomplete', async () => {

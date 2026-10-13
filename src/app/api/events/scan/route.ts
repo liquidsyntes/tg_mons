@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { callOpenRouter } from '@/lib/openrouter';
 import { selectEventCandidatesWithJev } from '@/lib/events/jev';
+import { isClearlyEventDigest } from '@/lib/events/digest';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,8 @@ export async function POST() {
 
     const textPosts = recentPosts
       .filter(post => typeof post.text === 'string' && post.text.trim().length > 0)
-      .map(post => ({ ...post, text: post.text ?? '' }));
+      .map(post => ({ ...post, text: post.text ?? '' }))
+      .filter(post => !isClearlyEventDigest(post.text));
 
     if (textPosts.length === 0) {
       return NextResponse.json({ success: true, savedCount: 0, parsedEvents: [], selectionMode: 'no_candidates' });
@@ -67,6 +69,7 @@ ${JSON.stringify(payloadForAi)}
 3. Билеты/цены должны быть массивом строк (например: ["Мужчины - 1000р", "Женщины - бесплатно", "Пары - 1500р"]).
 4. ВАЖНО: Дедупликация! Одно и то же мероприятие часто рекламируется в разных каналах. Объедини их в одно событие. В массиве "sourcePostIds" перечисли ID всех постов, которые рекламируют это событие.
 5. Возвращай только реальные будущие мероприятия, описанные в тексте. Высчитай год/месяц исходя из даты публикации поста (дата поста есть в поле date). Верни дату мероприятия в формате YYYY-MM-DD. Если дата неточная, попытайся угадать ближайшую к публикации.
+6. Дайджесты и подборки нескольких самостоятельных мероприятий не обрабатывай: не создавай из них события и не включай их ID в sourcePostIds. Программа одного мероприятия, например фестиваля, дайджестом не считается.
 
 ФОРМАТ ОТВЕТА (JSON):
 {
@@ -97,7 +100,7 @@ ${JSON.stringify(payloadForAi)}
 
     let savedCount = 0;
 
-    // Pre-fetch recent events from DB to deduplicate across scan runs
+    // Keep dismissed events in the match set so new mentions cannot bring them back to the calendar.
     const recentDbEvents = await prisma.event.findMany({
       where: { date: { gte: new Date(Date.now() - 30 * 24 * 3600 * 1000) } }
     });

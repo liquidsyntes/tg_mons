@@ -283,6 +283,7 @@
 | `organizer` | `String` | `organizer` | Да | — | Организатор или площадка мероприятия |
 | `prices` | `Json` | `prices` | Да | — | JSONB-структура категорий стоимости билетов |
 | `createdAt` | `DateTime` | `createdAt` | Нет | `now()` | Время сохранения события |
+| `dismissedAt` | `DateTime` | `dismissed_at` | Да | `null` | Время ручного скрытия из «Афиши»; событие и связи с постами сохраняются |
 
 - **Связи:**
   - `mentions`: `EventMention[]` (каскадное удаление)

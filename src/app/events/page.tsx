@@ -6,13 +6,14 @@ import { format, isSameMonth } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { EventCard } from '@/components/events/EventCard';
+import { EventCard, type EventCardData } from '@/components/events/EventCard';
 import { Header } from '@/components/Header';
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<EventCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [dismissingId, setDismissingId] = useState<number | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   
   const fetchEvents = async () => {
@@ -53,6 +54,20 @@ export default function EventsPage() {
       alert(`Ошибка: ${err.message}`);
     } finally {
       setScanning(false);
+    }
+  };
+
+  const handleDismiss = async (eventId: number) => {
+    if (!confirm('Убрать событие из афиши? Оно останется скрытым после повторного сканирования.')) return;
+    setDismissingId(eventId);
+    try {
+      const response = await fetch(`/api/events/${eventId}/dismiss`, { method: 'PATCH' });
+      if (!response.ok) throw new Error('Не удалось убрать событие из афиши');
+      setEvents(current => current.filter(event => event.id !== eventId));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Не удалось убрать событие из афиши');
+    } finally {
+      setDismissingId(null);
     }
   };
 
@@ -176,7 +191,13 @@ export default function EventsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {selectedEvents.map(event => (
-                <EventCard key={event.id} event={event} />
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onDismiss={handleDismiss}
+                  dismissDisabled={dismissingId !== null}
+                  dismissing={dismissingId === event.id}
+                />
               ))}
             </div>
           )}

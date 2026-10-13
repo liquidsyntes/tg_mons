@@ -1,12 +1,13 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { EventCard } from '../EventCard';
 
 afterEach(cleanup);
 
 const event = {
+  id: 42,
   title: 'Концерт',
   date: '2026-10-18T00:00:00.000Z',
   timeStr: null,
@@ -15,6 +16,14 @@ const event = {
 };
 
 describe('EventCard mention links', () => {
+  it('offers a visible action to dismiss this event', () => {
+    const onDismiss = vi.fn();
+    render(React.createElement(EventCard, { event, onDismiss }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Убрать событие «Концерт» из афиши' }));
+    expect(onDismiss).toHaveBeenCalledWith(42);
+  });
+
   it('links every repeated channel badge to its own announcement post', () => {
     render(React.createElement(EventCard, {
       event: {

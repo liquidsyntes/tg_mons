@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Tag, Users, Image as ImageIcon } from 'lucide-react';
+import { Calendar, Clock, MapPin, Tag, Users, Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -17,7 +17,8 @@ interface EventMention {
   post: EventPost | null;
 }
 
-interface EventCardData {
+export interface EventCardData {
+  id: number;
   title: string;
   date: string;
   timeStr?: string | null;
@@ -28,6 +29,9 @@ interface EventCardData {
 
 interface EventCardProps {
   event: EventCardData;
+  onDismiss?: (id: number) => void;
+  dismissDisabled?: boolean;
+  dismissing?: boolean;
 }
 
 function getTelegramPostUrl(post: EventPost | null): string | null {
@@ -46,7 +50,7 @@ function getTelegramPostUrl(post: EventPost | null): string | null {
     : null;
 }
 
-export function EventCard({ event }: EventCardProps) {
+export function EventCard({ event, onDismiss, dismissDisabled = false, dismissing = false }: EventCardProps) {
   return (
     <div className="bg-surface border border-border rounded-2xl overflow-hidden hover:border-slate-600 transition-colors flex flex-col h-full shadow-sm">
       {/* Poster Placeholder */}
@@ -59,9 +63,24 @@ export function EventCard({ event }: EventCardProps) {
       </div>
 
       <div className="p-5 flex flex-col flex-1">
-        <h3 className="text-base font-bold text-white mb-3 line-clamp-2 leading-tight">
-          {event.title}
-        </h3>
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <h3 className="text-base font-bold text-white line-clamp-2 leading-tight">
+            {event.title}
+          </h3>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={() => onDismiss(event.id)}
+              disabled={dismissDisabled}
+              aria-label={`Убрать событие «${event.title}» из афиши`}
+              title="Убрать из афиши"
+              className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-slate-400 hover:border-rose-500/40 hover:text-rose-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
+            >
+              {dismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Убрать
+            </button>
+          )}
+        </div>
 
         <div className="space-y-2 text-sm text-slate-300 flex-1">
           {event.timeStr && (
