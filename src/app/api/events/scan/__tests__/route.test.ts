@@ -71,6 +71,39 @@ describe('POST /api/events/scan', () => {
     expect(mocks.upsertMention).toHaveBeenCalledOnce();
   });
 
+  it('links a renamed announcement to an existing event with shared time and organizer', async () => {
+    mocks.findEvents.mockResolvedValue([{
+      id: 10,
+      title: 'Майстер-клас origami від Studio до весни',
+      date: new Date('2026-10-17T00:00:00Z'),
+      timeStr: '17:00 - 20:00',
+      organizer: 'Studio',
+    }]);
+    mocks.callOpenRouter.mockResolvedValue(JSON.stringify({
+      events: [{ title: 'Останній origami до весни від Studio', date: '2026-10-17', timeStr: '17:00 - 20:00', organizer: 'Studio / Venue', sourcePostIds: [1] }],
+    }));
+
+    const body = await (await POST()).json();
+
+    expect(body.savedCount).toBe(0);
+    expect(mocks.createEvent).not.toHaveBeenCalled();
+    expect(mocks.upsertMention).toHaveBeenCalledWith(expect.objectContaining({
+      where: { eventId_postId: { eventId: 10, postId: 1 } },
+    }));
+  });
+
+  it('does not create an event without a selected source post', async () => {
+    mocks.callOpenRouter.mockResolvedValue(JSON.stringify({
+      events: [{ title: 'Событие без источника', date: '2026-10-17', sourcePostIds: [999] }],
+    }));
+
+    const response = await POST();
+
+    expect(await response.json()).toMatchObject({ success: true, savedCount: 0 });
+    expect(mocks.createEvent).not.toHaveBeenCalled();
+    expect(mocks.upsertMention).not.toHaveBeenCalled();
+  });
+
   it('skips extraction when Jev excludes every candidate', async () => {
     mocks.selectCandidates.mockResolvedValue({ posts: [], mode: 'jev' });
 

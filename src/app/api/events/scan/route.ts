@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { callOpenRouter } from '@/lib/openrouter';
 import { selectEventCandidatesWithJev } from '@/lib/events/jev';
 import { isClearlyEventDigest } from '@/lib/events/digest';
+import { isSameEvent } from '@/lib/events/matching';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,12 +65,13 @@ export async function POST() {
 ${JSON.stringify(payloadForAi)}
 
 ПРАВИЛА:
-1. Найди все посты, где анонсируется конкретное мероприятие.
+1. Выбирай посты, главная цель которых пригласить на одно конкретное будущее мероприятие. Обзорная статья, реклама курса или отчёт о прошедшем занятии не становятся анонсом из-за списка будущих дат в конце.
 2. Извлеки название (или суть) мероприятия, дату проведения, точное время (например, "с 22:00 до 05:00" или "20:00"), организатора (если указан) и виды/стоимость билетов. 
 3. Билеты/цены должны быть массивом строк (например: ["Мужчины - 1000р", "Женщины - бесплатно", "Пары - 1500р"]).
 4. ВАЖНО: Дедупликация! Одно и то же мероприятие часто рекламируется в разных каналах. Объедини их в одно событие. В массиве "sourcePostIds" перечисли ID всех постов, которые рекламируют это событие.
-5. Возвращай только реальные будущие мероприятия, описанные в тексте. Высчитай год/месяц исходя из даты публикации поста (дата поста есть в поле date). Верни дату мероприятия в формате YYYY-MM-DD. Если дата неточная, попытайся угадать ближайшую к публикации.
+5. Возвращай только реальные будущие мероприятия с указанной датой. Разрешай относительную дату относительно даты публикации поста, но не угадывай отсутствующую или неточную дату. Верни дату мероприятия в формате YYYY-MM-DD.
 6. Дайджесты и подборки нескольких самостоятельных мероприятий не обрабатывай: не создавай из них события и не включай их ID в sourcePostIds. Программа одного мероприятия, например фестиваля, дайджестом не считается.
+7. Помимо даты в посте должна быть хотя бы одна конкретная деталь участия в том же мероприятии: время, место, онлайн-площадка, билет, регистрация или контакт. Одного тизера с датой недостаточно.
 
 ФОРМАТ ОТВЕТА (JSON):
 {
@@ -97,6 +99,7 @@ ${JSON.stringify(payloadForAi)}
     
     const parsed = JSON.parse(cleanResponse);
     const events = parsed.events || [];
+    const selectedPostIds = new Set(selectedPosts.map(post => post.id));
 
     let savedCount = 0;
 
@@ -107,17 +110,21 @@ ${JSON.stringify(payloadForAi)}
 
     // Save to DB
     for (const evt of events) {
-      if (!evt.title || !evt.date) continue;
+      const sourcePostIds: number[] = Array.isArray(evt.sourcePostIds)
+        ? evt.sourcePostIds.filter((id: unknown): id is number =>
+            typeof id === 'number' && Number.isSafeInteger(id) && selectedPostIds.has(id))
+        : [];
+      if (!evt.title || !evt.date || sourcePostIds.length === 0) continue;
       
       const eventDate = new Date(evt.date);
       
       // Try to find if this event already exists
-      let targetEvent = recentDbEvents.find(dbEvt => {
-        if (dbEvt.date.getTime() !== eventDate.getTime()) return false;
-        const t1 = dbEvt.title.toLowerCase();
-        const t2 = evt.title.toLowerCase();
-        return t1 === t2 || t1.includes(t2) || t2.includes(t1);
-      });
+      let targetEvent = recentDbEvents.find(dbEvt => isSameEvent(dbEvt, {
+        title: evt.title,
+        date: eventDate,
+        timeStr: typeof evt.timeStr === 'string' ? evt.timeStr : null,
+        organizer: typeof evt.organizer === 'string' ? evt.organizer : null,
+      }));
 
       if (!targetEvent) {
         targetEvent = await prisma.event.create({
@@ -135,21 +142,15 @@ ${JSON.stringify(payloadForAi)}
         // If event exists, we might want to update prices if they were missing, but for now just link it
       }
 
-      if (evt.sourcePostIds && Array.isArray(evt.sourcePostIds)) {
-        for (const pid of evt.sourcePostIds) {
-          // Verify post exists in our candidate list
-          const exists = selectedPosts.find(p => p.id === pid);
-          if (exists) {
-            try {
-              await prisma.eventMention.upsert({
-                where: { eventId_postId: { eventId: targetEvent.id, postId: pid } },
-                create: { eventId: targetEvent.id, postId: pid },
-                update: {}
-              });
-            } catch (err) {
-              logger.warn('Could not link mention', undefined, err);
-            }
-          }
+      for (const pid of sourcePostIds) {
+        try {
+          await prisma.eventMention.upsert({
+            where: { eventId_postId: { eventId: targetEvent.id, postId: pid } },
+            create: { eventId: targetEvent.id, postId: pid },
+            update: {}
+          });
+        } catch (err) {
+          logger.warn('Could not link mention', undefined, err);
         }
       }
     }

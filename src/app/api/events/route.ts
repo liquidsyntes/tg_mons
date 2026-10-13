@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isClearlyEventDigest } from '@/lib/events/digest';
+import { isSameEvent } from '@/lib/events/matching';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ export async function GET() {
   try {
     const events = await prisma.event.findMany({
       where: { dismissedAt: null },
-      orderBy: { date: 'asc' },
+      orderBy: [{ date: 'asc' }, { id: 'asc' }],
       include: {
         mentions: {
           include: {
@@ -23,12 +24,23 @@ export async function GET() {
       }
     });
 
-    const visibleEvents = events.flatMap(event => {
+    const filteredEvents = events.flatMap(event => {
       const mentions = event.mentions.filter(mention => !isClearlyEventDigest(mention.post.text));
       return event.mentions.length > 0 && mentions.length === 0
         ? []
         : [{ ...event, mentions }];
     });
+
+    const visibleEvents: typeof filteredEvents = [];
+    for (const event of filteredEvents) {
+      const existing = visibleEvents.find(candidate => isSameEvent(candidate, event));
+      if (!existing) {
+        visibleEvents.push(event);
+        continue;
+      }
+      const linkedPostIds = new Set(existing.mentions.map(mention => mention.postId));
+      existing.mentions.push(...event.mentions.filter(mention => !linkedPostIds.has(mention.postId)));
+    }
 
     const responseBody = JSON.stringify({ events: visibleEvents }, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value

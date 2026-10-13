@@ -7,7 +7,13 @@ const posts = [
   { id: 2, text: 'Вспоминаем концерт прошлого года.', publishedAt: new Date('2026-10-12T12:00:00Z') },
 ];
 
-function answersFor(id: number, announcement: number, support: number, digest = 0) {
+function answersFor(
+  id: number,
+  announcement: number,
+  support: number,
+  digest = 0,
+  gates: { focused?: number; actionable?: number; recap?: number } = {}
+) {
   const values: Record<string, number> = {
     announcement,
     date: support,
@@ -16,6 +22,9 @@ function answersFor(id: number, announcement: number, support: number, digest = 
     tickets: support,
     registration: support,
     digest,
+    focused: gates.focused ?? 1,
+    actionable: gates.actionable ?? 1,
+    recap: gates.recap ?? 0,
   };
   return Object.fromEntries(Object.entries(values).map(([signal, probability]) => [
     `${signal}_${id}`, { type: 'noul', noul: probability },
@@ -80,6 +89,19 @@ describe('selectEventCandidatesWithJev', () => {
     process.env.OPENROUTER_API_KEY = 'test-key';
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       answers: { ...answersFor(1, 0.95, 1, 0.8), ...answersFor(2, 0.7, 0.5, 0.1) },
+    }), { status: 200 })));
+
+    expect(await selectEventCandidatesWithJev(posts)).toEqual({ posts: [posts[1]], mode: 'jev' });
+  });
+
+  it.each([
+    ['retrospective report', { recap: 0.8 }],
+    ['date-only teaser', { actionable: 0.1 }],
+    ['article with an appended event list', { focused: 0.49 }],
+  ])('excludes a %s despite event references', async (_label, gates) => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      answers: { ...answersFor(1, 0.95, 1, 0, gates), ...answersFor(2, 0.7, 0.5) },
     }), { status: 200 })));
 
     expect(await selectEventCandidatesWithJev(posts)).toEqual({ posts: [posts[1]], mode: 'jev' });
