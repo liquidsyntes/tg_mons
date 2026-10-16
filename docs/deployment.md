@@ -32,21 +32,23 @@ npm run auth
 | DATABASE_URL | Prisma, web, worker | URL PostgreSQL; для хоста адрес БД localhost/127.0.0.1, внутри Compose — postgres |
 | TG_API_ID, TG_API_HASH | auth, MTProto | Ключи приложения Telegram |
 | TG_PHONE | auth | Телефон; при отсутствии CLI запросит его |
-| TG_SESSION | MTProto в web и worker | Сохранённая сессия |
+| TG_SESSION | worker и CLI авторизации | Сохранённая сессия; web её не получает |
 | COLLECT_API_TOKEN | вход Web UI, подпись cookie, Bearer для worker | Непустой сильный случайный ключ; без него вход и защищённые маршруты недоступны |
 | COLLECT_CRON | worker | `0 * * * *`; невалидное значение заменяется этим default с логом |
 | COLLECT_ON_STARTUP | worker | Запуск только если значение строго `true`; пример и Compose задают true |
 | DEMOGRAPHICS_CRON | worker | `0 3 * * 0`; при невалидном значении weekly fallback |
-| WEB_INTERNAL_URL | worker | Нет default в коде collector; Compose default `http://web:4000` |
-| TELEGRAM_REQUEST_TIMEOUT_MS | fetcher в web/worker | 30000 мс |
+| WEB_INTERNAL_URL | worker | Адрес web для сброса кэша; Compose default `http://web:4000` |
+| WORKER_INTERNAL_URL | web | Адрес закрытого API worker; Compose default `http://worker:4001`, на хосте `http://localhost:4001` |
+| WORKER_INTERNAL_HOST, WORKER_INTERNAL_PORT | worker | По умолчанию `127.0.0.1:4001`; Compose привязывает `0.0.0.0:4001` только внутри своей сети |
+| TELEGRAM_REQUEST_TIMEOUT_MS | fetcher в worker и CLI-утилитах | 30000 мс |
 | CHANNEL_MAX_CONSECUTIVE_ERRORS | retry-policy | 10; отключение при достижении порога |
 | TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID | retry-policy | Необязательные уведомления об изменениях аудитории и отключении |
 | OPENROUTER_API_KEY | web AI/scanner | Резервный ключ для генеративных отчётов и сканера событий, включая Jev; можно задать через `/settings` |
-| HEALTH_STUCK_THRESHOLD_MINUTES | web health | 120 |
+| HEALTH_STUCK_THRESHOLD_MINUTES | web health и захват SyncJob в worker | 120; Compose передаёт одинаковое значение обоим сервисам |
 | HEALTH_STALE_THRESHOLD_MINUTES | web health | 720 |
 | MY_CHANNEL_USERNAME | Никем не читается | Сохранён в примере, но не назначает «Мой канал» |
 
-Параметры DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры приведены в `.env.example` с дефолтными значениями. Compose по умолчанию не передаёт их, а также TELEGRAM_REQUEST_TIMEOUT_MS, в environment контейнеров. Одного добавления переменной в `.env` недостаточно для Docker: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
+Параметры DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры приведены в `.env.example` с дефолтными значениями. Compose передаёт `HEALTH_STUCK_THRESHOLD_MINUTES` обоим сервисам, но не передаёт остальные из этого списка и TELEGRAM_REQUEST_TIMEOUT_MS. Для них одного добавления переменной в `.env` недостаточно: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
 
 Ни compose, ни cron.schedule не задают timezone. Расписание и часть графиков используют часовой пояс процесса; дневная материализация — UTC. Учитывайте его при выборе расписания.
 
@@ -78,7 +80,7 @@ npm run auth
    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
    ```
 
-Web-интерфейс доступен по адресу [http://localhost:4000](http://localhost:4000). Встроенный Compose-default `WEB_INTERNAL_URL=http://web:4000` обеспечивает корректную связь воркера с web-сервисом внутри сети Docker.
+Web-интерфейс доступен по адресу [http://localhost:4000](http://localhost:4000). Compose связывает web с закрытым API worker по `http://worker:4001` и worker с web по `http://web:4000`. Порт 4001 не публикуется на хост; внутренние запросы требуют `COLLECT_API_TOKEN` в Bearer-заголовке.
 
 ### Как устроен Hot Reload в Docker
 
@@ -179,7 +181,7 @@ docker compose build web worker
 docker compose up -d --no-deps web worker
 ```
 
-Изменения MTProto-клиента и общего сборщика требуют обновления **web и worker**: ручной `/api/collect/run` выполняется в web. Для поддержки статей используется `teleproto@1.229.0` под alias `telegram`; новая миграция и повторная авторизация только из-за этой замены не требуются. Уже сохранённые статьи останутся текстом при смене версии клиента, но старый клиент не сможет получать новые rich-сообщения. [ADR 0002](adr/0002-telegram-rich-messages.md).
+Изменения MTProto-клиента и сборщика требуют обновления worker; изменения маршрутов-посредников или Compose требуют обновления web. Ручной `/api/collect/run` выполняет MTProto-работу в worker. Для поддержки статей используется `teleproto@1.229.0` под alias `telegram`; новая миграция и повторная авторизация только из-за этой замены не требуются. Уже сохранённые статьи останутся текстом при смене версии клиента, но старый клиент не сможет получать новые rich-сообщения. [ADR 0002](adr/0002-telegram-rich-messages.md).
 
 Для запуска на хосте остановите процессы этого проекта, выполните `npm ci`, `npm run prisma:migrate`, `npm run build`, затем запустите `npm start` и `npm run worker` под выбранным менеджером процессов. В репозитории нет PM2 ecosystem-файла или update.sh, поэтому они не являются частью штатного деплоя. Не перезапускайте все процессы сервера общей командой.
 
@@ -202,7 +204,9 @@ curl -i http://localhost:4000/api/health
 
 Health без SyncJob возвращает 503. Зависший незавершённый цикл старше 120 минут и завершённый старше 720 минут также дают 503. **Свежий FAILED/PARTIAL может вернуть 200**: проверяйте lastSyncStatus и channelsFailed в теле. UI отдельно считает канал stale после 3 часов.
 
-При `COLLECT_ON_STARTUP=false` перезапуск worker не создаёт новый SyncJob: health до следующего цикла показывает прежний результат. Для проверки нового сборщика дождитесь cron или выполните один ручной сбор кнопкой в UI / `POST /api/collect/run`; не запускайте параллельно несколько циклов. Проверяйте `result.successCount/errorCount`, затем `lastSyncStatus=COMPLETED` и `channelsFailed=0`. Сам ответ `success:true` не гарантирует успех всех каналов.
+При `COLLECT_ON_STARTUP=false` перезапуск worker не создаёт новый SyncJob: health до следующего цикла показывает прежний результат. Для проверки нового сборщика дождитесь cron или выполните один ручной сбор кнопкой в UI / `POST /api/collect/run`; второй одновременный запуск получит 409. Проверяйте `result.successCount/errorCount`, затем `lastSyncStatus=COMPLETED` и `channelsFailed=0`. Сам ответ `success:true` не гарантирует успех всех каналов.
+
+При остановке worker новые задачи отклоняются, активному заданию даётся до 30 секунд; основной сбор останавливается между каналами. Если он не завершился, текущий SyncJob переводится в PARTIAL или FAILED и TelegramClient отключается. Compose задаёт `stop_grace_period: 45s`, чтобы Docker не прервал эту процедуру раньше времени.
 
 Проверьте доступность главной, добавленного канала и последних метрик. Отсутствие демографии не обязательно ошибка запуска: задание недельное и требует canViewStats. Рекламные точки появляются отдельным cron в :15, если найдены подходящие isAd-посты. Ни демография, ни рекламный сбор не выполняются startup-триггером основного цикла.
 
@@ -244,7 +248,7 @@ curl -i http://localhost:4000/api/health
 
 В Windows PowerShell вместо `curl -i` используйте `curl.exe -i`. Если команда `docker` недоступна в WSL, выполните шаги Compose из PowerShell в `C:\TgMon`.
 
-Загрузка изображений постов находится в общем сборщике, который используют web и worker. При изменении этого кода обновите оба образа. Для новой установки до запуска сервисов примените миграцию `20261016000000_add_post_images`; ранее собранные сообщения получат изображение только при повторном проходе сборщика по ним. `GET /api/posts/:id/image` читает сохранённые байты из БД.
+Загрузка изображений постов выполняется сборщиком worker. При изменении этого кода обновите образ worker. Для новой установки до запуска сервисов примените миграцию `20261016000000_add_post_images`; ранее собранные сообщения получат изображение только при повторном проходе сборщика по ним. `GET /api/posts/:id/image` читает сохранённые байты из БД.
 
 Затем откройте `/events` и проверьте загрузку страницы. Кнопка «Сканировать события» запускает `POST /api/events/scan`, вызывает внешние модели и может создать `Event` и `EventMention` в БД; не используйте её как проверку доступности web. Ответ сканера содержит `selectionMode`: `jev` при отборе моделью, `keyword_fallback` при возврате к фильтру по словам и `no_candidates`, когда нет непустых постов. Интерфейс отдельно сообщает о fallback.
 

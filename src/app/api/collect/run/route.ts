@@ -1,6 +1,6 @@
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
-import { runCollectCycle } from '@/worker/collector';
+import { requestWorkerCollection, WorkerRequestError } from '@/lib/worker-client';
 import { verifyBearerToken } from '@/lib/auth';
 import { metricsCache, bestTimeCache } from '@/lib/cache';
 
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
 
-    const result = await runCollectCycle();
+    const result = await requestWorkerCollection();
     metricsCache.invalidate();
     bestTimeCache.invalidate();
     return NextResponse.json({
@@ -19,11 +19,13 @@ export async function POST(req: NextRequest) {
       message: 'Цикл сбора успешно завершен',
       result,
     });
-  } catch (error: any) {
-    logger.error('POST /api/collect/run error:', undefined, error);
+  } catch (error) {
+    if (!(error instanceof WorkerRequestError && error.status === 409)) {
+      logger.error('POST /api/collect/run error:', undefined, error);
+    }
     return NextResponse.json(
-      { error: error.message || 'Ошибка выполнения сбора' },
-      { status: 500 }
+      { error: error instanceof WorkerRequestError ? error.message : 'Ошибка выполнения сбора' },
+      { status: error instanceof WorkerRequestError ? error.status : 500 }
     );
   }
 }

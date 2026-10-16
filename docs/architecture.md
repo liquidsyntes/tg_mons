@@ -9,16 +9,18 @@ flowchart LR
     User[Пользователь] --> Web[Next.js UI и API :4000]
     Web --> DB[(PostgreSQL)]
     Web --> AI[OpenRouter]
-    Web -->|добавление канала и ручной сбор| TG[Telegram MTProto]
-    Worker[Worker: cron и teleproto] --> TG
+    Web -->|закрытый HTTP API :4001| Worker[Worker: очередь, cron и teleproto]
+    Worker --> TG[Telegram MTProto]
     Worker --> DB
     Worker -->|уведомления| Bot[Telegram Bot API]
     Worker -->|POST invalidate-cache| Web
 ```
 
-Web и worker — отдельные Node.js-процессы с общими модулями и БД. При этом web тоже импортирует коллектор: добавление канала выполняет resolve/backfill, а `POST /api/collect/run` ждёт завершения `runCollectCycle` непосредственно в web-процессе. Очереди задач и отдельного HTTP-сервера worker нет.
+Web и worker работают отдельными Node.js-процессами. Web передаёт добавление канала и ручной сбор в закрытый HTTP API worker на порту 4001 с Bearer-токеном; порт не публикуется из Compose. Только worker использует MTProto-сессию. Ответ ручного API ожидает завершения цикла.
 
-`src/worker/index.ts` защищает каждое cron-задание своим флагом от повторного запуска того же задания внутри процесса. Межпроцессной блокировки нет; основной сбор, демография, рекламный сбор и ручной HTTP-вызов могут пересекаться. Несколько worker требуют отдельной координации.
+`src/worker/task-coordinator.ts` ставит основной сбор, демографию, рекламный охват и первичный backfill в одну последовательную очередь. Повторный запрос основного сбора получает 409. Создание SyncJob сериализовано транзакционным advisory lock PostgreSQL; активный RUNNING блокирует второй цикл между процессами. RUNNING старше порога `HEALTH_STUCK_THRESHOLD_MINUTES` (по умолчанию 120 минут) помечается FAILED перед новым запуском. При SIGINT/SIGTERM worker прекращает приём задач, ждёт активное задание до 30 секунд и останавливает основной сбор между каналами, завершает SyncJob как PARTIAL/FAILED при прерывании и отключает TelegramClient.
+
+Очередь действует в одном процессе worker. Для одновременного запуска нескольких worker демография и рекламный охват потребуют отдельной межпроцессной координации; штатный Compose запускает один worker.
 
 ## Слои приложения
 
@@ -65,13 +67,13 @@ Web и worker — отдельные Node.js-процессы с общими м
 
 ```mermaid
 sequenceDiagram
-    participant S as Cron или POST collect/run
+    participant S as Очередь worker: cron или POST collect/run
     participant C as runCollectCycle
     participant T as Telegram
     participant D as PostgreSQL
     participant W as Web cache
     S->>C: Запуск
-    C->>D: Активные каналы и SyncJob RUNNING
+    C->>D: Активные каналы и атомарный захват SyncJob RUNNING
     loop Каналы по id
         C->>T: Resolve и FullChannel
         opt Доступна численность аудитории

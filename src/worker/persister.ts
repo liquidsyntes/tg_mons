@@ -115,19 +115,59 @@ export async function updateChannelErrorState(
   });
 }
 
+export class CollectAlreadyRunningError extends Error {
+  constructor() {
+    super('Сбор уже выполняется');
+    this.name = 'CollectAlreadyRunningError';
+  }
+}
+
+const COLLECT_LOCK_ID = 420241016;
+
 export async function createSyncJob(totalChannels: number) {
-  return await prisma.syncJob.create({
+  return prisma.$transaction(async tx => {
+    const [lock] = await tx.$queryRaw<Array<{ acquired: boolean }>>`
+      SELECT pg_try_advisory_xact_lock(${COLLECT_LOCK_ID}) AS acquired
+    `;
+    if (!lock?.acquired) throw new CollectAlreadyRunningError();
+
+    const minutes = Number.parseInt(process.env.HEALTH_STUCK_THRESHOLD_MINUTES || '120', 10);
+    const thresholdMs = Number.isFinite(minutes) && minutes > 0 ? minutes * 60_000 : 120 * 60_000;
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - thresholdMs);
+    await tx.syncJob.updateMany({
+      where: { status: 'RUNNING', startedAt: { lt: staleBefore } },
+      data: { status: 'FAILED', endedAt: now, errorSummary: 'Прерванный цикл превысил срок ожидания' },
+    });
+    const active = await tx.syncJob.findFirst({
+      where: { status: 'RUNNING', startedAt: { gte: staleBefore } },
+      select: { id: true },
+    });
+    if (active) throw new CollectAlreadyRunningError();
+
+    return tx.syncJob.create({
+      data: { startedAt: now, status: 'RUNNING', channelsTotal: totalChannels },
+    });
+  });
+}
+
+export async function markInterruptedSyncJob(syncJobId: number): Promise<void> {
+  const job = await prisma.syncJob.findUnique({ where: { id: syncJobId } });
+  if (!job || job.status !== 'RUNNING') return;
+  await prisma.syncJob.updateMany({
+    where: { id: syncJobId, status: 'RUNNING' },
     data: {
-      startedAt: new Date(),
-      status: 'RUNNING',
-      channelsTotal: totalChannels,
+      status: job.channelsSucceeded > 0 ? 'PARTIAL' : 'FAILED',
+      endedAt: new Date(),
+      durationMs: Date.now() - job.startedAt.getTime(),
+      errorSummary: 'Сбор прерван при остановке worker',
     },
   });
 }
 
 export async function updateSyncJobProgress(syncJobId: number, successCount?: number, errorCount?: number, postsAdded?: number) {
-  return await prisma.syncJob.update({
-    where: { id: syncJobId },
+  return await prisma.syncJob.updateMany({
+    where: { id: syncJobId, status: 'RUNNING' },
     data: {
       ...(successCount !== undefined ? { channelsSucceeded: successCount } : {}),
       ...(errorCount !== undefined ? { channelsFailed: errorCount } : {}),
@@ -143,11 +183,14 @@ export async function finalizeSyncJob(
   errorCount: number,
   activeChannelsCount: number,
   totalPosts: number,
-  fatalError: string | null
+  fatalError: string | null,
+  interrupted = false,
 ) {
   let finalStatus: 'COMPLETED' | 'PARTIAL' | 'FAILED' = 'COMPLETED';
   
-  if (fatalError) {
+  if (interrupted) {
+    finalStatus = successCount > 0 ? 'PARTIAL' : 'FAILED';
+  } else if (fatalError) {
     finalStatus = 'FAILED';
   } else if (errorCount > 0 && successCount > 0) {
     finalStatus = 'PARTIAL';
@@ -155,13 +198,13 @@ export async function finalizeSyncJob(
     finalStatus = 'FAILED';
   }
 
-  return await prisma.syncJob.update({
-    where: { id: syncJobId },
+  return await prisma.syncJob.updateMany({
+    where: { id: syncJobId, status: 'RUNNING' },
     data: {
       endedAt: new Date(),
       durationMs,
       status: finalStatus,
-      errorSummary: fatalError ? fatalError.substring(0, 200) : null,
+      errorSummary: interrupted ? 'Сбор прерван при остановке worker' : fatalError ? fatalError.substring(0, 200) : null,
       channelsSucceeded: successCount,
       channelsFailed: errorCount,
       postsAdded: totalPosts,

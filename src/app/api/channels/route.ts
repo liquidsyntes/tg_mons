@@ -1,9 +1,7 @@
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { calculateChannelMetrics, getOverviewStats } from '@/lib/metrics';
-import { addChannelByInput, collectChannelData } from '@/worker/collector';
-import { getTelegramClient } from '@/worker/client';
+import { requestWorkerAddChannel, WorkerRequestError } from '@/lib/worker-client';
 import { verifyBearerToken } from '@/lib/auth';
 import { metricsCache, bestTimeCache } from '@/lib/cache';
 
@@ -34,30 +32,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Add channel to DB via MTProto resolve
-    const channel = await addChannelByInput(input, Boolean(isMine));
-
-    // Run immediate backfill in background or synchronously
-    try {
-      const client = await getTelegramClient();
-      await collectChannelData(client, channel, true);
-    } catch (backfillErr: any) {
-      console.warn(`Initial backfill failed for channel ${channel.id}:`, backfillErr.message);
-      await prisma.channel.update({
-        where: { id: channel.id },
-        data: { lastError: backfillErr.message },
-      });
-    }
+    const channelId = await requestWorkerAddChannel(input, Boolean(isMine));
 
     metricsCache.invalidate();
     bestTimeCache.invalidate();
-    const metrics = await calculateChannelMetrics(channel.id);
+    const metrics = await calculateChannelMetrics(channelId);
     return NextResponse.json(metrics, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     logger.error('POST /api/channels error:', undefined, error);
     return NextResponse.json(
-      { error: error.message || 'Ошибка добавления канала' },
-      { status: 400 }
+      { error: error instanceof WorkerRequestError ? error.message : 'Ошибка добавления канала' },
+      { status: error instanceof WorkerRequestError ? error.status : 400 }
     );
   }
 }

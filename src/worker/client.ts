@@ -41,3 +41,9 @@ export async function getTelegramClient(): Promise<TelegramClient> {
   clientInstance = client;
   return client;
 }
+
+export async function disconnectTelegramClient(): Promise<void> {
+  const client = clientInstance;
+  clientInstance = null;
+  if (client) await client.disconnect();
+}

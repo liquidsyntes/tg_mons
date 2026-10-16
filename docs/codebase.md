@@ -63,7 +63,7 @@ docs/                   продуктовая и техническая док�
 - `demographics.ts` собирает языковой граф с проверкой прав и statsDc. `src/lib/demographics.ts` валидирует граф и API-формат.
 - `ad-reach.ts` собирает контрольные точки рекламного охвата.
 
-Worker рассчитывает дневные метрики. Ручной сбор и initial backfill также вызываются из web; распределённой блокировки нет. Подробности — в [архитектуре](architecture.md).
+Worker рассчитывает дневные метрики. Ручной сбор и первичный backfill выполняются в worker через закрытый HTTP API. `task-coordinator.ts` сериализует MTProto-задачи, а запуск SyncJob защищён блокировкой PostgreSQL. Подробности: [архитектура](architecture.md).
 
 `scripts/backfill-articles.ts` восстанавливает только пустые `Post.text` выбранного канала: dry-run по умолчанию, запись с `--apply`, транзакционное обновление текста, `isAd` и Mention. Схема БД не меняется. [Инструкция](../scripts/README.md#восстановление-текста-статей), [ADR 0002](adr/0002-telegram-rich-messages.md).
 

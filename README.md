@@ -63,7 +63,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```bash
 npm run dev:all
 ```
-(или `npm run dev` и `npm run worker` в отдельных терминалах). В этом режиме задайте `WEB_INTERNAL_URL=http://localhost:4000`.
+(или `npm run dev` и `npm run worker` в отдельных терминалах). В этом режиме задайте `WEB_INTERNAL_URL=http://localhost:4000`; web обращается к worker по `http://localhost:4001`.
 
 После старта добавьте канал через интерфейс. API сразу пытается собрать историю за 30 дней, ограниченную 1000 последними сообщениями; дальнейший плановый цикл периодически обновляет метрики.
 
@@ -102,7 +102,7 @@ npm run dev:all
   ```
   В production контейнеры собираются начисто (`Dockerfile.web` компилирует Next.js через `npm run build`), и сервер запускается через `npm start` без монтирования локальных файлов.
 
-Web и worker в полном Compose запускаются из собранных образов без hot reload. После изменения сборщика или Telegram-клиента обновляйте оба образа: ручной сбор выполняется также в web. Порт 4000 должен быть свободен; проверяйте публикацию через `docker compose ps` и ответы главной и `/api/health` с хоста. [Обновление и диагностика порта](docs/deployment.md#обновление-существующего-окружения).
+Web и worker в полном Compose запускаются из собранных образов без hot reload. После изменения сборщика или Telegram-клиента обновляйте worker; изменения API-посредника и Compose требуют также обновления web. Порт 4000 должен быть свободен; проверяйте публикацию через `docker compose ps` и ответы главной и `/api/health` с хоста. [Обновление и диагностика порта](docs/deployment.md#обновление-существующего-окружения).
 
 Web UI открывается после входа на `/login`: пользователь вводит значение `COLLECT_API_TOKEN`, сервер создаёт подписанную HttpOnly-cookie на 12 часов. Ключ не встраивается в клиентский bundle. Запросы worker и внешних скриптов по-прежнему принимают `Authorization: Bearer <COLLECT_API_TOKEN>`; для cookie-запросов с изменением данных требуется совпадение `Origin`. `/api/health` остаётся открытым. Для сетевого размещения используйте HTTPS и сильный случайный ключ; `/api/settings` возвращает только статус и маскированное превью AI-ключа.
 
@@ -111,13 +111,14 @@ Web UI открывается после входа на `/login`: пользо�
 | Переменная | Использование |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL для web, worker и Prisma CLI |
-| `TG_API_ID`, `TG_API_HASH`, `TG_SESSION` | MTProto в worker и web-маршрутах добавления/ручного сбора |
+| `TG_API_ID`, `TG_API_HASH`, `TG_SESSION` | MTProto только в worker и CLI авторизации |
 | `TG_PHONE` | Подсказка для интерактивной авторизации |
 | `COLLECT_API_TOKEN` | Ключ входа в Web UI, подпись HttpOnly-сессии и Bearer для worker/скриптов |
 | `COLLECT_CRON` | Основной сбор, по умолчанию `0 * * * *` |
 | `COLLECT_ON_STARTUP` | Первичный цикл только при строке `true` |
 | `DEMOGRAPHICS_CRON` | Демография, по умолчанию `0 3 * * 0` |
 | `WEB_INTERNAL_URL` | Адрес web для сброса кэша из worker |
+| `WORKER_INTERNAL_URL` | Закрытый адрес worker для web: `http://worker:4001` в Compose, `http://localhost:4001` на хосте |
 | `TELEGRAM_REQUEST_TIMEOUT_MS` | Таймаут MTProto, по умолчанию 30000 мс |
 | `CHANNEL_MAX_CONSECUTIVE_ERRORS` | Отключение после N последовательных ошибок, по умолчанию 10 |
 | `OPENROUTER_API_KEY` | AI-отчёты и сканер событий |

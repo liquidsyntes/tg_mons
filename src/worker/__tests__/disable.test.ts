@@ -5,6 +5,14 @@ import { prisma } from '@/lib/prisma';
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    $transaction: vi.fn(async (callback: (tx: object) => Promise<unknown>) => {
+      const syncJob = {
+        create: vi.fn().mockResolvedValue({ id: 1 }),
+        findFirst: vi.fn().mockResolvedValue(null),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      };
+      return callback({ $queryRaw: vi.fn().mockResolvedValue([{ acquired: true }]), syncJob });
+    }),
     channel: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -28,6 +36,7 @@ vi.mock('@/lib/prisma', () => ({
     syncJob: {
       create: vi.fn().mockResolvedValue({ id: 1 }),
       update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     }
   },
 }));

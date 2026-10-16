@@ -37,6 +37,12 @@ import {
 
 export { TelegramTimeoutError };
 
+let activeSyncJobId: number | null = null;
+
+export function getActiveSyncJobId(): number | null {
+  return activeSyncJobId;
+}
+
 export async function addChannelByInput(input: string, isMine = false) {
   const client = await getTelegramClient();
   const entity: any = await resolveChannelEntity(client, input);
@@ -182,7 +188,7 @@ export async function collectChannelData(
   return { snapshotsAdded, postsAdded, durationMs };
 }
 
-export async function runCollectCycle(): Promise<{
+export async function runCollectCycle(signal?: AbortSignal): Promise<{
   totalChannels: number;
   successCount: number;
   errorCount: number;
@@ -196,21 +202,22 @@ export async function runCollectCycle(): Promise<{
   const activeChannels = await getActiveChannels();
   logger.info('Found active channels to monitor', { activeChannelsCount: activeChannels.length });
 
-  let syncJobId: number | null = null;
-  try {
-    const job = await createSyncJob(activeChannels.length);
-    syncJobId = job.id;
-  } catch (err) {
-    logger.error('Could not create SyncJob record', undefined, err);
-  }
+  const job = await createSyncJob(activeChannels.length);
+  const syncJobId = job.id;
+  activeSyncJobId = syncJobId;
 
   let successCount = 0;
   let errorCount = 0;
   let totalPosts = 0;
   let totalSnapshots = 0;
   let fatalError: string | null = null;
+  let interrupted = false;
 
   try {
+    if (signal?.aborted) {
+      interrupted = true;
+      throw new Error('Collection interrupted before connecting');
+    }
     let client: TelegramClient;
     try {
       client = await getTelegramClient();
@@ -220,6 +227,10 @@ export async function runCollectCycle(): Promise<{
     }
 
     for (const channel of activeChannels) {
+      if (signal?.aborted) {
+        interrupted = true;
+        break;
+      }
       try {
         logger.info('Processing channel', { title: channel.title, username: channel.username, tgId: channel.tgId, id: channel.id });
         const isInitial = !channel.lastCollectedAt;
@@ -344,6 +355,11 @@ export async function runCollectCycle(): Promise<{
 
         await handleChannelError(channel, err);
 
+        if (signal?.aborted) {
+          interrupted = true;
+          break;
+        }
+
         if (err instanceof TelegramTimeoutError) {
           logger.warn('TelegramTimeoutError detected. Attempting to force reconnect client to recover dead socket');
           try {
@@ -359,12 +375,16 @@ export async function runCollectCycle(): Promise<{
       }
     }
   } catch (err: any) {
-    if (!fatalError) fatalError = err.message || String(err);
+    if (signal?.aborted) interrupted = true;
+    else if (!fatalError) fatalError = err.message || String(err);
   } finally {
     const durationMs = Date.now() - cycleStartTime;
-    if (syncJobId) {
-      await finalizeSyncJob(syncJobId, durationMs, successCount, errorCount, activeChannels.length, totalPosts, fatalError)
+    if (signal?.aborted && successCount + errorCount < activeChannels.length) interrupted = true;
+    try {
+      await finalizeSyncJob(syncJobId, durationMs, successCount, errorCount, activeChannels.length, totalPosts, fatalError, interrupted)
         .catch((err) => logger.error('Final SyncJob update failed', undefined, err));
+    } finally {
+      activeSyncJobId = null;
     }
     
     const webInternalUrl = process.env.WEB_INTERNAL_URL;

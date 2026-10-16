@@ -22,10 +22,9 @@ services:
       - "4000:4000"
     environment:
       DATABASE_URL: "postgresql://postgres:password@postgres:5432/tgmon?schema=public"
-      TG_API_ID: ${TG_API_ID}
-      TG_API_HASH: ${TG_API_HASH}
-      TG_SESSION: ${TG_SESSION}
       COLLECT_API_TOKEN: ${COLLECT_API_TOKEN}
+      WORKER_INTERNAL_URL: ${WORKER_INTERNAL_URL:-http://worker:4001}
+      HEALTH_STUCK_THRESHOLD_MINUTES: ${HEALTH_STUCK_THRESHOLD_MINUTES:-120}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
@@ -38,6 +37,7 @@ services:
       dockerfile: Dockerfile.worker
     container_name: tgmon-worker
     restart: unless-stopped
+    stop_grace_period: 45s
     environment:
       DATABASE_URL: "postgresql://postgres:password@postgres:5432/tgmon?schema=public"
       TG_API_ID: ${TG_API_ID}
@@ -49,6 +49,10 @@ services:
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       COLLECT_API_TOKEN: ${COLLECT_API_TOKEN}
       WEB_INTERNAL_URL: ${WEB_INTERNAL_URL:-http://web:4000}
+      WORKER_INTERNAL_HOST: 0.0.0.0
+      HEALTH_STUCK_THRESHOLD_MINUTES: ${HEALTH_STUCK_THRESHOLD_MINUTES:-120}
+    expose:
+      - "4001"
     depends_on:
       - postgres
 
