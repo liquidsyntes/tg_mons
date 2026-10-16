@@ -1,6 +1,6 @@
 # База данных и схема Prisma
 
-Сверено с [schema.prisma](../prisma/schema.prisma) 20 сентября 2026 года. СУБД проекта — **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
+Сверено с [schema.prisma](../prisma/schema.prisma) 20 сентября 2026 года; хранение изображений постов дополнено 16 октября 2026 года. СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
 
 ## Общие сведения и требования к СУБД
 
@@ -27,13 +27,14 @@
 
 ## Сводная таблица моделей
 
-Схема содержит **15 моделей**, сопоставленных с таблицами PostgreSQL через атрибут `@@map`:
+Схема содержит **16 моделей**, сопоставленных с таблицами PostgreSQL через атрибут `@@map`:
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
 | `Channel` | `channels` | `id` (Int, autoincrement) | `@unique username`<br>`@unique tgId` | Связи 1:N со всеми дочерними сущностями (`onDelete: Cascade`) | Telegram-каналы и группы, отслеживаемые системой, флаги и метаданные |
 | `Snapshot` | `snapshots` | `id` (Int, autoincrement) | `@@index([channelId, collectedAt])` | `channel` -> `Channel` (`Cascade`) | Временные снимки численности аудитории (подписчиков) канала |
-| `Post` | `posts` | `id` (Int, autoincrement) | `@@unique([channelId, messageId])`<br>`@@index([channelId, groupedId])`<br>`@@index([channelId, publishedAt])`<br>`@@index([text], type: Gin)` | `channel` -> `Channel` (`Cascade`)<br>Дочерние: `mentions`, `snapshots`, `viewSnapshots`, `eventMentions` (`Cascade`) | Собранные публикации Telegram: просмотры, реакции, репосты, текст |
+| `Post` | `posts` | `id` (Int, autoincrement) | `@@unique([channelId, messageId])`<br>`@@index([channelId, groupedId])`<br>`@@index([channelId, publishedAt])`<br>`@@index([text], type: Gin)` | `channel` -> `Channel` (`Cascade`)<br>Дочерние: `mentions`, `snapshots`, `viewSnapshots`, `eventMentions`, `image` (`Cascade`) | Собранные публикации Telegram: просмотры, реакции, репосты, текст |
+| `PostImage` | `post_images` | `postId` (Int) | Нет | `post` -> `Post` (`Cascade`) | Одно ограниченное по размеру изображение публикации |
 | `PostSnapshot` | `post_snapshots` | `id` (Int, autoincrement) | `@@index([postId, collectedAt])` | `post` -> `Post` (`Cascade`) | Снимки просмотров свежих постов (до 7 дней) для расчёта кривой накопления просмотров (LTV) |
 | `PostViewSnapshot` | `post_view_snapshots` | `id` (Int, autoincrement) | `@@unique([postId, hoursAfterPost])`<br>`@@index([postId])` | `post` -> `Post` (`Cascade`) | Контрольные точки просмотров рекламных постов (1, 12, 24, 48 часов) для оценки рекламного охвата |
 | `Mention` | `mentions` | `id` (Int, autoincrement) | `@@index([sourceChannelId])`<br>`@@index([targetUsername])` | `sourcePost` -> `Post` (`Cascade`)<br>`sourceChannel` -> `Channel` (`Cascade`) | Упоминания и репосты других каналов, найденные в собранных постах (без FK на целевой канал) |
@@ -132,6 +133,21 @@
   - `snapshots`: `PostSnapshot[]` (каскадное удаление)
   - `viewSnapshots`: `PostViewSnapshot[]` (каскадное удаление)
   - `eventMentions`: `EventMention[]` (каскадное удаление)
+  - `image`: `PostImage?` (каскадное удаление)
+
+---
+
+### `PostImage` (`post_images`)
+Одно изображение поста, сохранённое при сборе отдельного фото или изображения-документа Telegram. Размер загружаемого файла ограничен 1 МБ; байты не включаются в ответы со списком событий.
+
+| Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
+|---|---|---|---|---|---|
+| `postId` | `Int` | `post_id` | Нет | Нет | Первичный ключ и внешний ключ на `Post.id` |
+| `contentType` | `String` | `content_type` | Нет | Нет | MIME-тип изображения |
+| `data` | `Bytes` | `data` | Нет | Нет | Байты изображения |
+| `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время сохранения |
+
+Удаление поста каскадно удаляет его изображение. Миграция: `20261016000000_add_post_images`.
 
 ---
 

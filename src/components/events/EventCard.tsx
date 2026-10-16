@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Calendar, Clock, MapPin, Tag, Users, Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -24,6 +25,7 @@ export interface EventCardData {
   timeStr?: string | null;
   organizer?: string | null;
   prices?: string[] | null;
+  imageUrl?: string | null;
   mentions?: EventMention[];
 }
 
@@ -53,10 +55,15 @@ function getTelegramPostUrl(post: EventPost | null): string | null {
 export function EventCard({ event, onDismiss, dismissDisabled = false, dismissing = false }: EventCardProps) {
   return (
     <div className="bg-surface border border-border rounded-2xl overflow-hidden hover:border-slate-600 transition-colors flex flex-col h-full shadow-sm">
-      {/* Poster Placeholder */}
-      <div className="h-40 bg-slate-900/50 flex flex-col items-center justify-center text-slate-500 border-b border-border relative">
-        <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
-        <span className="text-xs font-medium">Афиша (скоро)</span>
+      <div className="h-40 bg-slate-900/50 flex flex-col items-center justify-center text-slate-500 border-b border-border relative overflow-hidden">
+        {event.imageUrl ? (
+          <Image src={event.imageUrl} alt={`Изображение к событию «${event.title}»`} width={640} height={320} unoptimized className="h-full w-full object-cover" />
+        ) : (
+          <>
+            <ImageIcon className="w-10 h-10 mb-2 opacity-50" />
+            <span className="text-xs font-medium">Изображение отсутствует</span>
+          </>
+        )}
         <div className="absolute top-3 right-3 px-2 py-1 bg-slate-900/80 backdrop-blur border border-border rounded-md text-[10px] font-bold text-accent uppercase tracking-wider">
           {format(new Date(event.date), 'dd MMM', { locale: ru })}
         </div>

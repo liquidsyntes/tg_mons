@@ -17,6 +17,7 @@ export async function GET() {
             post: {
               include: {
                 channel: true,
+                image: { select: { postId: true } },
               }
             }
           }
@@ -42,7 +43,12 @@ export async function GET() {
       existing.mentions.push(...event.mentions.filter(mention => !linkedPostIds.has(mention.postId)));
     }
 
-    const responseBody = JSON.stringify({ events: visibleEvents }, (key, value) =>
+    const eventsWithImages = visibleEvents.map(event => {
+      const imagePostId = event.mentions.find(mention => mention.post.image)?.post.id;
+      return { ...event, imageUrl: imagePostId ? `/api/posts/${imagePostId}/image` : null };
+    });
+
+    const responseBody = JSON.stringify({ events: eventsWithImages }, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value
     );
 

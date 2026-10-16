@@ -78,12 +78,24 @@ model Post {
   snapshots            PostSnapshot[]
   viewSnapshots        PostViewSnapshot[]
   eventMentions        EventMention[]
+  image                PostImage?
 
   @@unique([channelId, messageId])
   @@index([channelId, groupedId])
   @@index([channelId, publishedAt])
   @@index([text(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("posts")
+}
+
+model PostImage {
+  postId      Int      @id @map("post_id")
+  contentType String   @map("content_type")
+  data        Bytes
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_images")
 }
 
 model PostSnapshot {

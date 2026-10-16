@@ -58,4 +58,18 @@ describe('GET /api/events', () => {
     expect(body.events[0].id).toBe(1);
     expect(body.events[0].mentions.map((mention: { postId: number }) => mention.postId)).toEqual([11, 12]);
   });
+
+  it('uses an image from a merged announcement and omits image bytes from the response', async () => {
+    const date = new Date('2026-10-17T00:00:00Z');
+    mocks.findEvents.mockResolvedValue([
+      { id: 1, title: 'Концерт', date, mentions: [{ ...announcementMention, postId: 11 }] },
+      { id: 2, title: 'Концерт', date, mentions: [{ ...announcementMention, id: 3, postId: 12,
+        post: { ...announcementMention.post, id: 12, image: { postId: 12 } } }] },
+    ]);
+
+    const body = await (await GET()).json();
+    expect(body.events).toHaveLength(1);
+    expect(body.events[0].imageUrl).toBe('/api/posts/12/image');
+    expect(JSON.stringify(body)).not.toContain('data');
+  });
 });

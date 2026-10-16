@@ -5,8 +5,10 @@ import bigInt from 'big-integer';
 import { collectChannelData } from '../collector';
 import { fetchChannelMessages, fetchFullChannel, resolveChannelEntity } from '../fetcher';
 import { getPreviousSnapshot, saveMentions, upsertPostWithReactions } from '../persister';
+import { savePostImage } from '../post-image';
 
 vi.mock('../persister');
+vi.mock('../post-image');
 vi.mock('../../lib/prisma', () => ({ prisma: {} }));
 vi.mock('../fetcher', async importOriginal => ({
   ...await importOriginal<typeof import('../fetcher')>(),
@@ -61,5 +63,17 @@ describe('article collection', () => {
     expect(upsertPostWithReactions).toHaveBeenNthCalledWith(1, expect.objectContaining({ text: null, isAd: undefined }));
     expect(upsertPostWithReactions).toHaveBeenNthCalledWith(2, expect.objectContaining({ text: 'Обычный пост' }));
     expect(saveMentions).toHaveBeenCalledTimes(1);
+  });
+
+  it('continues collecting posts when an image cannot be saved', async () => {
+    const client = new TelegramClient(new StringSession(''), 1, 'test', {});
+    vi.mocked(fetchChannelMessages).mockResolvedValue([message(12, 'Первый'), message(13, 'Второй')]);
+    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, id: 42, isAd: input.isAd ?? false }));
+    vi.mocked(savePostImage).mockRejectedValueOnce(new Error('Telegram image unavailable'));
+
+    const result = await collectChannelData(client, channel);
+
+    expect(result.postsAdded).toBe(2);
+    expect(savePostImage).toHaveBeenCalledTimes(2);
   });
 });

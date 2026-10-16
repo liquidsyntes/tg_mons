@@ -29,6 +29,7 @@ import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, 
 import { detectAd } from '../lib/adDetector';
 import { readMessageContent } from './message-content';
 import { extractPostMentions } from './post-mentions';
+import { savePostImage } from './post-image';
 import {
   sendTelegramAnomalyAlert,
   handleChannelError,
@@ -159,6 +160,12 @@ export async function collectChannelData(
 
       if (content.available) {
         await saveMentions(post.id, channel.id, extractPostMentions(msg, text, channel.username));
+      }
+
+      try {
+        await savePostImage(client, msg, post.id);
+      } catch {
+        logger.warn('Could not save Telegram post image', { channelId: channel.id, messageId: msg.id });
       }
 
       postsAdded++;

@@ -16,6 +16,12 @@ const event = {
 };
 
 describe('EventCard mention links', () => {
+  it('shows a saved announcement image', () => {
+    render(React.createElement(EventCard, { event: { ...event, imageUrl: '/api/posts/12/image' } }));
+    expect(screen.getByRole('img').getAttribute('src')).toBe('/api/posts/12/image');
+    expect(screen.queryByText('Изображение отсутствует')).toBeNull();
+  });
+
   it('offers a visible action to dismiss this event', () => {
     const onDismiss = vi.fn();
     render(React.createElement(EventCard, { event, onDismiss }));
