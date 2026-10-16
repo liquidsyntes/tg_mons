@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users } from 'lucide-react';
+import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -21,8 +21,11 @@ interface Props {
 export function ReportsListClient({ reports }: Props) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [deletedIds, setDeletedIds] = useState<number[]>([]);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isComparing, setIsComparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const visibleReports = reports.filter(report => !deletedIds.includes(report.id));
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => {
@@ -56,7 +59,26 @@ export function ReportsListClient({ reports }: Props) {
     }
   };
 
-  if (reports.length === 0) {
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Удалить отчет без возможности восстановления?')) return;
+    setDeletingId(id);
+    setError(null);
+    try {
+      const response = await fetch(`/api/reports/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(response.status === 404 ? 'Отчет уже удален' : 'Не удалось удалить отчет');
+      }
+      setDeletedIds(prev => [...prev, id]);
+      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось удалить отчет');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (visibleReports.length === 0) {
     return (
       <div className="bg-surface border border-border rounded-2xl p-10 text-center">
         <div className="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center mx-auto mb-4">
@@ -78,8 +100,8 @@ export function ReportsListClient({ reports }: Props) {
         </div>
       )}
 
-      <div className="grid gap-3">
-        {reports.map(report => {
+      <div className="grid gap-[6px]">
+        {visibleReports.map(report => {
           const isSelected = selectedIds.includes(report.id);
           const getReportMeta = (type: string) => {
             switch(type) {
@@ -135,6 +157,16 @@ export function ReportsListClient({ reports }: Props) {
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   </a>
+                  <button
+                    type="button"
+                    onClick={(event) => { event.stopPropagation(); void handleDelete(report.id); }}
+                    disabled={deletingId !== null || isComparing}
+                    className="w-8 h-8 rounded-full border border-slate-700 bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-rose-400 hover:border-rose-500/40 transition-colors disabled:opacity-50"
+                    title="Удалить отчет"
+                    aria-label={`Удалить отчет ${report.id}`}
+                  >
+                    {deletingId === report.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
                   <div className="w-8 h-8 rounded-full bg-slate-900 border border-border flex items-center justify-center text-slate-400 group-hover:text-accent group-hover:border-accent/30 transition-colors pointer-events-none">
                     <ChevronRight className="w-4 h-4" />
                   </div>
@@ -152,7 +184,7 @@ export function ReportsListClient({ reports }: Props) {
           </div>
           <button
             onClick={handleCompare}
-            disabled={selectedIds.length !== 2 || isComparing}
+            disabled={selectedIds.length !== 2 || isComparing || deletingId !== null}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-accent hover:bg-accent-hover text-slate-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isComparing ? (

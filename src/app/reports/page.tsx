@@ -26,10 +26,10 @@ export default async function ReportsPage() {
     <div className="min-h-screen flex flex-col bg-background text-slate-100">
       <Header />
       <main className="flex-1 site-shell w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-[6px]">
-        <div>
+        <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
             <FileText className="w-6 h-6 text-accent" />
-            Архив AI-Отчетов
+            Архив AI-отчетов
           </h1>
           <p className="text-sm text-slate-400">
             Все сгенерированные контент-анализы и сравнения. Выберите два отчета галочками, чтобы проанализировать динамику изменений.
