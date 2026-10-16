@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Calendar as CalendarIcon, Loader2, ScanSearch, Plus, Search, MapPin } from 'lucide-react';
-import { format, isSameMonth } from 'date-fns';
+import { Calendar as CalendarIcon, Loader2, ScanSearch, Search } from 'lucide-react';
+import { isSameMonth } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -86,26 +86,29 @@ export default function EventsPage() {
       <Header />
       <main className="flex-1 site-shell w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-            <CalendarIcon className="w-6 h-6 text-accent" />
-            Календарь событий
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Анонсы мероприятий, автоматически найденные в постах каналов.
-          </p>
+        <div className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+              <CalendarIcon className="w-6 h-6 shrink-0 text-accent" />
+              Календарь событий
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              Анонсы мероприятий, автоматически найденные в постах каналов.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center justify-between gap-4 border-t border-border pt-4 sm:justify-end sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+            <span className="text-sm font-semibold leading-tight text-slate-400 sm:max-w-[8rem] sm:text-right">
+              Событий обнаружено
+            </span>
+            <strong className="text-3xl font-black leading-none tabular-nums text-accent" aria-live="polite">
+              {loading ? '...' : selectedEvents.length}
+            </strong>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Col: Calendar */}
         <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4">
-          <div className="min-h-12 flex items-center border-b border-border/60 pb-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">
-              Выберите месяц
-            </h2>
-          </div>
-
           <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-sm">
             <div className="calendar-wrapper flex justify-center custom-calendar text-slate-200">
               <DayPicker
@@ -165,16 +168,7 @@ export default function EventsPage() {
         </div>
 
         {/* Right Col: Events List */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="min-h-12 flex items-center justify-between gap-3 border-b border-border/60 pb-3">
-            <h2 className="text-lg font-bold text-white">
-              Мероприятия на <span className="text-accent capitalize">{format(currentMonth, 'LLLL yyyy', { locale: ru })}</span>
-            </h2>
-            <div className="text-sm text-slate-400">
-              Найдено: <strong className="text-white">{selectedEvents.length}</strong>
-            </div>
-          </div>
-
+        <div className="lg:col-span-8">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-accent" />
