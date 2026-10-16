@@ -84,7 +84,7 @@ export default function EventsPage() {
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col">
       <Header />
-      <main className="flex-1 site-shell w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <main className="flex-1 site-shell w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-[2px] animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         <div className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="min-w-0">
@@ -97,16 +97,16 @@ export default function EventsPage() {
             </p>
           </div>
           <div className="flex shrink-0 items-center justify-between gap-4 border-t border-border pt-4 sm:justify-end sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
-            <span className="text-sm font-semibold leading-tight text-slate-400 sm:max-w-[8rem] sm:text-right">
-              Событий обнаружено
+            <span className="text-xs font-semibold leading-tight text-slate-400 sm:w-[90px] sm:text-right">
+              событий обнаружено
             </span>
-            <strong className="text-3xl font-black leading-none tabular-nums text-accent" aria-live="polite">
+            <strong className="text-3xl font-black leading-none tabular-nums text-[#3af89f]" aria-live="polite">
               {loading ? '...' : selectedEvents.length}
             </strong>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 gap-4 items-start lg:grid-cols-12 lg:gap-[2px]">
         {/* Left Col: Calendar */}
         <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4">
           <div className="bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-sm">
@@ -185,7 +185,7 @@ export default function EventsPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-[2px]">
               {selectedEvents.map(event => (
                 <EventCard
                   key={event.id}
