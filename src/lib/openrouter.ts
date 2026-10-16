@@ -1,13 +1,14 @@
 import { logger } from '@/lib/logger';
+import { getAiConfig } from '@/lib/ai-config';
 
 /**
  * Shared OpenRouter API client.
- * Used by all 6 AI route handlers to avoid duplicated fetch/timeout/error logic.
+ * Used by AI route handlers to avoid duplicated fetch/timeout/error logic.
  */
 
 interface CallOpenRouterOptions {
   systemPrompt?: string;
-  model?: string;        // default: 'z-ai/glm-5.3-flash'
+  model?: string;        // override saved/default model for this call
   temperature?: number; // default: 0.7
   timeoutMs?: number;   // default: 60000
 }
@@ -16,7 +17,7 @@ interface CallOpenRouterOptions {
  * Calls OpenRouter chat completions API and returns the raw content string.
  * Always requests JSON response format (response_format: { type: 'json_object' }).
  *
- * @throws Error if OPENROUTER_API_KEY is not set
+ * @throws Error if neither saved nor environment OpenRouter key is set
  * @throws Error with status + body if API returns non-OK
  * @throws Error with 'Таймаут соединения с API.' on timeout
  */
@@ -24,12 +25,13 @@ export async function callOpenRouter(
   prompt: string,
   options?: CallOpenRouterOptions
 ): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const config = await getAiConfig();
+  const apiKey = config.apiKey;
   if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY не задан в .env файле');
+    throw new Error('Ключ OpenRouter не настроен');
   }
 
-  const model = options?.model ?? 'z-ai/glm-5.3-flash';
+  const model = options?.model ?? config.model;
   const temperature = options?.temperature ?? 0.7;
   const timeoutMs = options?.timeoutMs ?? 60000;
 

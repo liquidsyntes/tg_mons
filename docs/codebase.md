@@ -86,7 +86,7 @@ Tailwind-токены находятся в `tailwind.config.js`, глобаль
 
 `src/lib/prisma.ts` переиспользует Prisma Client через globalThis в development. `src/lib/cache.ts` хранит процессные TTL-кэши (5/30 минут). Это не Redis и не материализованные SQL-view.
 
-`src/lib/openrouter.ts` использует env-ключ и модель из кода; `src/lib/ai-reports.ts` сохраняет восемь типов отчётов. `src/app/api/reports/[id]/route.ts` физически удаляет выбранный отчёт. `src/lib/events/jev.ts`, `digest.ts` и `matching.ts` отвечают за отбор анонсов и сопоставление событий. `/api/settings` пишет в SystemSetting, но текущий AI-клиент его не читает.
+`src/lib/openrouter.ts` использует сохранённые ключ и модель с резервом из окружения и модели по умолчанию; `src/lib/ai-reports.ts` сохраняет восемь типов отчётов. `src/app/api/reports/[id]/route.ts` физически удаляет выбранный отчёт. `src/lib/events/jev.ts`, `digest.ts` и `matching.ts` отвечают за отбор анонсов и сопоставление событий. `/api/settings` обновляет SystemSetting и сбрасывает короткий кэш AI-конфигурации.
 
 Модели, отношения и миграции: [prisma/schema.prisma](../prisma/schema.prisma), [архитектура](architecture.md). Команды и ограничения одноразовых утилит: [scripts/README.md](../scripts/README.md).
 

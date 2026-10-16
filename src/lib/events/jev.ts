@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { getAiConfig } from '@/lib/ai-config';
 
 const JEV_ENDPOINT = 'https://openrouter.ai/api/alpha/decisions';
 const BATCH_SIZE = 10;
@@ -125,7 +126,7 @@ async function evaluateBatch(posts: EventCandidate[], apiKey: string): Promise<M
 }
 
 export async function selectEventCandidatesWithJev<T extends EventCandidate>(posts: T[]): Promise<EventSelection<T>> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const { apiKey } = await getAiConfig();
   if (!apiKey) return { posts, mode: 'keyword_fallback' };
 
   try {

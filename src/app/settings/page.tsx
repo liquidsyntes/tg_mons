@@ -4,11 +4,24 @@ import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu } from 'lucide-react';
 import Link from 'next/link';
+import type { FormEvent } from 'react';
+
+interface AiSettingsView {
+  aiProvider: string;
+  aiModel: string;
+  hasToken: boolean;
+  tokenPreview: string | null;
+  tokenSource: 'saved' | 'environment' | null;
+}
 
 export default function SettingsPage() {
   const [provider, setProvider] = useState('openrouter');
-  const [model, setModel] = useState('meta-llama/llama-3.1-8b-instruct:free');
+  const [model, setModel] = useState('z-ai/glm-5.3-flash');
   const [token, setToken] = useState('');
+  const [tokenStatus, setTokenStatus] = useState<Pick<AiSettingsView, 'hasToken' | 'tokenPreview' | 'tokenSource'>>({
+    hasToken: false, tokenPreview: null, tokenSource: null,
+  });
+  const [clearToken, setClearToken] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,12 +30,16 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch('/api/settings')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Не удалось загрузить настройки');
+        return res.json();
+      })
       .then(data => {
         if (data.settings) {
-          setProvider(data.settings.aiProvider || 'openrouter');
-          setModel(data.settings.aiModel || 'meta-llama/llama-3.1-8b-instruct:free');
-          setToken(data.settings.aiToken || '');
+          const settings = data.settings as AiSettingsView;
+          setProvider(settings.aiProvider || 'openrouter');
+          setModel(settings.aiModel || 'z-ai/glm-5.3-flash');
+          setTokenStatus({ hasToken: settings.hasToken, tokenPreview: settings.tokenPreview, tokenSource: settings.tokenSource });
         }
         setLoading(false);
       })
@@ -33,7 +50,7 @@ export default function SettingsPage() {
       });
   }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
@@ -43,17 +60,26 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aiProvider: provider, aiModel: model, aiToken: token }),
+        body: JSON.stringify({
+          aiProvider: provider,
+          aiModel: model,
+          ...(clearToken ? { clearToken: true } : token.trim() ? { aiToken: token.trim() } : {}),
+        }),
       });
 
       if (!res.ok) {
         throw new Error('Ошибка сохранения настроек');
       }
 
+      const data = await res.json();
+      const settings = data.settings as AiSettingsView;
+      setTokenStatus({ hasToken: settings.hasToken, tokenPreview: settings.tokenPreview, tokenSource: settings.tokenSource });
+      setToken('');
+      setClearToken(false);
       setSuccess('Настройки успешно сохранены');
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Ошибка');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка');
     } finally {
       setSaving(false);
     }
@@ -129,13 +155,22 @@ export default function SettingsPage() {
                 <input
                   type="password"
                   value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  placeholder="sk-or-v1-..."
+                  onChange={(e) => { setToken(e.target.value); setClearToken(false); }}
+                  placeholder="Введите новый ключ"
+                  disabled={clearToken}
                   className="w-full bg-slate-900 border border-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/50 font-mono"
                 />
                 <p className="text-xs text-slate-500">
-                  Ключ сохраняется в локальной базе данных приложения.
+                  {clearToken ? 'Сохранённый ключ будет удалён после сохранения настроек.' : tokenStatus.hasToken
+                    ? `Ключ установлен (${tokenStatus.tokenPreview}). Источник: ${tokenStatus.tokenSource === 'saved' ? 'настройки' : 'окружение'}. Оставьте поле пустым, чтобы сохранить его.`
+                    : 'Ключ не установлен. Новый ключ будет сохранён в базе данных.'}
                 </p>
+                {tokenStatus.tokenSource === 'saved' && (
+                  <button type="button" onClick={() => { setClearToken(!clearToken); setToken(''); }}
+                    className="text-xs text-rose-400 hover:text-rose-300">
+                    {clearToken ? 'Отменить очистку ключа' : 'Удалить сохранённый ключ'}
+                  </button>
+                )}
               </div>
 
               {/* Model */}

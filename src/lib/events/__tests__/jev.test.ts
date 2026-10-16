@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '@/lib/logger';
 import { selectEventCandidatesWithJev } from '../jev';
 
+const aiConfig = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock('@/lib/ai-config', () => ({ getAiConfig: aiConfig.get }));
+
 const posts = [
   { id: 1, text: 'Концерт состоится завтра в 19:00.', publishedAt: new Date('2026-10-12T12:00:00Z') },
   { id: 2, text: 'Вспоминаем концерт прошлого года.', publishedAt: new Date('2026-10-12T12:00:00Z') },
@@ -36,6 +39,7 @@ describe('selectEventCandidatesWithJev', () => {
 
   beforeEach(() => {
     vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    aiConfig.get.mockImplementation(async () => ({ apiKey: process.env.OPENROUTER_API_KEY || null, model: 'unused' }));
   });
 
   afterEach(() => {
@@ -74,6 +78,17 @@ describe('selectEventCandidatesWithJev', () => {
     expect(body.questions.announcement_1.type).toBe('noul');
     expect(body.questions.date_1.instructions).toContain('posts[0]');
     expect(body.questions.registration_2.instructions).toContain('posts[1]');
+  });
+
+  it('uses the key supplied by shared AI settings', async () => {
+    delete process.env.OPENROUTER_API_KEY;
+    aiConfig.get.mockResolvedValue({ apiKey: 'saved-key', model: 'saved-model' });
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      answers: { ...answersFor(1, 0.9, 1), ...answersFor(2, 0.1, 0) },
+    }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await selectEventCandidatesWithJev(posts);
+    expect(fetchMock.mock.calls[0][1].headers).toEqual(expect.objectContaining({ Authorization: 'Bearer saved-key' }));
   });
 
   it('ranks likely announcements higher when supporting cues are present', async () => {
