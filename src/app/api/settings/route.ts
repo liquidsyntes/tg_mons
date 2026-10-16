@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { verifyBearerToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await verifyBearerToken(req);
+  if (!auth.authorized) return auth.response;
   try {
     let settings = await prisma.systemSetting.findUnique({
       where: { id: 'global' },
@@ -26,6 +29,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await verifyBearerToken(req);
+  if (!auth.authorized) return auth.response;
   try {
     const body = await req.json();
     const { aiProvider, aiModel, aiToken } = body;

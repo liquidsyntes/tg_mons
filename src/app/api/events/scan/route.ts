@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { selectEventCandidatesWithJev } from '@/lib/events/jev';
 import { isClearlyEventDigest } from '@/lib/events/digest';
@@ -8,7 +9,9 @@ import { isSameEvent } from '@/lib/events/matching';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const auth = await verifyBearerToken(request);
+  if (!auth.authorized) return auth.response;
   try {
     // 1. Fetch posts from the last 14 days
     const dateLimit = new Date(Date.now() - 14 * 24 * 3600 * 1000);

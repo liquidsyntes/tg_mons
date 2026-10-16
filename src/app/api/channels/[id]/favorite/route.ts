@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authCheck = verifyBearerToken(req);
+    const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
     const { id } = await params;
     const channelId = parseInt(id, 10);

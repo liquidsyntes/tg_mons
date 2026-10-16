@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
-    const authCheck = verifyBearerToken(req);
+    const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
     const { id } = await context.params;
     const channelId = parseInt(id, 10);
@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
-    const authCheck = verifyBearerToken(req);
+    const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
     const { id } = await context.params;
     const channelId = parseInt(id, 10);

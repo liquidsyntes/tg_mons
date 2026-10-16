@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const authCheck = verifyBearerToken(req);
+    const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
     const { reportId } = await req.json();
 

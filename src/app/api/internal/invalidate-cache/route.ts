@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyBearerToken } from '@/lib/auth';
+import { verifyServiceBearerToken } from '@/lib/auth';
 import { metricsCache, bestTimeCache } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const authResult = verifyBearerToken(req);
+  const authResult = await verifyServiceBearerToken(req);
   if (!authResult.authorized) {
     return authResult.response;
   }

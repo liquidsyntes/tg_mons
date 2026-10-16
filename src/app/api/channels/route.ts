@@ -22,7 +22,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const authCheck = verifyBearerToken(req);
+    const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
     const body = await req.json();
     const { input, isMine } = body;

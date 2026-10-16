@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest, NextResponse } from 'next/server';
 
 const mocks = vi.hoisted(() => ({
   findPosts: vi.fn(),
@@ -7,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   upsertMention: vi.fn(),
   selectCandidates: vi.fn(),
   callOpenRouter: vi.fn(),
+  verifyAuth: vi.fn(),
 }));
 
 vi.mock('@/lib/prisma', () => ({
@@ -18,9 +20,12 @@ vi.mock('@/lib/prisma', () => ({
 }));
 vi.mock('@/lib/events/jev', () => ({ selectEventCandidatesWithJev: mocks.selectCandidates }));
 vi.mock('@/lib/openrouter', () => ({ callOpenRouter: mocks.callOpenRouter }));
+vi.mock('@/lib/auth', () => ({ verifyBearerToken: mocks.verifyAuth }));
 vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
 
 import { POST } from '../route';
+
+const request = new NextRequest('http://localhost:4000/api/events/scan', { method: 'POST' });
 
 const posts = [
   { id: 1, text: 'Вечеринка состоится в субботу.', publishedAt: new Date('2026-10-12T12:00:00Z'), channel: { title: 'Первый' } },
@@ -30,6 +35,7 @@ const posts = [
 describe('POST /api/events/scan', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.verifyAuth.mockResolvedValue({ authorized: true });
     mocks.findPosts.mockResolvedValue(posts);
     mocks.findEvents.mockResolvedValue([]);
     mocks.createEvent.mockResolvedValue({ id: 10, title: 'Вечеринка', date: new Date('2026-10-17T00:00:00Z') });
@@ -40,8 +46,20 @@ describe('POST /api/events/scan', () => {
     }));
   });
 
+  it('rejects an unauthorized scan before reading posts or calling providers', async () => {
+    mocks.verifyAuth.mockResolvedValue({
+      authorized: false,
+      response: NextResponse.json({ error: 'Требуется вход' }, { status: 401 }),
+    });
+
+    expect((await POST(request)).status).toBe(401);
+    expect(mocks.findPosts).not.toHaveBeenCalled();
+    expect(mocks.selectCandidates).not.toHaveBeenCalled();
+    expect(mocks.callOpenRouter).not.toHaveBeenCalled();
+  });
+
   it('sends only Jev-selected posts to extraction and links only selected sources', async () => {
-    const response = await POST();
+    const response = await POST(request);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -64,7 +82,7 @@ describe('POST /api/events/scan', () => {
       dismissedAt: new Date('2026-10-13T00:00:00Z'),
     }]);
 
-    const response = await POST();
+    const response = await POST(request);
 
     expect(await response.json()).toMatchObject({ success: true, savedCount: 0 });
     expect(mocks.createEvent).not.toHaveBeenCalled();
@@ -83,7 +101,7 @@ describe('POST /api/events/scan', () => {
       events: [{ title: 'Останній origami до весни від Studio', date: '2026-10-17', timeStr: '17:00 - 20:00', organizer: 'Studio / Venue', sourcePostIds: [1] }],
     }));
 
-    const body = await (await POST()).json();
+    const body = await (await POST(request)).json();
 
     expect(body.savedCount).toBe(0);
     expect(mocks.createEvent).not.toHaveBeenCalled();
@@ -97,7 +115,7 @@ describe('POST /api/events/scan', () => {
       events: [{ title: 'Событие без источника', date: '2026-10-17', sourcePostIds: [999] }],
     }));
 
-    const response = await POST();
+    const response = await POST(request);
 
     expect(await response.json()).toMatchObject({ success: true, savedCount: 0 });
     expect(mocks.createEvent).not.toHaveBeenCalled();
@@ -107,7 +125,7 @@ describe('POST /api/events/scan', () => {
   it('skips extraction when Jev excludes every candidate', async () => {
     mocks.selectCandidates.mockResolvedValue({ posts: [], mode: 'jev' });
 
-    const response = await POST();
+    const response = await POST(request);
 
     expect(await response.json()).toEqual({ success: true, savedCount: 0, parsedEvents: [], selectionMode: 'jev' });
     expect(mocks.callOpenRouter).not.toHaveBeenCalled();
@@ -124,7 +142,7 @@ describe('POST /api/events/scan', () => {
     mocks.selectCandidates.mockResolvedValue({ posts: [exhibition], mode: 'jev' });
     mocks.callOpenRouter.mockResolvedValue('{"events":[]}');
 
-    const response = await POST();
+    const response = await POST(request);
 
     expect(response.status).toBe(200);
     expect(mocks.selectCandidates).toHaveBeenCalledWith([exhibition]);
@@ -141,7 +159,7 @@ describe('POST /api/events/scan', () => {
     mocks.findPosts.mockResolvedValue([...posts, digest]);
     mocks.callOpenRouter.mockResolvedValue('{"events":[]}');
 
-    await POST();
+    await POST(request);
 
     expect(mocks.selectCandidates).toHaveBeenCalledWith(posts);
     expect(mocks.callOpenRouter.mock.calls[0][0]).not.toContain('#дайджест');
@@ -158,7 +176,7 @@ describe('POST /api/events/scan', () => {
     mocks.selectCandidates.mockResolvedValue({ posts, mode: 'keyword_fallback' });
     mocks.callOpenRouter.mockResolvedValue('{"events":[]}');
 
-    await POST();
+    await POST(request);
 
     expect(mocks.selectCandidates).toHaveBeenCalledWith(posts);
     expect(mocks.callOpenRouter.mock.calls[0][0]).not.toContain('#дайджест');
@@ -175,7 +193,7 @@ describe('POST /api/events/scan', () => {
     mocks.selectCandidates.mockResolvedValue({ posts: [...posts, extraPost], mode: 'keyword_fallback' });
     mocks.callOpenRouter.mockResolvedValue('{"events":[]}');
 
-    const response = await POST();
+    const response = await POST(request);
 
     expect((await response.json()).selectionMode).toBe('keyword_fallback');
     const prompt = mocks.callOpenRouter.mock.calls[0][0] as string;
@@ -186,7 +204,7 @@ describe('POST /api/events/scan', () => {
   it('reports the absence of keyword candidates without calling providers', async () => {
     mocks.findPosts.mockResolvedValue([]);
 
-    const response = await POST();
+    const response = await POST(request);
 
     expect(await response.json()).toEqual({ success: true, savedCount: 0, parsedEvents: [], selectionMode: 'no_candidates' });
     expect(mocks.selectCandidates).not.toHaveBeenCalled();

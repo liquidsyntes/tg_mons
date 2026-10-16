@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Activity, Plus, RefreshCw, Radio, Check, AlertCircle, Settings } from 'lucide-react';
+import { Activity, Plus, RefreshCw, Radio, Check, AlertCircle, Settings, LogOut } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 import { AddChannelModal } from '@/components/AddChannelModal';
 
@@ -159,6 +159,12 @@ export function Header({
             <Settings className="w-4 h-4" />
             <span className="hidden sm:inline sm:ml-2 text-xs font-medium">Настройки</span>
           </Link>
+
+          <form action="/api/auth/logout" method="post">
+            <button type="submit" title="Выйти" aria-label="Выйти" className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-border transition-colors">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </form>
 
           {/* Кнопка принудительного обновления данных по каналам */}
           <button

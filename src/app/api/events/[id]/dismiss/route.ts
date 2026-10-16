@@ -8,7 +8,7 @@ interface RouteContext {
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
-  const auth = verifyBearerToken(request);
+  const auth = await verifyBearerToken(request);
   if (!auth.authorized) return auth.response;
 
   const { id } = await context.params;
