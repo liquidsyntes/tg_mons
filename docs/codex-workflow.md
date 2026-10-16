@@ -27,7 +27,9 @@ Work in the main checkout (`C:\TgMon` / `/mnt/c/TgMon`) as required by GEMINI.md
 4. Add or update tests close to the changed domain logic.
 5. Run targeted checks, then the repository scripts appropriate to the change.
 6. Inspect the diff for secrets, migrations, unintended files and behaviour gaps.
-7. Summarise the result and explicitly identify checks that were not run.
+7. Update affected local Docker services when code is built into their images; skip Docker for documentation-only changes.
+8. Commit only task files, push normally to the matching upstream and verify the remote commit.
+9. Summarise the result and explicitly identify checks that were not run.
 
 ## Practical check matrix
 
@@ -45,7 +47,8 @@ The current checks are `npx tsc --noEmit`, `npx eslint src`, `npm test`, and `np
 
 ## Guardrails
 
-- Commits, pushes, PRs, merges and Docker updates require an explicit user instruction. A successful verification is not deployment authorization.
+- Completed changes are committed and pushed to the current upstream after proportionate checks. Update only affected local Docker services when needed. The current task can explicitly limit these steps.
+- PRs, merges, force pushes, publication and production deployment require separate authorization. A local Docker update is not a production deployment.
 - Never copy real values from local environment files, logs or Telegram sessions into code, tests, issues or commits.
 - Do not delete data, reset databases, rewrite migration history or change deployment configuration unless the task explicitly calls for it and the impact is understood.
 - Preserve graceful degradation for Telegram statistics that require permissions or are unavailable for a channel.

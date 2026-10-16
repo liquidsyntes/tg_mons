@@ -29,6 +29,7 @@ Before changing an unfamiliar area, inspect the nearest related module and the r
 1. Start with a small plan: state the files to inspect, the intended change, and how it will be verified.
 2. Read the relevant schema, types, API route or page, and worker flow before editing. Do not infer data shapes from UI labels alone.
 3. Keep a task scoped. Do not mix feature work with unrelated refactors, formatting churn, dependency upgrades, or generated-file changes.
+   For analysis or planning requests, do not edit files, commit, push or update Docker.
 4. Prefer existing helpers and established patterns in `src/lib/`, `src/components/`, and `src/worker/` over introducing parallel abstractions.
 5. Make TypeScript types explicit at public module boundaries. Avoid `any`, unsafe casts, silent fallbacks and swallowed errors.
 6. Treat Telegram/API data as incomplete and unreliable: preserve existing retry, logging and error-isolation behaviour. Optional statistics must not stop the main collection cycle.
@@ -79,6 +80,8 @@ npm run build
 npx prisma generate
 ```
 
+Choose checks proportionate to the change. Documentation and simple layout edits do not require the full test suite when a source review, diff check and applicable build or smoke check provide enough evidence.
+
 For a worker, Prisma or Docker change, also validate the applicable local service workflow from `docs/deployment.md` and the compose files. If a command cannot be run, report the exact command, reason, and residual risk.
 
 Before finishing:
@@ -90,11 +93,13 @@ Before finishing:
 
 ## Git and delivery
 
-- Work on a descriptive feature or fix branch unless the user explicitly requests direct work on `main`.
+- Use the current branch in the main checkout unless the task requires an isolated branch or the user names one. Do not create a worktree.
 - Use concise conventional commit messages, for example `feat(metrics): add ad share` or `fix(worker): isolate stats failure`.
 - In the final report, give: what changed, files changed, verification performed and not performed, data or migration impact, and any follow-up risks.
-- Do not commit, push, open pull requests, modify issues, or run destructive migrations without explicit user approval.
+- After completed changes and proportionate checks, commit only task files and push normally to the matching upstream. This standing project instruction authorizes ordinary commits and pushes; never force push or merge without a separate request.
+- Keep the local Docker environment current when changed application code or configuration is built into an image. Update only affected services. Documentation-only changes do not need a Docker update.
+- Pull requests, destructive migrations, production deployment and publication still require separate authorization.
 
 ## Definition of done
 
-A task is complete when the requested behaviour is implemented with minimal scope, TypeScript and tests are updated as needed, relevant verification has run or is transparently reported as not run, Prisma changes have a reviewed migration, secrets are untouched, and documentation is current when users or operators need new information.
+A task is complete when the requested behaviour is implemented with minimal scope, TypeScript and tests are updated as needed, relevant verification has run or is transparently reported as not run, Prisma changes have a reviewed migration, secrets are untouched, documentation is current, affected local Docker services are updated when needed, and task changes are committed and pushed.

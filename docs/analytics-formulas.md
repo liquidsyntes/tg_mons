@@ -1,6 +1,6 @@
 # Метрики и формулы
 
-Сверено с исполняемым кодом 23 сентября 2026 года. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [materialize.ts](../src/lib/materialize.ts).
+Предметная сверка формул с исполняемым кодом выполнена 23 сентября 2026 года; исходные модули формул не менялись по истории Git до 16 октября 2026 года. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [materialize.ts](../src/lib/materialize.ts).
 
 Обозначения: $V$ — просмотры, $R$ — реакции, $C$ — комментарии, $F$ — пересылки, $S$ — аудитория, $E=R+C+F$. Пропущенные взаимодействия в формулах принимаются за 0, но отсутствующий знаменатель обычно даёт null. Процентные метрики хранятся как проценты (например, 2.5 означает 2.5%).
 

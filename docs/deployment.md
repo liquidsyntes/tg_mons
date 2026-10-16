@@ -1,6 +1,6 @@
 # Запуск и эксплуатация
 
-Сверено 23 сентября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже — инструкции для оператора, а не подтверждение выполненного деплоя.
+Сверено 16 октября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже описывают действия оператора и не подтверждают выполненный деплой.
 
 ## Требования и подготовка
 
@@ -109,7 +109,7 @@ Web-интерфейс доступен по адресу [http://localhost:4000
 
 ## Режим 3: Production-развёртывание (полный Compose)
 
-В production контейнеры компилируются в оптимизированные standalone-образы без монтирования локального исходного кода и без Hot Reload (`Dockerfile.web` выполняет `npm run build`, а запуск происходит через `npm start`).
+В полном Compose web и worker запускаются из production-образов без монтирования исходного кода и без Hot Reload. `Dockerfile.web` выполняет `npm run build`, затем запускает `npm start`; отдельный Next.js standalone output не настроен.
 
 1. Убедитесь, что MTProto-сессия получена (`TG_SESSION` в `.env`).
 2. В `.env` задайте **`WEB_INTERNAL_URL=http://web:4000`**: значение `localhost` из примера перекроет default YAML и направит worker к самому себе.
@@ -159,7 +159,7 @@ docker compose up -d --no-deps --force-recreate web
 - `npm run seed` удаляет посты, снимки и каналы, затем создаёт демонстрационные данные. Только отдельная тестовая база.
 - Для Windows EPERM при генерации проверьте Node-процессы именно этого проекта, которые могут удерживать Prisma engine; остановите нужные процессы перед повтором.
 
-Текущая последовательность миграций включает fraud_signals, post_view_snapshots, nullable country_breakdown и `20261013212052_add_event_dismissed_at`. Последняя миграция добавляет nullable-колонку `events.dismissed_at`, не удаляя события или связи с постами. Перед обновлением web примените миграции через `npm run prisma:migrate` или указанную ниже команду Compose.
+Последняя миграция `20261016000000_add_post_images` создаёт `post_images`; предыдущая `20261013212052_add_event_dismissed_at` добавляет nullable-колонку `events.dismissed_at`. Обе операции сохраняют существующие события и посты. Перед запуском новых образов примените миграции через `npm run prisma:migrate` или команду Compose выше.
 
 ## Обновление существующего окружения
 
@@ -230,9 +230,9 @@ docker compose exec worker npx tsx scripts/backfill-articles.ts --channel-id=N -
 
 Для генерации задайте OPENROUTER_API_KEY web-процессу. `callOpenRouter` использует модель `z-ai/glm-5.3-flash`, JSON response format и timeout 60 секунд; scanner использует 120 секунд. Перед извлечением событий Jev вызывается через OpenRouter Decisions API с тем же ключом и моделью `~typesafe/jev-latest`: до 2000 постов за запуск, до 10 постов за запрос, не более четырёх одновременных запросов, таймаут каждого 15 секунд, повтор при 429/529. При недоступности Jev сканер использует прежний отбор по ключевым словам и сообщает об этом в интерфейсе. Посты отправляются внешнему провайдеру при ручном сканировании. Фактическая доступность моделей зависит от провайдера. Сохранение aiProvider/aiModel/aiToken через `/settings` пока не меняет работу клиентов.
 
-### Обновление и проверка Jev в «Афише»
+### Обновление «Афиши»
 
-Изменения Jev находятся в web, новых миграций и настроек окружения нет. Для работающего production Compose пересоберите только web и пересоздайте его контейнер:
+При изменении только страницы «Афиши» или отбора через Jev достаточно пересобрать web и пересоздать только его контейнер:
 
 ```bash
 docker compose build web
@@ -243,6 +243,8 @@ curl -i http://localhost:4000/api/health
 ```
 
 В Windows PowerShell вместо `curl -i` используйте `curl.exe -i`. Если команда `docker` недоступна в WSL, выполните шаги Compose из PowerShell в `C:\TgMon`.
+
+Загрузка изображений постов находится в общем сборщике, который используют web и worker. При изменении этого кода обновите оба образа. Для новой установки до запуска сервисов примените миграцию `20261016000000_add_post_images`; ранее собранные сообщения получат изображение только при повторном проходе сборщика по ним. `GET /api/posts/:id/image` читает сохранённые байты из БД.
 
 Затем откройте `/events` и проверьте загрузку страницы. Кнопка «Сканировать события» запускает `POST /api/events/scan`, вызывает внешние модели и может создать `Event` и `EventMention` в БД; не используйте её как проверку доступности web. Ответ сканера содержит `selectionMode`: `jev` при отборе моделью, `keyword_fallback` при возврате к фильтру по словам и `no_candidates`, когда нет непустых постов. Интерфейс отдельно сообщает о fallback.
 

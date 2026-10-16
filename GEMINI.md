@@ -7,7 +7,7 @@
 - **Exceptions**: Fully rounded elements like avatars or status dots should continue to use `rounded-full` (which remains 9999px). Do not change these to 3px.
 
 ## Prisma / Database
-- **IMPORTANT**: On Windows, when running `npx prisma generate` after changing `schema.prisma`, you MUST first stop any running `node` processes that could be locking the Prisma engine (such as the Next.js dev server or background workers). If you do not stop them, `prisma generate` will fail with an EPERM file-locking error and typings will silently degrade to `any`.
+- **IMPORTANT**: On Windows, a Next.js dev server or worker from this checkout can lock Prisma Query Engine and cause `prisma generate` to fail with `EPERM`. Identify the locking process before stopping only that process; do not stop unrelated Node.js applications.
 - You can kill these processes safely by finding `node` processes associated with this workspace (`Get-Process node | ...`) and running `Stop-Process`.
 
 ## Workspace Location (Расположение проекта)
@@ -17,7 +17,7 @@
 - **Dev Environment**: The `docker-compose.yml` and `Dockerfile.web` are configured for a **production** build. For local development with Hot Reload, you MUST run the `web` container inside Docker. Use the provided override file by running `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`. This will mount the source code as a volume and run `npm run dev` so changes are instantly reflected in the container. Do NOT run `npm run dev` locally on the host machine.
 
 ## Documentation Generation
-- **ALWAYS** use the following specialized skills whenever creating, updating, or improving any form of documentation, diagrams, or architectural records:
+- Use the following specialized skills when they are available and relevant to documentation, diagrams, or architectural records:
   - `mermaid-expert` (for diagrams and charts)
   - `docs-architect` (for holistic codebase documentation)
   - `api-documenter` (for API specs and OpenAPI)
@@ -25,4 +25,4 @@
   - `c4-architecture-c4-architecture` (for C4 models)
   - `reference-builder` (for exhaustive references)
   - `code-documentation-code-explain` (for complex code explanations and tutorials)
-- Before generating documentation, explicitly consider which of these skills apply to the task and activate them to ensure output meets best practices.
+- If a listed skill is unavailable, verify documentation against the current code, links, encoding and diff directly. An unavailable optional skill does not block a documentation task.

@@ -1,6 +1,6 @@
 # Карта кодовой базы
 
-Сверено 23 сентября 2026 года. TgMon — один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
+Сверено 16 октября 2026 года. TgMon представляет собой один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
 
 ## Структура
 
@@ -21,8 +21,8 @@ docs/                   продуктовая и техническая док�
 | --- | --- |
 | Главная и сравнение | `src/app/page.tsx`, `src/app/compare/page.tsx`, `ChannelsTable.tsx`, `channel/useChannelsData.ts` |
 | Детальная страница | `src/app/channel/[id]/page.tsx`, `channel/ChannelDetailClient.tsx` |
-| История отчётов | `src/app/reports/page.tsx`, `src/app/reports/[id]/page.tsx`, `ReportsListClient.tsx` |
-| События и настройки | `src/app/events/page.tsx`, `src/app/settings/page.tsx` |
+| История отчётов | `src/app/reports/page.tsx`, `src/app/reports/[id]/page.tsx`, `ReportsListClient.tsx`, `src/app/api/reports/[id]/route.ts` для физического удаления |
+| События и настройки | `src/app/events/page.tsx`, `src/app/api/events/`, `src/lib/events/`, `src/app/settings/page.tsx` |
 | API и доступ | `src/app/api/`, `src/middleware.ts`, `src/lib/auth.ts`; [контракты](api-reference.md) |
 | Планировщик | `src/worker/index.ts`; три независимых cron-задания |
 | Авторизация MTProto | `src/worker/auth.ts`, `src/worker/client.ts` |
@@ -57,6 +57,7 @@ docs/                   продуктовая и техническая док�
 - `collector.ts` добавляет каналы, собирает/обновляет посты, запускает материализацию и антифрод, завершает SyncJob и сбрасывает кэш.
 - `message-content.ts` извлекает текст статьи и догружает `richMessage.part`; при неудаче возвращает признак недоступного содержания без частичного текста.
 - `post-mentions.ts` извлекает источники пересылок и упоминания из текста; общий модуль сборщика и восстановления статей.
+- `post-image.ts` скачивает одно ограниченное по размеру изображение поста, если его ещё нет в `PostImage`; сбой изолирован от основного сбора.
 - `persister.ts` отвечает за Prisma-записи, объединение альбомов, снимки просмотров и сигналы.
 - `retry-policy.ts` записывает ошибки, отключает канал после порога и отправляет Bot API-уведомления.
 - `demographics.ts` собирает языковой граф с проверкой прав и statsDc. `src/lib/demographics.ts` валидирует граф и API-формат.
@@ -77,6 +78,7 @@ Worker рассчитывает дневные метрики. Ручной сб
 - `BestTimeWidget` — VR слотов уже в процентах; `TrendSpotterWidget` — сохранённый AI-радар, свёрнутый по умолчанию.
 - `channel/ContentLTVChart`, `channel/ChannelAdReachWidget`, `AdReachChart` — разные источники просмотров: PostSnapshot и PostViewSnapshot соответственно.
 - `channel/AIReportsSection`, компоненты `AI*Report`, `GenerateActionPlanButton` — генерация и отображение AI. `ExportPdfButton`, `channel/ExportWrappedButton` — клиентские экспорты.
+- `ReportsListClient` показывает архив с HTML-скачиванием и удалением после подтверждения; `events/EventCard` использует ссылку на сохранённое изображение поста или заглушку.
 
 Tailwind-токены находятся в `tailwind.config.js`, глобальные стили — в `src/app/globals.css`. Размеры rounded sm…3xl равны 3 px, `rounded-full` сохранён для кругов. Отдельной зависимости shadcn/ui нет.
 
@@ -84,13 +86,13 @@ Tailwind-токены находятся в `tailwind.config.js`, глобаль
 
 `src/lib/prisma.ts` переиспользует Prisma Client через globalThis в development. `src/lib/cache.ts` хранит процессные TTL-кэши (5/30 минут). Это не Redis и не материализованные SQL-view.
 
-`src/lib/openrouter.ts` — общий HTTP-клиент с env-ключом и моделью из кода; `src/lib/ai-reports.ts` сохраняет восемь типов отчётов. `/api/settings` пишет в SystemSetting, но текущий клиент его не читает.
+`src/lib/openrouter.ts` использует env-ключ и модель из кода; `src/lib/ai-reports.ts` сохраняет восемь типов отчётов. `src/app/api/reports/[id]/route.ts` физически удаляет выбранный отчёт. `src/lib/events/jev.ts`, `digest.ts` и `matching.ts` отвечают за отбор анонсов и сопоставление событий. `/api/settings` пишет в SystemSetting, но текущий AI-клиент его не читает.
 
 Модели, отношения и миграции: [prisma/schema.prisma](../prisma/schema.prisma), [архитектура](architecture.md). Команды и ограничения одноразовых утилит: [scripts/README.md](../scripts/README.md).
 
 ## Проверки и вспомогательные материалы
 
-Проверки статей: `src/worker/__tests__/message-content.test.ts` (текстовые блоки, догрузка, неполные и повреждённые данные), `article-collection.test.ts` (передача текста в сохранение, реклама/упоминания и продолжение сбора после ошибки).
+Проверки статей: `src/worker/__tests__/message-content.test.ts` (текстовые блоки, догрузка, неполные и повреждённые данные), `article-collection.test.ts` (передача текста в сохранение, реклама/упоминания и продолжение сбора после ошибки). Изображения постов проверяет `post-image.test.ts`, удаление отчётов: `src/app/api/reports/[id]/__tests__/route.test.ts` и `src/components/__tests__/ReportsListClient.test.ts`.
 
 Vitest ищет `src/**/*.test.ts`, default environment — Node; часть UI-тестов использует jsdom. Тесты расположены рядом с lib, metrics, worker, компонентами и API. CI-команды и docs-only проверки — в [codex-workflow.md](codex-workflow.md).
 
