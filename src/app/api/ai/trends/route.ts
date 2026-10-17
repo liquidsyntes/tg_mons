@@ -1,9 +1,8 @@
-import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
-import { saveAiReport } from '@/lib/ai-reports';
+import { handleAiRouteError, saveAiReport } from '@/lib/ai-reports';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +78,7 @@ ${contentToAnalyze.substring(0, 30000)}
 ЯЗЫК ОТВЕТА (ОБЯЗАТЕЛЬНО)
 - Весь отчёт формируй СТРОГО на русском языке, независимо от языка исходных постов и контента канала.
 - Приводимые цитаты из постов оставляй на языке оригинала (как написаны в постах).
-- Все заголовки, описания, выводы, рекомендации, метки — только на русском.
+- Все заголовки, описания, выводы, рекомендации, метки - только на русском.
 
 ФОРМАТ ОТВЕТА (JSON)
 Ответь СТРОГО в формате валидного JSON объекта по следующей схеме (БЕЗ использования markdown-блоков, просто чистый JSON):
@@ -104,11 +103,7 @@ ${contentToAnalyze.substring(0, 30000)}
     } catch {
       return NextResponse.json({ error: 'ИИ вернул невалидный JSON' }, { status: 500 });
     }
-  } catch (error: any) {
-    logger.error('AI Error', undefined, error);
-    if (error.name === 'AbortError') {
-      return NextResponse.json({ error: 'Таймаут соединения с API.' }, { status: 504 });
-    }
-    return NextResponse.json({ error: error.message || 'Внутренняя ошибка сервера' }, { status: 500 });
+  } catch (error: unknown) {
+    return handleAiRouteError(error);
   }
 }

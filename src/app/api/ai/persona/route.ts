@@ -1,9 +1,8 @@
-import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
-import { saveAiReport } from '@/lib/ai-reports';
+import { handleAiRouteError, saveAiReport } from '@/lib/ai-reports';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +66,7 @@ ${postsText}
     "narcissismLevel": {
       "score": "Числовой балл от 1 до 100",
       "status": "Подпись строго по шкале из инструкции выше, соответствующая баллу",
-      "reasoning": "Краткое обоснование (2-3 предложения) — на основании каких признаков в постах поставлена такая оценка"
+      "reasoning": "Краткое обоснование (2-3 предложения) - на основании каких признаков в постах поставлена такая оценка"
     }
   },
   "psychologicalTraits": {
@@ -82,7 +81,7 @@ ${postsText}
   },
   "moneyAndSuccessAttitude": {
     "relationToMoney": "Как автор относится к деньгам (демонстративность, тревожность, пренебрежение, расчётливость и т.д.)",
-    "relationToSuccess": "Как определяет и демонстрирует успех — через статус, признание, свободу, власть и т.д.",
+    "relationToSuccess": "Как определяет и демонстрирует успех - через статус, признание, свободу, власть и т.д.",
     "flexingLevel": "Оценка уровня демонстративного потребления/флекса (от 1 до 10) с кратким пояснением"
   },
   "communicationStyle": {
@@ -90,18 +89,15 @@ ${postsText}
     "manipulation": "Использует ли манипуляции, чувство вины, поощрения? Как именно?",
     "boundaries": "Как выстраивает личные границы с читателями?"
   },
-  "summary": "Краткое резюме (3-4 предложения) — общая психологическая оценка личности, стоящей за каналом."
+  "summary": "Краткое резюме (3-4 предложения) - общая психологическая оценка личности, стоящей за каналом."
 }
 `;
 
     const result = await callOpenRouter(prompt);
     await saveAiReport(Number(channelId), 'persona', result);
     return NextResponse.json({ persona: result });
-  } catch (error: any) {
-    logger.error('AI Error', undefined, error);
-    if (error.name === 'AbortError') {
-      return NextResponse.json({ error: 'Таймаут соединения с API.' }, { status: 504 });
-    }
-    return NextResponse.json({ error: error.message || 'Внутренняя ошибка сервера' }, { status: 500 });
+  } catch (error: unknown) {
+    return handleAiRouteError(error);
   }
 }
+

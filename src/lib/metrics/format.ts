@@ -1,3 +1,9 @@
+export type StatsPeriod = '24h' | '7d' | '30d';
+
+export function parseStatsPeriod(periodParam: string | null): StatsPeriod {
+  return periodParam === '24h' || periodParam === '30d' ? periodParam : '7d';
+}
+
 export function formatPercent(value: number | null | undefined): number | null {
   if (value === null || value === undefined) return null;
   return Number(value.toFixed(2));
@@ -12,3 +18,4 @@ export function formatDelta(
   const percent = formatPercent((abs / baseline) * 100) || 0;
   return { abs, percent };
 }
+

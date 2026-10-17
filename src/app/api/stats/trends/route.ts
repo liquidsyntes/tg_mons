@@ -13,7 +13,7 @@ export async function GET() {
       return NextResponse.json(null);
     }
 
-    let parsedContent;
+    let parsedContent: unknown;
     try {
       parsedContent = JSON.parse(latestTrendReport.content);
     } catch (e) {
@@ -25,7 +25,7 @@ export async function GET() {
       createdAt: latestTrendReport.createdAt,
       data: parsedContent
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Failed to fetch trends:', undefined, error);
     return NextResponse.json({ error: 'Failed to fetch trends' }, { status: 500 });
   }

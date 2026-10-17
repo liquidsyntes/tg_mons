@@ -1,15 +1,13 @@
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
-import { getChannelDetailStats } from '@/lib/metrics';
+import { getChannelDetailStats, parseStatsPeriod } from '@/lib/metrics';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const aId = parseInt(searchParams.get('a') || '', 10);
     const bId = parseInt(searchParams.get('b') || '', 10);
-    const periodParam = searchParams.get('period');
-    const period: '24h' | '7d' | '30d' =
-      periodParam === '24h' || periodParam === '30d' ? periodParam : '7d';
+    const period = parseStatsPeriod(searchParams.get('period'));
 
     if (isNaN(aId) || isNaN(bId)) {
       return NextResponse.json({ error: 'Необходимо указать параметры a и b (ID каналов)' }, { status: 400 });
@@ -25,8 +23,9 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ a: statsA, b: statsB, period });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('GET /api/stats/compare error:', undefined, error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    const message = error instanceof Error && error.message ? error.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

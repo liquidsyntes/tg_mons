@@ -1,9 +1,8 @@
-import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
-import { saveAiReport } from '@/lib/ai-reports';
+import { handleAiRouteError, saveAiReport } from '@/lib/ai-reports';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,12 +42,12 @@ export async function POST(req: NextRequest) {
 Тексты последних постов:
 ${postsText}
 
-Твоя задача — выяснить, ДЛЯ КОГО пишется этот контент, какие у этих людей боли, интересы, уровень дохода и возраст.
+Твоя задача - выяснить, ДЛЯ КОГО пишется этот контент, какие у этих людей боли, интересы, уровень дохода и возраст.
 
 ЯЗЫК ОТВЕТА (ОБЯЗАТЕЛЬНО)
 - Весь отчёт формируй СТРОГО на русском языке, независимо от языка исходных постов и контента канала.
 - Приводимые цитаты из постов оставляй на языке оригинала (как написаны в постах).
-- Все заголовки, описания, выводы, рекомендации, метки — только на русском.
+- Все заголовки, описания, выводы, рекомендации, метки - только на русском.
 
 Ответь строго в формате JSON, используя следующую структуру:
 {
@@ -67,18 +66,14 @@ ${postsText}
     "contentConsumption": "Как они потребляют контент (на бегу, вдумчиво читают лонгриды, ищут мемы и т.д.)",
     "engagementReason": "Почему они подписаны на этот канал? Что он им дает?"
   },
-  "summary": "Краткое резюме (1-2 предложения) — кто этот типичный подписчик."
+  "summary": "Краткое резюме (1-2 предложения) - кто этот типичный подписчик."
 }
 `;
 
     const result = await callOpenRouter(prompt);
     await saveAiReport(Number(channelId), 'audience', result);
     return NextResponse.json({ audience: result });
-  } catch (error: any) {
-    logger.error('AI Error', undefined, error);
-    if (error.name === 'AbortError') {
-      return NextResponse.json({ error: 'Таймаут соединения с API.' }, { status: 504 });
-    }
-    return NextResponse.json({ error: error.message || 'Внутренняя ошибка сервера' }, { status: 500 });
+  } catch (error: unknown) {
+    return handleAiRouteError(error);
   }
 }

@@ -15,8 +15,9 @@ export async function GET() {
     const stats = await getDashboardStats();
     metricsCache.set('dashboard', stats);
     return NextResponse.json(stats);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('GET /api/stats/dashboard error:', undefined, error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    const message = error instanceof Error && error.message ? error.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

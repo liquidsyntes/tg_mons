@@ -1,6 +1,6 @@
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
-import { getChannelDetailStats } from '@/lib/metrics';
+import { getChannelDetailStats, parseStatsPeriod } from '@/lib/metrics';
 import { metricsCache } from '@/lib/cache';
 
 interface RouteContext {
@@ -18,9 +18,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
 
     const { searchParams } = new URL(req.url);
-    const periodParam = searchParams.get('period');
-    const period: '24h' | '7d' | '30d' =
-      periodParam === '24h' || periodParam === '30d' ? periodParam : '7d';
+    const period = parseStatsPeriod(searchParams.get('period'));
 
     const cacheKey = `channel:${channelId}:${period}`;
     const cached = metricsCache.get(cacheKey);
@@ -35,8 +33,9 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     metricsCache.set(cacheKey, detailStats);
     return NextResponse.json(detailStats);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('GET /api/stats/channel/[id] error:', undefined, error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    const message = error instanceof Error && error.message ? error.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
