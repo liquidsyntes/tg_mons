@@ -31,13 +31,18 @@ export function calculateDeltaFromData(
   return { abs, percent, coverageDays };
 }
 
+export interface DailyMetricDeltaInput {
+  date: Date | string;
+  followers: number | null;
+}
+
 export function calculateDelta(
-  dailyMetrics: any[],
+  dailyMetrics: ReadonlyArray<DailyMetricDeltaInput>,
   dateLimit: Date,
   currentMembers: number | null,
   now: Date = new Date()
 ): { abs: number | null; percent: number | null; coverageDays: number | null } {
-  let baseline = null;
+  let baseline: DailyMetricDeltaInput | null = null;
   for (const m of dailyMetrics) {
     if (new Date(m.date).getTime() <= dateLimit.getTime()) {
       baseline = m;
@@ -48,7 +53,9 @@ export function calculateDelta(
     baseline = dailyMetrics[dailyMetrics.length - 1];
   }
   
-  if (currentMembers === null || !baseline || baseline.followers === 0) return { abs: null, percent: null, coverageDays: null };
+  if (currentMembers === null || !baseline || baseline.followers === null || baseline.followers === 0) {
+    return { abs: null, percent: null, coverageDays: null };
+  }
   const abs = currentMembers - baseline.followers;
   const percent = Number(((abs / baseline.followers) * 100).toFixed(2));
   const coverageDays = Math.round((now.getTime() - new Date(baseline.date).getTime()) / (1000 * 3600 * 24));

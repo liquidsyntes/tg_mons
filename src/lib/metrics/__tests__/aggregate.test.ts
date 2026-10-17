@@ -97,7 +97,7 @@ describe('aggregate metrics', () => {
       ];
 
       const resFallback = calculateChannelMetricsFromData(
-        { ...baseChannel, niche: 'test', tgId: null, createdAt: new Date(baseChannel.createdAt), lastCollectedAt: new Date(baseChannel.lastCollectedAt) } as any,
+        { ...baseChannel, niche: 'test', tgId: null, createdAt: new Date(baseChannel.createdAt), lastCollectedAt: new Date(baseChannel.lastCollectedAt) },
         snapshots,
         posts,
         testNow
@@ -128,7 +128,7 @@ describe('aggregate metrics', () => {
       ];
 
       const resFallback = calculateChannelMetricsFromData(
-        { ...baseChannel, niche: 'test', tgId: null, createdAt: new Date(baseChannel.createdAt), lastCollectedAt: new Date(baseChannel.lastCollectedAt) } as any,
+        { ...baseChannel, niche: 'test', tgId: null, createdAt: new Date(baseChannel.createdAt), lastCollectedAt: new Date(baseChannel.lastCollectedAt) },
         snapshots,
         posts,
         testNow

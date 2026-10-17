@@ -180,7 +180,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
     orderBy: { detectedAt: 'desc' },
   });
 
-  const fraudSignalsByChannel = new Map<number, any[]>();
+  const fraudSignalsByChannel = new Map<number, typeof recentFraudSignals>();
   for (const sig of recentFraudSignals) {
     if (!fraudSignalsByChannel.has(sig.channelId)) fraudSignalsByChannel.set(sig.channelId, []);
     fraudSignalsByChannel.get(sig.channelId)!.push(sig);
@@ -194,7 +194,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
     const audit = runFraudAudit({
       id: metrics.id,
       posts: chPosts,
-      metrics: chDaily.map((m: any) => ({ date: m.date, followers: m.followers })),
+      metrics: chDaily.map((m) => ({ date: m.date, followers: m.followers })),
       currentMembers: metrics.currentMembers,
       fraudSignals: chFraudSignals,
     });
@@ -313,6 +313,65 @@ export async function getVrHistory(channelId: number, days: number = 30) {
   return history;
 }
 
+function buildPostsDistribution(
+  posts: ReadonlyArray<{ publishedAt: Date; views: number | null }>,
+  period: '24h' | '7d' | '30d',
+  now: Date,
+  timeZone: string
+): Array<{ date: string; postsCount: number; viewsAvg: number | null }> {
+  const postsByDateMap = new Map<string, { count: number; totalViews: number; viewPosts: number }>();
+  const currentLocalDate = new Date(`${getZonedDateParts(now, timeZone).dateKey}T00:00:00.000Z`);
+
+  const dayCount = period === '24h' ? 24 : period === '7d' ? 7 : 30;
+  for (let i = dayCount; i >= 0; i--) {
+    const d = new Date((period === '24h' ? now : currentLocalDate).getTime() - i * (period === '24h' ? MS_HOUR : MS_24H));
+    const key = period === '24h'
+      ? `${getZonedDateParts(d, timeZone).hour.toString().padStart(2, '0')}:00`
+      : d.toISOString().slice(0, 10);
+    postsByDateMap.set(key, { count: 0, totalViews: 0, viewPosts: 0 });
+  }
+
+  for (const p of posts) {
+    const local = getZonedDateParts(p.publishedAt, timeZone);
+    const key = period === '24h'
+      ? `${local.hour.toString().padStart(2, '0')}:00`
+      : local.dateKey;
+
+    const curr = postsByDateMap.get(key) || { count: 0, totalViews: 0, viewPosts: 0 };
+    curr.count += 1;
+    if (p.views !== null && p.views !== undefined) {
+      curr.totalViews += p.views;
+      curr.viewPosts += 1;
+    }
+    postsByDateMap.set(key, curr);
+  }
+
+  return Array.from(postsByDateMap.entries()).map(([date, data]) => ({
+    date,
+    postsCount: data.count,
+    viewsAvg: data.viewPosts > 0 ? Math.round(data.totalViews / data.viewPosts) : null,
+  }));
+}
+
+function buildHeatmapData(
+  posts: ReadonlyArray<{ publishedAt: Date }>,
+  timeZone: string
+): Array<{ day: number; hour: number; count: number }> {
+  const heatmapGrid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+  for (const p of posts) {
+    const { dayOfWeek: day, hour } = getZonedDateParts(p.publishedAt, timeZone);
+    heatmapGrid[day][hour] += 1;
+  }
+
+  const heatmapData: Array<{ day: number; hour: number; count: number }> = [];
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      heatmapData.push({ day, hour, count: heatmapGrid[day][hour] });
+    }
+  }
+  return heatmapData;
+}
+
 let overviewForDetailPromise: Promise<OverviewStats> | null = null;
 
 async function getOverviewForDetail(): Promise<OverviewStats> {
@@ -415,65 +474,10 @@ export async function getChannelDetailStats(
       })
     : [];
 
-  const postsByDateMap = new Map<string, { count: number; totalViews: number; viewPosts: number }>();
   const timeZone = getAppTimezone();
-  const currentLocalDate = new Date(`${getZonedDateParts(now, timeZone).dateKey}T00:00:00.000Z`);
-
-  const dayCount = period === '24h' ? 24 : period === '7d' ? 7 : 30;
-  for (let i = dayCount; i >= 0; i--) {
-    const d = new Date((period === '24h' ? now : currentLocalDate).getTime() - i * (period === '24h' ? MS_HOUR : MS_24H));
-    const key = period === '24h'
-      ? `${getZonedDateParts(d, timeZone).hour.toString().padStart(2, '0')}:00`
-      : d.toISOString().slice(0, 10);
-    postsByDateMap.set(key, { count: 0, totalViews: 0, viewPosts: 0 });
-  }
-
-  for (const p of posts) {
-    const local = getZonedDateParts(p.publishedAt, timeZone);
-    const key = period === '24h'
-      ? `${local.hour.toString().padStart(2, '0')}:00`
-      : local.dateKey;
-
-    const curr = postsByDateMap.get(key) || { count: 0, totalViews: 0, viewPosts: 0 };
-    curr.count += 1;
-    if (p.views !== null && p.views !== undefined) {
-      curr.totalViews += p.views;
-      curr.viewPosts += 1;
-    }
-    postsByDateMap.set(key, curr);
-  }
-
-  const postsDistribution = Array.from(postsByDateMap.entries()).map(([date, data]) => ({
-    date,
-    postsCount: data.count,
-    viewsAvg: data.viewPosts > 0 ? Math.round(data.totalViews / data.viewPosts) : null,
-  }));
-
-  const heatmapGrid = Array.from({ length: 7 }, () => Array(24).fill(0));
-  for (const p of posts) {
-    const { dayOfWeek: day, hour } = getZonedDateParts(p.publishedAt, timeZone);
-    heatmapGrid[day][hour] += 1;
-  }
-  
-  const heatmapData = [];
-  for (let day = 0; day < 7; day++) {
-    for (let hour = 0; hour < 24; hour++) {
-      heatmapData.push({ day, hour, count: heatmapGrid[day][hour] });
-    }
-  }
-
-  const myHeatmapGrid = Array.from({ length: 7 }, () => Array(24).fill(0));
-  for (const p of myPosts) {
-    const { dayOfWeek: day, hour } = getZonedDateParts(p.publishedAt, timeZone);
-    myHeatmapGrid[day][hour] += 1;
-  }
-  
-  const myHeatmapData = [];
-  for (let day = 0; day < 7; day++) {
-    for (let hour = 0; hour < 24; hour++) {
-      myHeatmapData.push({ day, hour, count: myHeatmapGrid[day][hour] });
-    }
-  }
+  const postsDistribution = buildPostsDistribution(posts, period, now, timeZone);
+  const heatmapData = buildHeatmapData(posts, timeZone);
+  const myHeatmapData = buildHeatmapData(myPosts, timeZone);
 
   const recentPosts = posts.slice(-15).reverse().map((p) => ({
     id: p.id,
@@ -565,6 +569,13 @@ export async function getBestTimeRecommendation() {
     return null;
   }
 
+  const membersByChannelId = new Map<number, number>();
+  for (const ch of competitorChannels) {
+    if (ch.snapshots.length > 0) {
+      membersByChannelId.set(ch.id, ch.snapshots[0].membersCount);
+    }
+  }
+
   const posts = await prisma.post.findMany({
     where: {
       channelId: { in: compIds },
@@ -592,9 +603,9 @@ export async function getBestTimeRecommendation() {
     slots[key].count += 1;
     if (p.views !== null) {
       slots[key].totalViews += p.views;
-      const channel = competitorChannels.find(c => c.id === p.channelId);
-      if (channel && channel.snapshots.length > 0) {
-        slots[key].totalMembers += channel.snapshots[0].membersCount;
+      const membersCount = membersByChannelId.get(p.channelId);
+      if (membersCount !== undefined) {
+        slots[key].totalMembers += membersCount;
       }
     }
   }

@@ -4,88 +4,91 @@ import { calculateContentScore } from '../scoring';
 import { aggregateChannelER, aggregateChannelERR } from './engagement';
 import { calculateAdShare } from './adShare';
 
+type DeltaMetric = ChannelMetrics['delta24h'];
+
 const MS_HOUR = 3600 * 1000;
 const MS_24H = 24 * MS_HOUR;
 const MS_7D = 7 * 24 * MS_HOUR;
-const MS_30D = 30 * 24 * MS_HOUR;
+const MS_30D = 30 * MS_HOUR * 24;
 
-export function buildMetricsFromMaterialized(
-  channel: any,
-  dailyMetrics: any[],
-  recentPosts: any[],
-  now: Date = new Date()
-): ChannelMetrics {
-  const t24h = new Date(now.getTime() - MS_24H);
-  const t7d = new Date(now.getTime() - MS_7D);
-  const t30d = new Date(now.getTime() - MS_30D);
+export interface ChannelRecordInput {
+  id: number;
+  username: string | null;
+  tgId: bigint | string | number | null;
+  title: string;
+  type: string;
+  niche?: string;
+  isMine: boolean;
+  isFavorite?: boolean;
+  isActive: boolean;
+  consecutiveErrors?: number;
+  lastMessageId: bigint | string | number | null;
+  lastError: string | null;
+  lastCollectedAt: Date | string | null;
+  createdAt: Date | string;
+  citationIndex?: number;
+}
 
-  const getMetricsForPeriod = (dateLimit: Date) => {
-    const periodMetrics = dailyMetrics.filter(m => new Date(m.date).getTime() >= dateLimit.getTime());
-    let postsCount = 0;
-    let sumViews = 0;
-    let sumErr = 0;
-    
-    for (const m of periodMetrics) {
-      if (m.postsCount > 0) {
-        postsCount += m.postsCount;
-        sumViews += m.avgViews * m.postsCount;
-        sumErr += m.err * m.postsCount;
-      }
-    }
-    
-    const avgViews = postsCount > 0 ? Math.round(sumViews / postsCount) : null;
-    const trueErr = postsCount > 0 ? Number((sumErr / postsCount).toFixed(2)) : null;
-    
-    return { postsCount, avgViews, trueErr };
-  };
+export interface DailyMetricInput {
+  date: Date | string;
+  followers: number | null;
+  postsCount: number;
+  avgViews: number;
+  err: number;
+}
 
-  let currentMembers = null;
-  if (dailyMetrics.length > 0) {
-    const sorted = [...dailyMetrics].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    currentMembers = sorted[0].followers;
+export interface MetricPostInput {
+  publishedAt: Date;
+  views: number | null;
+  text: string | null;
+  reactions?: number | null;
+  comments?: number | null;
+  forwards?: number | null;
+  subscribersAtPublish?: number | null;
+  isAd?: boolean | null;
+}
+
+function resolveChannelStatus(
+  lastError: string | null,
+  lastCollectedAt: Date | string | null,
+  now: Date
+): ChannelStatus {
+  if (lastError) return 'error';
+  if (!lastCollectedAt || now.getTime() - new Date(lastCollectedAt).getTime() > 3 * MS_HOUR) {
+    return 'stale';
   }
-  
-  const delta24h = calculateDelta(dailyMetrics, t24h, currentMembers, now);
-  const delta7d = calculateDelta(dailyMetrics, t7d, currentMembers, now);
-  const delta30d = calculateDelta(dailyMetrics, t30d, currentMembers, now);
+  return 'success';
+}
 
-  const stats24h = getMetricsForPeriod(t24h);
-  const stats7d = getMetricsForPeriod(t7d);
-  const stats30d = getMetricsForPeriod(t30d);
-
-  const avgViews24h = computeAvgViews24h(recentPosts, now);
-  const vr24h = calculateVr(avgViews24h, currentMembers);
-  const vr7d = calculateVr(stats7d.avgViews, currentMembers);
-  const vr30d = calculateVr(stats30d.avgViews, currentMembers);
-
-  let lastPostViews = null;
-  for (const p of recentPosts) {
+function findLastPostViews(posts: ReadonlyArray<{ views: number | null }>): number | null {
+  for (const p of posts) {
     if (p.views !== null && p.views !== undefined) {
-      lastPostViews = p.views;
-      break;
+      return p.views;
     }
   }
+  return null;
+}
 
-  const sparkline7d = dailyMetrics
-    .filter(m => new Date(m.date).getTime() >= t7d.getTime())
-    .map(m => m.followers)
-    .reverse();
+function computeEngagementMetrics(
+  posts: ReadonlyArray<MetricPostInput>,
+  currentMembers: number | null,
+  t24hMs: number,
+  t7dMs: number
+): {
+  er24h: number | null;
+  er7d: number | null;
+  err24h: number | null;
+  err7d: number | null;
+  cr7d: number | null;
+} {
+  const posts24hList = posts.filter((p) => p.publishedAt.getTime() >= t24hMs);
+  const posts7dList = posts.filter((p) => p.publishedAt.getTime() >= t7dMs);
 
-  let status = 'success';
-  if (channel.lastError) status = 'error';
-  else if (!channel.lastCollectedAt || now.getTime() - new Date(channel.lastCollectedAt).getTime() > 3 * MS_HOUR) status = 'stale';
-
-  const avgPostsPerDay = Number((stats30d.postsCount / 30).toFixed(1));
-  const scoreBreakdown = calculateContentScore(stats7d.trueErr, avgPostsPerDay, delta7d.percent, recentPosts.filter(p => p.text));
-
-  const posts24hList = recentPosts.filter(p => p.publishedAt.getTime() >= t24h.getTime());
-  const posts7dList = recentPosts.filter(p => p.publishedAt.getTime() >= t7d.getTime());
-  
   const rawEr24h = aggregateChannelER(posts24hList);
   const rawEr7d = aggregateChannelER(posts7dList);
   const rawErr24h = aggregateChannelERR(posts24hList);
   const rawErr7d = aggregateChannelERR(posts7dList);
-  
+
   const er24h = rawEr24h !== null ? Number(rawEr24h.toFixed(2)) : null;
   const er7d = rawEr7d !== null ? Number(rawEr7d.toFixed(2)) : null;
   const err24h = rawErr24h !== null ? Number(rawErr24h.toFixed(2)) : null;
@@ -101,65 +104,174 @@ export function buildMetricsFromMaterialized(
     cr7d = Number(((avgComments / currentMembers) * 100).toFixed(2));
   }
 
-  const adShare7d = calculateAdShare(recentPosts, 7, now);
+  return { er24h, er7d, err24h, err7d, cr7d };
+}
+
+interface ComputedChannelMetricsCore {
+  currentMembers: number | null;
+  delta24h: DeltaMetric;
+  delta7d: DeltaMetric;
+  delta30d: DeltaMetric;
+  posts24h: number;
+  posts7d: number;
+  posts30d: number;
+  avgViews7d: number | null;
+  avgViews30d: number | null;
+  trueErr7d: number | null;
+  sparkline7d: number[];
+}
+
+function assembleChannelMetrics(
+  channel: ChannelRecordInput,
+  posts: ReadonlyArray<MetricPostInput>,
+  core: ComputedChannelMetricsCore,
+  now: Date
+): ChannelMetrics {
+  const t24hMs = now.getTime() - MS_24H;
+  const t7dMs = now.getTime() - MS_7D;
+
+  const avgPostsPerDay = Number((core.posts30d / 30).toFixed(1));
+  const avgViews24h = computeAvgViews24h([...posts], now);
+  const vr24h = calculateVr(avgViews24h, core.currentMembers);
+  const vr7d = calculateVr(core.avgViews7d, core.currentMembers);
+  const vr30d = calculateVr(core.avgViews30d, core.currentMembers);
+  const lastPostViews = findLastPostViews(posts);
+  const status = resolveChannelStatus(channel.lastError, channel.lastCollectedAt, now);
+
+  const scoreBreakdown = calculateContentScore(
+    core.trueErr7d,
+    avgPostsPerDay,
+    core.delta7d.percent,
+    posts.filter((p) => p.text)
+  );
+
+  const { er24h, er7d, err24h, err7d, cr7d } = computeEngagementMetrics(
+    posts,
+    core.currentMembers,
+    t24hMs,
+    t7dMs
+  );
+
+  const adShare7d = calculateAdShare([...posts], 7, now);
 
   return {
     id: channel.id,
     username: channel.username,
     tgId: channel.tgId ? channel.tgId.toString() : null,
     title: channel.title,
-    type: channel.type,
+    type: channel.type === 'group' ? 'group' : 'channel',
     niche: channel.niche,
     isMine: channel.isMine,
     isFavorite: channel.isFavorite || false,
     isActive: channel.isActive,
-    consecutiveErrors: channel.consecutiveErrors,
+    consecutiveErrors: channel.consecutiveErrors ?? 0,
     lastMessageId: channel.lastMessageId ? channel.lastMessageId.toString() : null,
     lastError: channel.lastError,
     lastCollectedAt: channel.lastCollectedAt ? new Date(channel.lastCollectedAt).toISOString() : null,
     createdAt: new Date(channel.createdAt).toISOString(),
-    currentMembers,
-    delta24h, delta7d, delta30d,
-    posts24h: stats24h.postsCount, posts7d: stats7d.postsCount, posts30d: stats30d.postsCount,
+    currentMembers: core.currentMembers,
+    delta24h: core.delta24h,
+    delta7d: core.delta7d,
+    delta30d: core.delta30d,
+    posts24h: core.posts24h,
+    posts7d: core.posts7d,
+    posts30d: core.posts30d,
     avgPostsPerDay,
-    avgViews24h, vr24h,
-    avgViews7d: stats7d.avgViews, vr7d,
-    avgViews30d: stats30d.avgViews, vr30d,
+    avgViews24h,
+    vr24h,
+    avgViews7d: core.avgViews7d,
+    vr7d,
+    avgViews30d: core.avgViews30d,
+    vr30d,
     lastPostViews,
-    trueErr7d: stats7d.trueErr,
+    trueErr7d: core.trueErr7d,
     er24h,
     er7d,
     err24h,
     err7d,
     cr7d,
     adShare7d,
-    status: status as any,
-    sparkline7d,
+    status,
+    sparkline7d: core.sparkline7d,
     contentScore: scoreBreakdown.total,
     contentGrade: scoreBreakdown.grade,
-    citationIndex: (channel as any).citationIndex ?? 0,
+    citationIndex: channel.citationIndex ?? 0,
+  };
+}
+
+export function buildMetricsFromMaterialized(
+  channel: ChannelRecordInput,
+  dailyMetrics: ReadonlyArray<DailyMetricInput>,
+  recentPosts: ReadonlyArray<MetricPostInput>,
+  now: Date = new Date()
+): ChannelMetrics {
+  const t24h = new Date(now.getTime() - MS_24H);
+  const t7d = new Date(now.getTime() - MS_7D);
+  const t30d = new Date(now.getTime() - MS_30D);
+
+  const getMetricsForPeriod = (dateLimit: Date) => {
+    const periodMetrics = dailyMetrics.filter((m) => new Date(m.date).getTime() >= dateLimit.getTime());
+    let postsCount = 0;
+    let sumViews = 0;
+    let sumErr = 0;
+
+    for (const m of periodMetrics) {
+      if (m.postsCount > 0) {
+        postsCount += m.postsCount;
+        sumViews += m.avgViews * m.postsCount;
+        sumErr += m.err * m.postsCount;
+      }
+    }
+
+    const avgViews = postsCount > 0 ? Math.round(sumViews / postsCount) : null;
+    const trueErr = postsCount > 0 ? Number((sumErr / postsCount).toFixed(2)) : null;
+
+    return { postsCount, avgViews, trueErr };
   };
 
+  let currentMembers: number | null = null;
+  if (dailyMetrics.length > 0) {
+    const sorted = [...dailyMetrics].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    currentMembers = sorted[0].followers;
+  }
+
+  const delta24h = calculateDelta(dailyMetrics, t24h, currentMembers, now);
+  const delta7d = calculateDelta(dailyMetrics, t7d, currentMembers, now);
+  const delta30d = calculateDelta(dailyMetrics, t30d, currentMembers, now);
+
+  const stats24h = getMetricsForPeriod(t24h);
+  const stats7d = getMetricsForPeriod(t7d);
+  const stats30d = getMetricsForPeriod(t30d);
+
+  const sparkline7d = dailyMetrics
+    .filter((m) => new Date(m.date).getTime() >= t7d.getTime())
+    .map((m) => m.followers ?? 0)
+    .reverse();
+
+  return assembleChannelMetrics(
+    channel,
+    recentPosts,
+    {
+      currentMembers,
+      delta24h,
+      delta7d,
+      delta30d,
+      posts24h: stats24h.postsCount,
+      posts7d: stats7d.postsCount,
+      posts30d: stats30d.postsCount,
+      avgViews7d: stats7d.avgViews,
+      avgViews30d: stats30d.avgViews,
+      trueErr7d: stats7d.trueErr,
+      sparkline7d,
+    },
+    now
+  );
 }
 
 export function calculateChannelMetricsFromData(
-  channel: {
-    id: number;
-    username: string | null;
-    tgId: bigint | null;
-    title: string;
-    type: string;
-    isMine: boolean;
-    isFavorite: boolean;
-    isActive: boolean;
-    lastMessageId: bigint | null;
-    lastError: string | null;
-    lastCollectedAt: Date | null;
-    createdAt: Date;
-    niche: string;
-  },
+  channel: ChannelRecordInput,
   channelSnapshots: { collectedAt: Date; membersCount: number }[],
-  channelPosts: { publishedAt: Date; views: number | null; text: string | null; reactions?: number | null; comments?: number | null; forwards?: number | null; isAd?: boolean | null }[],
+  channelPosts: ReadonlyArray<MetricPostInput>,
   now: Date = new Date()
 ): ChannelMetrics {
   const date24hAgo = new Date(now.getTime() - MS_24H);
@@ -180,6 +292,7 @@ export function calculateChannelMetricsFromData(
   let viewPosts7d = 0;
   let totalViews30d = 0;
   let viewPosts30d = 0;
+  let trueTotalEngagement = 0;
 
   const t24h = date24hAgo.getTime();
   const t7d = date7dAgo.getTime();
@@ -197,59 +310,21 @@ export function calculateChannelMetricsFromData(
         posts7d++;
         if (pt >= t24h) {
           posts24h++;
-        }
-        
-        if (pt < t24h) {
-          if (p.views !== null) {
-            totalViews7d += p.views;
-            viewPosts7d++;
-          }
+        } else if (p.views !== null) {
+          totalViews7d += p.views;
+          viewPosts7d++;
+          trueTotalEngagement += (p.reactions || 0) + (p.comments || 0) + (p.forwards || 0);
         }
       }
     }
   }
 
-  const trueViews7d: number[] = [];
-  const trueReactions7d: number[] = [];
-  const trueComments7d: number[] = [];
-  const trueForwards7d: number[] = [];
-  
-  for (const p of channelPosts) {
-    const pt = p.publishedAt.getTime();
-    if (pt >= t7d && pt < t24h && p.views !== null) {
-      trueViews7d.push(p.views);
-      trueReactions7d.push(p.reactions || 0);
-      trueComments7d.push(p.comments || 0);
-      trueForwards7d.push(p.forwards || 0);
-    }
-  }
-
-  let trueTotalEngagement = 0;
-  for (let i = 0; i < trueViews7d.length; i++) {
-    trueTotalEngagement += trueReactions7d[i] + trueComments7d[i] + trueForwards7d[i];
-  }
-  const trueAvgEngagement = trueViews7d.length > 0 ? trueTotalEngagement / trueViews7d.length : 0;
-  const trueAvgViews = trueViews7d.length > 0 ? trueViews7d.reduce((a,b)=>a+b,0) / trueViews7d.length : 0;
+  const trueAvgEngagement = viewPosts7d > 0 ? trueTotalEngagement / viewPosts7d : 0;
+  const trueAvgViews = viewPosts7d > 0 ? totalViews7d / viewPosts7d : 0;
   const trueErr7d = trueAvgViews > 0 ? (trueAvgEngagement / trueAvgViews) * 100 : null;
 
-  const avgPostsPerDay = Number((posts30d / 30).toFixed(1));
-
-  const avgViews24h = computeAvgViews24h(channelPosts, now);
-  const vr24h = calculateVr(avgViews24h, currentMembers);
-
   const avgViews7d = viewPosts7d > 0 ? Math.round(totalViews7d / viewPosts7d) : null;
-  const vr7d = calculateVr(avgViews7d, currentMembers);
-
   const avgViews30d = viewPosts30d > 0 ? Math.round(totalViews30d / viewPosts30d) : null;
-  const vr30d = calculateVr(avgViews30d, currentMembers);
-
-  let lastPostViews: number | null = null;
-  for (const p of channelPosts) {
-    if (p.views !== null && p.views !== undefined) {
-      lastPostViews = p.views;
-      break;
-    }
-  }
 
   const sparklineSnapshots = channelSnapshots.filter(
     (s) => s.collectedAt.getTime() >= date7dAgo.getTime()
@@ -261,95 +336,29 @@ export function calculateChannelMetricsFromData(
   for (let i = 0; i < sparklineSnapshots.length; i += step) {
     sparkline7d.push(sparklineSnapshots[i].membersCount);
   }
-  if (sparklineSnapshots.length > 0 && sparkline7d[sparkline7d.length - 1] !== sparklineSnapshots[sparklineSnapshots.length - 1].membersCount) {
+  if (
+    sparklineSnapshots.length > 0 &&
+    sparkline7d[sparkline7d.length - 1] !== sparklineSnapshots[sparklineSnapshots.length - 1].membersCount
+  ) {
     sparkline7d.push(sparklineSnapshots[sparklineSnapshots.length - 1].membersCount);
   }
 
-  let status: ChannelStatus = 'success';
-  if (channel.lastError) {
-    status = 'error';
-  } else if (
-    !channel.lastCollectedAt ||
-    now.getTime() - new Date(channel.lastCollectedAt).getTime() > 3 * MS_HOUR
-  ) {
-    status = 'stale';
-  }
-
-  const scoreBreakdown = calculateContentScore(
-    trueErr7d,
-    avgPostsPerDay,
-    delta7d.percent,
-    channelPosts.filter(p => p.text)
+  return assembleChannelMetrics(
+    channel,
+    channelPosts,
+    {
+      currentMembers,
+      delta24h,
+      delta7d,
+      delta30d,
+      posts24h,
+      posts7d,
+      posts30d,
+      avgViews7d,
+      avgViews30d,
+      trueErr7d,
+      sparkline7d,
+    },
+    now
   );
-
-  const posts24hList = channelPosts.filter(p => p.publishedAt.getTime() >= t24h);
-  const posts7dList = channelPosts.filter(p => p.publishedAt.getTime() >= t7d);
-  
-  const rawEr24h = aggregateChannelER(posts24hList);
-  const rawEr7d = aggregateChannelER(posts7dList);
-  const rawErr24h = aggregateChannelERR(posts24hList);
-  const rawErr7d = aggregateChannelERR(posts7dList);
-  
-  const er24h = rawEr24h !== null ? Number(rawEr24h.toFixed(2)) : null;
-  const er7d = rawEr7d !== null ? Number(rawEr7d.toFixed(2)) : null;
-  const err24h = rawErr24h !== null ? Number(rawErr24h.toFixed(2)) : null;
-  const err7d = rawErr7d !== null ? Number(rawErr7d.toFixed(2)) : null;
-
-  let cr7d: number | null = null;
-  if (currentMembers && currentMembers > 0 && posts7dList.length > 0) {
-    let totalComments = 0;
-    for (const p of posts7dList) {
-      totalComments += p.comments || 0;
-    }
-    const avgComments = totalComments / posts7dList.length;
-    cr7d = Number(((avgComments / currentMembers) * 100).toFixed(2));
-  }
-
-  const adShare7d = calculateAdShare(channelPosts, 7, now);
-
-  return {
-    id: channel.id,
-    username: channel.username,
-    tgId: channel.tgId ? channel.tgId.toString() : null,
-    title: channel.title,
-    type: channel.type as 'channel' | 'group',
-    niche: channel.niche,
-    isMine: channel.isMine,
-    isFavorite: channel.isFavorite || false,
-    isActive: channel.isActive,
-    // @ts-ignore
-    consecutiveErrors: channel.consecutiveErrors,
-    lastMessageId: channel.lastMessageId ? channel.lastMessageId.toString() : null,
-    lastError: channel.lastError,
-    lastCollectedAt: channel.lastCollectedAt?.toISOString() || null,
-    createdAt: channel.createdAt.toISOString(),
-    currentMembers,
-    delta24h,
-    delta7d,
-    delta30d,
-    posts24h,
-    posts7d,
-    posts30d,
-    avgPostsPerDay,
-    avgViews24h,
-    vr24h,
-    avgViews7d,
-    vr7d,
-    avgViews30d,
-    vr30d,
-    lastPostViews,
-    trueErr7d,
-    er24h,
-    er7d,
-    err24h,
-    err7d,
-    cr7d,
-    adShare7d,
-    status,
-    sparkline7d,
-    contentScore: scoreBreakdown.total,
-    contentGrade: scoreBreakdown.grade,
-    citationIndex: (channel as any).citationIndex ?? 0,
-  };
-
 }
