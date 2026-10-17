@@ -30,8 +30,13 @@ vi.mock('@/lib/prisma', () => ({
     post: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    postSnapshot: {
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     fraudSignal: {
       create: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     syncJob: {
       create: vi.fn().mockResolvedValue({ id: 1 }),
@@ -88,6 +93,10 @@ describe('runCollectCycle Reconnection', () => {
     expect(result.errorCount).toBe(1);
     expect(result.successCount).toBe(1);
     expect(result.totalChannels).toBe(2);
+    expect(prisma.fraudSignal.deleteMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ channelId: 2, signalType: 'uniform_err' }),
+    }));
+    expect(prisma.postSnapshot.findMany).toHaveBeenCalledOnce();
   }, 15000);
 
   it('finishes the current channel then marks the interrupted cycle partial', async () => {

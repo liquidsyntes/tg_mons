@@ -35,7 +35,7 @@
 | `Snapshot` | `snapshots` | `id` (Int, autoincrement) | `@@index([channelId, collectedAt])` | `channel` -> `Channel` (`Cascade`) | Временные снимки численности аудитории (подписчиков) канала |
 | `Post` | `posts` | `id` (Int, autoincrement) | `@@unique([channelId, messageId])`<br>`@@index([channelId, groupedId])`<br>`@@index([channelId, publishedAt])`<br>`@@index([text], type: Gin)` | `channel` -> `Channel` (`Cascade`)<br>Дочерние: `mentions`, `snapshots`, `viewSnapshots`, `eventMentions`, `image` (`Cascade`) | Собранные публикации Telegram: просмотры, реакции, репосты, текст |
 | `PostImage` | `post_images` | `postId` (Int) | Нет | `post` -> `Post` (`Cascade`) | Одно ограниченное по размеру изображение публикации |
-| `PostSnapshot` | `post_snapshots` | `id` (Int, autoincrement) | `@@index([postId, collectedAt])` | `post` -> `Post` (`Cascade`) | Снимки просмотров свежих постов (до 7 дней) для расчёта кривой накопления просмотров (LTV) |
+| `PostSnapshot` | `post_snapshots` | `id` (Int, autoincrement) | `@@index([postId, collectedAt])` | `post` -> `Post` (`Cascade`) | Снимки просмотров первых 72 часов для LTV; удаляются после 30 дней хранения |
 | `PostViewSnapshot` | `post_view_snapshots` | `id` (Int, autoincrement) | `@@unique([postId, hoursAfterPost])`<br>`@@index([postId])` | `post` -> `Post` (`Cascade`) | Контрольные точки просмотров рекламных постов (1, 12, 24, 48 часов) для оценки рекламного охвата |
 | `Mention` | `mentions` | `id` (Int, autoincrement) | `@@index([sourceChannelId])`<br>`@@index([targetUsername])` | `sourcePost` -> `Post` (`Cascade`)<br>`sourceChannel` -> `Channel` (`Cascade`) | Упоминания и репосты других каналов, найденные в собранных постах (без FK на целевой канал) |
 | `SyncJob` | `sync_jobs` | `id` (Int, autoincrement) | — | Нет внешних связей | История и аудит запусков циклов сбора данных: статус `SyncStatus`, счётчики, длительность |
@@ -152,7 +152,7 @@
 ---
 
 ### 4. `PostSnapshot` (`post_snapshots`)
-Промежуточные замеры просмотров публикаций за первые 7 суток для анализа динамики удержания (LTV).
+Промежуточные замеры просмотров публикаций за первые 72 часа для анализа динамики удержания (LTV). Повторный замер того же поста создаётся не чаще одного раза в 45 минут. После основного цикла удаляется до 10 000 замеров старше 30 дней партиями по 1000; остаток обрабатывается следующими циклами.
 
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
@@ -380,6 +380,8 @@
   - `@@index([channelId, detectedAt])`
 - **Связи:**
   - `channel`: `Channel` (`fields: [channelId], references: [id], onDelete: Cascade`)
+
+Worker сохраняет не более одного актуального сигнала каждого типа на канал за UTC-сутки. Если проверка перестала срабатывать, записи этого типа за последние 30 дней удаляются. Это политика записи и очистки, отдельного уникального ограничения в схеме нет.
 
 ---
 

@@ -263,14 +263,19 @@ export async function upsertPostWithReactions(params: {
     });
 
     if (params.views !== null && params.views !== undefined) {
-        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        if (params.publishedAt.getTime() > sevenDaysAgo) {
-            await prisma.postSnapshot.create({
-                data: {
-                    postId: post.id,
-                    views: params.views,
-                }
+        const now = new Date();
+        const postAgeMs = now.getTime() - params.publishedAt.getTime();
+        if (postAgeMs >= 0 && postAgeMs <= 72 * 60 * 60 * 1000) {
+            const previous = await prisma.postSnapshot.findFirst({
+                where: { postId: post.id },
+                orderBy: { collectedAt: 'desc' },
+                select: { collectedAt: true },
             });
+            if (!previous || now.getTime() - previous.collectedAt.getTime() >= 45 * 60 * 1000) {
+                await prisma.postSnapshot.create({
+                    data: { postId: post.id, views: params.views, collectedAt: now },
+                });
+            }
         }
     }
     return post;
@@ -295,18 +300,60 @@ export async function saveMentions(
     }
 }
 
-export async function saveFraudSignal(
-  channelId: number,
-  signalType: string,
-  value: number,
-  reason: string
-) {
-  return await prisma.fraudSignal.create({
-    data: {
-      channelId,
-      signalType,
-      value,
-      reason,
-    },
+export interface FraudSignalState {
+  flag: boolean;
+  value: number;
+  reason: string;
+}
+
+export async function saveFraudSignal(channelId: number, signalType: string, state: FraudSignalState): Promise<void> {
+  const now = new Date();
+  if (!state.flag) {
+    await prisma.fraudSignal.deleteMany({
+      where: { channelId, signalType, detectedAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
+    });
+    return;
+  }
+
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+  await prisma.$transaction(async tx => {
+    const where = { channelId, signalType, detectedAt: { gte: today, lt: tomorrow } };
+    const existing = await tx.fraudSignal.findFirst({
+      where,
+      orderBy: { detectedAt: 'desc' },
+      select: { id: true },
+    });
+    if (existing) {
+      await tx.fraudSignal.update({
+        where: { id: existing.id },
+        data: { value: state.value, reason: state.reason, detectedAt: now },
+      });
+      await tx.fraudSignal.deleteMany({ where: { ...where, id: { not: existing.id } } });
+    } else {
+      await tx.fraudSignal.create({
+        data: { channelId, signalType, value: state.value, reason: state.reason, detectedAt: now },
+      });
+    }
   });
+}
+
+export async function cleanupOldPostSnapshots(now: Date = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  let deleted = 0;
+  for (let batch = 0; batch < 10; batch++) {
+    const stale = await prisma.postSnapshot.findMany({
+      where: { collectedAt: { lt: cutoff } },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+      take: 1000,
+    });
+    if (stale.length === 0) break;
+    const result = await prisma.postSnapshot.deleteMany({
+      where: { id: { in: stale.map(snapshot => snapshot.id) }, collectedAt: { lt: cutoff } },
+    });
+    deleted += result.count;
+    if (stale.length < 1000) break;
+  }
+  return deleted;
 }

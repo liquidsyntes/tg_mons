@@ -30,8 +30,13 @@ vi.mock('@/lib/prisma', () => ({
     post: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    postSnapshot: {
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     fraudSignal: {
       create: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     syncJob: {
       create: vi.fn().mockResolvedValue({ id: 1 }),

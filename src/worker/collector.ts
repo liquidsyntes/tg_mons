@@ -23,6 +23,7 @@ import {
   saveMentions,
   updateChannelTitle,
   saveFraudSignal,
+  cleanupOldPostSnapshots,
 } from './persister';
 import { prisma } from '../lib/prisma';
 import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, checkUniformReactionRatio } from '../lib/fraudDetector';
@@ -257,14 +258,9 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
 
           if (recentMetrics.length > 0) {
             const smoothnessResult = checkGrowthSmoothness(recentMetrics);
-            if (smoothnessResult.flag) {
-              await saveFraudSignal(
-                channel.id,
-                'growth_smoothness',
-                smoothnessResult.cv,
-                smoothnessResult.reason
-              );
-            }
+            await saveFraudSignal(channel.id, 'growth_smoothness', {
+              flag: smoothnessResult.flag, value: smoothnessResult.cv, reason: smoothnessResult.reason,
+            });
 
             const sortedDesc = [...recentMetrics].sort((a, b) => b.date.getTime() - a.date.getTime());
             const oldestMetricDate = sortedDesc[sortedDesc.length - 1].date;
@@ -300,15 +296,12 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
 
             const postsDates = postsInRange.map(p => p.publishedAt);
             const spikeResult = checkUncorrelatedSpikes(recentMetrics, postsDates, mentionsDates);
-            
-            if (spikeResult.flag) {
-              await saveFraudSignal(
-                channel.id,
-                'uncorrelated_spikes',
-                spikeResult.spikesCount,
-                spikeResult.reason
-              );
-            }
+            await saveFraudSignal(channel.id, 'uncorrelated_spikes', {
+              flag: spikeResult.flag, value: spikeResult.spikesCount, reason: spikeResult.reason,
+            });
+          } else {
+            await saveFraudSignal(channel.id, 'growth_smoothness', { flag: false, value: 0, reason: '' });
+            await saveFraudSignal(channel.id, 'uncorrelated_spikes', { flag: false, value: 0, reason: '' });
           }
 
           const recentPosts = await prisma.post.findMany({
@@ -323,25 +316,17 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
 
           if (currentMembers > 0) {
             const ratioResult = checkViewsToSubsRatio(recentPosts, currentMembers);
-            if (ratioResult.flag) {
-              await saveFraudSignal(
-                channel.id,
-                'views_to_subs_ratio',
-                ratioResult.ratio,
-                ratioResult.reason
-              );
-            }
+            await saveFraudSignal(channel.id, 'views_to_subs_ratio', {
+              flag: ratioResult.flag, value: ratioResult.ratio, reason: ratioResult.reason,
+            });
+          } else {
+            await saveFraudSignal(channel.id, 'views_to_subs_ratio', { flag: false, value: 0, reason: '' });
           }
 
           const uniformResult = checkUniformReactionRatio(recentPosts);
-          if (uniformResult.flag) {
-            await saveFraudSignal(
-              channel.id,
-              'uniform_err',
-              uniformResult.cv,
-              uniformResult.reason
-            );
-          }
+          await saveFraudSignal(channel.id, 'uniform_err', {
+            flag: uniformResult.flag, value: uniformResult.cv, reason: uniformResult.reason,
+          });
         } catch (fraudErr) {
           logger.error('Fraud detection failed', { title: channel.title }, fraudErr);
         }
@@ -385,6 +370,14 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
         .catch((err) => logger.error('Final SyncJob update failed', undefined, err));
     } finally {
       activeSyncJobId = null;
+    }
+
+    if (!signal?.aborted) {
+      await cleanupOldPostSnapshots()
+        .then(deleted => {
+          if (deleted > 0) logger.info('Old post snapshots removed', { deleted });
+        })
+        .catch(error => logger.warn('Post snapshot cleanup failed', undefined, error));
     }
     
     const webInternalUrl = process.env.WEB_INTERNAL_URL;
