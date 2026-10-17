@@ -1,3 +1,16 @@
+import type { Prisma, PrismaClient } from '@prisma/client';
+
+type NumericLike = number | string | bigint;
+
+interface NestedChannelSubscriberMetrics {
+  id?: number;
+  currentMembers?: NumericLike | null;
+  current_members?: NumericLike | null;
+  membersCount?: NumericLike | null;
+  members_count?: NumericLike | null;
+  subscribers?: NumericLike | null;
+}
+
 /**
  * Represents an individual inbound citation or mention of a Telegram channel.
  *
@@ -14,46 +27,44 @@
  * @property currentMembers - Current member count of citing channel (camelCase).
  * @property current_members - Current member count of citing channel (snake_case alias).
  * @property sourceChannelId - Database ID of the citing channel (used for self-citation exclusion).
+ * @property source_channel_id - Snake_case alias for `sourceChannelId`.
  * @property channelId - Alternative channel ID identifier.
  * @property sourceChannel - Nested source channel object containing member metrics.
+ * @property source_channel - Snake_case alias for `sourceChannel`.
  * @property citingChannel - Nested citing channel object containing member metrics.
+ * @property citing_channel - Snake_case alias for `citingChannel`.
  * @property channel - Nested channel reference containing member metrics.
  * @property createdAt - Timestamp when the citation occurred (used for 30-day temporal window).
+ * @property created_at - Snake_case alias for `createdAt`.
  * @property publishedAt - Publication timestamp alias.
+ * @property published_at - Snake_case alias for `publishedAt`.
  * @property date - General date timestamp alias.
  * @property timestamp - Raw epoch or date timestamp alias.
  */
 export interface CitationMention {
-  mentions?: number | string | bigint;
-  count?: number | string | bigint;
-  citing_subscribers?: number | string | bigint;
-  citingSubscribers?: number | string | bigint;
-  subscribers?: number | string | bigint;
-  membersCount?: number | string | bigint;
-  members_count?: number | string | bigint;
-  currentMembers?: number | string | bigint;
-  current_members?: number | string | bigint;
+  mentions?: NumericLike;
+  count?: NumericLike;
+  citing_subscribers?: NumericLike;
+  citingSubscribers?: NumericLike;
+  subscribers?: NumericLike;
+  membersCount?: NumericLike;
+  members_count?: NumericLike;
+  currentMembers?: NumericLike;
+  current_members?: NumericLike;
   sourceChannelId?: number;
+  source_channel_id?: number;
   channelId?: number;
-  sourceChannel?: {
-    currentMembers?: number | string | bigint;
-    membersCount?: number | string | bigint;
-    subscribers?: number | string | bigint;
-  };
-  citingChannel?: {
-    currentMembers?: number | string | bigint;
-    membersCount?: number | string | bigint;
-    subscribers?: number | string | bigint;
-  };
-  channel?: {
-    currentMembers?: number | string | bigint;
-    membersCount?: number | string | bigint;
-    subscribers?: number | string | bigint;
-  };
-  createdAt?: Date | string;
-  publishedAt?: Date | string;
-  date?: Date | string;
-  timestamp?: Date | string;
+  sourceChannel?: NestedChannelSubscriberMetrics;
+  source_channel?: NestedChannelSubscriberMetrics;
+  citingChannel?: NestedChannelSubscriberMetrics;
+  citing_channel?: NestedChannelSubscriberMetrics;
+  channel?: NestedChannelSubscriberMetrics;
+  createdAt?: Date | string | number;
+  created_at?: Date | string | number;
+  publishedAt?: Date | string | number;
+  published_at?: Date | string | number;
+  date?: Date | string | number;
+  timestamp?: Date | string | number;
 }
 
 /**
@@ -70,55 +81,68 @@ export interface CitationMention {
  * @property inbound_mentions - Array of inbound `CitationMention` records (snake_case).
  * @property inbound - Array of inbound citation records.
  */
-export interface CitationChannelInput {
+export interface CitationChannelInput extends Omit<CitationMention, 'mentions'> {
   id?: number;
   channelId?: number;
-  mentions?: CitationMention[] | number;
+  mentions?: CitationMention[] | NumericLike;
   citations?: CitationMention[];
   inboundMentions?: CitationMention[];
   inbound_mentions?: CitationMention[];
   inbound?: CitationMention[];
-  [key: string]: any;
+}
+
+export type CitationInput =
+  | CitationChannelInput
+  | ReadonlyArray<CitationMention | NumericLike | null | undefined>
+  | NumericLike
+  | Record<string, unknown>
+  | null
+  | undefined;
+
+function isRecord(val: unknown): val is Record<string, unknown> {
+  return typeof val === 'object' && val !== null && !Array.isArray(val);
+}
+
+function parseFiniteNumber(val: unknown): number | null {
+  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+  if (typeof val === 'bigint') {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (typeof val === 'string' && val.trim() !== '') {
+    const clean = val.replace(/[\s,_]/g, '');
+    const n = Number(clean);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
 }
 
 function parseCount(val: unknown): number {
   if (val === undefined || val === null) return 1;
-  if (typeof val === 'number') return isFinite(val) ? val : 0;
-  if (typeof val === 'bigint') {
-    const n = Number(val);
-    return isFinite(n) ? n : 0;
-  }
-  if (typeof val === 'string' && val.trim() !== '') {
-    const clean = val.replace(/[\s,_]/g, '');
-    const n = Number(clean);
-    return isFinite(n) ? n : 0;
-  }
-  return 0;
+  return parseFiniteNumber(val) ?? 0;
 }
 
 function parseSubscribers(val: unknown): number {
-  if (val === undefined || val === null) return 0;
-  if (typeof val === 'number') return isFinite(val) && val > 1 ? val : 0;
-  if (typeof val === 'bigint') {
-    const n = Number(val);
-    return isFinite(n) && n > 1 ? n : 0;
-  }
-  if (typeof val === 'string' && val.trim() !== '') {
-    const clean = val.replace(/[\s,_]/g, '');
-    const n = Number(clean);
-    return isFinite(n) && n > 1 ? n : 0;
-  }
-  return 0;
+  const n = parseFiniteNumber(val);
+  return n !== null && n > 1 ? n : 0;
 }
 
-function extractSubscribers(m: any): number {
-  if (typeof m === 'number' || typeof m === 'bigint') {
+function extractNestedSubscribers(nested: unknown): number {
+  if (!isRecord(nested)) return 0;
+  const candidate =
+    nested.currentMembers ??
+    nested.current_members ??
+    nested.membersCount ??
+    nested.members_count ??
+    nested.subscribers;
+  return parseSubscribers(candidate);
+}
+
+function extractSubscribers(m: unknown): number {
+  if (typeof m === 'number' || typeof m === 'bigint' || typeof m === 'string') {
     return parseSubscribers(m);
   }
-  if (typeof m === 'string' && m.trim() !== '') {
-    return parseSubscribers(m);
-  }
-  if (!m || typeof m !== 'object') return 0;
+  if (!isRecord(m)) return 0;
 
   const direct =
     m.citing_subscribers ??
@@ -132,34 +156,44 @@ function extractSubscribers(m: any): number {
   const parsedDirect = parseSubscribers(direct);
   if (parsedDirect > 0) return parsedDirect;
 
-  const nested =
-    m.sourceChannel?.currentMembers ??
-    m.sourceChannel?.current_members ??
-    m.sourceChannel?.membersCount ??
-    m.sourceChannel?.members_count ??
-    m.sourceChannel?.subscribers ??
-    m.source_channel?.currentMembers ??
-    m.source_channel?.current_members ??
-    m.source_channel?.membersCount ??
-    m.source_channel?.members_count ??
-    m.source_channel?.subscribers ??
-    m.citingChannel?.currentMembers ??
-    m.citingChannel?.current_members ??
-    m.citingChannel?.membersCount ??
-    m.citingChannel?.members_count ??
-    m.citingChannel?.subscribers ??
-    m.citing_channel?.currentMembers ??
-    m.citing_channel?.current_members ??
-    m.citing_channel?.membersCount ??
-    m.citing_channel?.members_count ??
-    m.citing_channel?.subscribers ??
-    m.channel?.currentMembers ??
-    m.channel?.current_members ??
-    m.channel?.membersCount ??
-    m.channel?.members_count ??
-    m.channel?.subscribers;
+  const nestedCandidates = [
+    m.sourceChannel,
+    m.source_channel,
+    m.citingChannel,
+    m.citing_channel,
+    m.channel,
+  ];
+  for (const nested of nestedCandidates) {
+    const subs = extractNestedSubscribers(nested);
+    if (subs > 0) return subs;
+  }
 
-  return parseSubscribers(nested);
+  return 0;
+}
+
+function hasDirectMentionFields(obj: Record<string, unknown>): boolean {
+  return (
+    obj.citing_subscribers !== undefined ||
+    obj.citingSubscribers !== undefined ||
+    obj.subscribers !== undefined ||
+    obj.membersCount !== undefined ||
+    obj.members_count !== undefined ||
+    obj.currentMembers !== undefined ||
+    obj.current_members !== undefined ||
+    obj.sourceChannel !== undefined ||
+    obj.citingChannel !== undefined ||
+    obj.channel !== undefined ||
+    obj.count !== undefined
+  );
+}
+
+function extractMentionSourceId(m: Record<string, unknown>): number | undefined {
+  if (typeof m.sourceChannelId === 'number') return m.sourceChannelId;
+  if (typeof m.source_channel_id === 'number') return m.source_channel_id;
+  if (isRecord(m.sourceChannel) && typeof m.sourceChannel.id === 'number') return m.sourceChannel.id;
+  if (isRecord(m.source_channel) && typeof m.source_channel.id === 'number') return m.source_channel.id;
+  if (typeof m.channelId === 'number') return m.channelId;
+  return undefined;
 }
 
 /**
@@ -188,14 +222,14 @@ function extractSubscribers(m: any): number {
  * @returns {number} Normalized citation index score (number >= 0, rounded to 2 decimal places).
  */
 export function calculateCitationIndex(
-  channel: CitationChannelInput | CitationMention[] | number | bigint | string | null | undefined,
+  channel: CitationInput,
   now: Date = new Date()
 ): number {
   if (!channel && channel !== 0) {
     return 0;
   }
 
-  let mentionList: any[] = [];
+  let mentionList: ReadonlyArray<unknown> = [];
   let selfId: number | undefined;
 
   if (Array.isArray(channel)) {
@@ -203,15 +237,17 @@ export function calculateCitationIndex(
   } else if (typeof channel === 'number' || typeof channel === 'bigint') {
     mentionList = [channel];
   } else if (typeof channel === 'string' && channel.trim() !== '') {
-    const clean = channel.replace(/[\s,_]/g, '');
-    const num = Number(clean);
-    if (isFinite(num) && num > 0) {
+    const num = parseFiniteNumber(channel);
+    if (num !== null && num > 0) {
       mentionList = [num];
     } else {
       return 0;
     }
-  } else if (typeof channel === 'object') {
-    selfId = channel.id ?? channel.channelId;
+  } else if (isRecord(channel)) {
+    const rawId = channel.id ?? channel.channelId;
+    if (typeof rawId === 'number') {
+      selfId = rawId;
+    }
 
     if (Array.isArray(channel.mentions)) {
       mentionList = channel.mentions;
@@ -223,29 +259,15 @@ export function calculateCitationIndex(
       mentionList = channel.inbound;
     } else if (Array.isArray(channel.citations)) {
       mentionList = channel.citations;
-    } else if (
-      channel.citing_subscribers !== undefined ||
-      channel.citingSubscribers !== undefined ||
-      channel.subscribers !== undefined ||
-      channel.membersCount !== undefined ||
-      channel.members_count !== undefined ||
-      channel.currentMembers !== undefined ||
-      channel.current_members !== undefined ||
-      channel.sourceChannel !== undefined ||
-      channel.citingChannel !== undefined ||
-      channel.channel !== undefined ||
-      channel.count !== undefined
-    ) {
+    } else if (hasDirectMentionFields(channel)) {
       // Single mention object passed directly
       mentionList = [channel];
     } else if (typeof channel.mentions === 'number' || typeof channel.mentions === 'bigint') {
-      if (channel.mentions <= 0) return 0;
-      // Mentions count without citing subscriber details yields 0 weight
       return 0;
     }
   }
 
-  if (!mentionList || mentionList.length === 0) {
+  if (mentionList.length === 0) {
     return 0;
   }
 
@@ -257,46 +279,44 @@ export function calculateCitationIndex(
     if (!m) continue;
 
     // Exclude self-citations if target channel id is known
-    if (selfId !== undefined && typeof m === 'object') {
-      const mentionSourceId =
-        m.sourceChannelId ??
-        m.source_channel_id ??
-        m.sourceChannel?.id ??
-        m.source_channel?.id ??
-        m.channelId;
+    if (selfId !== undefined && isRecord(m)) {
+      const mentionSourceId = extractMentionSourceId(m);
       if (mentionSourceId !== undefined && mentionSourceId === selfId) {
         continue;
       }
     }
 
     // Check date window if date is provided
-    const dateVal =
-      m.date ||
-      m.createdAt ||
-      m.created_at ||
-      m.publishedAt ||
-      m.published_at ||
-      m.timestamp;
-    if (dateVal) {
-      let dateMs = NaN;
-      if (typeof dateVal === 'number') {
-        dateMs = dateVal < 10000000000 ? dateVal * 1000 : dateVal;
-      } else {
-        dateMs = new Date(dateVal).getTime();
-      }
-      if (!isNaN(dateMs)) {
-        const diff = nowMs - dateMs;
-        // Exclude if older than 30 days or unreasonably in the future (>1 day clock skew)
-        if (diff > MS_30D || diff < -24 * 60 * 60 * 1000) {
-          continue;
+    if (isRecord(m)) {
+      const dateVal =
+        m.date ||
+        m.createdAt ||
+        m.created_at ||
+        m.publishedAt ||
+        m.published_at ||
+        m.timestamp;
+      if (dateVal instanceof Date || typeof dateVal === 'string' || typeof dateVal === 'number') {
+        const dateMs =
+          typeof dateVal === 'number'
+            ? (dateVal < 10000000000 ? dateVal * 1000 : dateVal)
+            : new Date(dateVal).getTime();
+        if (!Number.isNaN(dateMs)) {
+          const diff = nowMs - dateMs;
+          // Exclude if older than 30 days or unreasonably in the future (>1 day clock skew)
+          if (diff > MS_30D || diff < -24 * 60 * 60 * 1000) {
+            continue;
+          }
         }
       }
     }
 
     // Number of mentions (reposts/citations)
-    const rawCount = typeof m === 'number' || typeof m === 'bigint'
-      ? 1
-      : (m.mentions ?? m.count);
+    const rawCount =
+      typeof m === 'number' || typeof m === 'bigint'
+        ? 1
+        : isRecord(m)
+        ? (m.mentions ?? m.count)
+        : undefined;
     const count = parseCount(rawCount);
 
     if (count <= 0) continue;
@@ -309,16 +329,71 @@ export function calculateCitationIndex(
     if (subs <= 1) continue;
 
     const weight = Math.log10(subs);
-    if (isFinite(weight) && weight > 0) {
+    if (Number.isFinite(weight) && weight > 0) {
       totalScore += count * weight;
     }
   }
 
-  if (isNaN(totalScore) || !isFinite(totalScore) || totalScore <= 0) {
+  if (!Number.isFinite(totalScore) || totalScore <= 0) {
     return 0;
   }
 
   return Number(totalScore.toFixed(2));
+}
+
+function getUsernameVariants(username: string): string[] {
+  const raw = username.replace(/^@/, '');
+  const clean = raw.toLowerCase();
+  return Array.from(new Set([clean, `@${clean}`, raw, `@${raw}`]));
+}
+
+function parseBigIntSafe(val: bigint | string | number | null | undefined): bigint | null {
+  if (val === null || val === undefined || val === '') return null;
+  try {
+    return BigInt(val);
+  } catch {
+    return null;
+  }
+}
+
+async function resolveCitingSubscribersMap(
+  prisma: PrismaClient,
+  sourceChannelIds: number[]
+): Promise<Map<number, number>> {
+  const subsMap = new Map<number, number>();
+  if (sourceChannelIds.length === 0) return subsMap;
+
+  const snapshots = await prisma.snapshot.findMany({
+    where: { channelId: { in: sourceChannelIds } },
+    orderBy: { collectedAt: 'desc' },
+    distinct: ['channelId'],
+    select: { channelId: true, membersCount: true },
+  });
+
+  for (const s of snapshots) {
+    subsMap.set(s.channelId, s.membersCount);
+  }
+
+  // Fallback: if any citing channels don't have snapshots yet, check subscribersAtPublish on their posts
+  const missingSourceIds = sourceChannelIds.filter((id) => !subsMap.has(id));
+  if (missingSourceIds.length > 0) {
+    const fallbackPosts = await prisma.post.findMany({
+      where: {
+        channelId: { in: missingSourceIds },
+        subscribersAtPublish: { not: null, gt: 0 },
+      },
+      orderBy: { publishedAt: 'desc' },
+      distinct: ['channelId'],
+      select: { channelId: true, subscribersAtPublish: true },
+    });
+    for (const p of fallbackPosts) {
+      if (p.subscribersAtPublish && !subsMap.has(p.channelId)) {
+        subsMap.set(p.channelId, p.subscribersAtPublish);
+      }
+    }
+  }
+
+  return subsMap;
 }
 
 /**
@@ -339,19 +414,13 @@ export async function getCitationIndexForChannel(
   channel: { id: number; username: string | null; tgId: bigint | string | number | null },
   dateLimit: Date = new Date(Date.now() - 30 * 24 * 3600 * 1000)
 ): Promise<number> {
-  const orConditions: any[] = [];
+  const orConditions: Prisma.MentionWhereInput[] = [];
   if (channel.username) {
-    const cleanUsername = channel.username.replace(/^@/, '').toLowerCase();
-    const rawUsername = channel.username.replace(/^@/, '');
-    const userVariants = Array.from(new Set([cleanUsername, `@${cleanUsername}`, rawUsername, `@${rawUsername}`]));
-    orConditions.push({ targetUsername: { in: userVariants } });
+    orConditions.push({ targetUsername: { in: getUsernameVariants(channel.username) } });
   }
-  if (channel.tgId) {
-    try {
-      orConditions.push({ targetTgId: BigInt(channel.tgId) });
-    } catch {
-      // ignore invalid tgId
-    }
+  const tgId = parseBigIntSafe(channel.tgId);
+  if (tgId !== null) {
+    orConditions.push({ targetTgId: tgId });
   }
 
   if (orConditions.length === 0) return 0;
@@ -366,46 +435,17 @@ export async function getCitationIndexForChannel(
         createdAt: { gte: dateLimit },
         sourceChannelId: { not: channel.id }, // Exclude self-citations
       },
-      _count: { id: true }
+      _count: { id: true },
     });
 
     if (inboundRaw.length === 0) return 0;
 
-    const sourceChannelIds = Array.from(new Set(inboundRaw.map(i => i.sourceChannelId)));
-    const snapshots = await prisma.snapshot.findMany({
-      where: { channelId: { in: sourceChannelIds } },
-      orderBy: { collectedAt: 'desc' },
-      distinct: ['channelId'],
-      select: { channelId: true, membersCount: true }
-    });
+    const sourceChannelIds = Array.from(new Set(inboundRaw.map((i) => i.sourceChannelId)));
+    const subsMap = await resolveCitingSubscribersMap(prisma, sourceChannelIds);
 
-    const subsMap = new Map<number, number>();
-    for (const s of snapshots) {
-      subsMap.set(s.channelId, s.membersCount);
-    }
-
-    // Fallback: if any citing channels don't have snapshots yet, check subscribersAtPublish on their posts
-    const missingSourceIds = sourceChannelIds.filter(id => !subsMap.has(id));
-    if (missingSourceIds.length > 0) {
-      const fallbackPosts = await prisma.post.findMany({
-        where: {
-          channelId: { in: missingSourceIds },
-          subscribersAtPublish: { not: null, gt: 0 },
-        },
-        orderBy: { publishedAt: 'desc' },
-        distinct: ['channelId'],
-        select: { channelId: true, subscribersAtPublish: true }
-      });
-      for (const p of fallbackPosts) {
-        if (p.subscribersAtPublish && !subsMap.has(p.channelId)) {
-          subsMap.set(p.channelId, p.subscribersAtPublish);
-        }
-      }
-    }
-
-    const citations: CitationMention[] = inboundRaw.map(item => ({
+    const citations: CitationMention[] = inboundRaw.map((item) => ({
       mentions: item._count.id,
-      citing_subscribers: subsMap.get(item.sourceChannelId) || 0
+      citing_subscribers: subsMap.get(item.sourceChannelId) || 0,
     }));
 
     return calculateCitationIndex(citations);
@@ -446,19 +486,11 @@ export async function getCitationIndicesForChannels(
 
     for (const ch of channels) {
       if (ch.username) {
-        const clean = ch.username.replace(/^@/, '').toLowerCase();
-        const raw = ch.username.replace(/^@/, '');
-        targetUsernames.push(clean, `@${clean}`);
-        if (raw !== clean) {
-          targetUsernames.push(raw, `@${raw}`);
-        }
+        targetUsernames.push(...getUsernameVariants(ch.username));
       }
-      if (ch.tgId) {
-        try {
-          targetTgIds.push(BigInt(ch.tgId));
-        } catch {
-          // ignore
-        }
+      const tgId = parseBigIntSafe(ch.tgId);
+      if (tgId !== null) {
+        targetTgIds.push(tgId);
       }
     }
 
@@ -469,7 +501,7 @@ export async function getCitationIndicesForChannels(
       return resultMap;
     }
 
-    const orClauses: any[] = [];
+    const orClauses: Prisma.MentionWhereInput[] = [];
     if (uniqueUsernames.length > 0) {
       orClauses.push({ targetUsername: { in: uniqueUsernames } });
     }
@@ -486,62 +518,26 @@ export async function getCitationIndicesForChannels(
         sourceChannelId: true,
         targetUsername: true,
         targetTgId: true,
-      }
+      },
     });
 
     if (inboundMentions.length === 0) return resultMap;
 
-    const sourceChannelIds = Array.from(new Set(inboundMentions.map(m => m.sourceChannelId)));
-    const snapshots = await prisma.snapshot.findMany({
-      where: { channelId: { in: sourceChannelIds } },
-      orderBy: { collectedAt: 'desc' },
-      distinct: ['channelId'],
-      select: { channelId: true, membersCount: true }
-    });
-
-    const subsMap = new Map<number, number>();
-    for (const s of snapshots) {
-      subsMap.set(s.channelId, s.membersCount);
-    }
-
-    // Fallback: if any citing channels don't have snapshots yet, check subscribersAtPublish on their posts
-    const missingSourceIds = sourceChannelIds.filter(id => !subsMap.has(id));
-    if (missingSourceIds.length > 0) {
-      const fallbackPosts = await prisma.post.findMany({
-        where: {
-          channelId: { in: missingSourceIds },
-          subscribersAtPublish: { not: null, gt: 0 },
-        },
-        orderBy: { publishedAt: 'desc' },
-        distinct: ['channelId'],
-        select: { channelId: true, subscribersAtPublish: true }
-      });
-      for (const p of fallbackPosts) {
-        if (p.subscribersAtPublish && !subsMap.has(p.channelId)) {
-          subsMap.set(p.channelId, p.subscribersAtPublish);
-        }
-      }
-    }
+    const sourceChannelIds = Array.from(new Set(inboundMentions.map((m) => m.sourceChannelId)));
+    const subsMap = await resolveCitingSubscribersMap(prisma, sourceChannelIds);
 
     for (const ch of channels) {
       const usernameLower = ch.username ? ch.username.replace(/^@/, '').toLowerCase() : null;
-      let tgIdBigInt: bigint | null = null;
-      if (ch.tgId) {
-        try {
-          tgIdBigInt = BigInt(ch.tgId);
-        } catch {
-          tgIdBigInt = null;
-        }
-      }
+      const tgIdBigInt = parseBigIntSafe(ch.tgId);
 
-      const mentionsForCh = inboundMentions.filter(m => {
+      const mentionsForCh = inboundMentions.filter((m) => {
         // Exclude self-citations
         if (m.sourceChannelId === ch.id) return false;
 
         if (usernameLower && m.targetUsername && m.targetUsername.replace(/^@/, '').toLowerCase() === usernameLower) {
           return true;
         }
-        if (tgIdBigInt && m.targetTgId && BigInt(m.targetTgId) === tgIdBigInt) {
+        if (tgIdBigInt !== null && m.targetTgId !== null && BigInt(m.targetTgId) === tgIdBigInt) {
           return true;
         }
         return false;
@@ -559,7 +555,7 @@ export async function getCitationIndicesForChannels(
       for (const [sourceId, count] of sourceCountMap.entries()) {
         citations.push({
           mentions: count,
-          citing_subscribers: subsMap.get(sourceId) || 0
+          citing_subscribers: subsMap.get(sourceId) || 0,
         });
       }
 

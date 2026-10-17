@@ -1,9 +1,34 @@
-import { describe, it, expect } from 'vitest';
-import { calculateCitationIndex } from '../citationIndex';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  calculateCitationIndex,
+  getCitationIndexForChannel,
+  getCitationIndicesForChannels,
+} from '../citationIndex';
 import { calculateCitationIndex as metricsCalculateCitationIndex } from '../metrics';
+
+const mockPrisma = vi.hoisted(() => ({
+  mention: {
+    groupBy: vi.fn(),
+    findMany: vi.fn(),
+  },
+  snapshot: {
+    findMany: vi.fn(),
+  },
+  post: {
+    findMany: vi.fn(),
+  },
+}));
+
+vi.mock('../prisma', () => ({
+  prisma: mockPrisma,
+}));
 
 describe('calculateCitationIndex', () => {
   const fixedNow = new Date('2026-09-13T12:00:00Z');
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   describe('logarithmic weighting', () => {
     it('correctly weights citations logarithmically for a single citing channel', () => {
@@ -237,6 +262,54 @@ describe('calculateCitationIndex', () => {
     it('supports direct numeric strings representing subscriber count', () => {
       expect(calculateCitationIndex('1000')).toBe(3);
       expect(calculateCitationIndex('10,000')).toBe(4);
+    });
+  });
+
+  describe('database helpers (getCitationIndexForChannel / getCitationIndicesForChannels)', () => {
+    it('resolves citing subscribers from snapshots and falls back to post subscribersAtPublish', async () => {
+      mockPrisma.mention.groupBy.mockResolvedValue([
+        { sourceChannelId: 2, _count: { id: 2 } },
+        { sourceChannelId: 3, _count: { id: 1 } },
+      ]);
+      mockPrisma.snapshot.findMany.mockResolvedValue([
+        { channelId: 2, membersCount: 1000 }, // log10(1000) = 3 * 2 = 6
+      ]);
+      mockPrisma.post.findMany.mockResolvedValue([
+        { channelId: 3, subscribersAtPublish: 10000 }, // fallback: log10(10000) = 4 * 1 = 4
+      ]);
+
+      const score = await getCitationIndexForChannel(
+        { id: 1, username: '@MyChannel', tgId: 123456n },
+        fixedNow
+      );
+      expect(score).toBe(10);
+      expect(mockPrisma.snapshot.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.post.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('batch-calculates citation indices and excludes self-citations', async () => {
+      mockPrisma.mention.findMany.mockResolvedValue([
+        { sourceChannelId: 1, targetUsername: 'ch_one', targetTgId: null }, // self-citation -> ignored
+        { sourceChannelId: 2, targetUsername: '@Ch_One', targetTgId: null }, // valid for ch 1
+        { sourceChannelId: 2, targetUsername: null, targetTgId: 999n }, // valid for ch 3
+      ]);
+      mockPrisma.snapshot.findMany.mockResolvedValue([
+        { channelId: 2, membersCount: 10000 }, // log10(10000) = 4
+      ]);
+      mockPrisma.post.findMany.mockResolvedValue([]);
+
+      const map = await getCitationIndicesForChannels(
+        [
+          { id: 1, username: 'Ch_One', tgId: null },
+          { id: 2, username: 'Ch_Two', tgId: null },
+          { id: 3, username: null, tgId: '999' },
+        ],
+        fixedNow
+      );
+
+      expect(map.get(1)).toBe(4);
+      expect(map.get(2)).toBe(0);
+      expect(map.get(3)).toBe(4);
     });
   });
 });

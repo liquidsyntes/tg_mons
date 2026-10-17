@@ -328,7 +328,7 @@ describe('Fraud Detector', () => {
     });
 
     it('handles numeric string growth rates', () => {
-      const resultStr = checkLowCitationGrowth("15" as any, 0);
+      const resultStr = checkLowCitationGrowth("15", 0);
       expect(resultStr.flag).toBe(true);
       expect(resultStr.growthRate).toBe(15);
     });
@@ -354,25 +354,25 @@ describe('Fraud Detector', () => {
     });
 
     it('handles edge case and malformed inputs without crashing', () => {
-      expect(checkLowCitationGrowth(null as any).flag).toBe(false);
-      expect(checkLowCitationGrowth(undefined as any).flag).toBe(false);
+      expect(checkLowCitationGrowth(null).flag).toBe(false);
+      expect(checkLowCitationGrowth(undefined).flag).toBe(false);
       expect(checkLowCitationGrowth(NaN, NaN).flag).toBe(false);
       expect(checkLowCitationGrowth(10, null).flag).toBe(true);
     });
 
     it('clears channel when citationIndex is passed as numeric string or BigInt', () => {
       // 10% growth with citation index "15" (string) -> should NOT flag
-      const resultStr = checkLowCitationGrowth(10, "15" as any);
+      const resultStr = checkLowCitationGrowth(10, "15");
       expect(resultStr.flag).toBe(false);
       expect(resultStr.citationIndex).toBe(15);
 
       // Object with citation index "20" -> should NOT flag
-      const resultObjStr = checkLowCitationGrowth({ growthRate: 10, citationIndex: "20" as any });
+      const resultObjStr = checkLowCitationGrowth({ growthRate: 10, citationIndex: "20" });
       expect(resultObjStr.flag).toBe(false);
       expect(resultObjStr.citationIndex).toBe(20);
 
       // Object with citation index 20n (BigInt) -> should NOT flag
-      const resultObjBigInt = checkLowCitationGrowth({ growthRate: 10, citationIndex: 20n as any });
+      const resultObjBigInt = checkLowCitationGrowth({ growthRate: 10, citationIndex: 20n });
       expect(resultObjBigInt.flag).toBe(false);
       expect(resultObjBigInt.citationIndex).toBe(20);
     });
@@ -389,7 +389,7 @@ describe('Fraud Detector', () => {
       expect(resultPlus.growthRate).toBe(15);
 
       // BigInt growth: 10n
-      const resultBigInt = checkLowCitationGrowth(10n as any, 0);
+      const resultBigInt = checkLowCitationGrowth(10n, 0);
       expect(resultBigInt.flag).toBe(true);
       expect(resultBigInt.growthRate).toBe(10);
     });
