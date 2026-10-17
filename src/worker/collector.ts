@@ -1,6 +1,8 @@
 import { TelegramClient } from 'telegram';
 import { getTelegramClient } from './client';
 import { materializeDailyMetrics } from '../lib/materialize';
+import { calculateChannelMetrics } from '../lib/metrics';
+import { checkChannelAlertRules } from '../lib/alerts';
 import { logger } from '../lib/logger';
 import {
   resolveChannelEntity,
@@ -32,7 +34,7 @@ import { readMessageContent } from './message-content';
 import { extractPostMentions } from './post-mentions';
 import { savePostImage } from './post-image';
 import {
-  sendTelegramAnomalyAlert,
+  sendTelegramRuleAlert,
   handleChannelError,
 } from './retry-policy';
 
@@ -91,15 +93,6 @@ export async function collectChannelData(
 
   let snapshotsAdded = 0;
   if (participantsCount !== null && participantsCount !== undefined) {
-    const previousSnapshot = await getPreviousSnapshot(channel.id);
-    if (previousSnapshot && previousSnapshot.membersCount > 0) {
-      const diff = participantsCount - previousSnapshot.membersCount;
-      const diffPercent = (diff / previousSnapshot.membersCount) * 100;
-      
-      if (Math.abs(diffPercent) >= 1 || Math.abs(diff) >= 500) {
-        await sendTelegramAnomalyAlert(channel.title, diff, diffPercent, participantsCount);
-      }
-    }
     await saveSnapshot(channel.id, participantsCount);
     snapshotsAdded = 1;
   }
@@ -245,9 +238,19 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
           await updateSyncJobProgress(syncJobId, successCount, undefined, totalPosts).catch((dbErr) => logger.error('SyncJob update failed', undefined, dbErr));
         }
 
+        let materialized = true;
         await materializeDailyMetrics(channel.id, 30).catch((err) => {
+          materialized = false;
           logger.error('Materialization failed', { title: channel.title }, err);
         });
+
+        if (materialized && process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+          try {
+            await checkChannelAlertRules(channel.id, () => calculateChannelMetrics(channel.id), sendTelegramRuleAlert);
+          } catch {
+            logger.warn('Alert rule evaluation failed', { channelId: channel.id });
+          }
+        }
 
         try {
           const recentMetrics = await prisma.channelMetricDaily.findMany({

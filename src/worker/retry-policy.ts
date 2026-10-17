@@ -1,27 +1,23 @@
 import { logger } from '../lib/logger';
 import { updateChannelErrorState } from './persister';
 
-export async function sendTelegramAnomalyAlert(channelTitle: string, diff: number, diffPercent: number, currentMembers: number) {
+export async function sendTelegramRuleAlert(message: string): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!token || !chatId) return;
-
-  const sign = diff > 0 ? '+' : '';
-  const emoji = diff > 0 ? '🚀' : '🔻';
-  const text = `${emoji} <b>Аномалия в канале "${channelTitle}"!</b>\n\nИзменение: ${sign}${diff} подписчиков (${sign}${diffPercent.toFixed(2)}%)\nТекущая аудитория: ${currentMembers}`;
+  if (!token || !chatId) return false;
 
   try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: 'HTML',
-      }),
+      body: JSON.stringify({ chat_id: chatId, text: message }),
+      signal: AbortSignal.timeout(10_000),
     });
-  } catch (err) {
-    logger.error('Telegram alert failed', undefined, err);
+    if (!response.ok) logger.warn('Telegram rule alert was rejected', { status: response.status });
+    return response.ok;
+  } catch {
+    logger.warn('Telegram rule alert request failed');
+    return false;
   }
 }
 

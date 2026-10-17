@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
+import { AlertRulesSettings } from '@/components/settings/AlertRulesSettings';
 import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu } from 'lucide-react';
 import Link from 'next/link';
 import type { FormEvent } from 'react';
@@ -210,6 +211,7 @@ export default function SettingsPage() {
             </div>
           </form>
         )}
+        <AlertRulesSettings />
       </main>
     </div>
   );
