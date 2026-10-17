@@ -44,13 +44,14 @@ npm run auth
 | CHANNEL_MAX_CONSECUTIVE_ERRORS | retry-policy | 10; отключение при достижении порога |
 | TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID | worker | Отправка пользовательских AlertRule и уведомлений об автоотключении; без обоих значений правила сохраняются, но не отправляются |
 | OPENROUTER_API_KEY | web AI/scanner | Резервный ключ для генеративных отчётов и сканера событий, включая Jev; можно задать через `/settings` |
+| APP_TIMEZONE | web | IANA-часовой пояс тепловых карт, почасового распределения и рекомендации публикации; по умолчанию `Europe/Moscow`, Compose передаёт в web |
 | HEALTH_STUCK_THRESHOLD_MINUTES | web health и захват SyncJob в worker | 120; Compose передаёт одинаковое значение обоим сервисам |
 | HEALTH_STALE_THRESHOLD_MINUTES | web health | 720 |
 | MY_CHANNEL_USERNAME | Никем не читается | Сохранён в примере, но не назначает «Мой канал» |
 
 Параметры DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры приведены в `.env.example` с дефолтными значениями. Compose передаёт `HEALTH_STUCK_THRESHOLD_MINUTES` обоим сервисам, но не передаёт остальные из этого списка и TELEGRAM_REQUEST_TIMEOUT_MS. Для них одного добавления переменной в `.env` недостаточно: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
 
-Ни compose, ни cron.schedule не задают timezone. Расписание и часть графиков используют часовой пояс процесса; дневная материализация — UTC. Учитывайте его при выборе расписания.
+Compose передаёт `APP_TIMEZONE` в web для тепловых карт, почасового распределения и рекомендации времени. Укажите корректное имя IANA, например `Europe/Moscow`. Расписание cron использует часовой пояс процесса; дневная материализация использует UTC. `APP_TIMEZONE` не изменяет cron.
 
 ## Режим 1: Локальная разработка в Docker (рекомендуемый, Hot Reload)
 

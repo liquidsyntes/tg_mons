@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { BestTimeRecommendation } from '@/lib/types';
 import { Sparkles, TrendingUp } from 'lucide-react';
 import { formatNumber, formatPercent } from '@/lib/utils';
+import { DEFAULT_APP_TIMEZONE, getZonedDateParts } from '@/lib/timezone';
 
-type UpcomingSlot = BestTimeRecommendation['heatmap'][number] & { nextDate: Date };
+type UpcomingSlot = BestTimeRecommendation['heatmap'][number] & { daysAhead: number };
 
 export function BestTimeWidget() {
   const [data, setData] = useState<BestTimeRecommendation | null>(null);
@@ -39,24 +40,20 @@ export function BestTimeWidget() {
     const topSlotsRaw = [...validSlots].sort((a, b) => b.score - a.score).slice(0, 5);
 
     const now = new Date();
-    const currentDay = now.getDay();
-    const currentHour = now.getHours();
+    const { dayOfWeek: currentDay, hour: currentHour } = getZonedDateParts(now, data.timeZone || DEFAULT_APP_TIMEZONE);
 
-    const getNextDate = (day: number, hour: number) => {
-      const date = new Date(now);
+    const getDaysAhead = (day: number, hour: number) => {
       let daysAhead = day - currentDay;
       // If it's earlier in the week, or it's today but the hour has passed, it's next week
       if (daysAhead < 0 || (daysAhead === 0 && hour <= currentHour)) {
         daysAhead += 7;
       }
-      date.setDate(date.getDate() + daysAhead);
-      date.setHours(hour, 0, 0, 0);
-      return date;
+      return daysAhead;
     };
 
     const upcoming = topSlotsRaw.map(slot => ({
       ...slot,
-      nextDate: getNextDate(slot.day, slot.hour)
+      daysAhead: getDaysAhead(slot.day, slot.hour)
     }));
 
     // Sort by chronological order, but we only want to pick the top 2 overall scores
@@ -93,17 +90,10 @@ export function BestTimeWidget() {
   const bestSlot = upcomingSlots[0];
   const secondSlot = upcomingSlots[1];
 
-  const formatNextDate = (date: Date) => {
-    const now = new Date();
-    const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth();
-    
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const isTomorrow = date.getDate() === tomorrow.getDate() && date.getMonth() === tomorrow.getMonth();
-
-    if (isToday) return 'Сегодня';
-    if (isTomorrow) return 'Завтра';
-    return daysFull[date.getDay()];
+  const formatNextDate = (slot: UpcomingSlot) => {
+    if (slot.daysAhead === 0) return 'Сегодня';
+    if (slot.daysAhead === 1) return 'Завтра';
+    return daysFull[slot.day];
   };
 
   return (
@@ -120,7 +110,7 @@ export function BestTimeWidget() {
             <TrendingUp className="w-3 h-3" /> Топ-1 Окно
           </div>
           <div className="text-2xl font-bold text-white flex items-center gap-2">
-            <span className="text-emerald-400">{formatNextDate(bestSlot.nextDate)}</span>
+            <span className="text-emerald-400">{formatNextDate(bestSlot)}</span>
             <span className="text-slate-500">в</span>
             <span>{bestSlot.hour.toString().padStart(2, '0')}:00</span>
           </div>
@@ -148,7 +138,7 @@ export function BestTimeWidget() {
               <TrendingUp className="w-3 h-3" /> Топ-2 Окно
             </div>
             <div className="text-2xl font-bold text-white flex items-center gap-2">
-              <span className="text-blue-400">{formatNextDate(secondSlot.nextDate)}</span>
+              <span className="text-blue-400">{formatNextDate(secondSlot)}</span>
               <span className="text-slate-500">в</span>
               <span>{secondSlot.hour.toString().padStart(2, '0')}:00</span>
             </div>
@@ -172,7 +162,7 @@ export function BestTimeWidget() {
       </div>
       
       <p className="text-xs text-slate-400 leading-relaxed">
-        Время рассчитано на основе охвата относительно аудитории (VR) и количества публикаций отслеживаемых чужих каналов за последние 30 дней. Указано ближайшее окно.
+        Время рассчитано на основе охвата относительно аудитории (VR) и количества публикаций отслеживаемых чужих каналов за последние 30 дней. Указано ближайшее окно в часовом поясе {data.timeZone || DEFAULT_APP_TIMEZONE}.
       </p>
     </div>
   );

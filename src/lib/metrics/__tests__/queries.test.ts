@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { metricsCache } from '../../cache';
 import { channel as channelMetrics } from '../../__tests__/fixtures/channel-metrics';
 
@@ -25,7 +25,7 @@ vi.mock('../../citationIndex', () => ({
 vi.mock('../../fraudDetector', () => ({ runFraudAudit: vi.fn(() => ({ fraudScore: 0, signals: [] })) }));
 vi.mock('../../scoring', () => ({ calculateContentScore: vi.fn(() => ({})) }));
 
-import { getChannelDetailStats, getOverviewStats } from '../queries';
+import { getBestTimeRecommendation, getChannelDetailStats, getOverviewStats } from '../queries';
 
 const channel = (id: number) => ({
   id, title: `Channel ${id}`, username: `channel${id}`, tgId: null, type: 'channel', niche: 'general',
@@ -45,6 +45,38 @@ beforeEach(() => {
   db.fraudFindMany.mockResolvedValue([]);
   calculations.materialized.mockImplementation((item: { id: number }) => ({ ...channelMetrics, id: item.id }));
   calculations.fallback.mockImplementation((item: { id: number }) => ({ ...channelMetrics, id: item.id }));
+});
+
+afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
+
+describe('zoned publication time', () => {
+  it('places posts in the same local hour and weekday on servers with different TZ', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-18T12:00:00.000Z'));
+    vi.stubEnv('APP_TIMEZONE', 'Europe/Moscow');
+    const post = {
+      id: 10, channelId: 1, messageId: BigInt(10), publishedAt: new Date('2026-10-17T22:30:00.000Z'),
+      views: 100, reactions: 0, comments: 0, forwards: 0, text: 'Example post',
+    };
+    db.postFindMany.mockResolvedValue([post]);
+    db.channelFindMany.mockResolvedValue([{ ...channel(1), snapshots: [{ membersCount: 1000 }] }]);
+    metricsCache.set('overview', { channels: [{ ...channelMetrics, id: 1 }], myChannel: null });
+
+    vi.stubEnv('TZ', 'UTC');
+    const utcDetail = await getChannelDetailStats(1, '24h');
+    const utcBestTime = await getBestTimeRecommendation();
+    vi.stubEnv('TZ', 'America/Los_Angeles');
+    const pacificDetail = await getChannelDetailStats(1, '24h');
+    const pacificBestTime = await getBestTimeRecommendation();
+
+    expect(utcDetail?.heatmapData.find(cell => cell.day === 0 && cell.hour === 1)?.count).toBe(1);
+    expect(utcDetail?.postsDistribution.find(bucket => bucket.date === '01:00')?.postsCount).toBe(1);
+    expect(pacificDetail?.heatmapData).toEqual(utcDetail?.heatmapData);
+    expect(pacificDetail?.postsDistribution).toEqual(utcDetail?.postsDistribution);
+    expect(utcBestTime?.heatmap.find(cell => cell.day === 0 && cell.hour === 1)?.postCount).toBe(1);
+    expect(pacificBestTime).toEqual(utcBestTime);
+    expect(utcBestTime?.timeZone).toBe('Europe/Moscow');
+  });
 });
 
 describe('metrics query batching', () => {

@@ -49,7 +49,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `GET /api/stats/dashboard` | Нет тела | KPI, `avgErr`, `avgScore`, topGainers/topLosers, postsTimeline/subscribersTimeline только по активным каналам |
 | `GET /api/stats/channel/:id` | `period=24h`, `7d` или `30d`, default `7d` | `{channel,myChannel,period,scoreBreakdown,membersHistory,postsDistribution,vrHistory,heatmapData,myHeatmapData,recentPosts}` |
 | `GET /api/stats/compare` | Обязательные `a`, `b` — ID каналов; `period` как выше | `{ "a": ChannelDetailStats, "b": ChannelDetailStats, "period": "7d" }`; 400 без ID, 404 если канал не найден |
-| `GET /api/stats/best-time` | — | `{bestDay,bestHour,score,avgViews,avgVr,postCount,heatmap}` или `null`, если нет активных конкурентов |
+| `GET /api/stats/best-time` | Нет параметров | `{timeZone,bestDay,bestHour,score,avgViews,avgVr,postCount,heatmap}` или `null`, если нет активных конкурентов |
 | `GET /api/stats/trends` | — | Последний сохранённый trend: `{createdAt,data}`; `null` при отсутствии/невалидном JSON, новую генерацию не запускает |
 | `GET /api/stats/demographics/:id` | Положительный Int ID | Последний языковой снимок; контракт ниже |
 
@@ -84,13 +84,13 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `q` | Подстрока текста, поиск без учёта регистра |
 | `dateFrom`, `dateTo` | Границы публикации; dateTo расширяется до конца дня в часовом поясе процесса |
 | `minViews`, `maxViews` | Границы просмотров |
-| `type` | `all` по умолчанию; `ads` и `partners` включают отдельные текстовые фильтры |
+| `type` | `all` по умолчанию; `ads` выбирает сохранённые `Post.isAd: true`, `partners` использует текстовые маркеры |
 | `limit`, `offset` | По умолчанию 15 и 0 |
 | `sortBy` | `date` по умолчанию, `views_desc`, `views_asc` |
 
 `posts[].text` — обычный текст или `null`. Для успешно собранной статьи это текст, извлечённый из `richMessage`, а не HTML и не набор блоков Telegram. Нового поля или отдельного endpoint статей нет. При неудачной догрузке сохраняется прежний текст, если он был; причина отсутствия текста отдельным полем не возвращается.
 
-Ответ: `{posts,total,absoluteTotal}`. `posts` содержит строковые messageId/groupedId и результат `detectAd` в `ad`; total учитывает фильтры, absoluteTotal — все посты канала. Поиск реализован Prisma `contains`, не полнотекстовым ранжированием. Фильтры ads/partners ищут слова в тексте и не равны фильтрации по `Post.isAd`.
+Ответ: `{posts,total,absoluteTotal}`. `posts` содержит строковые messageId/groupedId и результат `detectAd` в `ad`; total учитывает фильтры, absoluteTotal учитывает все посты канала. Поиск реализован Prisma `contains`, без полнотекстового ранжирования. Фильтр `ads` использует сохранённый флаг `Post.isAd`, как и `adShare`; при сборе этот флаг выставляется по `detectAd.isAd || detectAd.isPartner`. Поле `ad` описывает маркеры из текущего текста и может отличаться от сохранённого флага, если текст изменился после классификации.
 
 ## AI-отчёты
 

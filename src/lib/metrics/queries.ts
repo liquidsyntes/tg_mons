@@ -6,6 +6,7 @@ import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../ci
 import { runFraudAudit } from '../fraudDetector';
 import { metricsCache } from '../cache';
 import { computeNicheStats, calculateEP, type ChannelSnapshot } from '../ep';
+import { getAppTimezone, getZonedDateParts } from '../timezone';
 
 
 const MS_HOUR = 3600 * 1000;
@@ -415,21 +416,23 @@ export async function getChannelDetailStats(
     : [];
 
   const postsByDateMap = new Map<string, { count: number; totalViews: number; viewPosts: number }>();
+  const timeZone = getAppTimezone();
+  const currentLocalDate = new Date(`${getZonedDateParts(now, timeZone).dateKey}T00:00:00.000Z`);
 
   const dayCount = period === '24h' ? 24 : period === '7d' ? 7 : 30;
   for (let i = dayCount; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * (period === '24h' ? MS_HOUR : 24 * MS_HOUR));
+    const d = new Date((period === '24h' ? now : currentLocalDate).getTime() - i * (period === '24h' ? MS_HOUR : MS_24H));
     const key = period === '24h'
-      ? `${d.getUTCHours().toString().padStart(2, '0')}:00`
+      ? `${getZonedDateParts(d, timeZone).hour.toString().padStart(2, '0')}:00`
       : d.toISOString().slice(0, 10);
     postsByDateMap.set(key, { count: 0, totalViews: 0, viewPosts: 0 });
   }
 
   for (const p of posts) {
-    const d = new Date(p.publishedAt);
+    const local = getZonedDateParts(p.publishedAt, timeZone);
     const key = period === '24h'
-      ? `${d.getUTCHours().toString().padStart(2, '0')}:00`
-      : d.toISOString().slice(0, 10);
+      ? `${local.hour.toString().padStart(2, '0')}:00`
+      : local.dateKey;
 
     const curr = postsByDateMap.get(key) || { count: 0, totalViews: 0, viewPosts: 0 };
     curr.count += 1;
@@ -448,9 +451,7 @@ export async function getChannelDetailStats(
 
   const heatmapGrid = Array.from({ length: 7 }, () => Array(24).fill(0));
   for (const p of posts) {
-    const d = new Date(p.publishedAt);
-    const day = d.getDay();
-    const hour = d.getHours();
+    const { dayOfWeek: day, hour } = getZonedDateParts(p.publishedAt, timeZone);
     heatmapGrid[day][hour] += 1;
   }
   
@@ -463,9 +464,7 @@ export async function getChannelDetailStats(
 
   const myHeatmapGrid = Array.from({ length: 7 }, () => Array(24).fill(0));
   for (const p of myPosts) {
-    const d = new Date(p.publishedAt);
-    const day = d.getDay();
-    const hour = d.getHours();
+    const { dayOfWeek: day, hour } = getZonedDateParts(p.publishedAt, timeZone);
     myHeatmapGrid[day][hour] += 1;
   }
   
@@ -585,10 +584,9 @@ export async function getBestTimeRecommendation() {
     }
   }
 
+  const timeZone = getAppTimezone();
   for (const p of posts) {
-    const d = new Date(p.publishedAt);
-    const day = d.getDay();
-    const hour = d.getHours();
+    const { dayOfWeek: day, hour } = getZonedDateParts(p.publishedAt, timeZone);
     const key = `${day}-${hour}`;
     
     slots[key].count += 1;
@@ -647,6 +645,7 @@ export async function getBestTimeRecommendation() {
   }
 
   return {
+    timeZone,
     bestDay: bestSlot.day,
     bestHour: bestSlot.hour,
     score: Number((bestSlot.score * 100).toFixed(1)),

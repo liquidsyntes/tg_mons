@@ -121,6 +121,7 @@ export interface ChannelDetailStats {
 }
 
 export interface BestTimeRecommendation {
+  timeZone?: string;
   bestDay: number;
   bestHour: number;
   score: number;

@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { detectAd } from '@/lib/adDetector';
+import type { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,36 +24,32 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'channelId required' }, { status: 400 });
     }
 
-    const where: any = { channelId };
+    const where: Prisma.PostWhereInput = { channelId };
 
     if (q) {
       where.text = { contains: q, mode: 'insensitive' };
     }
 
     if (dateFrom || dateTo) {
-      where.publishedAt = {};
-      if (dateFrom) where.publishedAt.gte = new Date(dateFrom);
+      const publishedAt: Prisma.DateTimeFilter = {};
+      if (dateFrom) publishedAt.gte = new Date(dateFrom);
       if (dateTo) {
         const toDate = new Date(dateTo);
         toDate.setHours(23, 59, 59, 999);
-        where.publishedAt.lte = toDate;
+        publishedAt.lte = toDate;
       }
+      where.publishedAt = publishedAt;
     }
 
     if (minViews || maxViews) {
-      where.views = {};
-      if (minViews) where.views.gte = parseInt(minViews, 10);
-      if (maxViews) where.views.lte = parseInt(maxViews, 10);
+      const views: Prisma.IntNullableFilter = {};
+      if (minViews) views.gte = parseInt(minViews, 10);
+      if (maxViews) views.lte = parseInt(maxViews, 10);
+      where.views = views;
     }
 
     if (type === 'ads') {
-      where.OR = [
-        { text: { contains: 'реклам', mode: 'insensitive' } },
-        { text: { contains: 'erid', mode: 'insensitive' } },
-        { text: { contains: 'promo', mode: 'insensitive' } },
-        { text: { contains: '#ad', mode: 'insensitive' } },
-        { text: { contains: 'спонсор', mode: 'insensitive' } }
-      ];
+      where.isAd = true;
     } else if (type === 'partners') {
        where.OR = [
         { text: { contains: 'партнер', mode: 'insensitive' } },
@@ -63,7 +60,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    let orderBy: any = { publishedAt: 'desc' };
+    let orderBy: Prisma.PostOrderByWithRelationInput = { publishedAt: 'desc' };
     if (sortBy === 'views_desc') orderBy = { views: 'desc' };
     else if (sortBy === 'views_asc') orderBy = { views: 'asc' };
 
@@ -90,8 +87,8 @@ export async function GET(req: Request) {
       total,
       absoluteTotal,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Search API error:', undefined, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Search failed' }, { status: 500 });
   }
 }
