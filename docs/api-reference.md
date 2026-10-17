@@ -170,17 +170,19 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 
 ### `GET /api/health`
 
-Читает последний SyncJob по startedAt, без Bearer:
+Проверяет соединение с БД через `SELECT 1`, читает последний SyncJob по startedAt и самый ранний активный канал, без Bearer:
 
 | Условие | Статус |
 | --- | --- |
-| SyncJob ещё нет | 503, `no sync jobs found` |
+| Нет активных каналов и нет зависшего SyncJob | 200, `{status:"idle"}` |
+| SyncJob ещё нет, активный канал создан недавно или web запущен недавно | 200, `{status:"initializing"}` |
+| SyncJob ещё нет, активные каналы есть, прошло больше HEALTH_STALE_THRESHOLD_MINUTES (720) с запуска web и создания самого раннего активного канала | 503, `sync job stale` |
 | Нет endedAt и прошло больше HEALTH_STUCK_THRESHOLD_MINUTES (120) | 503, `sync job stuck` |
-| После endedAt прошло больше HEALTH_STALE_THRESHOLD_MINUTES (720) | 503, `sync job stale` |
-| Ошибка запроса к БД | 500, `internal server error` |
+| После endedAt прошло больше HEALTH_STALE_THRESHOLD_MINUTES (720), есть активные каналы | 503, `sync job stale` |
+| БД недоступна | 503, `database unavailable` |
 | Остальное | 200, `{status:"ok",lastSyncStatus,lastSyncEndedAt,channelsSucceeded,channelsFailed}` |
 
-Свежий FAILED/PARTIAL также может дать HTTP 200: handler проверяет давность, а не успешность сбора. Это не проверка lastCollectedAt каждого канала.
+Свежий FAILED/PARTIAL также может дать HTTP 200: handler проверяет давность, а не успешность сбора. Это не проверка lastCollectedAt каждого канала. Окно `initializing` отсчитывается заново при перезапуске web.
 
 ### `POST /api/internal/invalidate-cache`
 

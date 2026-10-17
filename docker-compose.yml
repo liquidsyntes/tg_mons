@@ -11,6 +11,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tgmon"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   web:
     build:
@@ -26,11 +32,13 @@ services:
       WORKER_INTERNAL_URL: ${WORKER_INTERNAL_URL:-http://worker:4001}
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
       HEALTH_STUCK_THRESHOLD_MINUTES: ${HEALTH_STUCK_THRESHOLD_MINUTES:-120}
+      HEALTH_STALE_THRESHOLD_MINUTES: ${HEALTH_STALE_THRESHOLD_MINUTES:-720}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   worker:
     build:
@@ -55,7 +63,8 @@ services:
     expose:
       - "4001"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

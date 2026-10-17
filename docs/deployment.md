@@ -46,10 +46,10 @@ npm run auth
 | OPENROUTER_API_KEY | web AI/scanner | Резервный ключ для генеративных отчётов и сканера событий, включая Jev; можно задать через `/settings` |
 | APP_TIMEZONE | web | IANA-часовой пояс тепловых карт, почасового распределения и рекомендации публикации; по умолчанию `Europe/Moscow`, Compose передаёт в web |
 | HEALTH_STUCK_THRESHOLD_MINUTES | web health и захват SyncJob в worker | 120; Compose передаёт одинаковое значение обоим сервисам |
-| HEALTH_STALE_THRESHOLD_MINUTES | web health | 720 |
+| HEALTH_STALE_THRESHOLD_MINUTES | web health | 720; Compose передаёт в web |
 | MY_CHANNEL_USERNAME | Никем не читается | Сохранён в примере, но не назначает «Мой канал» |
 
-Параметры DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры приведены в `.env.example` с дефолтными значениями. Compose передаёт `HEALTH_STUCK_THRESHOLD_MINUTES` обоим сервисам, но не передаёт остальные из этого списка и TELEGRAM_REQUEST_TIMEOUT_MS. Для них одного добавления переменной в `.env` недостаточно: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
+Параметры DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры приведены в `.env.example` с дефолтными значениями. Compose передаёт `HEALTH_STUCK_THRESHOLD_MINUTES` обоим сервисам и `HEALTH_STALE_THRESHOLD_MINUTES` в web, но не передаёт DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и TELEGRAM_REQUEST_TIMEOUT_MS. Для них одного добавления переменной в `.env` недостаточно: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
 
 Compose передаёт `APP_TIMEZONE` в web для тепловых карт, почасового распределения и рекомендации времени. Укажите корректное имя IANA, например `Europe/Moscow`. Расписание cron использует часовой пояс процесса; дневная материализация использует UTC. `APP_TIMEZONE` не изменяет cron.
 
@@ -121,7 +121,7 @@ Web-интерфейс доступен по адресу [http://localhost:4000
    docker compose up -d postgres
    docker compose build web worker
    ```
-4. Дождитесь готовности PostgreSQL и примените миграции через одноразовый контейнер:
+4. Дождитесь статуса `healthy` у PostgreSQL и примените миграции через одноразовый контейнер:
    ```bash
    docker compose run --rm --no-deps worker npm run prisma:migrate
    docker compose up -d web worker
@@ -129,7 +129,7 @@ Web-интерфейс доступен по адресу [http://localhost:4000
 
 Перед запуском web и worker с поддержкой изображений постов примените миграцию `20261016000000_add_post_images`. Она создаёт таблицу `post_images`; без неё чтение событий и сохранение изображений будут завершаться ошибкой. Для новых изображений нужны обновлённые образы обоих сервисов. Ранее собранные посты получают изображение только при повторном проходе сборщика по сообщениям.
 
-`depends_on` задаёт порядок запуска, но без healthcheck не гарантирует готовность БД. Ни Dockerfile, ни CMD не выполняют migrate автоматически. DATABASE_URL обоих приложений в YAML задан явно и не наследует одноимённую переменную из `.env`.
+PostgreSQL проходит `pg_isready -U postgres -d tgmon`; web и worker запускаются после статуса `healthy`. Проверка доступности PostgreSQL не применяет миграции и не подтверждает наличие таблиц приложения. Ни Dockerfile, ни CMD не выполняют migrate автоматически. DATABASE_URL обоих приложений в YAML задан явно и не наследует одноимённую переменную из `.env`.
 
 Web публикует 4000:4000, PostgreSQL — 5432:5432. Для сетевого размещения замените демонстрационный пароль согласованно в postgres и URL обоих приложений, ограничьте публикацию БД и доступ к web. Изменение POSTGRES_PASSWORD в YAML само по себе не меняет пароль существующего пользователя в уже созданном volume.
 
@@ -203,7 +203,7 @@ curl -i http://localhost:4000/api/health
 
 Логи нужного сервиса можно изучить локально через `docker compose logs --tail=100 worker` или `web`; они могут содержать данные каналов, поэтому перед публикацией их нужно обезличить.
 
-Health без SyncJob возвращает 503. Зависший незавершённый цикл старше 120 минут и завершённый старше 720 минут также дают 503. **Свежий FAILED/PARTIAL может вернуть 200**: проверяйте lastSyncStatus и channelsFailed в теле. UI отдельно считает канал stale после 3 часов.
+Health проверяет соединение с БД через `SELECT 1`. Без активных каналов он возвращает 200 `idle`. Если активные каналы есть, но SyncJob ещё нет, в пределах 720 минут с запуска web или создания самого раннего активного канала возвращается 200 `initializing`; после этого 503 `sync job stale`. Перезапуск web начинает это окно ожидания заново. Зависший незавершённый цикл старше 120 минут и завершённый старше 720 минут при активных каналах дают 503. Недоступная БД также даёт 503. **Свежий FAILED/PARTIAL может вернуть 200**: проверяйте lastSyncStatus и channelsFailed в теле. UI отдельно считает канал stale после 3 часов.
 
 При `COLLECT_ON_STARTUP=false` перезапуск worker не создаёт новый SyncJob: health до следующего цикла показывает прежний результат. Для проверки нового сборщика дождитесь cron или выполните один ручной сбор кнопкой в UI / `POST /api/collect/run`; второй одновременный запуск получит 409. Проверяйте `result.successCount/errorCount`, затем `lastSyncStatus=COMPLETED` и `channelsFailed=0`. Сам ответ `success:true` не гарантирует успех всех каналов.
 
