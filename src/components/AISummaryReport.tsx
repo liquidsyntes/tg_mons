@@ -23,13 +23,25 @@ export interface AISummaryData {
   conclusion: { main: string; priority: string };
 }
 
+export interface SummaryPostStats {
+  views?: number | null;
+  reactions?: number | null;
+  comments?: number | null;
+  forwards?: number | null;
+}
+
 interface Props {
   data: AISummaryData;
-  recentPosts?: any[];
+  recentPosts?: SummaryPostStats[];
 }
 
 export function AISummaryReport({ data, recentPosts }: Props) {
-  const aggregatedPost = (recentPosts || []).reduce((acc, p) => ({
+  const aggregatedPost = (recentPosts || []).reduce<{
+    views: number;
+    reactions: number;
+    comments: number;
+    forwards: number;
+  }>((acc, p) => ({
     views: acc.views + (p.views || 0),
     reactions: acc.reactions + (p.reactions || 0),
     comments: acc.comments + (p.comments || 0),

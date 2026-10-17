@@ -2,8 +2,43 @@
 
 import { User } from 'lucide-react';
 
+export interface AIPersonaData {
+  corePersonality?: {
+    archetype?: string;
+    temperament?: string;
+    dominanceLevel?: string;
+    bdsmRole?: string;
+    narcissismLevel?: {
+      score?: string | number;
+      status?: string;
+      reasoning?: string;
+    };
+  };
+  psychologicalTraits?: {
+    strengths?: string[];
+    weaknesses?: string[];
+    triggers?: string[];
+  };
+  fears?: {
+    explicitFears?: string[];
+    hiddenFears?: string[];
+    copingMechanism?: string;
+  };
+  moneyAndSuccessAttitude?: {
+    relationToMoney?: string;
+    relationToSuccess?: string;
+    flexingLevel?: string | number;
+  };
+  communicationStyle?: {
+    tone?: string;
+    manipulation?: string;
+    boundaries?: string;
+  };
+  summary?: string;
+}
+
 interface AIPersonaReportProps {
-  data: any;
+  data: AIPersonaData | null;
 }
 
 export function AIPersonaReport({ data }: AIPersonaReportProps) {
@@ -144,9 +179,9 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
               <span className="block text-xs text-amber-500/80 mb-2">Уровень флекса (демонстративности)</span>
               {(() => {
                 const flexStr = String(data.moneyAndSuccessAttitude.flexingLevel || '0');
-                const match = flexStr.match(/^(\d+)(?:(?:\s*из\s*10)|(?:\/10))?\s*(?:-|—|–)?\s*(.*)$/i);
+                const match = flexStr.match(/^(\d+)(?:(?:\s*из\s*10)|(?:\/10))?\s*(?:-|\u2014|\u2013)?\s*(.*)$/i);
                 const score = match ? Number(match[1]) : parseFloat(flexStr) || 0;
-                const desc = match && match[2] ? match[2] : (score > 0 ? flexStr.replace(/^\d+/, '').replace(/^(?:(?:\s*из\s*10)|(?:\/10))?\s*(?:-|—|–)?\s*/i, '') : flexStr);
+                const desc = match && match[2] ? match[2] : (score > 0 ? flexStr.replace(/^\d+/, '').replace(/^(?:(?:\s*из\s*10)|(?:\/10))?\s*(?:-|\u2014|\u2013)?\s*/i, '') : flexStr);
                 
                 return (
                   <div className="flex items-start gap-4">
@@ -203,7 +238,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
   );
 }
 
-export function aiPersonaToMarkdown(data: any): string {
+export function aiPersonaToMarkdown(data: AIPersonaData | null): string {
   if (!data) return '';
 
   let md = '# Психологический портрет автора канала (AI Анализ)\n\n';
@@ -224,20 +259,20 @@ export function aiPersonaToMarkdown(data: any): string {
   if (data.psychologicalTraits) {
     md += '## Психологические черты\n';
     md += '### Сильные стороны\n';
-    (data.psychologicalTraits.strengths || []).forEach((s: string) => md += '- ' + s + '\n');
+    (data.psychologicalTraits.strengths || []).forEach((s: string) => { md += '- ' + s + '\n'; });
     md += '\n### Слабости / Тени\n';
-    (data.psychologicalTraits.weaknesses || []).forEach((w: string) => md += '- ' + w + '\n');
+    (data.psychologicalTraits.weaknesses || []).forEach((w: string) => { md += '- ' + w + '\n'; });
     md += '\n### Триггеры\n';
-    (data.psychologicalTraits.triggers || []).forEach((t: string) => md += '- ' + t + '\n');
+    (data.psychologicalTraits.triggers || []).forEach((t: string) => { md += '- ' + t + '\n'; });
     md += '\n';
   }
 
   if (data.fears) {
     md += '## Страхи и компенсации\n';
     md += '### Проговариваемые страхи\n';
-    (data.fears.explicitFears || []).forEach((s: string) => md += '- ' + s + '\n');
+    (data.fears.explicitFears || []).forEach((s: string) => { md += '- ' + s + '\n'; });
     md += '\n### Скрытые страхи\n';
-    (data.fears.hiddenFears || []).forEach((w: string) => md += '- ' + w + '\n');
+    (data.fears.hiddenFears || []).forEach((w: string) => { md += '- ' + w + '\n'; });
     md += '\n### Коупинг-механизм (Защита)\n';
     md += data.fears.copingMechanism + '\n\n';
   }

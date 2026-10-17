@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2 } from 'lucide-react';
 import { AILoadingStatus } from '@/components/AILoadingStatus';
-import { AISummaryReport } from '@/components/AISummaryReport';
-import { AICompareReport } from '@/components/AICompareReport';
-import { AIAudienceReport } from '@/components/AIAudienceReport';
-import { AIPersonaReport, aiPersonaToMarkdown } from '@/components/channel/AIPersonaReport';
+import { AISummaryReport, AISummaryData, SummaryPostStats } from '@/components/AISummaryReport';
+import { AICompareReport, AICompareData } from '@/components/AICompareReport';
+import { AIAudienceReport, AIAudienceData } from '@/components/AIAudienceReport';
+import { AIPersonaReport, AIPersonaData, aiPersonaToMarkdown } from '@/components/channel/AIPersonaReport';
+import {
+  aiAudienceToMarkdown,
+  aiCompareDataToMarkdown,
+  aiDataToMarkdown,
+  downloadMarkdown,
+} from '@/lib/ai-markdown';
 import { ChannelMetrics } from '@/lib/types';
 
 interface AIReportsSectionProps {
@@ -14,261 +20,111 @@ interface AIReportsSectionProps {
   channel: ChannelMetrics;
   myChannel: ChannelMetrics | null;
   period: '24h' | '7d' | '30d';
-  recentPosts?: any[];
+  recentPosts?: SummaryPostStats[];
+}
+
+function useAiReportRequest<T>(
+  endpoint: string,
+  responseField: 'summary' | 'audience' | 'persona'
+) {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const run = useCallback(
+    async (payload: Record<string, unknown>) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = (await res.json()) as Record<string, unknown>;
+        if (!res.ok) {
+          throw new Error(
+            typeof json.error === 'string' && json.error ? json.error : 'Ошибка генерации'
+          );
+        }
+        const rawPayload = json[responseField];
+        if (typeof rawPayload === 'string' && rawPayload) {
+          try {
+            setData(JSON.parse(rawPayload) as T);
+            setSuccess(true);
+          } catch {
+            setError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.');
+          }
+        } else {
+          setError('Пустой ответ от нейросети.');
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Ошибка генерации');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [endpoint, responseField]
+  );
+
+  return { data, loading, error, success, setSuccess, run };
 }
 
 export function AIReportsSection({ channelId, channel, myChannel, period, recentPosts }: AIReportsSectionProps) {
   const isMine = channel.isMine;
-
-  const [aiSummary, setAiSummary] = useState<any | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiSuccess, setAiSuccess] = useState(false);
-
-  const [aiSuperSummary, setAiSuperSummary] = useState<any | null>(null);
-  const [aiSuperLoading, setAiSuperLoading] = useState(false);
-  const [aiSuperError, setAiSuperError] = useState<string | null>(null);
-  const [aiSuperSuccess, setAiSuperSuccess] = useState(false);
-
-  const [aiCompareSummary, setAiCompareSummary] = useState<any | null>(null);
-  const [aiCompareLoading, setAiCompareLoading] = useState(false);
-  const [aiCompareError, setAiCompareError] = useState<string | null>(null);
-  const [aiCompareSuccess, setAiCompareSuccess] = useState(false);
-
-  const [aiAudience, setAiAudience] = useState<any | null>(null);
-  const [aiAudienceLoading, setAiAudienceLoading] = useState(false);
-  const [aiAudienceError, setAiAudienceError] = useState<string | null>(null);
-  const [aiAudienceSuccess, setAiAudienceSuccess] = useState(false);
-
-  const [aiPersona, setAiPersona] = useState<any | null>(null);
-  const [aiPersonaLoading, setAiPersonaLoading] = useState(false);
-  const [aiPersonaError, setAiPersonaError] = useState<string | null>(null);
-  const [aiPersonaSuccess, setAiPersonaSuccess] = useState(false);
-
   const days = period === '30d' ? 30 : period === '7d' ? 7 : 1;
 
-  const downloadMarkdown = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+  const {
+    data: aiSummary,
+    loading: aiLoading,
+    error: aiError,
+    success: aiSuccess,
+    setSuccess: setAiSuccess,
+    run: runAiSummary,
+  } = useAiReportRequest<AISummaryData>('/api/ai/summary', 'summary');
 
-  const aiDataToMarkdown = (data: any) => {
-    if (!data) return '';
-    return `
-# Контент-анализ канала
+  const {
+    data: aiSuperSummary,
+    loading: aiSuperLoading,
+    error: aiSuperError,
+    success: aiSuperSuccess,
+    setSuccess: setAiSuperSuccess,
+    run: runAiSuperSummary,
+  } = useAiReportRequest<AISummaryData>('/api/ai/super-report', 'summary');
 
-## Ключевые показатели
-${data.stats?.map((s: any) => `- **${s.value}**: ${s.label}`).join('\n')}
+  const {
+    data: aiCompareSummary,
+    loading: aiCompareLoading,
+    error: aiCompareError,
+    success: aiCompareSuccess,
+    setSuccess: setAiCompareSuccess,
+    run: runAiCompare,
+  } = useAiReportRequest<AICompareData>('/api/ai/compare', 'summary');
 
-## 1. Основные темы
-${data.themes?.bars?.map((b: any) => `- **${b.label}**: ${b.percent}%`).join('\n')}
+  const {
+    data: aiAudience,
+    loading: aiAudienceLoading,
+    error: aiAudienceError,
+    success: aiAudienceSuccess,
+    setSuccess: setAiAudienceSuccess,
+    run: runAiAudience,
+  } = useAiReportRequest<AIAudienceData>('/api/ai/audience', 'audience');
 
-> ${data.themes?.quote}
+  const {
+    data: aiPersona,
+    loading: aiPersonaLoading,
+    error: aiPersonaError,
+    success: aiPersonaSuccess,
+    setSuccess: setAiPersonaSuccess,
+    run: runAiPersona,
+  } = useAiReportRequest<AIPersonaData>('/api/ai/persona', 'persona');
 
-${data.themes?.descriptions?.map((d: any) => `**${d.title}**\n${d.text}`).join('\n\n')}
-
-## 2. Тональность и подача
-${data.tone?.map((t: any) => `### ${t.title} (${t.kicker})\n${t.text}`).join('\n\n')}
-
-## 3. Вовлечение
-- **Интерактивность**: ${data.engagement?.interactivity?.value} — ${data.engagement?.interactivity?.text}
-- **CTA**: ${data.engagement?.cta?.value} — ${data.engagement?.cta?.text}
-
-> **Рекомендация:** ${data.engagement?.recommendation}
-
-## 4. Реклама и промо
-${data.promo?.text1}
-
-${data.promo?.text2}
-
-## 5. Сильные стороны
-${data.strengths?.map((s: any) => `### ${s.num}. ${s.title}\n${s.text}\n\n> ${s.quote}`).join('\n\n')}
-
-## 6. Слабые места и рекомендации
-| Слабое место | Почему это проблема | Конкретная рекомендация |
-|---|---|---|
-${data.weaknesses?.map((w: any) => `| **${w.weakness}** | ${w.problem} | ${w.recommendation} |`).join('\n')}
-
-## 7. Краткий вывод
-**${data.conclusion?.main}**
-
-*Приоритет:* ${data.conclusion?.priority}
-    `.trim();
-  };
-
-  const aiCompareDataToMarkdown = (data: any, myTitle: string, targetTitle: string) => {
-    if (!data) return '';
-    return `
-# Сравнительный анализ каналов
-**Мой канал:** ${myTitle}
-**Конкурент:** ${targetTitle}
-
-${data.limitations ? `> **Ограничения:** ${data.limitations}\n` : ''}
-
-## 1. Сводная таблица
-| Параметр | Мой канал | Конкурент |
-|---|---|---|
-${data.comparisonTable?.map((c: any) => `| **${c.parameter}** | ${c.myChannel} | ${c.competitor} |`).join('\n')}
-
-## 2. Различия стратегий
-${data.strategy?.text}
-
-> **Мой канал:** ${data.strategy?.myQuote}
-> **Конкурент:** ${data.strategy?.competitorQuote}
-
-## 3. Tone of Voice
-${data.tone?.text}
-
-**Кто звучит убедительнее:** ${data.tone?.winner}
-
-## 4. Преимущества конкурента
-${data.competitorAdvantages?.length ? data.competitorAdvantages.map((a: any) => `### ${a.title}\n${a.description}\n*(Переносимость: ${a.isTransferable})*`).join('\n\n') : '*Преимуществ не обнаружено.*'}
-
-## 5. Наши сильные стороны
-${data.myStrengths?.length ? data.myStrengths.map((s: any) => `### ${s.title}\n${s.description}`).join('\n\n') : '*Преимуществ не обнаружено.*'}
-
-## 6. Точки роста (Приоритеты)
-| Рекомендация | Ожидаемый эффект | Сложность |
-|---|---|---|
-${data.recommendations?.map((r: any) => `| **${r.recommendation}** | ${r.effect} | ${r.difficulty} |`).join('\n')}
-
-## 7. Краткий вывод
-${data.conclusion?.summary}
-
-**Главный приоритет:** ${data.conclusion?.priority}
-    `.trim();
-  };
-
-  const aiAudienceToMarkdown = (data: any) => {
-    if (!data) return '';
-    return `
-# Анализ предполагаемой целевой аудитории
-
-**Резюме:** ${data.summary}
-
-## Демография
-- **Возраст:** ${data.demographics?.age}
-- **Пол:** ${data.demographics?.gender}
-- **Доход:** ${data.demographics?.income}
-- **География:** ${data.demographics?.geo}
-
-## Поведенческие факторы
-- **Потребление контента:** ${data.behavior?.contentConsumption}
-- **Причина подписки:** ${data.behavior?.engagementReason}
-
-## Психографика
-**Интересы:**
-${data.psychographics?.interests?.map((i: string) => `- ${i}`).join('\n')}
-
-**Ценности:**
-${data.psychographics?.values?.map((v: string) => `- ${v}`).join('\n')}
-
-**Боли и страхи:**
-${data.psychographics?.fears?.map((f: string) => `- ${f}`).join('\n')}
-    `.trim();
-  };
-
-  const fetchAiSummary = async () => {
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const res = await fetch('/api/ai/summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId, days }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
-      if (json.summary) {
-        try { setAiSummary(JSON.parse(json.summary)); setAiSuccess(true); }
-        catch { setAiError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
-      } else { setAiError('Пустой ответ от нейросети.'); }
-    } catch (err: any) { setAiError(err.message); }
-    finally { setAiLoading(false); }
-  };
-
-  const fetchAiSuperSummary = async () => {
-    setAiSuperLoading(true);
-    setAiSuperError(null);
-    try {
-      const res = await fetch('/api/ai/super-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
-      if (json.summary) {
-        try { setAiSuperSummary(JSON.parse(json.summary)); setAiSuperSuccess(true); }
-        catch { setAiSuperError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
-      } else { setAiSuperError('Пустой ответ от нейросети.'); }
-    } catch (err: any) { setAiSuperError(err.message); }
-    finally { setAiSuperLoading(false); }
-  };
-
-  const fetchAiCompare = async () => {
-    setAiCompareLoading(true);
-    setAiCompareError(null);
-    try {
-      const res = await fetch('/api/ai/compare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId, days }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
-      if (json.summary) {
-        try { setAiCompareSummary(JSON.parse(json.summary)); setAiCompareSuccess(true); }
-        catch { setAiCompareError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
-      } else { setAiCompareError('Пустой ответ от нейросети.'); }
-    } catch (err: any) { setAiCompareError(err.message); }
-    finally { setAiCompareLoading(false); }
-  };
-
-  const fetchAiAudience = async () => {
-    setAiAudienceLoading(true);
-    setAiAudienceError(null);
-    try {
-      const res = await fetch('/api/ai/audience', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId, days }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
-      if (json.audience) {
-        try { setAiAudience(JSON.parse(json.audience)); setAiAudienceSuccess(true); }
-        catch { setAiAudienceError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
-      } else { setAiAudienceError('Пустой ответ от нейросети.'); }
-    } catch (err: any) { setAiAudienceError(err.message); }
-    finally { setAiAudienceLoading(false); }
-  };
-
-  const fetchAiPersona = async () => {
-    setAiPersonaLoading(true);
-    setAiPersonaError(null);
-    try {
-      const res = await fetch('/api/ai/persona', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Ошибка генерации');
-      if (json.persona) {
-        try { setAiPersona(JSON.parse(json.persona)); setAiPersonaSuccess(true); }
-        catch { setAiPersonaError('Ошибка парсинга ответа нейросети. Попробуйте еще раз.'); }
-      } else { setAiPersonaError('Пустой ответ от нейросети.'); }
-    } catch (err: any) { setAiPersonaError(err.message); }
-    finally { setAiPersonaLoading(false); }
-  };
+  const fetchAiSummary = () => runAiSummary({ channelId, days });
+  const fetchAiSuperSummary = () => runAiSuperSummary({ channelId });
+  const fetchAiCompare = () => runAiCompare({ channelId, days });
+  const fetchAiAudience = () => runAiAudience({ channelId, days });
+  const fetchAiPersona = () => runAiPersona({ channelId });
 
   return (
     <>

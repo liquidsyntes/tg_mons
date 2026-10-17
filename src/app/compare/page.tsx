@@ -9,9 +9,7 @@ import {
   GitCompareArrows,
   TrendingUp,
   BarChart2,
-  Users,
   Eye,
-  FileText,
   ChevronDown,
 } from 'lucide-react';
 import {
@@ -27,13 +25,51 @@ import {
   Legend,
 } from 'recharts';
 import { ChannelDetailStats, ChannelMetrics } from '@/lib/types';
-import { DeltaBadge } from '@/components/DeltaBadge';
-import { formatNumber, formatPercent } from '@/lib/utils';
+import { mergePostsDistribution, mergeSubscriberHistory } from '@/lib/compare';
+import { formatNumber } from '@/lib/utils';
 
 interface CompareData {
   a: ChannelDetailStats;
   b: ChannelDetailStats;
   period: string;
+}
+
+interface CompareMetricCardProps {
+  label: string;
+  valueA: number | null;
+  valueB: number | null;
+  formatFn?: (v: number | null) => string;
+  highlight?: boolean;
+}
+
+function CompareMetricCard({
+  label,
+  valueA,
+  valueB,
+  formatFn = (v) => (v !== null && v !== undefined ? String(v) : '-'),
+  highlight = false,
+}: CompareMetricCardProps) {
+  const vA = formatFn(valueA);
+  const vB = formatFn(valueB);
+  const numA = typeof valueA === 'number' ? valueA : 0;
+  const numB = typeof valueB === 'number' ? valueB : 0;
+  const aWins = numA > numB;
+  const bWins = numB > numA;
+
+  return (
+    <div className="bg-slate-900/60 rounded-xl border border-border/50 p-3">
+      <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2 text-center">{label}</div>
+      <div className="grid grid-cols-3 items-center gap-2">
+        <div className={`text-right font-mono font-semibold text-sm ${highlight && aWins ? 'text-sky-400' : 'text-slate-200'}`}>
+          {vA}
+        </div>
+        <div className="text-center text-slate-500 text-xs">vs</div>
+        <div className={`text-left font-mono font-semibold text-sm ${highlight && bWins ? 'text-amber-400' : 'text-slate-200'}`}>
+          {vB}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ComparePage() {
@@ -77,7 +113,7 @@ function ComparePage() {
         return r.json();
       })
       .then((json) => setData(json))
-      .catch((err) => setError(err.message))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Ошибка загрузки данных'))
       .finally(() => setLoading(false));
   }, [selectedA, selectedB, period]);
 
@@ -88,123 +124,19 @@ function ComparePage() {
   };
 
   // Merge subscriber histories for overlay chart
-  const mergedSubscriberData = useMemo(() => {
-    if (!data) return [];
-    const aHistory = data.a.membersHistory || [];
-    const bHistory = data.b.membersHistory || [];
-
-    const allTimes = new Set<string>();
-    const aMap = new Map<string, number>();
-    const bMap = new Map<string, number>();
-
-    for (const point of aHistory) {
-      const key = new Date(point.collectedAt).toISOString();
-      allTimes.add(key);
-      aMap.set(key, point.membersCount);
-    }
-    for (const point of bHistory) {
-      const key = new Date(point.collectedAt).toISOString();
-      allTimes.add(key);
-      bMap.set(key, point.membersCount);
-    }
-
-    const sorted = Array.from(allTimes).sort();
-    let lastA: number | undefined;
-    let lastB: number | undefined;
-
-    return sorted.map((t) => {
-      const d = new Date(t);
-      const dateFormatted =
-        period === '24h'
-          ? d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-          : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-
-      if (aMap.has(t)) lastA = aMap.get(t)!;
-      if (bMap.has(t)) lastB = bMap.get(t)!;
-
-      return {
-        time: dateFormatted,
-        fullTime: d.toLocaleString('ru-RU'),
-        membersA: lastA,
-        membersB: lastB,
-      };
-    });
-  }, [data, period]);
+  const mergedSubscriberData = useMemo(
+    () => (data ? mergeSubscriberHistory(data.a.membersHistory, data.b.membersHistory, period) : []),
+    [data, period]
+  );
 
   // Merge posts distribution
-  const mergedPostsData = useMemo(() => {
-    if (!data) return [];
-    const aDistribution = data.a.postsDistribution || [];
-    const bDistribution = data.b.postsDistribution || [];
-
-    const map = new Map<string, { date: string; postsA: number; postsB: number; viewsA: number; viewsB: number }>();
-
-    for (const item of aDistribution) {
-      const entry = map.get(item.date) || { date: item.date, postsA: 0, postsB: 0, viewsA: 0, viewsB: 0 };
-      entry.postsA = item.postsCount;
-      entry.viewsA = item.viewsAvg ?? 0;
-      map.set(item.date, entry);
-    }
-    for (const item of bDistribution) {
-      const entry = map.get(item.date) || { date: item.date, postsA: 0, postsB: 0, viewsA: 0, viewsB: 0 };
-      entry.postsB = item.postsCount;
-      entry.viewsB = item.viewsAvg ?? 0;
-      map.set(item.date, entry);
-    }
-
-    return Array.from(map.values())
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((item) => {
-        let dateFormatted = item.date;
-        if (period !== '24h') {
-          const parts = item.date.split('-');
-          if (parts.length === 3) {
-            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            dateFormatted = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-          }
-        }
-        return { ...item, date: dateFormatted };
-      });
-  }, [data, period]);
+  const mergedPostsData = useMemo(
+    () => (data ? mergePostsDistribution(data.a.postsDistribution, data.b.postsDistribution, period) : []),
+    [data, period]
+  );
 
   const chA = data?.a?.channel;
   const chB = data?.b?.channel;
-
-  const CompareMetricCard = ({
-    label,
-    valueA,
-    valueB,
-    formatFn = (v: any) => (v !== null && v !== undefined ? String(v) : '—'),
-    highlight = false,
-  }: {
-    label: string;
-    valueA: any;
-    valueB: any;
-    formatFn?: (v: any) => string;
-    highlight?: boolean;
-  }) => {
-    const vA = formatFn(valueA);
-    const vB = formatFn(valueB);
-    const numA = typeof valueA === 'number' ? valueA : 0;
-    const numB = typeof valueB === 'number' ? valueB : 0;
-    const aWins = numA > numB;
-    const bWins = numB > numA;
-
-    return (
-      <div className="bg-slate-900/60 rounded-xl border border-border/50 p-3">
-        <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2 text-center">{label}</div>
-        <div className="grid grid-cols-3 items-center gap-2">
-          <div className={`text-right font-mono font-semibold text-sm ${highlight && aWins ? 'text-sky-400' : 'text-slate-200'}`}>
-            {vA}
-          </div>
-          <div className="text-center text-slate-500 text-xs">vs</div>
-          <div className={`text-left font-mono font-semibold text-sm ${highlight && bWins ? 'text-amber-400' : 'text-slate-200'}`}>
-            {vB}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col">
