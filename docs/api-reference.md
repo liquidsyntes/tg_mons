@@ -44,14 +44,14 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | Метод и путь | Параметры | Ответ |
 | --- | --- | --- |
 | `GET /api/stats/overview` | — | `{myChannel,channels,totalChannels,activeChannels,lastGlobalUpdate}` |
-| `GET /api/stats/dashboard` | — | KPI, `avgErr`, `avgScore`, topGainers/topLosers, postsTimeline/subscribersTimeline |
+| `GET /api/stats/dashboard` | Нет тела | KPI, `avgErr`, `avgScore`, topGainers/topLosers, postsTimeline/subscribersTimeline только по активным каналам |
 | `GET /api/stats/channel/:id` | `period=24h`, `7d` или `30d`, default `7d` | `{channel,myChannel,period,scoreBreakdown,membersHistory,postsDistribution,vrHistory,heatmapData,myHeatmapData,recentPosts}` |
 | `GET /api/stats/compare` | Обязательные `a`, `b` — ID каналов; `period` как выше | `{ "a": ChannelDetailStats, "b": ChannelDetailStats, "period": "7d" }`; 400 без ID, 404 если канал не найден |
 | `GET /api/stats/best-time` | — | `{bestDay,bestHour,score,avgViews,avgVr,postCount,heatmap}` или `null`, если нет активных конкурентов |
 | `GET /api/stats/trends` | — | Последний сохранённый trend: `{createdAt,data}`; `null` при отсутствии/невалидном JSON, новую генерацию не запускает |
 | `GET /api/stats/demographics/:id` | Положительный Int ID | Последний языковой снимок; контракт ниже |
 
-Эти GET доступны с Web UI-сессией или Bearer; отдельного гарда в обработчиках нет. Overview/dashboard/detail кэшируются в web на 5 минут, best-time на 30 минут. Неизвестное значение period заменяется на `7d`. Best-time использует VR и количество постов; `avgVr` уже в процентах. Дни/часы слотов берутся в часовом поясе процесса.
+Эти GET доступны с Web UI-сессией или Bearer; отдельного гарда в обработчиках нет. Overview/dashboard/detail кэшируются в web на 5 минут, best-time на 30 минут. Detail берёт EP из кэшированного overview; при пустом кэше overview рассчитывается и сохраняется для следующих запросов. Неизвестное значение period заменяется на `7d`. Best-time использует VR и количество постов; `avgVr` уже в процентах. Дни/часы слотов берутся в часовом поясе процесса.
 
 ### Демография
 

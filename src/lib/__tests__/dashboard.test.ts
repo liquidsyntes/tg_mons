@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getDashboardStats } from '../dashboard';
 import { getOverviewStats } from '../metrics';
+import { prisma } from '../prisma';
 import { channel } from './fixtures/channel-metrics';
 import type { ChannelMetrics } from '../types';
 
@@ -12,7 +13,8 @@ vi.mock('../prisma', () => ({ prisma: {
 
 function overview(channels: ChannelMetrics[], myChannel: ChannelMetrics | null = null): void {
   vi.mocked(getOverviewStats).mockResolvedValue({
-    channels, myChannel, totalChannels: channels.length, activeChannels: channels.length, lastGlobalUpdate: null,
+    channels, myChannel, totalChannels: channels.length,
+    activeChannels: channels.filter(item => item.isActive).length, lastGlobalUpdate: null,
   });
 }
 
@@ -49,4 +51,27 @@ describe('dashboard metric semantics', () => {
       expect((await getDashboardStats()).avgErr).toBeNull();
     },
   );
+
+  it('excludes inactive channels from KPIs and timeline queries', async () => {
+    overview([
+      { ...channel, id: 1, currentMembers: 1000, posts30d: 5 },
+      { ...channel, id: 2, currentMembers: 2000, posts30d: 10, isActive: false },
+    ]);
+
+    const result = await getDashboardStats();
+
+    expect(result.totalChannels).toBe(1);
+    expect(result.totalSubscribers).toBe(1000);
+    expect(result.totalPosts30d).toBe(5);
+    expect(prisma.post.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ channel: { isActive: true } }),
+    }));
+    expect(prisma.snapshot.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.snapshot.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ channel: { isActive: true }, collectedAt: { lt: expect.any(Date) } }),
+      orderBy: { collectedAt: 'desc' },
+      distinct: ['channelId'],
+      select: { channelId: true, membersCount: true },
+    }));
+  });
 });

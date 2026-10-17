@@ -4,6 +4,8 @@ import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from '.
 import { calculateContentScore } from '../scoring';
 import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
 import { runFraudAudit } from '../fraudDetector';
+import { metricsCache } from '../cache';
+import { computeNicheStats, calculateEP, type ChannelSnapshot } from '../ep';
 
 
 const MS_HOUR = 3600 * 1000;
@@ -81,20 +83,49 @@ export async function getOverviewStats(): Promise<OverviewStats> {
     orderBy: { publishedAt: 'desc' },
   });
 
-  const metricsByChannel = new Map<number, any[]>();
+  const metricsByChannel = new Map<number, typeof allDailyMetrics>();
   for (const m of allDailyMetrics) {
     if (!metricsByChannel.has(m.channelId)) metricsByChannel.set(m.channelId, []);
     metricsByChannel.get(m.channelId)!.push(m);
   }
 
-  const postsByChannel = new Map<number, any[]>();
+  const postsByChannel = new Map<number, typeof recentPosts>();
   for (const p of recentPosts) {
     if (!postsByChannel.has(p.channelId)) postsByChannel.set(p.channelId, []);
     postsByChannel.get(p.channelId)!.push(p);
   }
 
+  const fallbackIds = channelIds.filter(id => !metricsByChannel.has(id));
+  const [fallbackSnapshots, fallbackPosts] = await Promise.all([
+    fallbackIds.length > 0
+      ? prisma.snapshot.findMany({
+          where: { channelId: { in: fallbackIds } },
+          orderBy: { collectedAt: 'desc' },
+          select: { channelId: true, collectedAt: true, membersCount: true },
+        })
+      : Promise.resolve([]),
+    fallbackIds.length > 0
+      ? prisma.post.findMany({
+          where: { channelId: { in: fallbackIds }, publishedAt: { gte: date30dAgo } },
+          select: { channelId: true, publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true, isAd: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const fallbackSnapshotsByChannel = new Map<number, typeof fallbackSnapshots>();
+  for (const snapshot of fallbackSnapshots) {
+    const channelSnapshots = fallbackSnapshotsByChannel.get(snapshot.channelId) ?? [];
+    channelSnapshots.push(snapshot);
+    fallbackSnapshotsByChannel.set(snapshot.channelId, channelSnapshots);
+  }
+  const fallbackPostsByChannel = new Map<number, typeof fallbackPosts>();
+  for (const post of fallbackPosts) {
+    const channelPosts = fallbackPostsByChannel.get(post.channelId) ?? [];
+    channelPosts.push(post);
+    fallbackPostsByChannel.set(post.channelId, channelPosts);
+  }
+
   const channelMetricsList: ChannelMetrics[] = [];
-  const epSnapshots: import('../ep').ChannelSnapshot[] = [];
+  const epSnapshots: ChannelSnapshot[] = [];
 
   for (const ch of allChannels) {
     const dailyMetrics = metricsByChannel.get(ch.id) || [];
@@ -104,8 +135,8 @@ export async function getOverviewStats(): Promise<OverviewStats> {
       const posts = postsByChannel.get(ch.id) || [];
       metrics = buildMetricsFromMaterialized(ch, dailyMetrics, posts, now);
     } else {
-      const snapshots = await prisma.snapshot.findMany({ where: { channelId: ch.id }, orderBy: { collectedAt: 'desc' }, select: { collectedAt: true, membersCount: true } });
-      const posts = await prisma.post.findMany({ where: { channelId: ch.id, publishedAt: { gte: date30dAgo } }, select: { publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true, isAd: true } });
+      const snapshots = fallbackSnapshotsByChannel.get(ch.id) ?? [];
+      const posts = fallbackPostsByChannel.get(ch.id) ?? [];
       metrics = calculateChannelMetricsFromData(ch, snapshots, posts, now);
     }
     
@@ -126,7 +157,6 @@ export async function getOverviewStats(): Promise<OverviewStats> {
     });
   }
 
-  const { computeNicheStats, calculateEP } = await Promise.resolve().then(() => require('../ep'));
   const nicheStats = computeNicheStats(epSnapshots);
   for (const metrics of channelMetricsList) {
     const snap = epSnapshots.find(s => s.channelId === metrics.id.toString());
@@ -282,6 +312,22 @@ export async function getVrHistory(channelId: number, days: number = 30) {
   return history;
 }
 
+let overviewForDetailPromise: Promise<OverviewStats> | null = null;
+
+async function getOverviewForDetail(): Promise<OverviewStats> {
+  const cached = metricsCache.get('overview') as OverviewStats | null;
+  if (cached) return cached;
+  if (!overviewForDetailPromise) {
+    overviewForDetailPromise = getOverviewStats()
+      .then(overview => {
+        metricsCache.set('overview', overview);
+        return overview;
+      })
+      .finally(() => { overviewForDetailPromise = null; });
+  }
+  return overviewForDetailPromise;
+}
+
 export async function getChannelDetailStats(
   channelId: number,
   period: '24h' | '7d' | '30d' = '7d'
@@ -290,8 +336,9 @@ export async function getChannelDetailStats(
   const channel = await calculateChannelMetrics(channelId, now);
   if (!channel) return null;
 
-  const overview = await getOverviewStats();
-  const overviewChannel = overview.channels.find(c => c.id === channelId) || overview.myChannel;
+  const overview = await getOverviewForDetail();
+  const overviewChannel = overview.channels.find(c => c.id === channelId)
+    ?? (overview.myChannel?.id === channelId ? overview.myChannel : null);
   if (overviewChannel) {
     channel.ep = overviewChannel.ep;
     channel.epBreakdown = overviewChannel.epBreakdown;

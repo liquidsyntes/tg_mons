@@ -33,12 +33,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const overview = await getOverviewStats();
   
   // Combine all active channels
-  const allMetrics = [...overview.channels];
-  if (overview.myChannel && !allMetrics.find(c => c.id === overview.myChannel!.id)) {
+  const allMetrics = overview.channels.filter(c => c.isActive);
+  if (overview.myChannel?.isActive && !allMetrics.find(c => c.id === overview.myChannel!.id)) {
     allMetrics.push(overview.myChannel);
   }
 
-  const totalChannels = overview.totalChannels;
+  const totalChannels = allMetrics.length;
   const totalSubscribers = allMetrics.reduce((sum, c) => sum + (c.currentMembers || 0), 0);
   const totalPosts30d = allMetrics.reduce((sum, c) => sum + (c.posts30d || 0), 0);
 
@@ -91,7 +91,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   
   // Posts timeline
   const posts = await prisma.post.findMany({
-    where: { publishedAt: { gte: startDate30 } },
+    where: { publishedAt: { gte: startDate30 }, channel: { isActive: true } },
     select: { publishedAt: true }
   });
 
@@ -114,7 +114,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   // Subscribers timeline
   const snapshots = await prisma.snapshot.findMany({
-    where: { collectedAt: { gte: startDate30 } },
+    where: { collectedAt: { gte: startDate30 }, channel: { isActive: true } },
     select: { channelId: true, membersCount: true, collectedAt: true },
     orderBy: { collectedAt: 'asc' }
   });
@@ -123,14 +123,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   
   // Get baseline
   const baselineSnapshots = await prisma.snapshot.findMany({
-    where: { collectedAt: { lt: startDate30 } },
+    where: { collectedAt: { lt: startDate30 }, channel: { isActive: true } },
     orderBy: { collectedAt: 'desc' },
+    distinct: ['channelId'],
+    select: { channelId: true, membersCount: true },
   });
   
   for (const s of baselineSnapshots) {
-    if (!channelLastMembers[s.channelId]) {
-      channelLastMembers[s.channelId] = s.membersCount;
-    }
+    channelLastMembers[s.channelId] = s.membersCount;
   }
 
   const subByDate: Record<string, number> = {};
