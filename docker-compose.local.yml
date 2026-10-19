@@ -1,0 +1,8 @@
+# Локальный override: вариант B — web + postgres, без worker.
+# Сервис worker назначен в профиль worker — он не запускается при обычном
+# `docker compose up`, только если явно указать `--profile worker`.
+
+services:
+  worker:
+    profiles:
+      - "worker"
