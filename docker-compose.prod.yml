@@ -1,0 +1,21 @@
+# Production override для tg_mons на VPS.
+# Использование: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  postgres:
+    # Не публикуем БД наружу — доступ только внутри compose-сети
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD не задан}
+
+  web:
+    # Только loopback: наружу смотрит nginx на 80/443
+    ports: !override
+      - "127.0.0.1:4000:4000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/tgmon?schema=public"
+      WEB_INTERNAL_URL: ${WEB_INTERNAL_URL:-http://web:4000}
+      WORKER_INTERNAL_URL: ${WORKER_INTERNAL_URL:-http://worker:4001}
+
+  worker:
+    environment:
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/tgmon?schema=public"
