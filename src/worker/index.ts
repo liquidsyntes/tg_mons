@@ -32,12 +32,25 @@ async function execute(kind: WorkerTaskKind, run: (signal: AbortSignal) => Promi
 }
 
 async function startWorker(): Promise<void> {
+  const localMode = process.env.WORKER_LOCAL_MODE === 'true' || process.argv.includes('--local');
+  const disableCron = localMode || process.env.WORKER_DISABLE_CRON === 'true';
+  const sessionConfigured = localMode ? !!process.env.TG_SESSION_LOCAL : !!(process.env.TG_SESSION || process.env.TG_SESSION_LOCAL);
+
   logger.info('TG Monitor MTProto Collector Worker Started', {
-    cronSchedule, dbConfigured: !!process.env.DATABASE_URL, tgSessionConfigured: !!process.env.TG_SESSION,
+    localMode,
+    disableCron,
+    cronSchedule,
+    dbConfigured: !!process.env.DATABASE_URL,
+    tgSessionConfigured: sessionConfigured,
   });
   if (!process.env.COLLECT_API_TOKEN) throw new Error('COLLECT_API_TOKEN is required for worker internal API');
   server = createWorkerServer(coordinator);
   await listenWorkerServer(server);
+
+  if (disableCron) {
+    logger.info('Worker running in on-demand mode (background cron disabled; responding to UI requests only)');
+    return;
+  }
 
   if (!cron.validate(cronSchedule)) {
     logger.error('Invalid cron schedule', { cronSchedule, fallback: '0 * * * *' });

@@ -32,7 +32,10 @@ npm run auth
 | DATABASE_URL | Prisma, web, worker | URL PostgreSQL; для хоста адрес БД localhost/127.0.0.1, внутри Compose — postgres |
 | TG_API_ID, TG_API_HASH | auth, MTProto | Ключи приложения Telegram |
 | TG_PHONE | auth | Телефон; при отсутствии CLI запросит его |
-| TG_SESSION | worker и CLI авторизации | Сохранённая сессия; web её не получает |
+| TG_SESSION | worker и CLI авторизации | Сохранённая серверная сессия; web её не получает |
+| TG_SESSION_LOCAL | локальный worker (`worker:local`) и `auth:local` | Изолированная локальная MTProto-сессия, исключающая `AuthKeyDuplicated` при работающем серверном воркере |
+| WORKER_LOCAL_MODE | worker | При `true` (или флаге `--local`) использует только `TG_SESSION_LOCAL` и отключает фоновый cron |
+| WORKER_DISABLE_CRON | worker | При `true` отключает расписания cron и `COLLECT_ON_STARTUP`, оставляя только внутренний API для запросов из UI |
 | COLLECT_API_TOKEN | вход Web UI, подпись cookie, Bearer для worker | Непустой сильный случайный ключ; без него вход и защищённые маршруты недоступны |
 | COLLECT_CRON | worker | `0 * * * *`; невалидное значение заменяется этим default с логом |
 | COLLECT_ON_STARTUP | worker | Запуск только если значение строго `true`; пример и Compose задают true |
@@ -106,9 +109,10 @@ Web-интерфейс доступен по адресу [http://localhost:4000
 3. Примените миграции и запустите процессы:
    ```bash
    npm run prisma:migrate
-   npm run dev:all
+   npm run auth:local   # создаёт отдельную локальную сессию TG_SESSION_LOCAL (или npm run auth:local:qr)
+   npm run dev:local    # запускает web + локальный worker по запросу (без фонового cron и без конфликта с сервером)
    ```
-   Или в двух отдельных терминалах: `npm run dev` и `npm run worker`. Web доступен на [http://localhost:4000](http://localhost:4000). Для сброса кэша из воркера задайте `WEB_INTERNAL_URL=http://localhost:4000`.
+   Или через скрипт `bash dev-web.sh` (при наличии `TG_SESSION_LOCAL` в `.env` он автоматически поднимет `dev:local`). Web доступен на [http://localhost:4000](http://localhost:4000). Для сброса кэша из воркера задайте `WEB_INTERNAL_URL=http://localhost:4000`.
 
 ## Режим 3: Production-развёртывание (полный Compose)
 

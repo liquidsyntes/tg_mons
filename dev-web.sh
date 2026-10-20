@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Локальный запуск TgMon: web НАТИВНО (npm run dev) + нативный PostgreSQL в WSL.
-# Worker НЕ запускается локально — TG-сессия живёт только на сервере (docker);
-# второй запуск той же сессии = AuthKeyDuplicated, Telegram сбросит авторизацию.
+# Локальный запуск TgMon: web НАТИВНО + нативный PostgreSQL в WSL.
+# Серверная TG_SESSION локально НЕ используется (чтобы избежать AuthKeyDuplicated).
+# Если в .env задана отдельная TG_SESSION_LOCAL (через `npm run auth:local`),
+# автоматически поднимается локальный worker в режиме по запросу (без фонового cron).
 set -euo pipefail
 
 PG_HOST="${PG_HOST:-127.0.0.1}"
@@ -25,6 +26,18 @@ pg_isready -q -h "$PG_HOST" -p "$PG_PORT" || {
 npx prisma generate
 npx prisma migrate deploy
 
-# 3. Web нативно (worker не запускается — см. шапку)
+# 3. Проверяем наличие изолированной локальной сессии TG_SESSION_LOCAL
+HAS_LOCAL_SESSION="false"
+if [ -f .env ] && grep -Eq '^TG_SESSION_LOCAL=["'\'']?[^"'\''[:space:]]+' .env; then
+  HAS_LOCAL_SESSION="true"
+fi
+
 echo "Web: http://localhost:4000"
-npm run dev
+if [ "$HAS_LOCAL_SESSION" = "true" ]; then
+  echo "Локальный worker: включён (TG_SESSION_LOCAL, режим по запросу без фонового cron)"
+  npm run dev:local
+else
+  echo "Локальный worker: выключен (TG_SESSION_LOCAL не задана в .env)."
+  echo "Чтобы включить локальный сбор без сброса серверной авторизации, выполните один раз: npm run auth:local"
+  npm run dev
+fi

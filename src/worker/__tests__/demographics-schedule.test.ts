@@ -21,4 +21,14 @@ describe('demographics scheduling', () => {
     await vi.waitFor(() => expect(mocks.schedule).toHaveBeenCalledWith('0 3 * * 0', expect.any(Function)));
     if (configured === 'invalid') expect(mocks.warn).toHaveBeenCalledWith('Invalid demographics schedule; using weekly default');
   });
+
+  it('skips cron scheduling when WORKER_DISABLE_CRON=true', async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    vi.stubEnv('WORKER_DISABLE_CRON', 'true');
+    vi.stubEnv('COLLECT_API_TOKEN', 'test-token');
+    vi.spyOn(process, 'on').mockReturnValue(process);
+    await import('../index');
+    expect(mocks.schedule).not.toHaveBeenCalled();
+  });
 });

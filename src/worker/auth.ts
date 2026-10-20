@@ -17,7 +17,12 @@ const askQuestion = (query: string): Promise<string> => {
 };
 
 async function main() {
-  console.log('=== TG Monitor MTProto Authorization ===\n');
+  const isLocal = process.argv.includes('--local');
+  const useQr = process.argv.includes('--qr');
+  const targetEnvKey = isLocal ? 'TG_SESSION_LOCAL' : 'TG_SESSION';
+  const deviceModel = isLocal ? 'TgMon Local Dev' : 'TgMon Server Worker';
+
+  console.log(`=== TG Monitor MTProto Authorization (${isLocal ? 'LOCAL DEV SESSION' : 'SERVER SESSION'}) ===\n`);
 
   let apiIdStr = process.env.TG_API_ID;
   let apiHash = process.env.TG_API_HASH;
@@ -39,30 +44,51 @@ async function main() {
   const stringSession = new StringSession('');
   const client = new TelegramClient(stringSession, apiId, apiHash.trim(), {
     connectionRetries: 5,
+    deviceModel,
   });
 
-  console.log('\nConnecting to Telegram servers...');
-  await client.start({
-    phoneNumber: async () => {
-      if (phone && phone.trim()) return phone.trim();
-      const p = await askQuestion('Enter your Telegram phone number (+1234567890): ');
-      return p.trim();
-    },
-    password: async () => {
-      const pwd = await askQuestion('Enter 2FA Password (if enabled, or press Enter): ');
-      return pwd.trim();
-    },
-    phoneCode: async () => {
-      const code = await askQuestion('Enter verification code received in Telegram/SMS: ');
-      return code.trim();
-    },
-    onError: (err) => console.error('Auth error:', err),
-  });
+  console.log(`\nConnecting to Telegram servers as "${deviceModel}"...`);
+
+  if (useQr) {
+    await client.connect();
+    await client.signInUserWithQrCode(
+      { apiId, apiHash: apiHash.trim() },
+      {
+        qrCode: async ({ token }) => {
+          const url = `tg://login?token=${token.toString('base64url')}`;
+          console.log('\nОткройте ссылку на устройстве с авторизованным Telegram (или отсканируйте QR из неё):');
+          console.log(url);
+        },
+        password: async () => {
+          const pwd = await askQuestion('Enter 2FA Password: ');
+          return pwd.trim();
+        },
+        onError: (err) => console.error('QR Auth error:', err),
+      },
+    );
+  } else {
+    await client.start({
+      phoneNumber: async () => {
+        if (phone && phone.trim()) return phone.trim();
+        const p = await askQuestion('Enter your Telegram phone number (+1234567890): ');
+        return p.trim();
+      },
+      password: async () => {
+        const pwd = await askQuestion('Enter 2FA Password (if enabled, or press Enter): ');
+        return pwd.trim();
+      },
+      phoneCode: async () => {
+        const code = await askQuestion('Enter verification code received in Telegram/SMS: ');
+        return code.trim();
+      },
+      onError: (err) => console.error('Auth error:', err),
+    });
+  }
 
   console.log('\nAuthentication successful!');
   const sessionString = client.session.save() as unknown as string;
 
-  console.log('\nYour TG_SESSION:');
+  console.log(`\nYour ${targetEnvKey}:`);
   console.log('----------------------------------------');
   console.log(sessionString);
   console.log('----------------------------------------\n');
@@ -77,20 +103,20 @@ async function main() {
   const updateEnvKey = (content: string, key: string, value: string): string => {
     const regex = new RegExp(`^${key}=.*$`, 'm');
     if (regex.test(content)) {
-      return content.replace(regex, `${key}=${value}`);
+      return content.replace(regex, `${key}="${value}"`);
     }
-    return content ? `${content.trim()}\n${key}=${value}\n` : `${key}=${value}\n`;
+    return content ? `${content.trim()}\n${key}="${value}"\n` : `${key}="${value}"\n`;
   };
 
   envContent = updateEnvKey(envContent, 'TG_API_ID', apiId.toString());
   envContent = updateEnvKey(envContent, 'TG_API_HASH', apiHash.trim());
-  envContent = updateEnvKey(envContent, 'TG_SESSION', sessionString);
+  envContent = updateEnvKey(envContent, targetEnvKey, sessionString);
   if (phone) {
     envContent = updateEnvKey(envContent, 'TG_PHONE', phone.trim());
   }
 
   fs.writeFileSync(envPath, envContent, 'utf-8');
-  console.log(`Saved TG_SESSION and credentials to ${envPath}`);
+  console.log(`Saved ${targetEnvKey} and credentials to ${envPath}`);
 
   await client.disconnect();
   rl.close();
