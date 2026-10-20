@@ -49,6 +49,8 @@ export async function getTelegramClient(): Promise<TelegramClient> {
   const client = new TelegramClient(session, apiId, apiHash, {
     connectionRetries: 5,
     deviceModel: localMode ? 'TgMon Local Dev' : 'TgMon Server Worker',
+    systemVersion: 'Windows 11 x64',
+    appVersion: '5.7.2 x64',
   });
 
   await client.connect();
