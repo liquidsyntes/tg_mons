@@ -1,202 +1,196 @@
 # Запуск и эксплуатация
 
-Сверено 16 октября 2026 года с [package.json](../package.json), [Compose](../docker-compose.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml). Команды ниже описывают действия оператора и не подтверждают выполненный деплой.
+Сверено 20 октября 2026 года с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml).
+
+## Среды проекта и изоляция Telegram-авторизации (`AuthKeyDuplicated`)
+
+Проект эксплуатируется в **трёх чётко разделённых средах**, которые нельзя смешивать:
+
+| Среда | Где находится | Как запускается | Какая MTProto-сессия используется | Как отображается в Telegram («Устройства») |
+| --- | --- | --- | --- | --- |
+| **1. Локальная разработка** | Windows (`C:\TgMon`) / WSL (`/mnt/c/TgMon`) | Нативно: `bash dev-web.sh` (или `npm run dev:local`) + нативный PostgreSQL в WSL (`127.0.0.1:5432`, БД `tgmon`) | Только **`TG_SESSION_LOCAL`** (режим `worker:local`, без фонового cron) | `TgMon Local Dev` |
+| **2. Боевой сервер (Production)** | VPS OVH (`ovh-vps`, `/opt/tgmon`, домен `tgmons.online`) | Полный Docker-стек (`postgres` + `web` + `worker`) + Nginx + HTTPS, деплой через `bash update.sh` | Только **`TG_SESSION`** (полный цикл с фоновым расписанием cron) | `TgMon Server Worker` |
+| **3. GitHub** | `origin/main` (`liquidsyntes/tg_mons`, публичный репозиторий) | CI (`tsc`, `eslint`, `vitest`, `build`) | Секреты и строки сессий в git **никогда не хранятся** | — |
+
+### Почему разделены `TG_SESSION` и `TG_SESSION_LOCAL`
+
+В протоколе Telegram MTProto один аккаунт (номер телефона и пара `TG_API_ID` / `TG_API_HASH`) может иметь сколько угодно параллельных активных сессий — так же, как одновременно работают Telegram на телефоне и ноутбуке. Однако если **одна и та же строка сессии (`auth_key`)** будет одновременно запущена с двух разных IP-адресов (например, на сервере OVH и на локальном ПК), Telegram немедленно выбросит ошибку **`AuthKeyDuplicated`** и принудительно сбросит авторизацию везде.
+
+Поэтому действует жёсткое правило:
+1. **Серверная сессия (`TG_SESSION`)** живёт **только на сервере OVH** (в `/opt/tgmon/.env`). Никогда не копируйте её на локальную машину.
+2. **Локальная сессия (`TG_SESSION_LOCAL`)** создаётся отдельно один раз на локальной машине командой `npm run auth:local` или `npm run auth:local:qr` и хранится только в локальном `.env`.
+3. В коде [src/worker/client.ts](../src/worker/client.ts) при запуске в локальном режиме (`npm run worker:local`, флаг `--local` или `WORKER_LOCAL_MODE=true`) воркер **игнорирует `TG_SESSION`** и требует именно `TG_SESSION_LOCAL`. Даже если в локальном `.env` случайно осталась строка `TG_SESSION`, локальный воркер к ней не прикоснётся.
+
+---
 
 ## Требования и подготовка
 
 - Node.js 22 и npm — версия Node совпадает с Docker и CI.
-- PostgreSQL; штатный Compose использует postgres:15. Prisma-схема требует расширение pg_trgm. SQLite текущим кодом не поддерживается.
-- Для сбора — Telegram api_id/api_hash и пользовательская MTProto-сессия. Авторизация интерактивная: `npm run auth`.
-- Все команды из корня проекта. На Windows основной checkout — `C:\TgMon`; в WSL — `/mnt/c/TgMon`. Установленные node_modules следует использовать в том окружении, где они были установлены. Prisma Client генерируется для целевой ОС: Windows-клиент не заменяет Linux-клиент в WSL, Docker генерирует свой клиент внутри образа.
+- PostgreSQL 15+ с расширением `pg_trgm`. SQLite не поддерживается.
+- Для сбора — Telegram `TG_API_ID` / `TG_API_HASH` и MTProto-сессия (`TG_SESSION_LOCAL` локально, `TG_SESSION` на сервере).
+- Все команды выполняются из корня проекта (`C:\TgMon` в Windows или `/mnt/c/TgMon` в WSL). Prisma Client генерируется под целевую ОС.
 
 ```bash
 npm ci
 cp .env.example .env
 ```
 
-Заполните конфигурацию, затем:
+### Как пройти авторизацию MTProto локально (`TG_SESSION_LOCAL`)
 
-```bash
-npm run prisma:generate
-npm run auth
-```
+Для локальной машины предусмотрены два способа выпустить изолированную сессию `TG_SESSION_LOCAL`:
 
-Авторизация обновляет TG_API_ID, TG_API_HASH, TG_SESSION и при наличии TG_PHONE в `.env`; строка сессии также печатается в терминал. Не включайте этот вывод в отчёты и логи общего доступа.
+1. **Через QR-код в браузере (рекомендуемый, без SMS и кодов подтверждения)**:
+   ```bash
+   npm run auth:local:qr
+   ```
+   - Скрипт поднимет временную локальную страницу **`http://localhost:4099`** с графическим QR-кодом (обновляется автоматически каждые 30 секунд).
+   - Откройте `http://localhost:4099` в браузере на ПК.
+   - На телефоне откройте **Telegram → Настройки → Устройства → Подключить устройство** и наведите камеру телефона на QR-код на мониторе.
+   - **Важный нюанс**: не пытайтесь открывать сырую ссылку `tg://login?token=...` прямым кликом в браузере или терминале — Telegram специально блокирует прямые клики по `tg://login` защитной заглушкой *«Ваша версия Telegram устарела»*. Авторизация проходит именно при сканировании картинки QR-кода камерой из мобильного приложения.
+   - Если на аккаунте включён облачный пароль 2FA, введите его прямо в появившееся поле на странице `http://localhost:4099` (или в терминале).
+   - После успеха сессия автоматически запишется в `.env` в переменную `TG_SESSION_LOCAL`.
 
-В `.env.example` приведены актуальные строки подключения к PostgreSQL (SQLite не поддерживается), а параметр MY_CHANNEL_USERNAME помечен как не используемый кодом. Ориентируйтесь на таблицу ниже и Prisma-схему. Runtime читает именно **TG_API_ID / TG_API_HASH / TG_SESSION**, не API_ID/API_HASH/TELEGRAM_SESSION.
+2. **Через телефон и код подтверждения в терминале**:
+   ```bash
+   npm run auth:local
+   ```
+   Запросит номер телефона, код из Telegram и пароль 2FA (если включён), после чего сохранит `TG_SESSION_LOCAL` в `.env`.
+
+Для генерации серверной переменной `TG_SESSION` используются `npm run auth` либо неинтерактивные серверные скрипты в `scripts/auth/` (`qr-auth.ts`, `auth-file.ts`).
 
 ## Переменные окружения
 
 | Переменная | Потребитель | Default / смысл |
 | --- | --- | --- |
-| DATABASE_URL | Prisma, web, worker | URL PostgreSQL; для хоста адрес БД localhost/127.0.0.1, внутри Compose — postgres |
-| TG_API_ID, TG_API_HASH | auth, MTProto | Ключи приложения Telegram |
+| DATABASE_URL | Prisma, web, worker | URL PostgreSQL; локально `127.0.0.1:5432/tgmon`, внутри Compose — `postgres:5432/tgmon` |
+| POSTGRES_PASSWORD | docker-compose.prod.yml | Пароль БД для production-контейнера PostgreSQL (обязателен в `.env` на сервере) |
+| TG_API_ID, TG_API_HASH | auth, MTProto | Ключи приложения Telegram (`my.telegram.org`) |
 | TG_PHONE | auth | Телефон; при отсутствии CLI запросит его |
-| TG_SESSION | worker и CLI авторизации | Сохранённая серверная сессия; web её не получает |
-| TG_SESSION_LOCAL | локальный worker (`worker:local`) и `auth:local` | Изолированная локальная MTProto-сессия, исключающая `AuthKeyDuplicated` при работающем серверном воркере |
-| WORKER_LOCAL_MODE | worker | При `true` (или флаге `--local`) использует только `TG_SESSION_LOCAL` и отключает фоновый cron |
-| WORKER_DISABLE_CRON | worker | При `true` отключает расписания cron и `COLLECT_ON_STARTUP`, оставляя только внутренний API для запросов из UI |
-| COLLECT_API_TOKEN | вход Web UI, подпись cookie, Bearer для worker | Непустой сильный случайный ключ; без него вход и защищённые маршруты недоступны |
+| TG_SESSION | серверный worker и `npm run auth` | Серверная MTProto-сессия (`TgMon Server Worker`); локально не используется |
+| TG_SESSION_LOCAL | локальный worker (`worker:local`) и `auth:local` | Изолированная локальная MTProto-сессия (`TgMon Local Dev`), исключающая `AuthKeyDuplicated` |
+| WORKER_LOCAL_MODE | worker | При `true` (или флаге `--local`) использует строго `TG_SESSION_LOCAL` и отключает фоновый cron |
+| WORKER_DISABLE_CRON | worker | При `true` отключает расписания cron и `COLLECT_ON_STARTUP`, оставляя только внутренний API (`:4001`) для запросов из UI |
+| COLLECT_API_TOKEN | вход Web UI (мастер-ключ), подпись cookie сессий, Bearer для worker | Непустой сильный случайный ключ; без него вход и защищённые маршруты недоступны |
 | COLLECT_CRON | worker | `0 * * * *`; невалидное значение заменяется этим default с логом |
-| COLLECT_ON_STARTUP | worker | Запуск только если значение строго `true`; пример и Compose задают true |
+| COLLECT_ON_STARTUP | worker | Запуск только если значение строго `true`; в локальном режиме (`--local`) игнорируется |
 | DEMOGRAPHICS_CRON | worker | `0 3 * * 0`; при невалидном значении weekly fallback |
-| WEB_INTERNAL_URL | worker | Адрес web для сброса кэша; Compose default `http://web:4000` |
-| WORKER_INTERNAL_URL | web | Адрес закрытого API worker; Compose default `http://worker:4001`, на хосте `http://localhost:4001` |
+| WEB_INTERNAL_URL | worker | Адрес web для сброса кэша; в Compose `http://web:4000`, локально `http://localhost:4000` |
+| WORKER_INTERNAL_URL | web | Адрес закрытого API worker; в Compose `http://worker:4001`, локально `http://localhost:4001` |
 | WORKER_INTERNAL_HOST, WORKER_INTERNAL_PORT | worker | По умолчанию `127.0.0.1:4001`; Compose привязывает `0.0.0.0:4001` только внутри своей сети |
 | TELEGRAM_REQUEST_TIMEOUT_MS | fetcher в worker и CLI-утилитах | 30000 мс |
 | CHANNEL_MAX_CONSECUTIVE_ERRORS | retry-policy | 10; отключение при достижении порога |
 | TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID | worker | Отправка пользовательских AlertRule и уведомлений об автоотключении; без обоих значений правила сохраняются, но не отправляются |
-| OPENROUTER_API_KEY | web AI/scanner | Резервный ключ для генеративных отчётов и сканера событий, включая Jev; можно задать через `/settings` |
-| APP_TIMEZONE | web | IANA-часовой пояс тепловых карт, почасового распределения и рекомендации публикации; по умолчанию `Europe/Moscow`, Compose передаёт в web |
+| OPENROUTER_API_KEY | web AI/scanner | Общий резервный ключ для генеративных отчётов и сканера событий (включая Jev); также задаётся администратором через `/settings` |
+| APP_TIMEZONE | web | IANA-часовой пояс тепловых карт, почасового распределения и рекомендации публикации; по умолчанию `Europe/Moscow` |
 | HEALTH_STUCK_THRESHOLD_MINUTES | web health и захват SyncJob в worker | 120; Compose передаёт одинаковое значение обоим сервисам |
 | HEALTH_STALE_THRESHOLD_MINUTES | web health | 720; Compose передаёт в web |
 | MY_CHANNEL_USERNAME | Никем не читается | Сохранён в примере, но не назначает «Мой канал» |
 
-Параметры DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и HEALTH-параметры приведены в `.env.example` с дефолтными значениями. Compose передаёт `HEALTH_STUCK_THRESHOLD_MINUTES` обоим сервисам и `HEALTH_STALE_THRESHOLD_MINUTES` в web, но не передаёт DEMOGRAPHICS_CRON, CHANNEL_MAX_CONSECUTIVE_ERRORS и TELEGRAM_REQUEST_TIMEOUT_MS. Для них одного добавления переменной в `.env` недостаточно: добавьте нужное имя в environment сервиса либо используйте отдельный override. Не выводите развёрнутый `docker compose config` с реальными секретами в общий лог.
+---
 
-Compose передаёт `APP_TIMEZONE` в web для тепловых карт, почасового распределения и рекомендации времени. Укажите корректное имя IANA, например `Europe/Moscow`. Расписание cron использует часовой пояс процесса; дневная материализация использует UTC. `APP_TIMEZONE` не изменяет cron.
+## Режим 1: Штатный локальный запуск (Нативно в WSL / Windows — `dev-web.sh`)
 
-## Режим 1: Локальная разработка в Docker (рекомендуемый, Hot Reload)
+Основной способ локальной разработки на рабочей машине (`C:\TgMon` / `/mnt/c/TgMon`): **нативный PostgreSQL в WSL** (`127.0.0.1:5432`, база `tgmon`) и **нативный запуск Node.js** без Docker.
 
-Это основной и рекомендуемый способ локальной разработки. Сервисы `web` и `worker` запускаются внутри контейнеров Docker с монтированием директории проекта и поддержкой Hot Reload (Fast Refresh) без пересборки образов при изменении исходного кода.
+### Запуск одной командой
 
-### Пошаговая подготовка и запуск
+В терминале WSL (`/mnt/c/TgMon`):
+```bash
+bash dev-web.sh
+```
 
-1. **Запуск базы данных PostgreSQL**:
-   ```bash
-   docker compose up -d postgres
-   ```
+Что делает [dev-web.sh](../dev-web.sh):
+1. Проверяет доступность локального PostgreSQL на `127.0.0.1:5432` (если сервис остановлен — запускает `sudo service postgresql start`).
+2. Выполняет `npx prisma generate` и `npx prisma migrate deploy`.
+3. Проверяет наличие `TG_SESSION_LOCAL` в `.env`:
+   - **Если `TG_SESSION_LOCAL` задана** — запускает `npm run dev:local` (`next dev -p 4000` + `npx tsx src/worker/index.ts --local`). Локальный воркер поднимается в режиме **по запросу (on-demand)**: он не крутит ежечасный фоновый cron и не делает сбор при старте, но слушает `127.0.0.1:4001` и сразу выполняет добавление каналов и кнопку «Собрать сейчас» из UI через сессию `TG_SESSION_LOCAL`.
+   - **Если `TG_SESSION_LOCAL` ещё не задана** — выводит подсказку (`npm run auth:local`) и запускает только `npm run dev` (веб-интерфейс и чтение локальной БД без MTProto-сбора).
 
-2. **Генерация Prisma Client и применение миграций к БД**:
-   ```bash
-   npm run prisma:generate
-   npm run prisma:migrate
-   ```
+Или вручную (при уже запущенном PostgreSQL):
+```bash
+npm run dev:local
+```
 
-3. **Интерактивная авторизация в Telegram (если сессия ещё не создана)**:
-   ```bash
-   npm run auth
-   ```
-   Утилита авторизует MTProto-клиент и сохранит параметры `TG_API_ID`, `TG_API_HASH`, `TG_SESSION` в файл `.env`.
+---
 
-4. **Запуск web и worker в dev-режиме через Compose override**:
-   ```bash
-   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-   ```
+## Режим 2: Production-развёртывание на сервере OVH (`update.sh` и полный Docker Compose)
 
-Web-интерфейс доступен по адресу [http://localhost:4000](http://localhost:4000). Compose связывает web с закрытым API worker по `http://worker:4001` и worker с web по `http://web:4000`. Порт 4001 не публикуется на хост; внутренние запросы требуют `COLLECT_API_TOKEN` в Bearer-заголовке.
+На боевом сервере (`ovh-vps`, каталог `/opt/tgmon`, домен `tgmons.online`) работает полный стек в Docker (`postgres` + `web` + `worker`) с обратным прокси Nginx и сертификатами Let's Encrypt (`issue-cert.sh`).
 
-### Как устроен Hot Reload в Docker
+### Штатное обновление сервера
 
-- Файл `docker-compose.dev.yml` переопределяет команду запуска сервиса `web` на `command: npm run dev` (`next dev -p 4000`), а `worker` — на `command: npx tsx watch src/worker/index.ts` (автоматический перезапуск воркера при изменениях в `src/worker/`).
-- **Монтирование томов (Volumes)**:
-  - `.:/app` — bind-mount рабочей директории хоста внутрь контейнера. Любые изменения файлов в `src/` мгновенно становятся видны в контейнере.
-  - `/app/node_modules` и `/app/.next` — анонимные тома Docker. Они изолируют зависимости и кэш сборки Next.js от хостовой файловой системы, предотвращая конфликты бинарных модулей между хостом (например, Windows) и Linux-контейнером.
-- **Опрос файловой системы**: в `docker-compose.dev.yml` задана переменная окружения `WATCHPACK_POLLING=true`. Это критически важно для сред Docker Desktop и WSL2 на Windows, где стандартные события файловой системы `inotify` могут не доставляться через bind-mount томов. Watchpack переходит на поллинг, корректно обнаруживает изменения и запускает Fast Refresh / Hot Reload без перезапуска контейнера.
-- **Предостережение**: не запускайте `npm run dev` на хосте параллельно с Docker-контейнерами во избежание конфликтов портов и ошибок блокировки файлов Prisma engine (Windows EPERM).
+На сервере в `/opt/tgmon` обновление выполняется скриптом [update.sh](../update.sh):
+```bash
+bash update.sh
+```
+Скрипт последовательно выполняет:
+1. `git pull --ff-only` из `origin/main`.
+2. `docker compose -f docker-compose.yml -f docker-compose.prod.yml build web worker`.
+3. Применение миграций БД: `docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps worker npx prisma migrate deploy`.
+4. Перезапуск контейнеров: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d web worker`.
 
-## Режим 2: Запуск web и worker на хосте (альтернативный / отладочный)
+В `.env` на сервере обязательно должны быть заданы `POSTGRES_PASSWORD`, `COLLECT_API_TOKEN`, `TG_API_ID`, `TG_API_HASH`, серверная `TG_SESSION` и `WEB_INTERNAL_URL=http://web:4000`.
 
-Используется для быстрой изоляции проблем, отладки отдельных обработчиков или профилирования процессов на хосте без использования контейнеров для Node.js.
+---
 
-1. Запустите PostgreSQL из Compose:
-   ```bash
-   docker compose up -d postgres
-   ```
+## Режим 3: Альтернативная разработка в Docker (`docker-compose.dev.yml`)
 
-2. Задайте в `.env` параметр `DATABASE_URL` с адресом `127.0.0.1:5432`, именем `tgmon` и учётными данными вашей базы (демонстрационные по умолчанию: `postgresql://postgres:password@localhost:5432/tgmon?schema=public`).
-
-3. Примените миграции и запустите процессы:
-   ```bash
-   npm run prisma:migrate
-   npm run auth:local   # создаёт отдельную локальную сессию TG_SESSION_LOCAL (или npm run auth:local:qr)
-   npm run dev:local    # запускает web + локальный worker по запросу (без фонового cron и без конфликта с сервером)
-   ```
-   Или через скрипт `bash dev-web.sh` (при наличии `TG_SESSION_LOCAL` в `.env` он автоматически поднимет `dev:local`). Web доступен на [http://localhost:4000](http://localhost:4000). Для сброса кэша из воркера задайте `WEB_INTERNAL_URL=http://localhost:4000`.
-
-## Режим 3: Production-развёртывание (полный Compose)
-
-В полном Compose web и worker запускаются из production-образов без монтирования исходного кода и без Hot Reload. `Dockerfile.web` выполняет `npm run build`, затем запускает `npm start`; отдельный Next.js standalone output не настроен.
-
-1. Убедитесь, что MTProto-сессия получена (`TG_SESSION` в `.env`).
-2. В `.env` задайте **`WEB_INTERNAL_URL=http://web:4000`**: значение `localhost` из примера перекроет default YAML и направит worker к самому себе.
-3. Запустите PostgreSQL и соберите production-образы:
-   ```bash
-   docker compose up -d postgres
-   docker compose build web worker
-   ```
-4. Дождитесь статуса `healthy` у PostgreSQL и примените миграции через одноразовый контейнер:
-   ```bash
-   docker compose run --rm --no-deps worker npm run prisma:migrate
-   docker compose up -d web worker
-   ```
-
-Перед запуском web и worker с поддержкой изображений постов примените миграцию `20261016000000_add_post_images`. Она создаёт таблицу `post_images`; без неё чтение событий и сохранение изображений будут завершаться ошибкой. Для новых изображений нужны обновлённые образы обоих сервисов. Ранее собранные посты получают изображение только при повторном проходе сборщика по сообщениям.
-
-PostgreSQL проходит `pg_isready -U postgres -d tgmon`; web и worker запускаются после статуса `healthy`. Проверка доступности PostgreSQL не применяет миграции и не подтверждает наличие таблиц приложения. Ни Dockerfile, ни CMD не выполняют migrate автоматически. DATABASE_URL обоих приложений в YAML задан явно и не наследует одноимённую переменную из `.env`.
-
-Web публикует 4000:4000, PostgreSQL — 5432:5432. Для сетевого размещения замените демонстрационный пароль согласованно в postgres и URL обоих приложений, ограничьте публикацию БД и доступ к web. Изменение POSTGRES_PASSWORD в YAML само по себе не меняет пароль существующего пользователя в уже созданном volume.
-
-## Порт 4000 и Docker Desktop / WSL
-
-Полный Compose публикует TgMon на `http://localhost:4000/`. На этом порту не должен работать другой Next.js-проект или локальный `npm run dev` того же TgMon. Статуса `running` у контейнера недостаточно: в `docker compose ps` ожидается публикация вида `0.0.0.0:4000->4000/tcp`, а не только `4000/tcp`.
+Если на машине нет локального PostgreSQL в WSL и требуется поднять весь стек в Docker Desktop с Hot Reload:
 
 ```bash
-docker compose ps
-docker compose port web 4000
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+- Файл `docker-compose.dev.yml` переопределяет команду `web` на `npm run dev`, а `worker` — на `npx tsx watch src/worker/index.ts` с монтированием `.:/app` и `WATCHPACK_POLLING=true`.
+- **Важно**: даже при использовании Docker локально не помещайте в локальный `.env` боевую серверную строку `TG_SESSION`, иначе контейнер `worker` вызовет `AuthKeyDuplicated` с сервером OVH. Не запускайте одновременно локальный `npm run dev` на хосте и Docker-контейнер `web` (конфликт порта `4000` и блокировка Prisma engine `EPERM` на Windows).
+
+## Порт 4000 и диагностика
+
+TgMon работает на `http://localhost:4000/`. На этом порту не должен висеть другой процесс.
+
+```bash
 curl -i http://localhost:4000/
 curl -i http://localhost:4000/api/health
 ```
 
-Если браузер показывает другое приложение, страницу входа или 404 для health, определите владельца порта: в WSL — `ss -ltnp 'sport = :4000'`, в PowerShell — `Get-NetTCPConnection -State Listen -LocalPort 4000`. При работе через WSL проверьте обе стороны. Уточните рабочую папку процесса; не останавливайте все Node.js-процессы. После согласованной остановки конфликтующего сервиса можно повторно создать только web:
-
-```bash
-docker compose up -d --no-deps --force-recreate web
-```
-
-Команда использует текущий собранный образ web и заново применяет публикацию порта; новый образ не собирается, PostgreSQL и worker не пересоздаются. Повторите HTTP-проверки именно с хоста, а не только из контейнера. Внутренний успешный ответ не доказывает, что браузер попадает в нужное приложение.
-
-Если команда `docker` в WSL сообщает об отсутствии интеграции Docker Desktop, выполните те же команды в Windows PowerShell из `C:\TgMon` либо используйте установленный Windows `docker.exe`. Это проблема доступа к Docker, а не повод создавать другую копию проекта.
+Если порт занят или браузер открывает старый процесс: в WSL проверьте `ss -ltnp 'sport = :4000'`, в PowerShell — `Get-NetTCPConnection -State Listen -LocalPort 4000`.
 
 ## Миграции и демонстрационные данные
 
-- `npm run prisma:migrate` выполняет **prisma migrate deploy**: применяет существующие миграции, не создаёт новые.
-- `npm run prisma:generate` обновляет клиент, не меняя БД. `npm run build` также запускает генерацию перед Next build.
+- `npm run prisma:migrate` выполняет **prisma migrate deploy**: применяет существующие миграции из `prisma/migrations/`, не создаёт новые.
+- `npm run prisma:generate` обновляет Prisma Client, не меняя БД. `npm run build` также запускает генерацию перед Next build.
 - `npm run prisma:push` синхронизирует схему без истории миграций; не используйте его как обычную процедуру обновления существующей БД.
-- `npm run seed` удаляет посты, снимки и каналы, затем создаёт демонстрационные данные. Только отдельная тестовая база.
-- Для Windows EPERM при генерации проверьте Node-процессы именно этого проекта, которые могут удерживать Prisma engine; остановите нужные процессы перед повтором.
+- `npm run seed` удаляет посты, снимки и каналы, затем создаёт демонстрационные данные. Только для отдельной тестовой базы!
+- Для Windows `EPERM` при `prisma generate` проверьте запущенные Node-процессы этого проекта, которые могут удерживать Prisma Query Engine, и остановите их перед генерацией.
 
-Последняя миграция `20261016000000_add_post_images` создаёт `post_images`; предыдущая `20261013212052_add_event_dismissed_at` добавляет nullable-колонку `events.dismissed_at`. Обе операции сохраняют существующие события и посты. Перед запуском новых образов примените миграции через `npm run prisma:migrate` или команду Compose выше.
+Актуальные миграции включают:
+- `20261020150000_add_multiuser_support` — таблицы многопользовательского режима (`users`, `invite_codes`, `user_channels`, `user_dismissed_events`) и привязка `user_id` в `ai_reports` и `alert_rules`.
+- `20261016000000_add_post_images` — таблица `post_images` для хранения сжатых изображений постов.
+- `20261013212052_add_event_dismissed_at` — колонка `events.dismissed_at`.
 
-## Обновление существующего окружения
+## Многопользовательская система, инвайты и доступ к Web UI
 
-Сделайте резервную копию БД и выберите проверенный revision. Для работающих сервисов согласуйте окно остановки: миграции и перезапуск могут прервать сбор. После получения кода и проверки конфигурации:
+В TgMon реализована **многопользовательская система с регистрацией по инвайтам (Вариант А)**:
 
-```bash
-docker compose stop web worker
-docker compose build web worker
-docker compose run --rm --no-deps worker npm run prisma:migrate
-docker compose up -d web worker
-```
+1. **Три способа авторизации**:
+   - **Вход по логину и паролю (`/login` → вкладка «Вход»)**: проверяет учётную запись в таблице `users` (хеширование паролей PBKDF2-SHA256) и выдаёт подписанную `HttpOnly`-cookie сессии формата `v2.<userId>.<role>.<expiresAt>.<nonce>.<sig>` на 12 часов.
+   - **Регистрация по инвайт-коду (`/login` → вкладка «По инвайту» или ссылка `/login?invite=TGMON-...`)**: создать аккаунт без действующего инвайт-кода нельзя. При первой регистрации администратора (или первом входе по мастер-ключу) все ранее созданные в системе каналы, AI-отчёты и правила уведомлений автоматически привязываются к этому администратору (`claimOrphanedDataForAdmin`).
+   - **Резервный вход по мастер-ключу (`/login` → вкладка «Мастер-ключ»)**: ввод `COLLECT_API_TOKEN` из `.env`. Если в базе уже есть пользователь с ролью `ADMIN`, создаёт сессию `v2` от его имени; иначе создаёт совместимую сессию `v1` с правами `ADMIN`. Межсервисные запросы (`worker <-> web`) используют заголовок `Authorization: Bearer <COLLECT_API_TOKEN>`.
 
-Если миграций нет, образы можно собрать до переключения, пока старые сервисы работают:
+2. **Как разделены данные между пользователями**:
+   - **Общий слой сбора**: таблицы `channels`, `posts`, `post_images`, `snapshots`, `channel_metrics_daily`, `events`, `fraud_signals` общие. Воркер собирает каждый Telegram-канал один раз, даже если на него подписаны 10 разных пользователей.
+   - **Персональное рабочее пространство каждого пользователя**:
+     - Свой список отслеживаемых каналов, свой выбор «Моего канала» (`isMine`) и «Избранного» (`isFavorite`) в таблице `user_channels`.
+     - Если пользователь добавляет канал, который уже есть в БД у другого пользователя, он мгновенно подключается к его списку с уже собранной историей.
+     - При удалении канала пользователем без `permanent=true` отключается только его личная подписка (`UserChannel.isActive = false`), не ломая мониторинг другим пользователям. Полное физическое удаление из БД (`DELETE /api/channels/:id?permanent=true`) доступно только роли `ADMIN`.
+     - Свои AI-отчёты (`AiReport.userId`), свои правила алертов (`AlertRule.userId`) и свои персонально скрытые карточки в «Афише» (`UserDismissedEvent`).
 
-```bash
-docker compose build web worker
-docker compose up -d --no-deps web worker
-```
+3. **Управление инвайтами и общим ключом OpenRouter (`/settings`)**:
+   - Ключ OpenRouter (`SystemSetting.aiToken` / `OPENROUTER_API_KEY`) является **общим** для всех приглашённых пользователей — им не нужно вводить собственные ключи для генерации AI-отчётов.
+   - Просмотр и изменение настроек OpenRouter, а также создание и отзыв инвайт-кодов (`/api/invites`, блок «Многопользовательский доступ (Инвайты)» на странице `/settings`) доступны **только пользователям с ролью `ADMIN`**. Обычные пользователи (`USER`) на странице `/settings` управляют только своими правилами уведомлений (`AlertRule`).
 
-Изменения MTProto-клиента и сборщика требуют обновления worker; изменения маршрутов-посредников или Compose требуют обновления web. Ручной `/api/collect/run` выполняет MTProto-работу в worker. Для поддержки статей используется `teleproto@1.229.0` под alias `telegram`; новая миграция и повторная авторизация только из-за этой замены не требуются. Уже сохранённые статьи останутся текстом при смене версии клиента, но старый клиент не сможет получать новые rich-сообщения. [ADR 0002](adr/0002-telegram-rich-messages.md).
-
-Для запуска на хосте остановите процессы этого проекта, выполните `npm ci`, `npm run prisma:migrate`, `npm run build`, затем запустите `npm start` и `npm run worker` под выбранным менеджером процессов. В репозитории нет PM2 ecosystem-файла или update.sh, поэтому они не являются частью штатного деплоя. Не перезапускайте все процессы сервера общей командой.
-
-Обратное переключение исходников не откатывает схему/данные. Стратегия отката зависит от SQL конкретной миграции и резервной копии. `docker compose down -v` удаляет volume БД и не нужен для обычного обновления.
-
-## Доступ и обратный прокси
-
-Откройте `/login` и введите значение `COLLECT_API_TOKEN` из защищённой конфигурации сервера. Сервер выдаёт подписанную HttpOnly-cookie с `SameSite=Strict` на 12 часов; кнопка «Выйти» очищает её в браузере. Серверный токен не подставляется в запросы браузера и не включается в клиентский bundle. Для межсервисных запросов используйте Bearer. Все страницы приложения и API, кроме `/login`, `POST /api/auth/login` и `GET /api/health`, требуют авторизации; `/api/internal/*` принимает только Bearer. Cookie-запросы с изменением данных дополнительно проверяют `Origin`. Отдельных пользовательских аккаунтов и ролей нет. Используйте HTTPS, сильный случайный ключ и ограничение сетевого доступа для внешнего размещения.
-
-Если используется Nginx, upstream направьте на `http://127.0.0.1:4000`. Передавайте исходный Host и `X-Forwarded-Proto=https`, чтобы cookie получила флаг Secure и проверка `Origin` сравнивала внешний адрес. Таймауты должны учитывать синхронный ручной сбор и AI/scanner (до 60/120 секунд для вызова LLM плюс работа с БД). Готовой конфигурации Nginx/TLS в репозитории нет.
+4. **Обратный прокси (Nginx)**:
+   - Направляйте upstream на `http://127.0.0.1:4000`, передавайте `Host` и `X-Forwarded-Proto=https`, чтобы cookie получала флаг `Secure`, а CSRF-проверка `Origin` корректно сверяла внешний домен (`tgmons.online`). Таймауты прокси должны учитывать синхронный сбор и генерацию AI-отчётов (до 60–120 секунд).
 
 ## Проверка после запуска
 

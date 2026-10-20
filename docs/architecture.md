@@ -1,12 +1,12 @@
 # Архитектура TgMon
 
-Состояние реализации сверено 16 октября 2026 года. Источники: [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
+Состояние реализации сверено 20 октября 2026 года. Источники: [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
 
 ## Контекст и процессы
 
 ```mermaid
 flowchart LR
-    User[Пользователь] --> Web[Next.js UI и API :4000]
+    User[Пользователь / Аккаунт] --> Web[Next.js UI и API :4000]
     Web --> DB[(PostgreSQL)]
     Web --> AI[OpenRouter]
     Web -->|закрытый HTTP API :4001| Worker[Worker: очередь, cron и teleproto]
@@ -16,7 +16,9 @@ flowchart LR
     Worker -->|POST invalidate-cache| Web
 ```
 
-Web и worker работают отдельными Node.js-процессами. Web передаёт добавление канала и ручной сбор в закрытый HTTP API worker на порту 4001 с Bearer-токеном; порт не публикуется из Compose. Только worker использует MTProto-сессию. Ответ ручного API ожидает завершения цикла.
+Web и worker работают отдельными Node.js-процессами. Web передаёт добавление канала и ручной сбор в закрытый HTTP API worker на порту 4001 с Bearer-токеном; порт не публикуется из Compose. Только worker использует MTProto-сессию:
+- На боевом сервере (`ovh-vps`) worker работает с серверной сессией `TG_SESSION` (`TgMon Server Worker`) и выполняет фоновый сбор по расписанию cron.
+- Локально (`npm run worker:local` / `bash dev-web.sh`) worker запускается с флагом `--local` (`WORKER_LOCAL_MODE=true`), строго использует отдельную локальную сессию `TG_SESSION_LOCAL` (`TgMon Local Dev`) и работает в режиме по запросу (без фонового cron), что исключает конфликт `AuthKeyDuplicated` с сервером.
 
 `src/worker/task-coordinator.ts` ставит основной сбор, демографию, рекламный охват и первичный backfill в одну последовательную очередь. Повторный запрос основного сбора получает 409. Создание SyncJob сериализовано транзакционным advisory lock PostgreSQL; активный RUNNING блокирует второй цикл между процессами. RUNNING старше порога `HEALTH_STUCK_THRESHOLD_MINUTES` (по умолчанию 120 минут) помечается FAILED перед новым запуском. При SIGINT/SIGTERM worker прекращает приём задач, ждёт активное задание до 30 секунд и останавливает основной сбор между каналами, завершает SyncJob как PARTIAL/FAILED при прерывании и отключает TelegramClient.
 
@@ -38,11 +40,15 @@ Web и worker работают отдельными Node.js-процессами
 
 Полная спецификация моделей PostgreSQL 15, типов полей, вторичных индексов, перечислений и каскадов приведена в документе [База данных и схема Prisma](database.md).
 
-Схема `prisma/schema.prisma` включает **16 моделей** и перечисление **`SyncStatus`** (`RUNNING`, `COMPLETED`, `PARTIAL`, `FAILED`; статус фонового цикла сбора в `SyncJob`):
+Схема `prisma/schema.prisma` включает **20 моделей** и два перечисления (**`SyncStatus`**: `RUNNING`, `COMPLETED`, `PARTIAL`, `FAILED`; **`UserRole`**: `ADMIN`, `USER`):
 
 | Prisma-модель | Таблица | Назначение |
 | --- | --- | --- |
-| `Channel` | `channels` | Идентификаторы Telegram, тип, ниша, флаги, статус и ошибки сбора |
+| `User` | `users` | Учётные записи пользователей (`username`, `passwordHash`, `role`, `invitedByCode`) |
+| `InviteCode` | `invite_codes` | Пригласительные коды для закрытой регистрации (`code`, `maxUses`, `usedCount`, `expiresAt`, `isActive`) |
+| `UserChannel` | `user_channels` | Персональные подписки пользователя на каналы (`isMine`, `isFavorite`, `isActive`); unique `(userId, channelId)` |
+| `UserDismissedEvent` | `user_dismissed_events` | Персонально скрытые пользователем карточки событий; unique `(userId, eventId)` |
+| `Channel` | `channels` | Общий пул Telegram-каналов: идентификаторы, тип, ниша, статус и ошибки сбора |
 | `Snapshot` | `snapshots` | История численности аудитории |
 | `Post` | `posts` | Текущие счётчики и текст публикации; unique `(channelId, messageId)` |
 | `PostImage` | `post_images` | Одно изображение поста до 1 МБ; байты и MIME-тип хранятся отдельно от строки Post |
@@ -52,14 +58,14 @@ Web и worker работают отдельными Node.js-процессами
 | `SyncJob` | `sync_jobs` | Начало/конец цикла, статус (`SyncStatus`), счётчики и краткая ошибка |
 | `ChannelMetricDaily` | `channel_metrics_daily` | Дневные агрегаты UTC; unique `(channelId, date)` |
 | `AudienceDemographics` | `audience_demographics` | Языковые доли, дата снимка, nullable JSONB `countryBreakdown` |
-| `AiReport` | `ai_reports` | Тип и строковый JSON-ответ LLM, необязательный канал; запись может быть физически удалена из архива |
+| `AiReport` | `ai_reports` | Тип и строковый JSON-ответ LLM, необязательный `channelId` и `userId` владельца отчёта |
 | `Event` | `events` | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | Связи M:N событий с исходными постами; unique `(eventId, postId)` |
-| `SystemSetting` | `system_settings` | Запись `global` с настройками AI и полями digest |
-| `AlertRule` | `alert_rules` | Глобальные и канальные пороги для Telegram-уведомлений с cooldown |
+| `SystemSetting` | `system_settings` | Запись `global` с общими настройками AI (`aiToken`, `aiModel`) и полями digest |
+| `AlertRule` | `alert_rules` | Глобальные и канальные пороги для Telegram-уведомлений с cooldown и привязкой `userId` |
 | `FraudSignal` | `fraud_signals` | Тип, значение, причина и время срабатывания эвристики |
 
-Миграции находятся в `prisma/migrations/`. Последняя на дату сверки: `20261016000000_add_post_images`, создающая таблицу `post_images`. Предыдущая `20261013212052_add_event_dismissed_at` добавила nullable-поле ручного скрытия событий. Схема включает `pg_trgm` и GIN-индекс текста постов.
+Миграции находятся в `prisma/migrations/`. Последняя на дату сверки: `20261020150000_add_multiuser_support` (таблицы пользователей, инвайтов и персональных подписок). Предыдущие: `20261016000000_add_post_images` (`post_images`) и `20261013212052_add_event_dismissed_at` (`events.dismissed_at`). Схема включает `pg_trgm` и GIN-индекс текста постов.
 
 Отключение канала меняет `isActive`; физическое удаление использует каскады связей Prisma. `isMine` переносится транзакцией, но уникального ограничения в БД нет. `SystemSetting.aiToken` хранится в БД; API возвращает только признак наличия и маскированное превью. AlertRule проверяется после материализации в основном цикле worker. Поля digest пока не запускают фоновую функцию.
 
@@ -153,4 +159,4 @@ AI-обработчики формируют промпты из сохранё�
 
 `callOpenRouter` использует ключ и модель из `SystemSetting`, затем резервные `OPENROUTER_API_KEY` и `z-ai/glm-5.3-flash`. Jev использует тот же ключ и фиксированную модель `~typesafe/jev-latest`. Конфигурация кэшируется на 30 секунд в процессе web и сбрасывается при сохранении настроек в том же процессе. Поддерживается провайдер OpenRouter. Экспорт отчёта возвращает HTML, а PDF/PNG формируют соответствующие компоненты интерфейса. `DELETE /api/reports/:id` физически удаляет выбранный `AiReport`, после чего его страница и HTML-экспорт недоступны. Изображение для карточки «Афиши» выбирается из видимых упоминаний и выдаётся отдельным маршрутом, без передачи байтов в списке событий.
 
-Middleware проверяет Bearer для сервисных запросов либо подписанную HttpOnly-cookie Web UI. Сессия создаётся на `/api/auth/login` после ввода `COLLECT_API_TOKEN` на `/login`, действует 12 часов и не содержит сам ключ. Cookie-мутации требуют совпадающий `Origin`; `/api/internal/*` принимает только Bearer. Страницы и API закрыты, кроме входа и health. `verifyBearerToken` повторяет проверку в мутирующих обработчиках и в чтении настроек. Отдельных пользователей и ролей нет; внешнему размещению нужны HTTPS и сильный ключ. [Эксплуатация](deployment.md).
+Middleware проверяет `Bearer` для сервисных запросов либо подписанную `HttpOnly`-cookie Web UI (`v2` с `userId` и `role` при входе по аккаунту/инвайту, либо `v1` при резервном входе по `COLLECT_API_TOKEN`). Сессия действует 12 часов и не содержит секретный ключ. Cookie-мутации требуют совпадающий `Origin`; `/api/internal/*` принимает только `Bearer`. Страницы и API закрыты, кроме `/login`, `/api/auth/login`, `/api/auth/register` и `/api/health`. Управление ключом OpenRouter (`/api/settings`) и инвайт-кодами (`/api/invites`) доступно только роли `ADMIN`, а данные каналов, AI-отчётов, алертов и скрытых событий изолированы по `userId`. [Эксплуатация](deployment.md).

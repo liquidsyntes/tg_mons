@@ -1,6 +1,6 @@
 # Карта кодовой базы
 
-Сверено 16 октября 2026 года. TgMon представляет собой один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
+Сверено 20 октября 2026 года. TgMon представляет собой один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
 
 ## Структура
 
@@ -22,10 +22,10 @@ docs/                   продуктовая и техническая док�
 | Главная и сравнение | `src/app/page.tsx`, `src/app/compare/page.tsx`, `ChannelsTable.tsx`, `channel/useChannelsData.ts` |
 | Детальная страница | `src/app/channel/[id]/page.tsx`, `channel/ChannelDetailClient.tsx` |
 | История отчётов | `src/app/reports/page.tsx`, `src/app/reports/[id]/page.tsx`, `ReportsListClient.tsx`, `src/app/api/reports/[id]/route.ts` для физического удаления |
-| События и настройки | `src/app/events/page.tsx`, `src/app/api/events/`, `src/lib/events/`, `src/app/settings/page.tsx` |
-| API и доступ | `src/app/api/`, `src/middleware.ts`, `src/lib/auth.ts`; [контракты](api-reference.md) |
-| Планировщик | `src/worker/index.ts`; три независимых cron-задания |
-| Авторизация MTProto | `src/worker/auth.ts`, `src/worker/client.ts` |
+| События и настройки | `src/app/events/page.tsx`, `src/app/api/events/`, `src/lib/events/`, `src/app/settings/page.tsx`, `settings/InviteCodesSettings.tsx` |
+| API и доступ | `src/app/api/`, `src/middleware.ts`, `src/lib/auth.ts`, `src/lib/users.ts`; [контракты](api-reference.md) |
+| Планировщик | `src/worker/index.ts`; три независимых cron-задания (отключаются в локальном режиме `--local` / `WORKER_DISABLE_CRON=true`) |
+| Авторизация MTProto | `src/worker/auth.ts`, `src/worker/client.ts`, `scripts/auth/qr-auth.ts`, `scripts/auth/auth-file.ts` |
 | Типы ответов | `src/lib/types.ts`, отдельные интерфейсы domain-модулей |
 
 Пути компонентов в таблице указаны относительно `src/components/`, если не указан `src/`.
@@ -52,7 +52,7 @@ docs/                   продуктовая и техническая док�
 
 ## Worker
 
-- `client.ts` создаёт и переиспользует TelegramClient с `TG_SESSION`; пакет `telegram` — npm alias для `teleproto@1.229.0`.
+- `client.ts` создаёт и переиспользует TelegramClient (`teleproto@1.229.0` под npm alias `telegram`): на сервере читает `TG_SESSION`, а в локальном режиме (`--local` / `WORKER_LOCAL_MODE=true`) строго использует `TG_SESSION_LOCAL`, исключая `AuthKeyDuplicated`.
 - `fetcher.ts` разбирает идентификаторы, выполняет resolve/FullChannel/getMessages, задержки, FLOOD_WAIT и таймауты.
 - `collector.ts` добавляет каналы, собирает/обновляет посты, запускает материализацию и антифрод, завершает SyncJob и сбрасывает кэш.
 - `message-content.ts` извлекает текст статьи и догружает `richMessage.part`; при неудаче возвращает признак недоступного содержания без частичного текста.

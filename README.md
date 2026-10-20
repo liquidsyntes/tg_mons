@@ -2,12 +2,13 @@
 
 Веб-приложение для мониторинга и сравнения Telegram-каналов и групп. MTProto-сборщик сохраняет аудиторию и публикации в PostgreSQL; интерфейс показывает динамику, метрики вовлечённости, рекламную нагрузку, цитирование, эвристические сигналы риска и AI-отчёты.
 
-Документация по текущим функциям и эксплуатации сверена с исходным кодом **16 октября 2026 года**. Версии зависимостей и команды задаются в [package.json](package.json), точные установочные версии: в [package-lock.json](package-lock.json).
+Документация по текущим функциям и эксплуатации сверена с исходным кодом **20 октября 2026 года**. Версии зависимостей и команды задаются в [package.json](package.json), точные установочные версии: в [package-lock.json](package-lock.json).
 
 **Стек:** Next.js 15 / React 19 / TypeScript, Prisma 6 / PostgreSQL 15, teleproto (преемник GramJS, npm alias `telegram`), node-cron 4, Tailwind CSS 3, Recharts, Vitest 4. Docker и CI используют Node.js 22. Web слушает порт **4000**.
 
 ## Возможности
 
+- **Многопользовательский режим по инвайтам**: закрытая регистрация по пригласительным кодам (`InviteCode`), персональный список каналов у каждого пользователя (`UserChannel`), свои флаги «Мой канал» и «Избранное», изолированные AI-отчёты и правила уведомлений при едином общем пуле сбора Telegram-данных и общем ключе OpenRouter.
 - Главная: «Мой канал», избранное, сравнительная таблица, KPI, лидеры роста и падения, лучшее время публикации и сворачиваемый радар трендов.
 - История подписчиков и постов за 24 часа, 7 и 30 дней; ER, ERR, VR, CR для групп, EP и Content Score. При неполной истории дельты показывают фактическое покрытие.
 - Статьи Telegram: извлечение текста rich-сообщений, чтение в карточке публикации, поиск и использование в новых AI-отчётах; восстановление ранее пустых статей отдельной утилитой.
@@ -21,108 +22,100 @@
 
 Подробности и ограничения: [обзор продукта](docs/overview.md), [формулы](docs/analytics-formulas.md), [API](docs/api-reference.md).
 
-## Быстрый старт (рекомендуемый: всё в Docker с Hot Reload)
+## Среды запуска и правило изоляции Telegram-сессий
 
-Основной способ локальной разработки — запуск web и worker в Docker с поддержкой Hot Reload через файл переопределения `docker-compose.dev.yml`.
+Проект работает в трёх средах, и критически важно не смешивать их MTProto-сессии:
 
-Требования: Node.js 22, npm и Docker Desktop / Docker Compose. В Windows основной checkout — `C:\TgMon`, в WSL — `/mnt/c/TgMon`.
+1. **Локальная среда (Windows `C:\TgMon` / WSL `/mnt/c/TgMon`)**:
+   - Нативный PostgreSQL в WSL (`127.0.0.1:5432`, база `tgmon`) + нативный запуск через `bash dev-web.sh` (или `npm run dev:local`).
+   - Использует **отдельную изолированную сессию `TG_SESSION_LOCAL`** (устройство `TgMon Local Dev`).
+   - Локальный `worker:local` запускается в режиме **по запросу (on-demand)**: без фонового расписания cron, отвечает только на добавление каналов и ручной сбор из локального UI.
+2. **Боевой сервер OVH (`ovh-vps`, `/opt/tgmon`, домен `tgmons.online`)**:
+   - Полный Docker-стек (`postgres` + `web` + `worker` через `docker-compose.yml` + `docker-compose.prod.yml`), Nginx + HTTPS, деплой скриптом `bash update.sh`.
+   - Использует **серверную сессию `TG_SESSION`** (устройство `TgMon Server Worker`) и крутит регулярный сбор по cron.
+3. **GitHub (`origin/main`)**:
+   - Публичный репозиторий без секретов; пароль БД передаётся через `${POSTGRES_PASSWORD}`.
 
-### 1. Подготовка и авторизация на хосте
+> **Почему нельзя использовать одну строку сессии и локально, и на сервере?**
+> Если одна и та же строка `StringSession` (`auth_key`) одновременно подключается с двух разных IP, Telegram выбрасывает ошибку `AuthKeyDuplicated` и принудительно сбрасывает авторизацию. Благодаря разделению на `TG_SESSION` (только на сервере) и `TG_SESSION_LOCAL` (только локально) обе среды работают параллельно на одном или разных аккаунтах без потери авторизации.
+
+## Быстрый старт локально (WSL / Windows)
+
+### 1. Подготовка и изолированная локальная авторизация Telegram
 
 ```bash
 npm ci
 cp .env.example .env
 ```
 
-Заполните `TG_API_ID`, `TG_API_HASH`, `TG_PHONE` и непустой `COLLECT_API_TOKEN`. Для локальной разработки база данных запускается в Docker:
+Заполните в `.env` параметры `DATABASE_URL` (`postgresql://...@127.0.0.1:5432/tgmon?schema=public`), `TG_API_ID`, `TG_API_HASH` и `COLLECT_API_TOKEN`, затем один раз создайте локальную сессию `TG_SESSION_LOCAL`:
 
 ```bash
-docker compose up -d postgres
 npm run prisma:generate
 npm run prisma:migrate
-npm run auth
+npm run auth:local:qr
 ```
 
-Дождитесь готовности PostgreSQL перед миграциями. `npm run auth` выполняет интерактивный вход в Telegram (код и 2FA при наличии) и записывает сессию `TG_SESSION` в `.env`. Не публикуйте вывод терминала с сессией.
+- Команда `npm run auth:local:qr` поднимет локальную страницу **http://localhost:4099** с картинкой QR-кода.
+- Откройте **http://localhost:4099** в браузере на ПК, а на телефоне зайдите в **Telegram → Настройки → Устройства → Подключить устройство** и наведите камеру на QR-код (не кликайте по `tg://login` ссылке напрямую — Telegram блокирует прямые клики).
+- Либо используйте `npm run auth:local` для входа по номеру телефона и коду в терминале.
+- Полученная сессия автоматически запишется в `.env` как `TG_SESSION_LOCAL`.
 
-### 2. Запуск в Docker с Hot Reload
+### 2. Запуск проекта локально
+
+В терминале WSL (`/mnt/c/TgMon`):
+```bash
+bash dev-web.sh
+```
+*(или `npm run dev:local`, если PostgreSQL уже запущен).*
+
+Скрипт проверит PostgreSQL, применит миграции и при наличии `TG_SESSION_LOCAL` запустит одновременно `web` ([http://localhost:4000](http://localhost:4000)) и `worker:local` (`127.0.0.1:4001`, режим по запросу без фонового cron). Если `TG_SESSION_LOCAL` не задана, запустится только `web`.
+
+`npm run seed` **удаляет существующие посты, снимки и каналы** перед созданием демонстрационных данных. Это команда только для отдельной тестовой БД.
+
+## Docker и развёртывание на сервере
+
+Подробная инструкция в [docs/deployment.md](docs/deployment.md) описывает все сценарии:
+1. **Штатный локальный запуск на хосте/WSL** (`bash dev-web.sh` / `npm run dev:local` с `TG_SESSION_LOCAL`).
+2. **Production на сервере OVH** (`docker-compose.yml` + `docker-compose.prod.yml`, обновление через `bash update.sh`, серверная сессия `TG_SESSION`).
+3. **Альтернативная разработка в Docker с Hot Reload** (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`).
+
+### Production-обновление на сервере (`/opt/tgmon`)
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+bash update.sh
 ```
+Скрипт выполняет `git pull --ff-only`, пересобирает образы `web` и `worker`, запускает `prisma migrate deploy` и перезапускает контейнеры.
 
-Откройте [http://localhost:4000](http://localhost:4000).
+### Многопользовательский вход и доступ к Web UI
 
-- Директория проекта монтируется в контейнер (`.:/app`), а переменная `WATCHPACK_POLLING=true` обеспечивает надёжный Fast Refresh / Hot Reload при изменении исходников на любых ОС.
-- Каталоги `node_modules` и `.next` изолированы в анонимных томах Docker во избежание конфликтов сред.
-- Worker запускается в режиме отслеживания (`tsx watch`) с автоперезапуском при изменении кода сбора.
-- **Не запускайте `npm run dev` на хосте** во избежание конфликтов портов и файловых блокировок Prisma engine.
+На странице `/login` доступны три режима:
+- **Вход по логину и паролю**: индивидуальные аккаунты пользователей (`User`), сессия хранится в подписанной `HttpOnly`-cookie (`v2`) на 12 часов.
+- **Регистрация по инвайт-коду**: новые пользователи регистрируются только по коду приглашения (`InviteCode`), созданному администратором на странице `/settings` (поддерживаются прямые ссылки `/login?invite=TGMON-...`).
+- **Мастер-ключ (`COLLECT_API_TOKEN`)**: резервный вход администратора и `Bearer`-токен для межсервисных вызовов `web <-> worker`.
 
-### Альтернативный режим: запуск на хосте
-
-Для отладки без Docker-контейнеров для Node.js (при запущенном `docker compose up -d postgres`):
-```bash
-npm run dev:all
-```
-(или `npm run dev` и `npm run worker` в отдельных терминалах). В этом режиме задайте `WEB_INTERNAL_URL=http://localhost:4000`; web обращается к worker по `http://localhost:4001`.
-
-После старта добавьте канал через интерфейс. API сразу пытается собрать историю за 30 дней, ограниченную 1000 последними сообщениями; дальнейший плановый цикл периодически обновляет метрики.
-
-`npm run seed` **удаляет существующие посты, снимки и каналы** перед созданием демонстрационных данных. Это команда только для отдельной тестовой БД, она не нужна для обычного старта. `npm run prisma:push` не заменяет применение миграций в существующем окружении.
-
-## Статьи и ранее пустые публикации
-
-Сборщик использует `teleproto@1.229.0` под именем пакета `telegram`. Он читает `richMessage`, при необходимости догружает полный текст и сохраняет его в `Post.text`. В интерфейсе доступны абзацы, списки, таблицы и подписи как обычный текст; OCR и точная вёрстка Telegram не выполняются. Отдельные фото и изображения-документы до 1 МБ сохраняются для постов в `PostImage`; изображения внутри статей пока не извлекаются. Ошибка догрузки не затирает ранее сохранённый текст.
-
-Надпись «Текст недоступен» не доказывает отсутствие содержания в Telegram. Старые пропуски за пределами последних 200 сообщений восстанавливаются через [backfill-articles.ts](scripts/README.md#восстановление-текста-статей): сначала dry-run, затем явный `--apply`. Новые AI-отчёты используют восстановленный текст в пределах своих [периодов и лимитов](docs/api-reference.md#ai-отчёты); сохранённые отчёты нужно создать заново.
-
-## Docker и развёртывание
-
-[Инструкция развёртывания](docs/deployment.md) описывает три режима:
-1. **Локальная разработка в Docker с Hot Reload** (`docker-compose.dev.yml`) — рекомендуемый режим.
-2. **Запуск на хосте** (`dev:all` или раздельные `npm run dev` / `npm run worker`) — альтернативный режим для отладки.
-3. **Production-развёртывание** (полный Compose) — автономные production-образы.
-
-Миграции не запускаются автоматически при старте контейнеров.
-
-### Команды разработки vs Production
-
-- **Локальная разработка с Hot Reload**:
-  ```bash
-  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-  ```
-  Команда монтирует исходный код в контейнеры, запускает `npm run dev` (`next dev -p 4000`), `tsx watch` для worker и поллинг `WATCHPACK_POLLING=true`.
-
-- **Production-сборка (полный Compose)**:
-  Для production задайте в `.env` **`WEB_INTERNAL_URL=http://web:4000`** (скопированное из примера значение `localhost` иначе переопределит корректный Docker-default):
-  ```bash
-  docker compose up -d postgres
-  docker compose build web worker
-  docker compose run --rm --no-deps worker npm run prisma:migrate
-  docker compose up -d web worker
-  ```
-  В production контейнеры собираются начисто (`Dockerfile.web` компилирует Next.js через `npm run build`), и сервер запускается через `npm start` без монтирования локальных файлов.
-
-Web и worker в полном Compose запускаются из собранных образов без hot reload. После изменения сборщика или Telegram-клиента обновляйте worker; изменения API-посредника и Compose требуют также обновления web. Порт 4000 должен быть свободен; проверяйте публикацию через `docker compose ps` и ответы главной и `/api/health` с хоста. [Обновление и диагностика порта](docs/deployment.md#обновление-существующего-окружения).
-
-Web UI открывается после входа на `/login`: пользователь вводит значение `COLLECT_API_TOKEN`, сервер создаёт подписанную HttpOnly-cookie на 12 часов. Ключ не встраивается в клиентский bundle. Запросы worker и внешних скриптов по-прежнему принимают `Authorization: Bearer <COLLECT_API_TOKEN>`; для cookie-запросов с изменением данных требуется совпадение `Origin`. `/api/health` остаётся открытым. Для сетевого размещения используйте HTTPS и сильный случайный ключ; `/api/settings` возвращает только статус и маскированное превью AI-ключа.
+Ключ OpenRouter (`SystemSetting.aiToken` или `OPENROUTER_API_KEY`) настраивается администратором один раз и используется всеми приглашёнными пользователями для генерации AI-отчётов.
 
 ## Конфигурация
 
 | Переменная | Использование |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL для web, worker и Prisma CLI |
-| `TG_API_ID`, `TG_API_HASH`, `TG_SESSION` | MTProto только в worker и CLI авторизации |
-| `TG_PHONE` | Подсказка для интерактивной авторизации |
-| `COLLECT_API_TOKEN` | Ключ входа в Web UI, подпись HttpOnly-сессии и Bearer для worker/скриптов |
+| `POSTGRES_PASSWORD` | Пароль БД для production Compose (`docker-compose.prod.yml`) |
+| `TG_API_ID`, `TG_API_HASH` | Ключи приложения Telegram (`my.telegram.org`) |
+| `TG_SESSION` | Серверная MTProto-сессия (живёт только на сервере в worker) |
+| `TG_SESSION_LOCAL` | Локальная MTProto-сессия для `worker:local` (создаётся через `npm run auth:local` / `auth:local:qr`) |
+| `WORKER_LOCAL_MODE`, `WORKER_DISABLE_CRON` | Локальный режим worker: строго `TG_SESSION_LOCAL`, без фонового cron |
+| `TG_PHONE` | Подсказка номера телефона для CLI авторизации |
+| `COLLECT_API_TOKEN` | Мастер-ключ входа в Web UI, ключ подписи сессионных cookie и Bearer для worker |
 | `COLLECT_CRON` | Основной сбор, по умолчанию `0 * * * *` |
 | `COLLECT_ON_STARTUP` | Первичный цикл только при строке `true` |
 | `DEMOGRAPHICS_CRON` | Демография, по умолчанию `0 3 * * 0` |
-| `WEB_INTERNAL_URL` | Адрес web для сброса кэша из worker |
-| `WORKER_INTERNAL_URL` | Закрытый адрес worker для web: `http://worker:4001` в Compose, `http://localhost:4001` на хосте |
+| `WEB_INTERNAL_URL` | Адрес web для сброса кэша из worker (`http://web:4000` в Docker, `http://localhost:4000` локально) |
+| `WORKER_INTERNAL_URL` | Закрытый адрес worker для web: `http://worker:4001` в Compose, `http://localhost:4001` локально |
 | `TELEGRAM_REQUEST_TIMEOUT_MS` | Таймаут MTProto, по умолчанию 30000 мс |
 | `CHANNEL_MAX_CONSECUTIVE_ERRORS` | Отключение после N последовательных ошибок, по умолчанию 10 |
-| `OPENROUTER_API_KEY` | AI-отчёты и сканер событий |
+| `OPENROUTER_API_KEY` | Общий ключ OpenRouter для AI-отчётов и сканера событий |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Отправка пользовательских правил и уведомлений об автоотключении канала |
 | `HEALTH_STUCK_THRESHOLD_MINUTES` | Порог зависшего SyncJob, по умолчанию 120 минут |
 | `HEALTH_STALE_THRESHOLD_MINUTES` | Порог давности завершённого SyncJob, по умолчанию 720 минут |

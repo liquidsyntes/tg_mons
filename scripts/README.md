@@ -6,6 +6,7 @@
 
 | Файл | Поведение и ограничения |
 | --- | --- |
+| [auth/qr-auth.ts](auth/qr-auth.ts), [auth/auth-file.ts](auth/auth-file.ts) | Неинтерактивная серверная авторизация MTProto через файлы в `/run/auth/` (QR или телефон+код) |
 | [backfill-articles.ts](backfill-articles.ts) | Проверка и восстановление пустых текстов статей одного канала; dry-run по умолчанию, запись только с `--apply` |
 | [audit-metrics.ts](audit-metrics.ts) | Читает SyncJob, каналы, агрегаты, снимки и посты; выводит диагностические данные, БД не изменяет |
 | [check_db_stats.ts](check_db_stats.ts) | Читает список каналов, количество постов и время сбора; вывод содержит данные каналов |
