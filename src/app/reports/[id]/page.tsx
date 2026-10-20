@@ -14,22 +14,35 @@ import { ArrowLeft, Calendar, Download } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { cookies } from 'next/headers';
+import { parseSessionCookieValue, SESSION_COOKIE_NAME } from '@/lib/auth';
 
 export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const reportId = Number(id);
   if (isNaN(reportId)) notFound();
 
+  const cookieStore = await cookies();
+  const session = await parseSessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+
   const report = await prisma.aiReport.findUnique({
     where: { id: reportId },
     include: { channel: true }
   });
 
-  if (!report) notFound();
+  if (!report || (session?.userId && report.userId !== null && report.userId !== session.userId)) notFound();
 
-  let myChannel = null;
+  let myChannel: { title: string } | null = null;
   if (report.type === 'compare') {
-    myChannel = await prisma.channel.findFirst({ where: { isMine: true } });
+    if (session?.userId && typeof prisma.userChannel?.findFirst === 'function') {
+      const sub = await prisma.userChannel.findFirst({
+        where: { userId: session.userId, isMine: true },
+        include: { channel: { select: { title: true } } },
+      });
+      myChannel = sub?.channel ?? null;
+    } else {
+      myChannel = await prisma.channel.findFirst({ where: { isMine: true } });
+    }
   }
 
   let parsedData = null;

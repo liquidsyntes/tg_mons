@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
+import { metricsCache } from '@/lib/cache';
 
 export async function PUT(
   req: NextRequest,
@@ -19,10 +20,20 @@ export async function PUT(
     const body = await req.json();
     const { isFavorite } = body;
 
+    if (authCheck.userId && typeof prisma.userChannel?.update === 'function') {
+      const updatedSub = await prisma.userChannel.update({
+        where: { userId_channelId: { userId: authCheck.userId, channelId } },
+        data: { isFavorite: Boolean(isFavorite) },
+      });
+      metricsCache.invalidate();
+      return NextResponse.json({ success: true, isFavorite: updatedSub.isFavorite });
+    }
+
     const channel = await prisma.channel.update({
       where: { id: channelId },
-      data: { isFavorite }
+      data: { isFavorite: Boolean(isFavorite) }
     });
+    metricsCache.invalidate();
 
     return NextResponse.json({ success: true, isFavorite: channel.isFavorite });
   } catch (error: any) {

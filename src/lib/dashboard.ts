@@ -29,8 +29,8 @@ export interface DashboardStats {
   subscribersTimeline: Array<{ date: string; count: number }>;
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
-  const overview = await getOverviewStats();
+export async function getDashboardStats(userId?: number | null): Promise<DashboardStats> {
+  const overview = await getOverviewStats(userId);
   
   // Combine all active channels
   const allMetrics = overview.channels.filter(c => c.isActive);
@@ -88,12 +88,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     }));
 
   const startDate30 = subDays(new Date(), 30);
+  const hasScopedUser = userId !== undefined && userId !== null;
+  const activeChannelIds = allMetrics.map(c => c.id);
+  const channelFilter = hasScopedUser
+    ? { channelId: { in: activeChannelIds }, channel: { isActive: true } }
+    : { channel: { isActive: true } };
   
   // Posts timeline
-  const posts = await prisma.post.findMany({
-    where: { publishedAt: { gte: startDate30 }, channel: { isActive: true } },
-    select: { publishedAt: true }
-  });
+  const posts = hasScopedUser && activeChannelIds.length === 0
+    ? []
+    : await prisma.post.findMany({
+        where: { publishedAt: { gte: startDate30 }, ...channelFilter },
+        select: { publishedAt: true }
+      });
 
   const postsByDate: Record<string, number> = {};
   for (let i = 0; i < 30; i++) {
@@ -113,21 +120,25 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .map((date) => ({ date: format(new Date(date), 'dd MMM'), count: postsByDate[date] }));
 
   // Subscribers timeline
-  const snapshots = await prisma.snapshot.findMany({
-    where: { collectedAt: { gte: startDate30 }, channel: { isActive: true } },
-    select: { channelId: true, membersCount: true, collectedAt: true },
-    orderBy: { collectedAt: 'asc' }
-  });
+  const snapshots = hasScopedUser && activeChannelIds.length === 0
+    ? []
+    : await prisma.snapshot.findMany({
+        where: { collectedAt: { gte: startDate30 }, ...channelFilter },
+        select: { channelId: true, membersCount: true, collectedAt: true },
+        orderBy: { collectedAt: 'asc' }
+      });
 
   const channelLastMembers: Record<number, number> = {};
   
   // Get baseline
-  const baselineSnapshots = await prisma.snapshot.findMany({
-    where: { collectedAt: { lt: startDate30 }, channel: { isActive: true } },
-    orderBy: { collectedAt: 'desc' },
-    distinct: ['channelId'],
-    select: { channelId: true, membersCount: true },
-  });
+  const baselineSnapshots = hasScopedUser && activeChannelIds.length === 0
+    ? []
+    : await prisma.snapshot.findMany({
+        where: { collectedAt: { lt: startDate30 }, ...channelFilter },
+        orderBy: { collectedAt: 'desc' },
+        distinct: ['channelId'],
+        select: { channelId: true, membersCount: true },
+      });
   
   for (const s of baselineSnapshots) {
     channelLastMembers[s.channelId] = s.membersCount;

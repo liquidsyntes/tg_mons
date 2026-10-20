@@ -12,20 +12,44 @@ export async function POST(req: NextRequest) {
     if (!authCheck.authorized) return authCheck.response;
 
     // Ищем каналы из Watchlist и свой канал
-    const channels = await prisma.channel.findMany({
-      where: {
-        OR: [
-          { isFavorite: true },
-          { isMine: true }
-        ],
-        isActive: true
-      },
-      select: {
-        id: true,
-        title: true,
-        username: true
+    let channels: Array<{ id: number; title: string; username: string | null }>;
+    if (authCheck.userId && typeof prisma.userChannel?.findMany === 'function') {
+      const subs = await prisma.userChannel.findMany({
+        where: {
+          userId: authCheck.userId,
+          isActive: true,
+          OR: [{ isFavorite: true }, { isMine: true }],
+          channel: { isActive: true },
+        },
+        select: {
+          channel: { select: { id: true, title: true, username: true } },
+        },
+      });
+      if (subs.length > 0) {
+        channels = subs.map((s) => s.channel);
+      } else {
+        const allUserSubs = await prisma.userChannel.findMany({
+          where: { userId: authCheck.userId, isActive: true, channel: { isActive: true } },
+          select: { channel: { select: { id: true, title: true, username: true } } },
+        });
+        channels = allUserSubs.map((s) => s.channel);
       }
-    });
+    } else {
+      channels = await prisma.channel.findMany({
+        where: {
+          OR: [
+            { isFavorite: true },
+            { isMine: true }
+          ],
+          isActive: true
+        },
+        select: {
+          id: true,
+          title: true,
+          username: true
+        }
+      });
+    }
 
     if (channels.length === 0) {
       return NextResponse.json({ error: 'Нет отслеживаемых каналов для анализа' }, { status: 404 });
@@ -96,7 +120,7 @@ ${contentToAnalyze.substring(0, 30000)}
 `;
 
     const result = await callOpenRouter(prompt);
-    await saveAiReport(null, 'trend', result);
+    await saveAiReport(null, 'trend', result, authCheck.userId);
     try {
       const parsed = JSON.parse(result);
       return NextResponse.json(parsed);

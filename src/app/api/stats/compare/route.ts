@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getChannelDetailStats, parseStatsPeriod } from '@/lib/metrics';
+import { extractRequestSession } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,9 +14,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Необходимо указать параметры a и b (ID каналов)' }, { status: 400 });
     }
 
+    const session = await extractRequestSession(req);
     const [statsA, statsB] = await Promise.all([
-      getChannelDetailStats(aId, period),
-      getChannelDetailStats(bId, period),
+      session.userId ? getChannelDetailStats(aId, period, session.userId) : getChannelDetailStats(aId, period),
+      session.userId ? getChannelDetailStats(bId, period, session.userId) : getChannelDetailStats(bId, period),
     ]);
 
     if (!statsA || !statsB) {

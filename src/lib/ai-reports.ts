@@ -32,7 +32,8 @@ export interface ChannelContentSummaryPromptOptions {
 export async function saveAiReport(
   channelId: number | null,
   type: AiReportType,
-  content: string
+  content: string,
+  userId?: number | null
 ): Promise<number | null> {
   try {
     const report = await prisma.aiReport.create({
@@ -40,6 +41,7 @@ export async function saveAiReport(
         channelId,
         type,
         content,
+        ...(userId ? { userId } : {}),
       },
     });
     return report.id;
@@ -154,4 +156,3 @@ export function handleAiRouteError(error: unknown): NextResponse {
       : 'Внутренняя ошибка сервера';
   return NextResponse.json({ error: message }, { status: 500 });
 }
-

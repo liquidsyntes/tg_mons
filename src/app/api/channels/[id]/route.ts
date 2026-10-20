@@ -3,7 +3,7 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateChannelMetrics } from '@/lib/metrics';
-import { verifyBearerToken } from '@/lib/auth';
+import { extractRequestSession, verifyBearerToken } from '@/lib/auth';
 import { metricsCache, bestTimeCache } from '@/lib/cache';
 
 interface RouteContext {
@@ -20,7 +20,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Некорректный ID канала' }, { status: 400 });
     }
 
-    const metrics = await calculateChannelMetrics(channelId);
+    const session = await extractRequestSession(req);
+    const metrics = session.userId
+      ? await calculateChannelMetrics(channelId, new Date(), session.userId)
+      : await calculateChannelMetrics(channelId);
     if (!metrics) {
       return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
     }
@@ -50,8 +53,56 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
     }
 
+    if (authCheck.userId && typeof prisma.userChannel?.findUnique === 'function') {
+      const userId = authCheck.userId;
+      const userSub = await prisma.userChannel.findUnique({
+        where: { userId_channelId: { userId, channelId } },
+      });
+      if (!userSub) {
+        return NextResponse.json({ error: 'Канал не найден в вашем списке' }, { status: 404 });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        if (isMine === true) {
+          await tx.userChannel.updateMany({
+            where: { userId, isMine: true },
+            data: { isMine: false },
+          });
+        }
+
+        await tx.userChannel.update({
+          where: { userId_channelId: { userId, channelId } },
+          data: {
+            ...(typeof isActive === 'boolean' ? { isActive } : {}),
+            ...(typeof isMine === 'boolean' ? { isMine } : {}),
+          },
+        });
+
+        if (isActive === true) {
+          await tx.channel.update({
+            where: { id: channelId },
+            data: { isActive: true },
+          });
+        } else if (isActive === false) {
+          const activeRemaining = await tx.userChannel.count({
+            where: { channelId, isActive: true },
+          });
+          if (activeRemaining === 0) {
+            await tx.channel.update({
+              where: { id: channelId },
+              data: { isActive: false },
+            });
+          }
+        }
+      });
+
+      metricsCache.invalidate();
+      bestTimeCache.invalidate();
+      const metrics = await calculateChannelMetrics(channelId, new Date(), userId);
+      return NextResponse.json(serializeBigInt(metrics));
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
-      // If setting this channel as "My Channel", remove isMine from all other channels
       if (isMine === true) {
         await tx.channel.updateMany({
           where: { isMine: true },
@@ -96,14 +147,62 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
     }
 
+    if (authCheck.userId && typeof prisma.userChannel?.findUnique === 'function') {
+      const userId = authCheck.userId;
+      const userSub = await prisma.userChannel.findUnique({
+        where: { userId_channelId: { userId, channelId } },
+      });
+      if (!userSub) {
+        return NextResponse.json({ error: 'Канал не найден в вашем списке' }, { status: 404 });
+      }
+
+      if (permanent) {
+        await prisma.$transaction(async (tx) => {
+          await tx.userChannel.delete({
+            where: { userId_channelId: { userId, channelId } },
+          });
+          const remainingSubs = await tx.userChannel.count({
+            where: { channelId },
+          });
+          if (remainingSubs === 0) {
+            await tx.channel.delete({ where: { id: channelId } });
+          }
+        });
+        metricsCache.invalidate();
+        bestTimeCache.invalidate();
+        return NextResponse.json({ success: true, message: 'Канал удален из вашего списка' });
+      } else {
+        await prisma.$transaction(async (tx) => {
+          await tx.userChannel.update({
+            where: { userId_channelId: { userId, channelId } },
+            data: { isActive: false },
+          });
+          const activeRemaining = await tx.userChannel.count({
+            where: { channelId, isActive: true },
+          });
+          if (activeRemaining === 0) {
+            await tx.channel.update({
+              where: { id: channelId },
+              data: { isActive: false },
+            });
+          }
+        });
+        metricsCache.invalidate();
+        bestTimeCache.invalidate();
+        return NextResponse.json({
+          success: true,
+          message: 'Мониторинг канала отключен (история сохранена)',
+          channel: serializeBigInt({ ...channel, isActive: false }),
+        });
+      }
+    }
+
     if (permanent) {
-      // Physical delete (cascades to snapshots and posts)
       await prisma.channel.delete({ where: { id: channelId } });
       metricsCache.invalidate();
       bestTimeCache.invalidate();
       return NextResponse.json({ success: true, message: 'Канал и вся история удалены' });
     } else {
-      // Soft removal from active monitoring (history preserved)
       const updated = await prisma.channel.update({
         where: { id: channelId },
         data: { isActive: false },

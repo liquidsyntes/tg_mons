@@ -1,11 +1,16 @@
 import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getActiveSession } from '@/lib/users';
 
 export async function GET() {
   try {
+    const session = await getActiveSession();
     const latestTrendReport = await prisma.aiReport.findFirst({
-      where: { type: 'trend' },
+      where: {
+        type: 'trend',
+        ...(session.userId ? { userId: session.userId } : {}),
+      },
       orderBy: { createdAt: 'desc' },
     });
 

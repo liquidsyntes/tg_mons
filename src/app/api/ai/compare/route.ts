@@ -24,7 +24,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Find "my channel"
-    const myChannel = await prisma.channel.findFirst({ where: { isMine: true } });
+    let myChannel: { id: number; title: string } | null = null;
+    if (authCheck.userId && typeof prisma.userChannel?.findFirst === 'function') {
+      const sub = await prisma.userChannel.findFirst({
+        where: { userId: authCheck.userId, isMine: true },
+        include: { channel: { select: { id: true, title: true } } },
+      });
+      myChannel = sub?.channel ?? null;
+    } else {
+      myChannel = await prisma.channel.findFirst({ where: { isMine: true } });
+    }
     if (!myChannel) {
       return NextResponse.json({ error: 'Сначала назначьте один из каналов "Вашим каналом" на главной странице' }, { status: 400 });
     }
@@ -124,7 +133,7 @@ ${targetContent.substring(0, 15000)}
 `;
 
     const result = await callOpenRouter(prompt);
-    await saveAiReport(Number(channelId), 'compare', result);
+    await saveAiReport(Number(channelId), 'compare', result, authCheck.userId);
     return NextResponse.json({ summary: result });
   } catch (error: unknown) {
     return handleAiRouteError(error);

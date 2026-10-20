@@ -3,7 +3,7 @@ import { verifyBearerToken, verifyServiceBearerToken } from '@/lib/auth';
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const path = request.nextUrl.pathname;
-  if (path === '/api/health' || path === '/api/auth/login') return NextResponse.next();
+  if (path === '/api/health' || path === '/api/auth/login' || path === '/api/auth/register') return NextResponse.next();
 
   const auth = path.startsWith('/api/internal/')
     ? await verifyServiceBearerToken(request)

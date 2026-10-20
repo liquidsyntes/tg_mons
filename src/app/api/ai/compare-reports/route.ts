@@ -83,7 +83,7 @@ ${newerReport.content}
 `;
 
     const result = await callOpenRouter(prompt);
-    await saveAiReport(olderReport.channelId, 'evolution', result);
+    await saveAiReport(olderReport.channelId, 'evolution', result, authCheck.userId);
     return NextResponse.json({ summary: result });
   } catch (error: unknown) {
     return handleAiRouteError(error);

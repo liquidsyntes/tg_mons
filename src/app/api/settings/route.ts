@@ -40,6 +40,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const auth = await verifyBearerToken(req);
   if (!auth.authorized) return auth.response;
+  if (auth.role === 'USER') {
+    return NextResponse.json(
+      { error: 'Изменение глобальных настроек ИИ доступно только администратору' },
+      { status: 403 },
+    );
+  }
   try {
     const body: unknown = await req.json();
     if (!body || typeof body !== 'object' || Array.isArray(body)) {

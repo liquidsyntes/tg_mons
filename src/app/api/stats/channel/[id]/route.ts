@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getChannelDetailStats, parseStatsPeriod } from '@/lib/metrics';
 import { metricsCache } from '@/lib/cache';
+import { extractRequestSession } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -19,14 +20,19 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     const { searchParams } = new URL(req.url);
     const period = parseStatsPeriod(searchParams.get('period'));
+    const session = await extractRequestSession(req);
 
-    const cacheKey = `channel:${channelId}:${period}`;
+    const cacheKey = session.userId
+      ? `channel:${session.userId}:${channelId}:${period}`
+      : `channel:${channelId}:${period}`;
     const cached = metricsCache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached);
     }
 
-    const detailStats = await getChannelDetailStats(channelId, period);
+    const detailStats = session.userId
+      ? await getChannelDetailStats(channelId, period, session.userId)
+      : await getChannelDetailStats(channelId, period);
     if (!detailStats) {
       return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
     }

@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { AlertRulesSettings } from '@/components/settings/AlertRulesSettings';
-import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu } from 'lucide-react';
+import { InviteCodesSettings } from '@/components/settings/InviteCodesSettings';
+import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu, Shield, User } from 'lucide-react';
 import Link from 'next/link';
 import type { FormEvent } from 'react';
 
@@ -15,7 +16,14 @@ interface AiSettingsView {
   tokenSource: 'saved' | 'environment' | null;
 }
 
+interface CurrentUser {
+  id: number | null;
+  username: string;
+  role: 'ADMIN' | 'USER';
+}
+
 export default function SettingsPage() {
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [provider, setProvider] = useState('openrouter');
   const [model, setModel] = useState('z-ai/glm-5.3-flash');
   const [token, setToken] = useState('');
@@ -30,17 +38,19 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(res => {
-        if (!res.ok) throw new Error('Не удалось загрузить настройки');
-        return res.json();
-      })
-      .then(data => {
-        if (data.settings) {
-          const settings = data.settings as AiSettingsView;
+    Promise.all([
+      fetch('/api/settings').then(res => (res.ok ? res.json() : null)),
+      fetch('/api/auth/me').then(res => (res.ok ? res.json() : null)),
+    ])
+      .then(([settingsData, meData]) => {
+        if (settingsData?.settings) {
+          const settings = settingsData.settings as AiSettingsView;
           setProvider(settings.aiProvider || 'openrouter');
           setModel(settings.aiModel || 'z-ai/glm-5.3-flash');
           setTokenStatus({ hasToken: settings.hasToken, tokenPreview: settings.tokenPreview, tokenSource: settings.tokenSource });
+        }
+        if (meData?.user) {
+          setCurrentUser(meData.user as CurrentUser);
         }
         setLoading(false);
       })
@@ -50,6 +60,8 @@ export default function SettingsPage() {
         setLoading(false);
       });
   }, []);
+
+  const isAdmin = !currentUser || currentUser.role === 'ADMIN';
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -91,25 +103,45 @@ export default function SettingsPage() {
       <Header onRefresh={async () => {}} />
 
       <main className="flex-1 site-shell w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Settings className="w-6 h-6 text-accent" />
-            Настройки системы
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Управление параметрами приложения и интеграциями.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+              <Settings className="w-6 h-6 text-accent" />
+              Настройки системы
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              Управление параметрами приложения, приглашениями и уведомлениями.
+            </p>
+          </div>
+
+          {currentUser && (
+            <div className="inline-flex items-center gap-2.5 bg-surface border border-border rounded-xl px-4 py-2 text-xs">
+              {currentUser.role === 'ADMIN' ? (
+                <Shield className="w-4 h-4 text-amber-400" />
+              ) : (
+                <User className="w-4 h-4 text-accent" />
+              )}
+              <span className="text-slate-300">
+                Аккаунт: <strong className="text-white">@{currentUser.username}</strong>
+              </span>
+              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] uppercase">
+                {currentUser.role === 'ADMIN' ? 'Админ' : 'Пользователь'}
+              </span>
+            </div>
+          )}
         </div>
+
+        {isAdmin && <InviteCodesSettings />}
 
         {loading ? (
           <div className="animate-pulse flex flex-col space-y-4">
             <div className="h-40 bg-surface rounded-2xl border border-border"></div>
           </div>
-        ) : (
+        ) : isAdmin ? (
           <form onSubmit={handleSave} className="bg-surface border border-border rounded-2xl overflow-hidden">
             <div className="p-6 border-b border-border/50 bg-slate-900/40 flex items-center gap-3">
               <Cpu className="w-5 h-5 text-indigo-400" />
-              <h2 className="text-lg font-semibold text-white">Искусственный интеллект</h2>
+              <h2 className="text-lg font-semibold text-white">Искусственный интеллект (Общий ключ)</h2>
             </div>
             
             <div className="p-6 space-y-6">
@@ -210,7 +242,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
-        )}
+        ) : null}
         <AlertRulesSettings />
       </main>
     </div>

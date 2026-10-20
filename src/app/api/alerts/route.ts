@@ -23,9 +23,31 @@ export async function GET(req: NextRequest) {
   const auth = await verifyBearerToken(req);
   if (!auth.authorized) return auth.response;
   try {
+    const userId = auth.userId;
     const [rules, channels] = await Promise.all([
-      prisma.alertRule.findMany({ orderBy: { createdAt: 'desc' } }),
-      prisma.channel.findMany({ select: { id: true, title: true, username: true, isActive: true }, orderBy: { title: 'asc' } }),
+      prisma.alertRule.findMany({
+        ...(userId ? { where: { userId } } : {}),
+        orderBy: { createdAt: 'desc' },
+      }),
+      userId && typeof prisma.userChannel?.findMany === 'function'
+        ? prisma.userChannel
+            .findMany({
+              where: { userId },
+              include: { channel: { select: { id: true, title: true, username: true, isActive: true } } },
+              orderBy: { channel: { title: 'asc' } },
+            })
+            .then((subs) =>
+              subs.map((s) => ({
+                id: s.channel.id,
+                title: s.channel.title,
+                username: s.channel.username,
+                isActive: s.isActive && s.channel.isActive,
+              })),
+            )
+        : prisma.channel.findMany({
+            select: { id: true, title: true, username: true, isActive: true },
+            orderBy: { title: 'asc' },
+          }),
     ]);
     const metrics = Object.entries(ALERT_METRICS).map(([value, description]) => ({ value, ...description }));
     return NextResponse.json({
@@ -52,17 +74,33 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const userId = auth.userId;
     if (channelId !== null) {
-      const channel = await prisma.channel.findUnique({ where: { id: channelId }, select: { id: true } });
-      if (!channel) return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
+      if (userId && typeof prisma.userChannel?.findUnique === 'function') {
+        const sub = await prisma.userChannel.findUnique({
+          where: { userId_channelId: { userId, channelId } },
+          select: { id: true },
+        });
+        if (!sub) return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
+      } else {
+        const channel = await prisma.channel.findUnique({ where: { id: channelId }, select: { id: true } });
+        if (!channel) return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
+      }
     }
     const existing = await prisma.alertRule.findFirst({
-      where: { channelId, metric: body.metric, operator: body.operator, threshold: body.threshold },
+      where: {
+        ...(userId ? { userId } : {}),
+        channelId,
+        metric: body.metric,
+        operator: body.operator,
+        threshold: body.threshold,
+      },
       select: { id: true },
     });
     if (existing) return NextResponse.json({ error: 'Такое правило уже существует' }, { status: 409 });
     const rule = await prisma.alertRule.create({
       data: {
+        ...(userId ? { userId } : {}),
         channelId,
         metric: body.metric,
         operator: body.operator,
@@ -85,7 +123,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Некорректные параметры правила' }, { status: 400 });
   }
   try {
-    const updated = await prisma.alertRule.updateMany({ where: { id: body.id }, data: { enabled: body.enabled } });
+    const where = auth.userId ? { id: body.id, userId: auth.userId } : { id: body.id };
+    const updated = await prisma.alertRule.updateMany({ where, data: { enabled: body.enabled } });
     if (updated.count === 0) return NextResponse.json({ error: 'Правило не найдено' }, { status: 404 });
     const rule = await prisma.alertRule.findUnique({ where: { id: body.id } });
     if (!rule) return NextResponse.json({ error: 'Правило не найдено' }, { status: 404 });
@@ -102,7 +141,8 @@ export async function DELETE(req: NextRequest) {
   const body = await readObject(req);
   if (!body || !isId(body.id)) return NextResponse.json({ error: 'Некорректный ID правила' }, { status: 400 });
   try {
-    const deleted = await prisma.alertRule.deleteMany({ where: { id: body.id } });
+    const where = auth.userId ? { id: body.id, userId: auth.userId } : { id: body.id };
+    const deleted = await prisma.alertRule.deleteMany({ where });
     if (deleted.count === 0) return NextResponse.json({ error: 'Правило не найдено' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (error) {

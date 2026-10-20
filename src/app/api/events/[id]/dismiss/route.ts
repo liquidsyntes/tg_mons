@@ -26,6 +26,23 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       return NextResponse.json({ error: 'Событие не найдено' }, { status: 404 });
     }
 
+    if (auth.userId && typeof prisma.userDismissedEvent?.upsert === 'function') {
+      await prisma.userDismissedEvent.upsert({
+        where: {
+          userId_eventId: {
+            userId: auth.userId,
+            eventId,
+          },
+        },
+        create: {
+          userId: auth.userId,
+          eventId,
+        },
+        update: {},
+      });
+      return NextResponse.json({ success: true });
+    }
+
     if (!event.dismissedAt) {
       await prisma.event.update({
         where: { id: eventId },

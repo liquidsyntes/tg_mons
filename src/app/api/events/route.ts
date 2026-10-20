@@ -1,15 +1,33 @@
 import { logger } from '@/lib/logger';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isClearlyEventDigest } from '@/lib/events/digest';
 import { isSameEvent } from '@/lib/events/matching';
+import { getActiveSession } from '@/lib/users';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const session = await getActiveSession();
+    const userId = session.userId;
+
+    let userChannelIds: Set<number> | null = null;
+    if (userId && typeof prisma.userChannel?.findMany === 'function') {
+      const subs = await prisma.userChannel.findMany({
+        where: { userId, isActive: true },
+        select: { channelId: true },
+      });
+      userChannelIds = new Set(subs.map((s) => s.channelId));
+    }
+
     const events = await prisma.event.findMany({
-      where: { dismissedAt: null },
+      where: userId
+        ? {
+            dismissedAt: null,
+            dismissedByUsers: { none: { userId } },
+          }
+        : { dismissedAt: null },
       orderBy: [{ date: 'asc' }, { id: 'asc' }],
       include: {
         mentions: {
@@ -26,7 +44,12 @@ export async function GET() {
     });
 
     const filteredEvents = events.flatMap(event => {
-      const mentions = event.mentions.filter(mention => !isClearlyEventDigest(mention.post.text));
+      const mentions = event.mentions.filter(mention => {
+        if (isClearlyEventDigest(mention.post.text)) return false;
+        if (userChannelIds && !userChannelIds.has(mention.post.channelId)) return false;
+        return true;
+      });
+      if (userChannelIds && mentions.length === 0) return [];
       return event.mentions.length > 0 && mentions.length === 0
         ? []
         : [{ ...event, mentions }];

@@ -94,7 +94,7 @@ ${postsText}
 `;
 
     const result = await callOpenRouter(prompt);
-    await saveAiReport(Number(channelId), 'persona', result);
+    await saveAiReport(Number(channelId), 'persona', result, authCheck.userId);
     return NextResponse.json({ persona: result });
   } catch (error: unknown) {
     return handleAiRouteError(error);

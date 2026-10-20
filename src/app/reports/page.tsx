@@ -3,11 +3,17 @@ import { prisma } from '@/lib/prisma';
 import { FileText } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { ReportsListClient } from '@/components/ReportsListClient';
+import { cookies } from 'next/headers';
+import { parseSessionCookieValue, SESSION_COOKIE_NAME } from '@/lib/auth';
 
 export const revalidate = 0;
 
 export default async function ReportsPage() {
+  const cookieStore = await cookies();
+  const session = await parseSessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+
   const reports = await prisma.aiReport.findMany({
+    where: session?.userId ? { userId: session.userId } : undefined,
     orderBy: { createdAt: 'desc' },
     include: {
       channel: true

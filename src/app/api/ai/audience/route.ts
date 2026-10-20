@@ -71,7 +71,7 @@ ${postsText}
 `;
 
     const result = await callOpenRouter(prompt);
-    await saveAiReport(Number(channelId), 'audience', result);
+    await saveAiReport(Number(channelId), 'audience', result, authCheck.userId);
     return NextResponse.json({ audience: result });
   } catch (error: unknown) {
     return handleAiRouteError(error);

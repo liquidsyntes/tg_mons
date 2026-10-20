@@ -18,7 +18,9 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
   }
 
   try {
-    const result = await prisma.aiReport.deleteMany({ where: { id: reportId } });
+    const result = await prisma.aiReport.deleteMany({
+      where: auth.userId ? { id: reportId, userId: auth.userId } : { id: reportId },
+    });
     if (result.count === 0) {
       return NextResponse.json({ error: 'Отчет не найден' }, { status: 404 });
     }

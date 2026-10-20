@@ -1,6 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { createSessionCookieValue, isValidAccessKey, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS, verifyBearerToken, verifyServiceBearerToken } from '../auth';
+import {
+  createSessionCookieValue,
+  hashPassword,
+  isValidAccessKey,
+  parseSessionCookieValue,
+  SESSION_COOKIE_NAME,
+  SESSION_MAX_AGE_SECONDS,
+  verifyBearerToken,
+  verifyPassword,
+  verifyServiceBearerToken,
+} from '../auth';
 
 const baseUrl = 'http://localhost:4000/api/channels';
 const accessKey = 'unit-test-access-key';
@@ -71,5 +81,23 @@ describe('request authorization', () => {
   it('fails closed when the server key is missing', async () => {
     vi.stubEnv('COLLECT_API_TOKEN', '');
     expect(await status(await verifyBearerToken(request('GET')))).toBe(500);
+  });
+
+  it('encodes and verifies v2 user sessions with userId and role', async () => {
+    const cookie = await createSessionCookieValue({ userId: 42, role: 'USER' });
+    expect(cookie.startsWith('v2.42.USER.')).toBe(true);
+    const parsed = await parseSessionCookieValue(cookie, accessKey);
+    expect(parsed).toEqual({ userId: 42, role: 'USER' });
+
+    const authResult = await verifyBearerToken(request('GET', { Cookie: `${SESSION_COOKIE_NAME}=${cookie}` }));
+    expect(authResult).toEqual({ authorized: true, userId: 42, role: 'USER' });
+  });
+
+  it('hashes and verifies passwords with PBKDF2', async () => {
+    const hash = await hashPassword('secret-pass-123');
+    expect(hash.startsWith('pbkdf2.')).toBe(true);
+    expect(await verifyPassword('secret-pass-123', hash)).toBe(true);
+    expect(await verifyPassword('wrong-pass', hash)).toBe(false);
+    expect(await verifyPassword('secret-pass-123', 'invalid.hash')).toBe(false);
   });
 });

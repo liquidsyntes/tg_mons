@@ -64,7 +64,7 @@ ${baseReport.content}
 `;
 
     const result = await callOpenRouter(prompt);
-    await saveAiReport(baseReport.channelId, 'action_plan', result);
+    await saveAiReport(baseReport.channelId, 'action_plan', result, authCheck.userId);
     return NextResponse.json({ summary: result });
   } catch (error: unknown) {
     return handleAiRouteError(error);

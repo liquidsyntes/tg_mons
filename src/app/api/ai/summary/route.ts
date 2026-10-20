@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     });
 
     const result = await callOpenRouter(prompt);
-    await saveAiReport(numericChannelId, 'summary', result);
+    await saveAiReport(numericChannelId, 'summary', result, authCheck.userId);
     return NextResponse.json({ summary: result });
   } catch (error: unknown) {
     return handleAiRouteError(error);

@@ -16,10 +16,26 @@ const MS_30D = 30 * 24 * MS_HOUR;
 
 export async function calculateChannelMetrics(
   channelId: number,
-  now: Date = new Date()
+  now: Date = new Date(),
+  userId?: number | null
 ): Promise<ChannelMetrics | null> {
-  const channel = await prisma.channel.findUnique({ where: { id: channelId } });
-  if (!channel) return null;
+  const rawChannel = await prisma.channel.findUnique({ where: { id: channelId } });
+  if (!rawChannel) return null;
+
+  let channel = rawChannel;
+  if (userId !== undefined && userId !== null && typeof prisma.userChannel?.findUnique === 'function') {
+    const userSub = await prisma.userChannel.findUnique({
+      where: { userId_channelId: { userId, channelId } },
+    });
+    if (!userSub) return null;
+    channel = {
+      ...rawChannel,
+      isMine: userSub.isMine,
+      isFavorite: userSub.isFavorite,
+      niche: userSub.niche || rawChannel.niche,
+      isActive: userSub.isActive && rawChannel.isActive,
+    };
+  }
 
   const date30dAgo = new Date(now.getTime() - MS_30D);
 
@@ -58,14 +74,30 @@ export async function calculateChannelMetrics(
   return metrics;
 }
 
-export async function getOverviewStats(): Promise<OverviewStats> {
+export async function getOverviewStats(userId?: number | null): Promise<OverviewStats> {
   const now = new Date();
   const date30dAgo = new Date(now.getTime() - MS_30D);
   const date7dAgo = new Date(now.getTime() - MS_7D);
 
-  const allChannels = await prisma.channel.findMany({
-    orderBy: [{ isMine: 'desc' }, { createdAt: 'asc' }],
-  });
+  let allChannels: Awaited<ReturnType<typeof prisma.channel.findMany>>;
+  if (userId !== undefined && userId !== null && typeof prisma.userChannel?.findMany === 'function') {
+    const subs = await prisma.userChannel.findMany({
+      where: { userId },
+      include: { channel: true },
+      orderBy: [{ isMine: 'desc' }, { createdAt: 'asc' }],
+    });
+    allChannels = subs.map((sub) => ({
+      ...sub.channel,
+      isMine: sub.isMine,
+      isFavorite: sub.isFavorite,
+      niche: sub.niche || sub.channel.niche,
+      isActive: sub.isActive && sub.channel.isActive,
+    }));
+  } else {
+    allChannels = await prisma.channel.findMany({
+      orderBy: [{ isMine: 'desc' }, { createdAt: 'asc' }],
+    });
+  }
 
   if (allChannels.length === 0) {
     return { myChannel: null, channels: [], totalChannels: 0, activeChannels: 0, lastGlobalUpdate: null };
@@ -372,31 +404,35 @@ function buildHeatmapData(
   return heatmapData;
 }
 
-let overviewForDetailPromise: Promise<OverviewStats> | null = null;
+const overviewForDetailPromises = new Map<string, Promise<OverviewStats>>();
 
-async function getOverviewForDetail(): Promise<OverviewStats> {
-  const cached = metricsCache.get('overview') as OverviewStats | null;
+async function getOverviewForDetail(userId?: number | null): Promise<OverviewStats> {
+  const cacheKey = userId ? `overview:${userId}` : 'overview';
+  const cached = metricsCache.get(cacheKey) as OverviewStats | null;
   if (cached) return cached;
-  if (!overviewForDetailPromise) {
-    overviewForDetailPromise = getOverviewStats()
+  let promise = overviewForDetailPromises.get(cacheKey);
+  if (!promise) {
+    promise = getOverviewStats(userId)
       .then(overview => {
-        metricsCache.set('overview', overview);
+        metricsCache.set(cacheKey, overview);
         return overview;
       })
-      .finally(() => { overviewForDetailPromise = null; });
+      .finally(() => { overviewForDetailPromises.delete(cacheKey); });
+    overviewForDetailPromises.set(cacheKey, promise);
   }
-  return overviewForDetailPromise;
+  return promise;
 }
 
 export async function getChannelDetailStats(
   channelId: number,
-  period: '24h' | '7d' | '30d' = '7d'
+  period: '24h' | '7d' | '30d' = '7d',
+  userId?: number | null
 ): Promise<ChannelDetailStats | null> {
   const now = new Date();
-  const channel = await calculateChannelMetrics(channelId, now);
+  const channel = await calculateChannelMetrics(channelId, now, userId);
   if (!channel) return null;
 
-  const overview = await getOverviewForDetail();
+  const overview = await getOverviewForDetail(userId);
   const overviewChannel = overview.channels.find(c => c.id === channelId)
     ?? (overview.myChannel?.id === channelId ? overview.myChannel : null);
   if (overviewChannel) {
@@ -404,11 +440,20 @@ export async function getChannelDetailStats(
     channel.epBreakdown = overviewChannel.epBreakdown;
   }
 
-  const myChannelRecord = await prisma.channel.findFirst({
-    where: { isMine: true },
-  });
+  let myChannelRecord: { id: number } | null = null;
+  if (userId !== undefined && userId !== null && typeof prisma.userChannel?.findFirst === 'function') {
+    const mySub = await prisma.userChannel.findFirst({
+      where: { userId, isMine: true },
+      select: { channelId: true },
+    });
+    myChannelRecord = mySub ? { id: mySub.channelId } : null;
+  } else {
+    myChannelRecord = await prisma.channel.findFirst({
+      where: { isMine: true },
+    });
+  }
   const myChannel = myChannelRecord
-    ? await calculateChannelMetrics(myChannelRecord.id, now)
+    ? await calculateChannelMetrics(myChannelRecord.id, now, userId)
     : null;
 
   let periodDuration = MS_7D;
@@ -548,21 +593,41 @@ export async function getChannelDetailStats(
   };
 }
 
-export async function getBestTimeRecommendation() {
+export async function getBestTimeRecommendation(userId?: number | null) {
   const MS_DAY = 24 * 60 * 60 * 1000;
   const periodStart = new Date(Date.now() - 30 * MS_DAY);
 
-  const competitorChannels = await prisma.channel.findMany({
-    where: { isMine: false, isActive: true },
-    select: { 
-      id: true, 
-      snapshots: {
-        orderBy: { collectedAt: 'desc' },
-        take: 1,
-        select: { membersCount: true }
+  let competitorChannels: Array<{ id: number; snapshots: Array<{ membersCount: number }> }>;
+  if (userId !== undefined && userId !== null && typeof prisma.userChannel?.findMany === 'function') {
+    const subs = await prisma.userChannel.findMany({
+      where: { userId, isMine: false, isActive: true, channel: { isActive: true } },
+      select: {
+        channel: {
+          select: {
+            id: true,
+            snapshots: {
+              orderBy: { collectedAt: 'desc' },
+              take: 1,
+              select: { membersCount: true },
+            },
+          },
+        },
+      },
+    });
+    competitorChannels = subs.map((s) => s.channel);
+  } else {
+    competitorChannels = await prisma.channel.findMany({
+      where: { isMine: false, isActive: true },
+      select: { 
+        id: true, 
+        snapshots: {
+          orderBy: { collectedAt: 'desc' },
+          take: 1,
+          select: { membersCount: true }
+        }
       }
-    }
-  });
+    });
+  }
   const compIds = competitorChannels.map(c => c.id);
 
   if (compIds.length === 0) {
