@@ -1,8 +1,9 @@
-# Локальный override: вариант B — web + postgres, без worker.
-# Сервис worker назначен в профиль worker — он не запускается при обычном
-# `docker compose up`, только если явно указать `--profile worker`.
+# Локальный override: использует изолированную локальную сессию TG_SESSION_LOCAL,
+# чтобы локальный worker в Docker не конфликтовал (AuthKeyDuplicated) с серверной TG_SESSION.
 
 services:
   worker:
-    profiles:
-      - "worker"
+    environment:
+      WORKER_LOCAL_MODE: "true"
+      TG_SESSION_LOCAL: ${TG_SESSION_LOCAL:-}
+      WORKER_DISABLE_CRON: ${WORKER_DISABLE_CRON:-false}

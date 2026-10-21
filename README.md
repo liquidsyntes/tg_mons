@@ -27,9 +27,8 @@
 Проект работает в трёх средах, и критически важно не смешивать их MTProto-сессии:
 
 1. **Локальная среда (Windows `C:\TgMon` / WSL `/mnt/c/TgMon`)**:
-   - Нативный PostgreSQL в WSL (`127.0.0.1:5432`, база `tgmon`) + нативный запуск через `bash dev-web.sh` (или `npm run dev:local`).
-   - Использует **отдельную изолированную сессию `TG_SESSION_LOCAL`** (устройство `TgMon Local Dev`).
-   - Локальный `worker:local` запускается в режиме **по запросу (on-demand)**: без фонового расписания cron, отвечает только на добавление каналов и ручной сбор из локального UI.
+   - Полный стек в Docker с Hot Reload (`tgmon-postgres` + `tgmon-web` + `tgmon-worker`): запускается через `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build` (или `bash dev-web.sh`).
+   - Контейнер `tgmon-worker` в `docker-compose.dev.yml` работает с `WORKER_LOCAL_MODE=true` и использует **строго отдельную изолированную сессию `TG_SESSION_LOCAL`** (устройство `TgMon Local Dev`), никогда не обращаясь к серверной `TG_SESSION`.
 2. **Боевой сервер OVH (`ovh-vps`, `/opt/tgmon`, домен `tgmons.online`)**:
    - Полный Docker-стек (`postgres` + `web` + `worker` через `docker-compose.yml` + `docker-compose.prod.yml`), Nginx + HTTPS, деплой скриптом `bash update.sh`.
    - Использует **серверную сессию `TG_SESSION`** (устройство `TgMon Server Worker`) и крутит регулярный сбор по cron.

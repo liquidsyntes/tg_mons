@@ -13,9 +13,12 @@ services:
       - /app/.next
 
   worker:
-    command: npx tsx watch src/worker/index.ts
+    command: npx tsx watch src/worker/index.ts --local
     environment:
       - NODE_ENV=development
+      - WORKER_LOCAL_MODE=true
+      - TG_SESSION_LOCAL=${TG_SESSION_LOCAL:-}
+      - WORKER_DISABLE_CRON=${WORKER_DISABLE_CRON:-false}
     volumes:
       - .:/app
       - /app/node_modules

@@ -33,7 +33,7 @@ async function execute(kind: WorkerTaskKind, run: (signal: AbortSignal) => Promi
 
 async function startWorker(): Promise<void> {
   const localMode = process.env.WORKER_LOCAL_MODE === 'true' || process.argv.includes('--local');
-  const disableCron = localMode || process.env.WORKER_DISABLE_CRON === 'true';
+  const disableCron = process.env.WORKER_DISABLE_CRON === 'true' || process.argv.includes('--no-cron');
   const sessionConfigured = localMode ? !!process.env.TG_SESSION_LOCAL : !!(process.env.TG_SESSION || process.env.TG_SESSION_LOCAL);
 
   logger.info('TG Monitor MTProto Collector Worker Started', {

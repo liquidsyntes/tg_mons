@@ -10,7 +10,7 @@
     "start": "next start -p 4000",
     "lint": "next lint",
     "worker": "npx tsx src/worker/index.ts",
-    "worker:local": "npx tsx src/worker/index.ts --local",
+    "worker:local": "npx tsx src/worker/index.ts --local --no-cron",
     "auth": "npx tsx src/worker/auth.ts",
     "auth:local": "npx tsx src/worker/auth.ts --local",
     "auth:local:qr": "npx tsx src/worker/auth.ts --local --qr",
