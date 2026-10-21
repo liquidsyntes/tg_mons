@@ -9,4 +9,22 @@ $COMPOSE stop web worker
 $COMPOSE run --rm --no-deps worker npm run prisma:migrate
 $COMPOSE up -d web worker
 $COMPOSE ps
-curl -fsS http://127.0.0.1:4000/api/health && echo
+
+# Wait for web to become ready and pass health check (up to 60s)
+echo "Waiting for web health check..."
+ready=0
+for _ in $(seq 1 30); do
+  if HEALTH="$(curl -fsS --max-time 5 http://127.0.0.1:4000/api/health 2>/dev/null)"; then
+    echo "$HEALTH"
+    ready=1
+    break
+  fi
+  sleep 2
+done
+
+if [ "$ready" -ne 1 ]; then
+  echo "ERROR: web health check did not pass within 60s" >&2
+  $COMPOSE logs web --tail=50 >&2 || true
+  exit 1
+fi
+echo "Deploy OK"
