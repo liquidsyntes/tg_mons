@@ -10,6 +10,7 @@ import { WatchlistWidget } from '../WatchlistWidget';
 import { TrendSpotterWidget } from '../TrendSpotterWidget';
 import { ChannelsDesktopTable } from '../channel/ChannelsDesktopTable';
 import { MetricCell } from '../channel/cells/MetricCell';
+import { buildChannelsExportCsv, formatChannelTelegramUrl } from '../ChannelsTable';
 
 vi.mock('../AudienceDemographics', () => ({ AudienceDemographics: () => null }));
 
@@ -185,4 +186,19 @@ it('shows view counts without thousands separators in the two compact columns', 
     expect(screen.getByText(value)).toBeDefined();
   }
   expect(screen.queryByText(/1[\s\u00a0]508|3[\s\u00a0]042|2[\s\u00a0]735/)).toBeNull();
+});
+
+it('exports full Telegram channel URLs in a separate CSV column', () => {
+  expect(formatChannelTelegramUrl('Lady_Ista')).toBe('https://t.me/Lady_Ista');
+  expect(formatChannelTelegramUrl('@kinky_events_ua')).toBe('https://t.me/kinky_events_ua');
+  expect(formatChannelTelegramUrl(null)).toBe('');
+
+  const csv = buildChannelsExportCsv([
+    { ...channel, title: 'Lady Ista', username: 'Lady_Ista' },
+    { ...channel, title: 'Kinky Events', username: 'kinky_events_ua' },
+  ]);
+  const [headerLine, row1, row2] = csv.split('\n');
+  expect(headerLine.split(',').slice(0, 3)).toEqual(['Название', 'Username', 'Ссылка']);
+  expect(row1.split(',').slice(0, 3)).toEqual(['"Lady Ista"', '@Lady_Ista', 'https://t.me/Lady_Ista']);
+  expect(row2.split(',').slice(0, 3)).toEqual(['"Kinky Events"', '@kinky_events_ua', 'https://t.me/kinky_events_ua']);
 });

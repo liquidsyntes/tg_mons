@@ -12,42 +12,40 @@ interface ChannelsTableProps {
   channels: ChannelMetrics[];
 }
 
-export function ChannelsTable({ channels }: ChannelsTableProps) {
-  const {
-    searchQuery,
-    setSearchQuery,
-    sortField,
-    sortOrder,
-    handleSort,
-    localFavorites,
-    toggleFavorite,
-    processedChannels
-  } = useChannelsData(channels);
+export function formatChannelTelegramUrl(username: string | null | undefined): string {
+  if (!username) return '';
+  const cleaned = username.trim().replace(/^(?:https?:\/\/)?(?:t\.me\/|@)+/i, '').replace(/\/+$/, '');
+  return cleaned ? `https://t.me/${cleaned}` : '';
+}
 
-  const handleExportCSV = () => {
-    const headers = [
-      'Название',
-      'Username',
-      'Подписчики',
-      'Δ 24ч (чел)',
-      'Δ 24ч (%)',
-      'Δ 7д (чел)',
-      'Δ 7д (%)',
-      'Δ 30д (чел)',
-      'Δ 30д (%)',
-      'Постов (7д)',
-      'Постов (30д)',
-      'Просм. (avg 7д)',
-      'VR (7д, %)',
-      'ER (7д, %)',
-      'ERR (7д, %)',
-      'ИЦ (30д)',
-      'Моя доля (%)'
-    ];
+export function buildChannelsExportCsv(channels: ChannelMetrics[]): string {
+  const headers = [
+    'Название',
+    'Username',
+    'Ссылка',
+    'Подписчики',
+    'Δ 24ч (чел)',
+    'Δ 24ч (%)',
+    'Δ 7д (чел)',
+    'Δ 7д (%)',
+    'Δ 30д (чел)',
+    'Δ 30д (%)',
+    'Постов (7д)',
+    'Постов (30д)',
+    'Просм. (avg 7д)',
+    'VR (7д, %)',
+    'ER (7д, %)',
+    'ERR (7д, %)',
+    'ИЦ (30д)',
+    'Моя доля (%)'
+  ];
 
-    const rows = processedChannels.map(c => [
+  const rows = channels.map(c => {
+    const cleanedUsername = c.username ? c.username.trim().replace(/^@/, '') : '';
+    return [
       `"${c.title.replace(/"/g, '""')}"`,
-      c.username ? `@${c.username}` : '',
+      cleanedUsername ? `@${cleanedUsername}` : '',
+      formatChannelTelegramUrl(c.username),
       c.currentMembers ?? '',
       c.delta24h.abs ?? '',
       c.delta24h.percent ?? '',
@@ -63,12 +61,29 @@ export function ChannelsTable({ channels }: ChannelsTableProps) {
       c.err7d ?? '',
       c.citationIndex ?? '',
       c.comparison?.audienceSharePercent ?? ''
-    ]);
+    ];
+  });
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+  return [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+}
+
+export function ChannelsTable({ channels }: ChannelsTableProps) {
+  const {
+    searchQuery,
+    setSearchQuery,
+    sortField,
+    sortOrder,
+    handleSort,
+    localFavorites,
+    toggleFavorite,
+    processedChannels
+  } = useChannelsData(channels);
+
+  const handleExportCSV = () => {
+    const csvContent = buildChannelsExportCsv(processedChannels);
 
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
