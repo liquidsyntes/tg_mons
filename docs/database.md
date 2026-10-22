@@ -265,6 +265,7 @@
 | `capturedAt` | `DateTime` | `captured_at` | Нет | `now()` | Время снятия статистики |
 | `languageBreakdown` | `Json` | `language_breakdown` | Нет | — | JSONB-распределение аудитории по языкам |
 | `countryBreakdown` | `Json` | `country_breakdown` | Да | — | JSONB-распределение по странам (добавлено миграцией) |
+| `notificationsEnabledPercent` | `Float` | `notifications_enabled_percent` | Да | — | Доля подписчиков с включёнными уведомлениями в процентах (`0..100`), полученная из `enabledNotifications` Telegram API |
 
 - **Индексы:**
   - `@@index([channelId, capturedAt])`

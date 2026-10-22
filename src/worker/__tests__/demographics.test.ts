@@ -33,7 +33,21 @@ describe('demographics collection', () => {
   it('uses statistics DC and persists a language snapshot', async () => {
     expect(await collectAudienceDemographics(client, channel)).toBe(true);
     expect(invoke.mock.calls[1][1]).toBe(4);
-    expect(mocks.create).toHaveBeenCalledWith({ data: { channelId: 1, languageBreakdown: [{ code: 'en', name: 'English', percent: 100 }] } });
+    expect(mocks.create).toHaveBeenCalledWith({ data: { channelId: 1, languageBreakdown: [{ code: 'en', name: 'English', percent: 100 }], notificationsEnabledPercent: null } });
+  });
+  it('persists notificationsEnabledPercent when available in broadcast stats', async () => {
+    invoke.mockReset().mockResolvedValueOnce({ fullChat: full }).mockResolvedValueOnce({
+      languagesGraph: graph,
+      enabledNotifications: new Api.StatsPercentValue({ part: 350, total: 1000 }),
+    });
+    expect(await collectAudienceDemographics(client, channel)).toBe(true);
+    expect(mocks.create).toHaveBeenCalledWith({
+      data: {
+        channelId: 1,
+        languageBreakdown: [{ code: 'en', name: 'English', percent: 100 }],
+        notificationsEnabledPercent: 35,
+      },
+    });
   });
   it('loads async graphs from the same DC', async () => {
     invoke.mockReset().mockResolvedValue(graph);

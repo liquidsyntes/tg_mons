@@ -1,7 +1,7 @@
 import { Api, TelegramClient, utils } from 'telegram';
 import { logger } from '../lib/logger';
 import { prisma } from '../lib/prisma';
-import { isRecord, parseLanguagesGraph } from '../lib/demographics';
+import { isRecord, parseEnabledNotifications, parseLanguagesGraph } from '../lib/demographics';
 import { getTelegramClient } from './client';
 import { resolveChannelEntity, withRateLimitAndRetry, withTimeout } from './fetcher';
 
@@ -46,11 +46,12 @@ export async function collectAudienceDemographics(
     }
     const dcId = full.fullChat.statsDc;
     stage = 'stats';
-    const stats = await withRateLimitAndRetry(() => withTimeout(
+    const stats: any = await withRateLimitAndRetry(() => withTimeout(
       () => client.invoke(new Api.stats.GetBroadcastStats({ channel: input, dark: false }), dcId), 'GetBroadcastStats'
     ));
+    const notificationsEnabledPercent = parseEnabledNotifications(stats?.enabledNotifications);
     stage = 'graph';
-    const json = await resolveStatsGraph(client, stats.languagesGraph, dcId);
+    const json = await resolveStatsGraph(client, stats?.languagesGraph, dcId);
     const value: unknown = json === null ? null : JSON.parse(json);
     const languages = parseLanguagesGraph(value);
     if (!languages) {
@@ -59,9 +60,13 @@ export async function collectAudienceDemographics(
     }
     stage = 'persist';
     await prisma.audienceDemographics.create({
-      data: { channelId: channel.id, languageBreakdown: languages.map(item => ({ ...item })) },
+      data: {
+        channelId: channel.id,
+        languageBreakdown: languages.map(item => ({ ...item })),
+        notificationsEnabledPercent,
+      },
     });
-    logger.info('Demographics snapshot saved', context);
+    logger.info('Demographics snapshot saved', { ...context, notificationsEnabledPercent });
     return true;
   } catch (error: unknown) {
     const code = isRecord(error) && typeof error.errorMessage === 'string' ? error.errorMessage : '';

@@ -5,10 +5,25 @@ export interface Demographics {
   languages: LanguageBreakdownItem[];
   countries: null;
   geographyStatus: 'unsupported';
+  notificationsEnabledPercent: number | null;
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function parseNotificationsPercent(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 100) return null;
+  return Number(value.toFixed(1));
+}
+
+export function parseEnabledNotifications(value: unknown): number | null {
+  if (!isRecord(value)) return null;
+  const part = typeof value.part === 'number' && Number.isFinite(value.part) ? value.part : null;
+  const total = typeof value.total === 'number' && Number.isFinite(value.total) ? value.total : null;
+  if (part === null || total === null || total <= 0 || part < 0 || part > total) return null;
+  return Number(((part / total) * 100).toFixed(1));
 }
 
 export function parseBreakdown(value: unknown): LanguageBreakdownItem[] | null {

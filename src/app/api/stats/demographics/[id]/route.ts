@@ -1,7 +1,7 @@
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { parseBreakdown } from '@/lib/demographics';
+import { parseBreakdown, parseNotificationsPercent } from '@/lib/demographics';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, context: RouteContext): Promise<Next
     if (!channel) return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
     const latest = await prisma.audienceDemographics.findFirst({
       where: { channelId }, orderBy: [{ capturedAt: 'desc' }, { id: 'desc' }],
-      select: { capturedAt: true, languageBreakdown: true },
+      select: { capturedAt: true, languageBreakdown: true, notificationsEnabledPercent: true },
     });
     if (!latest) return NextResponse.json({ demographics: null });
     const languages = parseBreakdown(latest.languageBreakdown);
@@ -28,9 +28,17 @@ export async function GET(req: NextRequest, context: RouteContext): Promise<Next
       logger.warn('Invalid demographics snapshot', { channelId });
       return NextResponse.json({ error: 'Данные демографии повреждены' }, { status: 500 });
     }
+    const notificationsEnabledPercent = parseNotificationsPercent(latest.notificationsEnabledPercent);
+    if (latest.notificationsEnabledPercent !== null && latest.notificationsEnabledPercent !== undefined && notificationsEnabledPercent === null) {
+      logger.warn('Invalid demographics snapshot: corrupted notificationsEnabledPercent', { channelId });
+      return NextResponse.json({ error: 'Данные демографии повреждены' }, { status: 500 });
+    }
     return NextResponse.json({ demographics: {
-      capturedAt: latest.capturedAt.toISOString(), languages,
-      countries: null, geographyStatus: 'unsupported',
+      capturedAt: latest.capturedAt.toISOString(),
+      languages,
+      countries: null,
+      geographyStatus: 'unsupported',
+      notificationsEnabledPercent,
     } });
   } catch {
     logger.error('GET demographics failed');

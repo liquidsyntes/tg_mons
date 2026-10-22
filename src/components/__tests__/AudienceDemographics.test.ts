@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { AudienceDemographics } from '../AudienceDemographics';
 const data = { demographics: { capturedAt: '2026-09-01T00:00:00Z', countries: null, geographyStatus: 'unsupported',
+  notificationsEnabledPercent: 28.5,
   languages: [{ code: 'en', name: 'English', percent: 40 }, { code: 'uk', name: 'Ukrainian', percent: 30 },
     { code: 'de', name: 'German', percent: 20 }, { code: 'fr', name: 'French', percent: 10 }] } };
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -13,6 +14,7 @@ describe('AudienceDemographics', () => {
     render(React.createElement(AudienceDemographics, { channelId: 1 }));
     expect(await screen.findByText('English')).toBeDefined();
     expect(screen.queryByText('French')).toBeNull();
+    expect(screen.getByText(/28.5%/)).toBeDefined();
     expect(screen.getByText(/Данные старше недели/)).toBeDefined();
     expect(screen.getByText(/География недоступна/)).toBeDefined();
   });

@@ -272,8 +272,9 @@ model AudienceDemographics {
   id                Int      @id @default(autoincrement())
   channelId         Int      @map("channel_id")
   capturedAt        DateTime @default(now()) @map("captured_at")
-  languageBreakdown Json     @map("language_breakdown")
-  countryBreakdown  Json?    @map("country_breakdown")
+  languageBreakdown           Json     @map("language_breakdown")
+  countryBreakdown            Json?    @map("country_breakdown")
+  notificationsEnabledPercent Float?   @map("notifications_enabled_percent")
 
   channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 

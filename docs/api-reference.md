@@ -66,7 +66,8 @@ LTV строится по PostSnapshot для постов за 14 дней с �
     "capturedAt": "2026-09-16T00:00:00.000Z",
     "languages": [{ "code": "en", "name": "English", "percent": 100 }],
     "countries": null,
-    "geographyStatus": "unsupported"
+    "geographyStatus": "unsupported",
+    "notificationsEnabledPercent": 24.5
   }
 }
 ```
@@ -75,6 +76,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 - Нет снимка: 200 и `{ "demographics": null }`. Причина отсутствия из этого ответа не определяется.
 - Повреждённые доли или ошибка БД: 500 с безопасным сообщением.
 - `languages` отсортированы по убыванию доли. Страны не определяются по языкам; `countries: null` не означает нулевую аудиторию.
+- `notificationsEnabledPercent` содержит процент подписчиков канала с включёнными уведомлениями (`0..100`, float с одним знаком после запятой) или `null`, если значение не получено из Telegram API.
 - API читает БД; MTProto-сбор запускается отдельным cron worker.
 
 ## Поиск постов

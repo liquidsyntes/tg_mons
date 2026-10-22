@@ -21,13 +21,23 @@ describe('demographics API', () => {
   });
   it('preserves the language contract and explicitly marks geography unsupported', async () => {
     const languages = [{ code: 'en', name: 'English', percent: 100 }];
-    mocks.latest.mockResolvedValue({ capturedAt: new Date('2026-09-16T00:00:00Z'), languageBreakdown: languages });
+    mocks.latest.mockResolvedValue({ capturedAt: new Date('2026-09-16T00:00:00Z'), languageBreakdown: languages, notificationsEnabledPercent: 24.5 });
     expect(await (await request('1')).json()).toEqual({ demographics: {
-      capturedAt: '2026-09-16T00:00:00.000Z', languages, countries: null, geographyStatus: 'unsupported',
+      capturedAt: '2026-09-16T00:00:00.000Z', languages, countries: null, geographyStatus: 'unsupported', notificationsEnabledPercent: 24.5,
+    } });
+  });
+  it('returns null for notificationsEnabledPercent when not captured', async () => {
+    const languages = [{ code: 'en', name: 'English', percent: 100 }];
+    mocks.latest.mockResolvedValue({ capturedAt: new Date('2026-09-16T00:00:00Z'), languageBreakdown: languages, notificationsEnabledPercent: null });
+    expect(await (await request('1')).json()).toEqual({ demographics: {
+      capturedAt: '2026-09-16T00:00:00.000Z', languages, countries: null, geographyStatus: 'unsupported', notificationsEnabledPercent: null,
     } });
   });
   it('rejects corrupt stored data', async () => {
     mocks.latest.mockResolvedValue({ capturedAt: new Date(), languageBreakdown: { invalid: true } });
+    expect((await request('1')).status).toBe(500);
+
+    mocks.latest.mockResolvedValue({ capturedAt: new Date(), languageBreakdown: [{ code: 'en', name: 'English', percent: 100 }], notificationsEnabledPercent: 120 });
     expect((await request('1')).status).toBe(500);
   });
   it('does not expose database error details', async () => {

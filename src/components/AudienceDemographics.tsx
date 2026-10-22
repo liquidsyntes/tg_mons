@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, type ReactElement } from 'react';
-import { isRecord, parseBreakdown, type Demographics } from '@/lib/demographics';
+import { Bell } from 'lucide-react';
+import { isRecord, parseBreakdown, parseNotificationsPercent, type Demographics } from '@/lib/demographics';
 
 type State = { channelId: number; status: 'loading' | 'empty' | 'error' } |
   { channelId: number; status: 'ready'; data: Demographics; stale: boolean };
@@ -26,8 +27,13 @@ export function AudienceDemographics({ channelId }: { channelId: number }): Reac
         if (!isRecord(data) || typeof data.capturedAt !== 'string' || !Number.isFinite(Date.parse(data.capturedAt))) throw new Error('Invalid snapshot');
         const languages = parseBreakdown(data.languages);
         if (!languages || data.countries !== null || data.geographyStatus !== 'unsupported') throw new Error('Invalid breakdown');
+        const notificationsEnabledPercent = parseNotificationsPercent(data.notificationsEnabledPercent);
+        if (data.notificationsEnabledPercent !== null && data.notificationsEnabledPercent !== undefined && notificationsEnabledPercent === null) {
+          throw new Error('Invalid notificationsEnabledPercent');
+        }
         setState({ channelId, status: 'ready', stale: Date.now() - Date.parse(data.capturedAt) > 7 * 86400000, data: {
           capturedAt: data.capturedAt, languages, countries: null, geographyStatus: 'unsupported',
+          notificationsEnabledPercent,
         } });
       } catch {
         if (!controller.signal.aborted) setState({ channelId, status: 'error' });
@@ -39,7 +45,18 @@ export function AudienceDemographics({ channelId }: { channelId: number }): Reac
   const current = state.channelId === channelId ? state : { status: 'loading' as const };
   return (
     <div className="mt-4 pt-4 border-t border-border/50 space-y-2 relative z-10" aria-live="polite">
-      <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Языки аудитории</span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Языки аудитории</span>
+        {current.status === 'ready' && current.data.notificationsEnabledPercent !== null && (
+          <span
+            title="Доля подписчиков с включёнными уведомлениями (лояльность аудитории)"
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-400 font-medium"
+          >
+            <Bell className="w-3.5 h-3.5 shrink-0" />
+            <span>Уведомления: <strong className="font-semibold text-white">{current.data.notificationsEnabledPercent}%</strong></span>
+          </span>
+        )}
+      </div>
       {current.status === 'loading' && <p className="text-xs text-slate-400">Загрузка демографии…</p>}
       {current.status === 'empty' && <p className="text-xs text-slate-400">Демография пока недоступна. Сбор выполняется еженедельно, если Telegram предоставляет доступ к статистике.</p>}
       {current.status === 'error' && <p className="text-xs text-amber-400">Не удалось загрузить демографию.</p>}
