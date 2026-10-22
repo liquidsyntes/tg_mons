@@ -230,6 +230,7 @@ export async function upsertPostWithReactions(params: {
     groupedId: bigint | null;
     subscribersAtPublish: number | null;
     isAd?: boolean;
+    contentType?: string;
 }) {
     const post = await prisma.post.upsert({
         where: {
@@ -246,6 +247,7 @@ export async function upsertPostWithReactions(params: {
             text: params.text ?? undefined,
             groupedId: params.groupedId ?? undefined,
             isAd: params.isAd ?? undefined,
+            contentType: params.contentType ?? undefined,
         },
         create: {
             channelId: params.channelId,
@@ -259,6 +261,7 @@ export async function upsertPostWithReactions(params: {
             groupedId: params.groupedId,
             subscribersAtPublish: params.subscribersAtPublish,
             isAd: params.isAd ?? false,
+            contentType: params.contentType ?? 'text',
         },
     });
 

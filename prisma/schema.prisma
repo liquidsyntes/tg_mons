@@ -144,6 +144,7 @@ model Post {
   text                 String?
   subscribersAtPublish Int?               @map("subscribers_at_publish")
   isAd                 Boolean            @default(false) @map("is_ad")
+  contentType          String             @default("text") @map("content_type")
   channel              Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
   mentions             Mention[]
   snapshots            PostSnapshot[]
@@ -154,6 +155,7 @@ model Post {
   @@unique([channelId, messageId])
   @@index([channelId, groupedId])
   @@index([channelId, publishedAt])
+  @@index([channelId, contentType])
   @@index([text(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("posts")
 }

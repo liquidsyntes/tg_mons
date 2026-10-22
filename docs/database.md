@@ -125,11 +125,13 @@
 | `text` | `String` | `text` | Да | — | Текст публикации |
 | `subscribersAtPublish` | `Int` | `subscribers_at_publish` | Да | — | Число подписчиков канала на момент публикации (для расчёта ERR) |
 | `isAd` | `Boolean` | `is_ad` | Нет | `false` | Флаг рекламной публикации (помечается эвристиками) |
+| `contentType` | `String` | `content_type` | Нет | `'text'` | Тип контента публикации (`text`, `photo`, `video`, `poll`, `link`) |
 
 - **Индексы и ограничения:**
   - `@@unique([channelId, messageId])`
   - `@@index([channelId, groupedId])`
   - `@@index([channelId, publishedAt])`
+  - `@@index([channelId, contentType])`
   - `@@index([text(ops: raw("gin_trgm_ops"))], type: Gin)` — триграммный индекс для полнотекстового поиска
 - **Связи:**
   - `channel`: `Channel` (`fields: [channelId], references: [id], onDelete: Cascade`)

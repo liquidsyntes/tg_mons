@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
+import { calculateContentTypePerformance } from './engagement';
 import { calculateContentScore } from '../scoring';
 import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
 import { runFraudAudit } from '../fraudDetector';
@@ -579,6 +580,11 @@ export async function getChannelDetailStats(
   channel.fraudScore = detailAudit.fraudScore;
   channel.fraudSignals = detailAudit.signals;
 
+  const contentTypePerformance = calculateContentTypePerformance(
+    posts,
+    channel.currentMembers
+  );
+
   return {
     channel,
     myChannel,
@@ -590,6 +596,7 @@ export async function getChannelDetailStats(
     heatmapData,
     myHeatmapData: myChannelRecord ? myHeatmapData : undefined,
     recentPosts,
+    contentTypePerformance,
   };
 }
 

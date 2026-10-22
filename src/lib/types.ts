@@ -77,6 +77,16 @@ export interface TimeSeriesPoint {
   postsCount?: number;
 }
 
+export type ContentType = 'text' | 'photo' | 'video' | 'poll' | 'link';
+
+export interface ContentTypePerformanceItem {
+  type: ContentType;
+  label: string;
+  er: number | null;
+  postsCount: number;
+  avgViews: number | null;
+}
+
 export interface ChannelDetailStats {
   channel: ChannelMetrics;
   myChannel: ChannelMetrics | null;
@@ -118,6 +128,7 @@ export interface ChannelDetailStats {
     forwards: number | null;
     text: string | null;
   }[];
+  contentTypePerformance?: ContentTypePerformanceItem[];
 }
 
 export interface BestTimeRecommendation {

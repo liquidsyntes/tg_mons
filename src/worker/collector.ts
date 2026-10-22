@@ -30,6 +30,7 @@ import {
 import { prisma } from '../lib/prisma';
 import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, checkUniformReactionRatio } from '../lib/fraudDetector';
 import { detectAd } from '../lib/adDetector';
+import { detectContentType } from '../lib/contentType';
 import { readMessageContent } from './message-content';
 import { extractPostMentions } from './post-mentions';
 import { savePostImage } from './post-image';
@@ -143,6 +144,7 @@ export async function collectChannelData(
 
       const adDetection = detectAd(text);
       const isAd = content.available ? adDetection.isAd || adDetection.isPartner : undefined;
+      const contentType = detectContentType(msg);
 
       const post = await upsertPostWithReactions({
         channelId: channel.id,
@@ -156,6 +158,7 @@ export async function collectChannelData(
         groupedId,
         subscribersAtPublish: participantsCount,
         isAd,
+        contentType,
       });
 
       if (content.available) {
