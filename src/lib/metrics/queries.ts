@@ -2,6 +2,7 @@ import { prisma } from '../prisma';
 import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
 import { calculateContentTypePerformance } from './engagement';
+import { detectSilencePeriods } from './silence';
 import { calculateContentScore } from '../scoring';
 import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
 import { runFraudAudit } from '../fraudDetector';
@@ -585,6 +586,18 @@ export async function getChannelDetailStats(
     channel.currentMembers
   );
 
+  const silencePosts = await prisma.post.findMany({
+    where: {
+      channelId,
+      publishedAt: { gte: new Date(now.getTime() - 90 * 24 * 3600 * 1000) },
+    },
+    orderBy: { publishedAt: 'asc' },
+    select: { publishedAt: true },
+  });
+  const silenceResult = detectSilencePeriods(silencePosts, { periodDays: 90, now });
+  channel.activityStatus = silenceResult.status;
+  channel.lastPostAt = silenceResult.lastPostAt;
+
   return {
     channel,
     myChannel,
@@ -597,6 +610,7 @@ export async function getChannelDetailStats(
     myHeatmapData: myChannelRecord ? myHeatmapData : undefined,
     recentPosts,
     contentTypePerformance,
+    silencePeriods: silenceResult.periods,
   };
 }
 

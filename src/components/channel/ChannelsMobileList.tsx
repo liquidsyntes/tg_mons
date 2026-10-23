@@ -159,6 +159,11 @@ export function ChannelsMobileList({
                   lastCollectedAt={channel.lastCollectedAt}
                   lastError={channel.lastError}
                 />
+                <StatusBadge
+                  variant="activity"
+                  activityStatus={channel.activityStatus}
+                  lastPostAt={channel.lastPostAt}
+                />
                 <RiskBadge score={channel.fraudScore} signals={channel.fraudSignals} />
               </div>
               <div className="flex items-center gap-2.5">

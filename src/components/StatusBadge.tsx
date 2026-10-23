@@ -1,23 +1,121 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, AlertCircle, Clock, AlertTriangle } from 'lucide-react';
-import { cn, formatRelativeTime } from '@/lib/utils';
-import { ChannelStatus } from '@/lib/types';
+import { AlertCircle, Clock, VolumeX, Radio } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ChannelStatus, ChannelSilenceStatus } from '@/lib/types';
+import { calculateSilenceStatus } from '@/lib/metrics/silence';
 
-interface StatusBadgeProps {
-  status: ChannelStatus;
-  lastCollectedAt: string | null;
-  lastError: string | null;
+export interface StatusBadgeProps {
+  status?: ChannelStatus | ChannelSilenceStatus;
+  lastCollectedAt?: string | null;
+  lastError?: string | null;
+  activityStatus?: ChannelSilenceStatus | null;
+  lastPostAt?: string | Date | null;
+  variant?: 'collection' | 'activity';
+  showText?: boolean;
   className?: string;
 }
 
 export function StatusBadge({
   status,
-  lastCollectedAt,
-  lastError,
+  lastCollectedAt = null,
+  lastError = null,
+  activityStatus,
+  lastPostAt,
+  variant,
+  showText,
   className,
 }: StatusBadgeProps) {
+  // Determine if this badge is operating in activity status mode
+  const isActivityMode =
+    variant === 'activity' ||
+    activityStatus !== undefined ||
+    status === 'активен' ||
+    status === 'замедлился' ||
+    status === 'молчит' ||
+    (variant !== 'collection' && lastPostAt !== undefined && !lastCollectedAt);
+
+  if (isActivityMode) {
+    let resolvedStatus: ChannelSilenceStatus = 'молчит';
+
+    if (activityStatus) {
+      resolvedStatus = activityStatus;
+    } else if (status === 'активен' || status === 'замедлился' || status === 'молчит') {
+      resolvedStatus = status;
+    } else if (lastPostAt !== undefined) {
+      resolvedStatus = calculateSilenceStatus(lastPostAt);
+    }
+
+    let colorClass = '';
+    let bgClass = '';
+    let borderClass = '';
+    let label = '';
+    let title = '';
+    let Icon = Radio;
+
+    if (resolvedStatus === 'активен') {
+      colorClass = 'text-emerald-400';
+      bgClass = 'bg-emerald-500/10';
+      borderClass = 'border-emerald-500/20';
+      label = 'Активен';
+      title = 'Канал активен (последняя публикация менее 3 дней назад)';
+      Icon = Radio;
+    } else if (resolvedStatus === 'замедлился') {
+      colorClass = 'text-amber-400';
+      bgClass = 'bg-amber-500/10';
+      borderClass = 'border-amber-500/20';
+      label = 'Замедлился';
+      title = 'Канал замедлился (нет публикаций от 3 до 7 дней)';
+      Icon = Clock;
+    } else {
+      colorClass = 'text-rose-400';
+      bgClass = 'bg-rose-500/10';
+      borderClass = 'border-rose-500/20';
+      label = 'Молчит';
+      title = 'Канал молчит (нет публикаций более 7 дней)';
+      Icon = VolumeX;
+    }
+
+    const shouldShowText = showText ?? true;
+
+    if (shouldShowText) {
+      return (
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-semibold border flex-shrink-0 transition-colors',
+            bgClass,
+            colorClass,
+            borderClass,
+            className
+          )}
+          title={title}
+          data-testid="status-badge-activity"
+        >
+          <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    return (
+      <div
+        className={cn(
+          'inline-flex items-center justify-center w-7 h-7 rounded-md border flex-shrink-0 transition-colors',
+          bgClass,
+          colorClass,
+          borderClass,
+          className
+        )}
+        title={title}
+        data-testid="status-badge-activity"
+      >
+        <Icon className="w-4 h-4" />
+      </div>
+    );
+  }
+
+  // Collection status badge (original mode)
   if (status === 'error') {
     return (
       <div
@@ -33,7 +131,7 @@ export function StatusBadge({
   }
 
   let diffMinutes = 999;
-  
+
   if (lastCollectedAt) {
     const date = new Date(lastCollectedAt);
     const now = new Date();

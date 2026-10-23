@@ -90,6 +90,11 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
               lastCollectedAt={channel.lastCollectedAt}
               lastError={channel.lastError}
             />
+            <StatusBadge
+              variant="activity"
+              activityStatus={channel.activityStatus}
+              lastPostAt={channel.lastPostAt}
+            />
             <RiskBadge score={fraudScore} signals={fraudSignals} />
           </div>
 

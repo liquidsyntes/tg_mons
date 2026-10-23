@@ -92,6 +92,11 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
                 lastCollectedAt={channel.lastCollectedAt}
                 lastError={channel.lastError}
               />
+              <StatusBadge
+                variant="activity"
+                activityStatus={channel.activityStatus}
+                lastPostAt={channel.lastPostAt}
+              />
               <RiskBadge score={fraudScore} signals={fraudSignals} />
             </div>
 

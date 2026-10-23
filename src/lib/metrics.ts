@@ -3,5 +3,6 @@ export * from './metrics/format';
 export * from './metrics/aggregate';
 export * from './metrics/queries';
 export * from './metrics/engagement';
+export * from './metrics/silence';
 export * from './citationIndex';
 

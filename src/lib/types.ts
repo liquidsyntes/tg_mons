@@ -2,6 +2,7 @@ import type { FraudSignal } from './fraudDetector';
 
 export type ChannelType = 'channel' | 'group';
 export type ChannelStatus = 'success' | 'error' | 'stale';
+export type ChannelSilenceStatus = 'активен' | 'замедлился' | 'молчит';
 
 export interface ChannelMetrics {
   id: number;
@@ -51,6 +52,8 @@ export interface ChannelMetrics {
   citationIndex?: number | null;
   fraudScore?: number | null;
   fraudSignals?: FraudSignal[];
+  activityStatus?: ChannelSilenceStatus;
+  lastPostAt?: string | null;
 
 
   // Comparison with "My Channel"
@@ -129,6 +132,11 @@ export interface ChannelDetailStats {
     text: string | null;
   }[];
   contentTypePerformance?: ContentTypePerformanceItem[];
+  silencePeriods?: {
+    startDate: string;
+    endDate: string;
+    durationDays: number;
+  }[];
 }
 
 export interface BestTimeRecommendation {

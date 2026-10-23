@@ -3,6 +3,7 @@ import { calculateDelta, calculateDeltaFromData, calculateVr, computeAvgViews24h
 import { calculateContentScore } from '../scoring';
 import { aggregateChannelER, aggregateChannelERR } from './engagement';
 import { calculateAdShare } from './adShare';
+import { detectSilencePeriods } from './silence';
 
 type DeltaMetric = ChannelMetrics['delta24h'];
 
@@ -153,6 +154,7 @@ function assembleChannelMetrics(
   );
 
   const adShare7d = calculateAdShare([...posts], 7, now);
+  const silence = detectSilencePeriods([...posts], { now });
 
   return {
     id: channel.id,
@@ -196,6 +198,8 @@ function assembleChannelMetrics(
     contentScore: scoreBreakdown.total,
     contentGrade: scoreBreakdown.grade,
     citationIndex: channel.citationIndex ?? 0,
+    activityStatus: silence.status,
+    lastPostAt: silence.lastPostAt,
   };
 }
 
