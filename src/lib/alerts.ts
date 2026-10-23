@@ -1,4 +1,4 @@
-import type { AlertRule } from '@prisma/client';
+import { Prisma, type AlertRule, type AlertRuleFire } from '@prisma/client';
 import { prisma } from './prisma';
 import { logger } from './logger';
 import type { ChannelMetrics } from './types';
@@ -19,7 +19,7 @@ export type AlertMetric = keyof typeof ALERT_METRICS;
 export type AlertOperator = 'gt' | 'lt';
 export const ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
-type RuleForEvaluation = Pick<AlertRule, 'id' | 'channelId' | 'metric' | 'operator' | 'threshold' | 'enabled' | 'lastFiredAt'>;
+type RuleForEvaluation = Pick<AlertRule, 'id' | 'channelId' | 'metric' | 'operator' | 'threshold' | 'enabled'>;
 export type AlertSender = (message: string) => Promise<boolean>;
 
 export function isAlertMetric(value: unknown): value is AlertMetric {
@@ -45,13 +45,12 @@ export function getAlertMetricValue(metrics: ChannelMetrics, metric: AlertMetric
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-/** Returns the measured value only when a rule matches and its cooldown has elapsed. */
-export function evaluateAlertRule(rule: RuleForEvaluation, metrics: ChannelMetrics, now: Date = new Date()): number | null {
+/** Returns the measured value when the rule matches. Cooldown is reserved per channel in the database. */
+export function evaluateAlertRule(rule: RuleForEvaluation, metrics: ChannelMetrics): number | null {
   if (!rule.enabled || (rule.channelId !== null && rule.channelId !== metrics.id) ||
       !isAlertMetric(rule.metric) || !isAlertOperator(rule.operator) || !Number.isFinite(rule.threshold)) {
     return null;
   }
-  if (rule.lastFiredAt && now.getTime() - rule.lastFiredAt.getTime() < ALERT_COOLDOWN_MS) return null;
   const value = getAlertMetricValue(metrics, rule.metric);
   if (value === null) return null;
   return rule.operator === 'gt'
@@ -63,10 +62,58 @@ function formatAlert(rule: RuleForEvaluation, metrics: ChannelMetrics, value: nu
   if (!isAlertMetric(rule.metric) || !isAlertOperator(rule.operator)) throw new Error('Unsupported alert rule');
   const { label, unit } = ALERT_METRICS[rule.metric];
   const comparison = rule.operator === 'gt' ? 'больше' : 'меньше';
-  return `TgMon: сработало правило\nКанал: ${metrics.title}\n${label}: ${value} ${unit}\nУсловие: ${comparison} ${rule.threshold} ${unit}`;
+  const username = metrics.username ? ` (@${metrics.username.replace(/^@/, '')})` : '';
+  const scope = rule.channelId === null ? 'для всех каналов' : 'для канала';
+  return `TgMon: сработало правило ${scope}\nКанал: ${metrics.title}${username}\n${label}: ${value} ${unit}\nУсловие: ${comparison} ${rule.threshold} ${unit}`;
 }
 
-/** Claims each matching rule before sending, then releases the claim if delivery fails. */
+type PreviousFire = Pick<AlertRuleFire, 'id' | 'lastFiredAt' | 'lastValue'>;
+type FireClaim = { id: number; previous: PreviousFire | null };
+
+async function claimRuleFire(ruleId: number, channelId: number, value: number, now: Date): Promise<FireClaim | null> {
+  try {
+    return await prisma.$transaction(async tx => {
+      const active = await tx.$queryRaw<Array<{ id: number }>>`
+        SELECT "id" FROM "alert_rules" WHERE "id" = ${ruleId} AND "enabled" = true FOR UPDATE
+      `;
+      if (active.length === 0) return null;
+
+      const existing = await tx.alertRuleFire.findUnique({
+        where: { ruleId_channelId: { ruleId, channelId } },
+        select: { id: true, lastFiredAt: true, lastValue: true },
+      });
+      if (existing) {
+        const claimed = await tx.alertRuleFire.updateMany({
+          where: { id: existing.id, lastFiredAt: { lte: new Date(now.getTime() - ALERT_COOLDOWN_MS) } },
+          data: { lastFiredAt: now, lastValue: value },
+        });
+        return claimed.count ? { id: existing.id, previous: existing } : null;
+      }
+
+      const created = await tx.alertRuleFire.create({
+        data: { ruleId, channelId, lastFiredAt: now, lastValue: value },
+        select: { id: true },
+      });
+      return { id: created.id, previous: null };
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return null;
+    throw error;
+  }
+}
+
+async function releaseRuleFire(claim: FireClaim, now: Date): Promise<void> {
+  if (claim.previous) {
+    await prisma.alertRuleFire.updateMany({
+      where: { id: claim.id, lastFiredAt: now },
+      data: { lastFiredAt: claim.previous.lastFiredAt, lastValue: claim.previous.lastValue },
+    });
+  } else {
+    await prisma.alertRuleFire.deleteMany({ where: { id: claim.id, lastFiredAt: now } });
+  }
+}
+
+/** Claims each matching rule for this channel before sending, then releases it if delivery fails. */
 export async function checkChannelAlertRules(
   channelId: number,
   loadMetrics: () => Promise<ChannelMetrics | null>,
@@ -78,22 +125,23 @@ export async function checkChannelAlertRules(
     orderBy: { id: 'asc' },
   });
   if (rules.length === 0) return 0;
+  const ownerIds = [...new Set(rules.flatMap(rule => rule.channelId === null && rule.userId !== null ? [rule.userId] : []))];
+  const activeOwners = new Set(ownerIds.length
+    ? (await prisma.userChannel.findMany({
+      where: { channelId, isActive: true, userId: { in: ownerIds } },
+      select: { userId: true },
+    })).map(subscription => subscription.userId)
+    : []);
+  const eligibleRules = rules.filter(rule => rule.channelId !== null || rule.userId === null || activeOwners.has(rule.userId));
+  if (eligibleRules.length === 0) return 0;
   const metrics = await loadMetrics();
-  if (!metrics || metrics.id !== channelId) return 0;
-  const cooldownBefore = new Date(now.getTime() - ALERT_COOLDOWN_MS);
+  if (!metrics || metrics.id !== channelId || !metrics.isActive) return 0;
   let sent = 0;
-  for (const rule of rules) {
-    const value = evaluateAlertRule(rule, metrics, now);
+  for (const rule of eligibleRules) {
+    const value = evaluateAlertRule(rule, metrics);
     if (value === null) continue;
-    const claim = await prisma.alertRule.updateMany({
-      where: {
-        id: rule.id,
-        enabled: true,
-        OR: [{ lastFiredAt: null }, { lastFiredAt: { lte: cooldownBefore } }],
-      },
-      data: { lastFiredAt: now },
-    });
-    if (claim.count === 0) continue;
+    const claim = await claimRuleFire(rule.id, channelId, value, now);
+    if (!claim) continue;
 
     let delivered = false;
     try {
@@ -103,11 +151,17 @@ export async function checkChannelAlertRules(
     }
     if (delivered) {
       sent++;
+      try {
+        await prisma.alertRule.updateMany({
+          where: { id: rule.id, OR: [{ lastFiredAt: null }, { lastFiredAt: { lt: now } }] },
+          data: { lastFiredAt: now },
+        });
+      } catch {
+        logger.warn('Rule alert timestamp update failed', { ruleId: rule.id, channelId: metrics.id });
+      }
     } else {
-      await prisma.alertRule.updateMany({
-        where: { id: rule.id, lastFiredAt: now },
-        data: { lastFiredAt: rule.lastFiredAt },
-      });
+      logger.warn('Rule alert was not delivered', { ruleId: rule.id, channelId: metrics.id });
+      await releaseRuleFire(claim, now);
     }
   }
   return sent;

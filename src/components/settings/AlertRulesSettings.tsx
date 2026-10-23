@@ -141,7 +141,7 @@ export function AlertRulesSettings() {
         <Bell className="w-5 h-5 text-accent" />
         <div>
           <h2 className="text-lg font-semibold text-white">Правила уведомлений</h2>
-          <p className="text-xs text-slate-400 mt-1">Telegram-уведомление отправляется не чаще раза в 24 часа на правило.</p>
+          <p className="text-xs text-slate-400 mt-1">Telegram-уведомление отправляется не чаще раза в 24 часа для каждого канала.</p>
         </div>
       </div>
       <div className="p-6 space-y-5">
@@ -190,7 +190,7 @@ export function AlertRulesSettings() {
             <Plus className="w-4 h-4" /> Добавить
           </button>
         </form>
-        <p className="text-xs text-slate-500">Для «Все каналы» интервал общий: уведомление придёт по первому подходящему каналу за сутки.</p>
+        <p className="text-xs text-slate-500">Для «Все каналы» правило проверяется отдельно по каждому отслеживаемому каналу.</p>
 
         <div className="border-t border-border pt-4 space-y-2">
           {loading ? <p className="text-sm text-slate-400">Загрузка правил...</p> : rules.length === 0 ? (
