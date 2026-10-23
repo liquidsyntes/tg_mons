@@ -4,16 +4,19 @@ import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { AlertRulesSettings } from '@/components/settings/AlertRulesSettings';
 import { InviteCodesSettings } from '@/components/settings/InviteCodesSettings';
-import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu, Shield, User } from 'lucide-react';
+import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu, Shield, User, Clock3 } from 'lucide-react';
 import Link from 'next/link';
 import type { FormEvent } from 'react';
 
-interface AiSettingsView {
+interface SettingsView {
   aiProvider: string;
   aiModel: string;
   hasToken: boolean;
   tokenPreview: string | null;
   tokenSource: 'saved' | 'environment' | null;
+  digestEnabled: boolean;
+  digestHour: number;
+  lastDigestAt: string | null;
 }
 
 interface CurrentUser {
@@ -27,10 +30,13 @@ export default function SettingsPage() {
   const [provider, setProvider] = useState('openrouter');
   const [model, setModel] = useState('z-ai/glm-5.3-flash');
   const [token, setToken] = useState('');
-  const [tokenStatus, setTokenStatus] = useState<Pick<AiSettingsView, 'hasToken' | 'tokenPreview' | 'tokenSource'>>({
+  const [tokenStatus, setTokenStatus] = useState<Pick<SettingsView, 'hasToken' | 'tokenPreview' | 'tokenSource'>>({
     hasToken: false, tokenPreview: null, tokenSource: null,
   });
   const [clearToken, setClearToken] = useState(false);
+  const [digestEnabled, setDigestEnabled] = useState(false);
+  const [digestHour, setDigestHour] = useState(9);
+  const [lastDigestAt, setLastDigestAt] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,15 +49,15 @@ export default function SettingsPage() {
       fetch('/api/auth/me').then(res => (res.ok ? res.json() : null)),
     ])
       .then(([settingsData, meData]) => {
-        if (settingsData?.settings) {
-          const settings = settingsData.settings as AiSettingsView;
-          setProvider(settings.aiProvider || 'openrouter');
-          setModel(settings.aiModel || 'z-ai/glm-5.3-flash');
-          setTokenStatus({ hasToken: settings.hasToken, tokenPreview: settings.tokenPreview, tokenSource: settings.tokenSource });
-        }
-        if (meData?.user) {
-          setCurrentUser(meData.user as CurrentUser);
-        }
+        if (!settingsData?.settings || !meData?.user) throw new Error('Не удалось загрузить настройки');
+        const settings = settingsData.settings as SettingsView;
+        setProvider(settings.aiProvider || 'openrouter');
+        setModel(settings.aiModel || 'z-ai/glm-5.3-flash');
+        setTokenStatus({ hasToken: settings.hasToken, tokenPreview: settings.tokenPreview, tokenSource: settings.tokenSource });
+        setDigestEnabled(settings.digestEnabled);
+        setDigestHour(settings.digestHour);
+        setLastDigestAt(settings.lastDigestAt);
+        setCurrentUser(meData.user as CurrentUser);
         setLoading(false);
       })
       .catch(err => {
@@ -61,7 +67,7 @@ export default function SettingsPage() {
       });
   }, []);
 
-  const isAdmin = !currentUser || currentUser.role === 'ADMIN';
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -76,17 +82,23 @@ export default function SettingsPage() {
         body: JSON.stringify({
           aiProvider: provider,
           aiModel: model,
+          digestEnabled,
+          digestHour,
           ...(clearToken ? { clearToken: true } : token.trim() ? { aiToken: token.trim() } : {}),
         }),
       });
 
       if (!res.ok) {
-        throw new Error('Ошибка сохранения настроек');
+        const data = await res.json();
+        throw new Error(data.error || 'Ошибка сохранения настроек');
       }
 
       const data = await res.json();
-      const settings = data.settings as AiSettingsView;
+      const settings = data.settings as SettingsView;
       setTokenStatus({ hasToken: settings.hasToken, tokenPreview: settings.tokenPreview, tokenSource: settings.tokenSource });
+      setDigestEnabled(settings.digestEnabled);
+      setDigestHour(settings.digestHour);
+      setLastDigestAt(settings.lastDigestAt);
       setToken('');
       setClearToken(false);
       setSuccess('Настройки успешно сохранены');
@@ -130,6 +142,12 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+
+        {!loading && !currentUser && error && (
+          <div className="text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 text-sm">
+            {error}
+          </div>
+        )}
 
         {isAdmin && <InviteCodesSettings />}
 
@@ -223,6 +241,32 @@ export default function SettingsPage() {
                   Идентификатор модели (например: <code>meta-llama/llama-3.1-8b-instruct:free</code>, <code>google/gemini-flash-1.5-exp</code>)
                 </p>
               </div>
+            </div>
+
+            <div className="p-6 border-t border-border/50 space-y-5">
+              <div className="flex items-center gap-3">
+                <Clock3 className="w-5 h-5 text-indigo-400" />
+                <h2 className="text-lg font-semibold text-white">Ежедневный Telegram-дайджест</h2>
+              </div>
+              <label className="flex items-center gap-3 text-sm text-slate-300">
+                <input type="checkbox" checked={digestEnabled} onChange={e => setDigestEnabled(e.target.checked)}
+                  className="h-4 w-4 accent-indigo-400" />
+                Включить ежедневную отправку
+              </label>
+              <div className="space-y-2">
+                <label htmlFor="digest-hour" className="block text-sm font-medium text-slate-300">Час отправки (UTC)</label>
+                <select id="digest-hour" value={digestHour} onChange={e => setDigestHour(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/50">
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <option key={hour} value={hour}>{String(hour).padStart(2, '0')}:00 UTC</option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-slate-400">
+                Последняя успешная отправка: {lastDigestAt
+                  ? `${new Date(lastDigestAt).toLocaleString('ru-RU', { timeZone: 'UTC' })} UTC`
+                  : 'Ещё не отправлялся'}
+              </p>
             </div>
 
             <div className="p-6 bg-slate-900/40 border-t border-border/50 flex justify-end gap-3">

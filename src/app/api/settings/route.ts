@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   if (!auth.authorized) return auth.response;
   if (auth.role === 'USER') {
     return NextResponse.json(
-      { error: 'Изменение глобальных настроек ИИ доступно только администратору' },
+      { error: 'Изменение глобальных настроек доступно только администратору' },
       { status: 403 },
     );
   }
@@ -56,8 +56,14 @@ export async function POST(req: NextRequest) {
         (input.aiModel !== undefined && typeof input.aiModel !== 'string') ||
         (input.aiToken !== undefined && typeof input.aiToken !== 'string') ||
         (input.clearToken !== undefined && typeof input.clearToken !== 'boolean') ||
-        (input.clearToken === true && typeof input.aiToken === 'string' && input.aiToken.trim() !== '')) {
+        (input.clearToken === true && typeof input.aiToken === 'string' && input.aiToken.trim() !== '') ||
+        (input.digestEnabled !== undefined && typeof input.digestEnabled !== 'boolean')) {
       return NextResponse.json({ error: 'Некорректные настройки' }, { status: 400 });
+    }
+    if (input.digestHour !== undefined &&
+        (typeof input.digestHour !== 'number' || !Number.isInteger(input.digestHour) ||
+          input.digestHour < 0 || input.digestHour > 23)) {
+      return NextResponse.json({ error: 'Час отправки дайджеста должен быть целым числом от 0 до 23 (UTC)' }, { status: 400 });
     }
 
     const aiModel = typeof input.aiModel === 'string' ? input.aiModel.trim() || DEFAULT_AI_MODEL : undefined;
@@ -65,11 +71,15 @@ export async function POST(req: NextRequest) {
     const newToken = suppliedToken && suppliedToken !== '***' && !/^([a-z0-9-]+)?\.\.\.[^\s]*$/i.test(suppliedToken)
       ? suppliedToken : undefined;
     const tokenUpdate = input.clearToken === true ? { aiToken: null } : newToken ? { aiToken: newToken } : {};
+    const digestUpdate = {
+      ...(typeof input.digestEnabled === 'boolean' ? { digestEnabled: input.digestEnabled } : {}),
+      ...(typeof input.digestHour === 'number' ? { digestHour: input.digestHour } : {}),
+    };
     const settings = await prisma.systemSetting.upsert({
       where: { id: 'global' },
-      update: { ...(aiModel !== undefined ? { aiModel } : {}), ...tokenUpdate },
+      update: { ...(aiModel !== undefined ? { aiModel } : {}), ...tokenUpdate, ...digestUpdate },
       create: { id: 'global', aiProvider: 'openrouter', aiModel: aiModel ?? DEFAULT_AI_MODEL,
-        aiToken: newToken && input.clearToken !== true ? newToken : null },
+        aiToken: newToken && input.clearToken !== true ? newToken : null, ...digestUpdate },
     });
     invalidateAiConfigCache();
     return NextResponse.json({ success: true, settings: publicSettings(settings) });

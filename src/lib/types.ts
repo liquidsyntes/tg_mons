@@ -72,6 +72,26 @@ export interface OverviewStats {
   lastGlobalUpdate: string | null;
 }
 
+export interface DigestChannel {
+  title: string;
+  currentMembers: number | null;
+  delta24h: number | null;
+  er7d: number | null;
+  err7d: number | null;
+  posts24h: number;
+}
+
+export interface DailyDigestSummary {
+  activeChannels: number;
+  totalAudience: number;
+  channelsWithoutAudience: number;
+  myChannel: DigestChannel | null;
+  topGainers: DigestChannel[];
+  topLosers: DigestChannel[];
+  recentFraudSignals: number;
+  problemChannels: number;
+}
+
 export interface TimeSeriesPoint {
   timestamp: string; // ISO String
   dateFormatted: string; // e.g. "12 мая" or "14:00"

@@ -25,7 +25,8 @@ vi.mock('@/lib/ai-config', () => ({
 import { GET, POST } from '../route';
 
 const url = 'http://localhost:4000/api/settings';
-const saved = { id: 'global', aiProvider: 'openrouter', aiModel: 'saved-model', aiToken: 'private-secret', digestHour: 9 };
+const saved = { id: 'global', aiProvider: 'openrouter', aiModel: 'saved-model', aiToken: 'private-secret',
+  digestEnabled: false, digestHour: 9, lastDigestAt: null };
 function post(body: Record<string, unknown>) {
   return POST(new NextRequest(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }));
 }
@@ -92,6 +93,28 @@ describe('/api/settings', () => {
   it('rejects invalid provider or conflicting clear request', async () => {
     expect((await post({ aiProvider: 'unsupported' })).status).toBe(400);
     expect((await post({ clearToken: true, aiToken: 'new-secret' })).status).toBe(400);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+
+  it('saves valid digest settings without changing the token', async () => {
+    const response = await post({ digestEnabled: true, digestHour: 0 });
+    expect(response.status).toBe(200);
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: { digestEnabled: true, digestHour: 0 },
+      create: expect.objectContaining({ digestEnabled: true, digestHour: 0 }),
+    }));
+  });
+
+  it.each([null, '9', -1, 24, 1.5, true])('rejects invalid digest hour %s', async digestHour => {
+    const response = await post({ digestHour });
+    expect(response.status).toBe(400);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-boolean digest enabled and user writes', async () => {
+    expect((await post({ digestEnabled: 'true' })).status).toBe(400);
+    mocks.verifyAuth.mockResolvedValue({ authorized: true, role: 'USER' });
+    expect((await post({ digestEnabled: true })).status).toBe(403);
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 });
