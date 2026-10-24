@@ -25,6 +25,7 @@ export const config = {
     '/reports/:path*',
     '/events',
     '/settings',
+    '/posts',
     '/api/:path*',
   ],
 };

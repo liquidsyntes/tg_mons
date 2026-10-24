@@ -129,6 +129,30 @@ export interface OpsStatusResponse {
   problemChannels: OpsProblemChannel[];
 }
 
+export interface SearchPost {
+  id: number;
+  messageId: string;
+  publishedAt: string;
+  text: string | null;
+  isAd: boolean;
+  views: number | null;
+  reactions: number | null;
+  comments: number | null;
+  forwards: number | null;
+  er: number | null;
+  err: number | null;
+  hasImage: boolean;
+  mentions: string[];
+  channel: { id: number; title: string; username: string | null; niche: string };
+}
+
+export interface GlobalPostSearchResponse {
+  posts: SearchPost[];
+  total: number;
+  niches: string[];
+  channels: Array<{ id: number; title: string; username: string | null; niche: string }>;
+}
+
 export interface TimeSeriesPoint {
   timestamp: string; // ISO String
   dateFormatted: string; // e.g. "12 мая" or "14:00"
