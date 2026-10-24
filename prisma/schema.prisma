@@ -146,6 +146,7 @@ model Post {
   subscribersAtPublish Int?               @map("subscribers_at_publish")
   isAd                 Boolean            @default(false) @map("is_ad")
   contentType          String             @default("text") @map("content_type")
+  eventsScannedAt      DateTime?          @map("events_scanned_at")
   channel              Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
   mentions             Mention[]
   snapshots            PostSnapshot[]
@@ -157,6 +158,7 @@ model Post {
   @@index([channelId, groupedId])
   @@index([channelId, publishedAt])
   @@index([channelId, contentType])
+  @@index([eventsScannedAt, publishedAt])
   @@index([text(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("posts")
 }

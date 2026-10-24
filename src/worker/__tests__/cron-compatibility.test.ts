@@ -13,6 +13,7 @@ describe('worker schedules with node-cron 4', () => {
     ['0 * * * *', '2026-09-20T03:00:00.000Z'],
     ['0 3 * * 0', '2026-09-20T03:00:00.000Z'],
     ['15 * * * *', '2026-09-20T03:15:00.000Z'],
+    ['30 */6 * * *', '2026-09-20T06:30:00.000Z'],
   ])('preserves the next execution of %s', (expression, nextRun) => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-20T02:59:59.000Z'));

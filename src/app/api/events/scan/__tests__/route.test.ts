@@ -9,11 +9,13 @@ const mocks = vi.hoisted(() => ({
   selectCandidates: vi.fn(),
   callOpenRouter: vi.fn(),
   verifyAuth: vi.fn(),
+  markPosts: vi.fn(),
+  mergeEvents: vi.fn(),
 }));
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    post: { findMany: mocks.findPosts },
+    post: { findMany: mocks.findPosts, updateMany: mocks.markPosts },
     event: { findMany: mocks.findEvents, create: mocks.createEvent },
     eventMention: { upsert: mocks.upsertMention },
   },
@@ -22,6 +24,10 @@ vi.mock('@/lib/events/jev', () => ({ selectEventCandidatesWithJev: mocks.selectC
 vi.mock('@/lib/openrouter', () => ({ callOpenRouter: mocks.callOpenRouter }));
 vi.mock('@/lib/auth', () => ({ verifyBearerToken: mocks.verifyAuth }));
 vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
+vi.mock('@/lib/events/matching', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/events/matching')>()),
+  mergeDuplicateEventsInDb: mocks.mergeEvents,
+}));
 
 import { POST } from '../route';
 
@@ -40,6 +46,8 @@ describe('POST /api/events/scan', () => {
     mocks.findEvents.mockResolvedValue([]);
     mocks.createEvent.mockResolvedValue({ id: 10, title: 'Вечеринка', date: new Date('2026-10-17T00:00:00Z') });
     mocks.upsertMention.mockResolvedValue({});
+    mocks.markPosts.mockResolvedValue({ count: 1 });
+    mocks.mergeEvents.mockResolvedValue(0);
     mocks.selectCandidates.mockResolvedValue({ posts: [posts[0]], mode: 'jev' });
     mocks.callOpenRouter.mockResolvedValue(JSON.stringify({
       events: [{ title: 'Вечеринка', date: '2026-10-17', sourcePostIds: [1, 2] }],
@@ -72,6 +80,14 @@ describe('POST /api/events/scan', () => {
     expect(mocks.upsertMention).toHaveBeenCalledWith(expect.objectContaining({
       where: { eventId_postId: { eventId: 10, postId: 1 } },
     }));
+    expect(mocks.findPosts).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ eventsScannedAt: null }) }));
+    expect(mocks.markPosts).toHaveBeenCalledWith({
+      where: { id: { in: [2] }, eventsScannedAt: null }, data: { eventsScannedAt: expect.any(Date) },
+    });
+    expect(mocks.markPosts).toHaveBeenCalledWith({
+      where: { id: { in: [1] }, eventsScannedAt: null }, data: { eventsScannedAt: expect.any(Date) },
+    });
+    expect(mocks.mergeEvents).toHaveBeenCalledOnce();
   });
 
   it('links a new announcement to a dismissed event without recreating it', async () => {
@@ -129,6 +145,9 @@ describe('POST /api/events/scan', () => {
 
     expect(await response.json()).toEqual({ success: true, savedCount: 0, parsedEvents: [], selectionMode: 'jev' });
     expect(mocks.callOpenRouter).not.toHaveBeenCalled();
+    expect(mocks.markPosts).toHaveBeenCalledWith({
+      where: { id: { in: [1, 2] }, eventsScannedAt: null }, data: { eventsScannedAt: expect.any(Date) },
+    });
   });
 
   it('lets Jev find announcements without the old keywords', async () => {
@@ -163,6 +182,9 @@ describe('POST /api/events/scan', () => {
 
     expect(mocks.selectCandidates).toHaveBeenCalledWith(posts);
     expect(mocks.callOpenRouter.mock.calls[0][0]).not.toContain('#дайджест');
+    expect(mocks.markPosts).toHaveBeenCalledWith({
+      where: { id: { in: [3] }, eventsScannedAt: null }, data: { eventsScannedAt: expect.any(Date) },
+    });
   });
 
   it('still excludes an explicit digest when Jev is unavailable', async () => {
@@ -199,6 +221,7 @@ describe('POST /api/events/scan', () => {
     const prompt = mocks.callOpenRouter.mock.calls[0][0] as string;
     expect(prompt).toContain('Вечеринка состоится');
     expect(prompt).not.toContain('Выставка откроется');
+    expect(mocks.markPosts).not.toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [3] } }) }));
   });
 
   it('reports the absence of keyword candidates without calling providers', async () => {
@@ -209,5 +232,21 @@ describe('POST /api/events/scan', () => {
     expect(await response.json()).toEqual({ success: true, savedCount: 0, parsedEvents: [], selectionMode: 'no_candidates' });
     expect(mocks.selectCandidates).not.toHaveBeenCalled();
     expect(mocks.callOpenRouter).not.toHaveBeenCalled();
+  });
+
+  it('keeps selected posts available for retry when extraction fails', async () => {
+    mocks.callOpenRouter.mockRejectedValue(new Error('Provider unavailable'));
+    expect((await POST(request)).status).toBe(500);
+    expect(mocks.markPosts).toHaveBeenCalledWith({
+      where: { id: { in: [2] }, eventsScannedAt: null }, data: { eventsScannedAt: expect.any(Date) },
+    });
+    expect(mocks.markPosts).not.toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [1] } }) }));
+  });
+
+  it('keeps selected posts available when extraction returns an invalid response', async () => {
+    mocks.callOpenRouter.mockResolvedValue('{"message":"unexpected response"}');
+
+    expect((await POST(request)).status).toBe(500);
+    expect(mocks.markPosts).not.toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [1] } }) }));
   });
 });

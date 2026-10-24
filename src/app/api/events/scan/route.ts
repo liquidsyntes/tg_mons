@@ -5,9 +5,17 @@ import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { selectEventCandidatesWithJev } from '@/lib/events/jev';
 import { isClearlyEventDigest } from '@/lib/events/digest';
-import { isSameEvent } from '@/lib/events/matching';
+import { isSameEvent, mergeDuplicateEventsInDb } from '@/lib/events/matching';
 
 export const dynamic = 'force-dynamic';
+
+async function markPostsScanned(ids: number[]): Promise<void> {
+  if (ids.length === 0) return;
+  await prisma.post.updateMany({
+    where: { id: { in: ids }, eventsScannedAt: null },
+    data: { eventsScannedAt: new Date() },
+  });
+}
 
 export async function POST(request: NextRequest) {
   const auth = await verifyBearerToken(request);
@@ -23,6 +31,7 @@ export async function POST(request: NextRequest) {
       where: {
         publishedAt: { gte: dateLimit },
         text: { not: null },
+        eventsScannedAt: null,
         eventMentions: { none: {} } // Exclude already parsed posts
       },
       include: {
@@ -32,17 +41,26 @@ export async function POST(request: NextRequest) {
       take: 2000
     });
 
+    const ignoredPosts = recentPosts.filter(post =>
+      !post.text?.trim() || isClearlyEventDigest(post.text));
+    await markPostsScanned(ignoredPosts.map(post => post.id));
+
     const textPosts = recentPosts
       .filter(post => typeof post.text === 'string' && post.text.trim().length > 0)
       .map(post => ({ ...post, text: post.text ?? '' }))
       .filter(post => !isClearlyEventDigest(post.text));
 
     if (textPosts.length === 0) {
+      await mergeDuplicateEventsInDb();
       return NextResponse.json({ success: true, savedCount: 0, parsedEvents: [], selectionMode: 'no_candidates' });
     }
 
     // Jev screens the full recent sample; keywords are only a fallback if it is unavailable.
     const selection = await selectEventCandidatesWithJev(textPosts);
+    if (selection.mode === 'jev') {
+      const selectedIds = new Set(selection.posts.map(post => post.id));
+      await markPostsScanned(textPosts.filter(post => !selectedIds.has(post.id)).map(post => post.id));
+    }
     const keywords = ['вечеринка', 'старт', 'начало', 'билет', 'dj', 'вход', 'line-up', 'мероприятие', 'анонс', 'событие'];
     const selectedPosts = (selection.mode === 'jev'
       ? selection.posts
@@ -50,6 +68,7 @@ export async function POST(request: NextRequest) {
     ).slice(0, 100);
 
     if (selectedPosts.length === 0) {
+      await mergeDuplicateEventsInDb();
       return NextResponse.json({ success: true, savedCount: 0, parsedEvents: [], selectionMode: selection.mode });
     }
 
@@ -100,8 +119,11 @@ ${JSON.stringify(payloadForAi)}
       cleanResponse = jsonMatch[0];
     }
     
-    const parsed = JSON.parse(cleanResponse);
-    const events = parsed.events || [];
+    const parsed: unknown = JSON.parse(cleanResponse);
+    if (!parsed || typeof parsed !== 'object' || !('events' in parsed) || !Array.isArray(parsed.events)) {
+      throw new Error('Некорректный ответ модели при извлечении событий');
+    }
+    const events = parsed.events;
     const selectedPostIds = new Set(selectedPosts.map(post => post.id));
 
     let savedCount = 0;
@@ -154,10 +176,13 @@ ${JSON.stringify(payloadForAi)}
           });
         } catch (err) {
           logger.warn('Could not link mention', undefined, err);
+          throw err;
         }
       }
     }
 
+    await mergeDuplicateEventsInDb();
+    await markPostsScanned(selectedPosts.map(post => post.id));
     return NextResponse.json({ success: true, savedCount, parsedEvents: events, selectionMode: selection.mode });
   } catch (error: any) {
     logger.error('Error scanning events:', undefined, error);

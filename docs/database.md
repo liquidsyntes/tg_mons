@@ -128,12 +128,14 @@
 | `subscribersAtPublish` | `Int` | `subscribers_at_publish` | Да | — | Число подписчиков канала на момент публикации (для расчёта ERR) |
 | `isAd` | `Boolean` | `is_ad` | Нет | `false` | Флаг рекламной публикации (помечается эвристиками) |
 | `contentType` | `String` | `content_type` | Нет | `'text'` | Тип контента публикации (`text`, `photo`, `video`, `poll`, `link`) |
+| `eventsScannedAt` | `DateTime` | `events_scanned_at` | Да | нет | Время успешной проверки поста сканером событий |
 
 - **Индексы и ограничения:**
   - `@@unique([channelId, messageId])`
   - `@@index([channelId, groupedId])`
   - `@@index([channelId, publishedAt])`
   - `@@index([channelId, contentType])`
+  - `@@index([eventsScannedAt, publishedAt])` для выборки непроверенных постов за период
   - `@@index([text(ops: raw("gin_trgm_ops"))], type: Gin)` — триграммный индекс для полнотекстового поиска
 - **Связи:**
   - `channel`: `Channel` (`fields: [channelId], references: [id], onDelete: Cascade`)
@@ -314,6 +316,9 @@
 
 - **Связи:**
   - `mentions`: `EventMention[]` (каскадное удаление)
+  - `dismissedByUsers`: `UserDismissedEvent[]` (каскадное удаление)
+
+После успешного сканирования совпавшие по дате и правилам `isSameEvent` записи объединяются: связям `EventMention` и `UserDismissedEvent` сначала создаются аналоги у самой ранней записи, затем дубли удаляются в той же транзакции. Отсутствующие время, организатор и цены канонического события дополняются из дублей; глобальное `dismissedAt` сохраняется.
 
 ---
 
