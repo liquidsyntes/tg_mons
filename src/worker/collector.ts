@@ -3,6 +3,7 @@ import { getTelegramClient } from './client';
 import { materializeDailyMetrics } from '../lib/materialize';
 import { calculateChannelMetrics } from '../lib/metrics';
 import { checkChannelAlertRules } from '../lib/alerts';
+import { formatSyncJobErrorSummary, type SyncChannelFailure } from '../lib/ops';
 import { logger } from '../lib/logger';
 import {
   resolveChannelEntity,
@@ -209,6 +210,7 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
   let totalSnapshots = 0;
   let fatalError: string | null = null;
   let interrupted = false;
+  const channelFailures: SyncChannelFailure[] = [];
 
   try {
     if (signal?.aborted) {
@@ -340,6 +342,7 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
         logger.info('Channel processed successfully', { title: channel.title, durationMs: result.durationMs, snapshotsAdded: result.snapshotsAdded, postsAdded: result.postsAdded });
       } catch (err: any) {
         errorCount++;
+        channelFailures.push({ channelId: channel.id, message: err instanceof Error ? err.message : String(err) });
         if (syncJobId) {
           await updateSyncJobProgress(syncJobId, undefined, errorCount, undefined).catch((dbErr) => logger.error('SyncJob update failed', undefined, dbErr));
         }
@@ -371,8 +374,16 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
   } finally {
     const durationMs = Date.now() - cycleStartTime;
     if (signal?.aborted && successCount + errorCount < activeChannels.length) interrupted = true;
+    const databasePassword = (() => {
+      try { return new URL(process.env.DATABASE_URL || '').password; } catch { return undefined; }
+    })();
+    const errorSummary = formatSyncJobErrorSummary(fatalError, channelFailures, [
+      process.env.TG_SESSION, process.env.TG_SESSION_LOCAL, process.env.TG_API_HASH,
+      process.env.TELEGRAM_BOT_TOKEN, process.env.COLLECT_API_TOKEN,
+      process.env.OPENROUTER_API_KEY, process.env.DATABASE_URL, databasePassword,
+    ]);
     try {
-      await finalizeSyncJob(syncJobId, durationMs, successCount, errorCount, activeChannels.length, totalPosts, fatalError, interrupted)
+      await finalizeSyncJob(syncJobId, durationMs, successCount, errorCount, activeChannels.length, totalPosts, fatalError, interrupted, errorSummary)
         .catch((err) => logger.error('Final SyncJob update failed', undefined, err));
     } finally {
       activeSyncJobId = null;

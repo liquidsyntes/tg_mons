@@ -92,6 +92,43 @@ export interface DailyDigestSummary {
   problemChannels: number;
 }
 
+export type OpsSyncStatus = 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
+
+export interface OpsSyncJob {
+  id: number;
+  startedAt: string;
+  endedAt: string | null;
+  status: OpsSyncStatus;
+  channelsTotal: number;
+  channelsSucceeded: number;
+  channelsFailed: number;
+  postsAdded: number;
+  durationMs: number | null;
+  errorSummary: string | null;
+}
+
+export interface OpsProblemChannel {
+  id: number;
+  title: string;
+  username: string | null;
+  isActive: boolean;
+  consecutiveErrors: number;
+  lastError: string | null;
+  lastCollectedAt: string | null;
+}
+
+export interface OpsStatusResponse {
+  latestJob: OpsSyncJob | null;
+  jobs: OpsSyncJob[];
+  summary: {
+    lastSuccessfulAt: string | null;
+    successRate7dPercent: number | null;
+    activeChannels: number;
+    disabledWithErrors: number;
+  };
+  problemChannels: OpsProblemChannel[];
+}
+
 export interface TimeSeriesPoint {
   timestamp: string; // ISO String
   dateFormatted: string; // e.g. "12 мая" or "14:00"

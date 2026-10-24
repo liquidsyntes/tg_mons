@@ -73,4 +73,11 @@ describe('SyncJob coordination', () => {
       data: expect.objectContaining({ status: 'PARTIAL', errorSummary: 'Сбор прерван при остановке worker' }),
     }));
   });
+
+  it('stores a bounded channel error summary for partial cycles', async () => {
+    await finalizeSyncJob(42, 1000, 2, 1, 3, 5, null, false, 'Ошибки каналов (1): #4: Таймаут');
+    expect(mocks.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'PARTIAL', errorSummary: 'Ошибки каналов (1): #4: Таймаут' }),
+    }));
+  });
 });

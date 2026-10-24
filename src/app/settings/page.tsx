@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { AlertRulesSettings } from '@/components/settings/AlertRulesSettings';
 import { InviteCodesSettings } from '@/components/settings/InviteCodesSettings';
+import { OperationsMonitorSettings } from '@/components/settings/OperationsMonitorSettings';
 import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu, Shield, User, Clock3 } from 'lucide-react';
 import Link from 'next/link';
 import type { FormEvent } from 'react';
@@ -287,6 +288,7 @@ export default function SettingsPage() {
             </div>
           </form>
         ) : null}
+        {isAdmin && <OperationsMonitorSettings />}
         <AlertRulesSettings />
       </main>
     </div>

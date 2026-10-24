@@ -191,6 +191,12 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 
 Свежий FAILED/PARTIAL также может дать HTTP 200: handler проверяет давность, а не успешность сбора. Это не проверка lastCollectedAt каждого канала. Окно `initializing` отсчитывается заново при перезапуске web.
 
+### `GET /api/ops/status` и `POST /api/ops/status`
+
+Оба метода требуют сессию или Bearer с ролью `ADMIN`; для `USER` возвращают 403. GET возвращает `{latestJob,jobs,summary,problemChannels}`. `jobs` содержит до 20 последних `SyncJob` по `startedAt` убыванию. `summary.lastSuccessfulAt` берётся из последнего `COMPLETED`, `successRate7dPercent` равен доле `COMPLETED` среди `COMPLETED`/`PARTIAL`/`FAILED` за последние 7 дней; `RUNNING` не входит в знаменатель, отсутствие завершённых запусков даёт `null`. `disabledWithErrors` считает отключённые каналы, у которых есть счётчик ошибок или `lastError`. `problemChannels` включает и активные каналы с ошибками.
+
+POST принимает `{ "action": "reset-channel-errors", "channelId": 123 }`, где `channelId` является положительным целым числом. Для существующего проблемного канала он сбрасывает `consecutiveErrors` и `lastError`, включает `Channel.isActive`, активирует существующий `UserChannel` администратора и очищает кэши метрик и времени публикации. Новая пользовательская подписка не создаётся. Ответ 200: `{success:true,channel}`; неверное тело даёт 400, отсутствующий канал 404, канал без ошибок 409. Восстановление действует со следующего цикла сбора. Если канал был выключен вручную и у него осталась ошибка, явное действие администратора тоже включит его.
+
 ### `POST /api/internal/invalidate-cache`
 
 Явная проверка Bearer, пустое тело. Очищает `metricsCache` и `bestTimeCache` **текущего web-процесса**. Ответ: `{ "success": true }`, HTTP 200. Worker вызывает его после основного цикла, если заданы WEB_INTERNAL_URL и COLLECT_API_TOKEN.
