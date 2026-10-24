@@ -1,10 +1,12 @@
 import { logger } from '@/lib/logger';
+import { runDailyDigestIfDue } from '@/lib/digest';
 import cron, { type ScheduledTask } from 'node-cron';
 import dotenv from 'dotenv';
 import type { Server } from 'node:http';
 import { getActiveSyncJobId, runCollectCycle } from './collector';
 import { runDemographicsCycle } from './demographics';
 import { runAdReachCycle } from './ad-reach';
+import { runEventsScan } from './events-scan';
 import { disconnectTelegramClient } from './client';
 import { markInterruptedSyncJob } from './persister';
 import { createWorkerServer, listenWorkerServer } from './server';
@@ -18,6 +20,8 @@ const coordinator = new TaskCoordinator();
 const scheduled: ScheduledTask[] = [];
 let server: Server | null = null;
 let shuttingDown = false;
+let activeDigest: Promise<void> | null = null;
+let activeEventScan: Promise<void> | null = null;
 
 async function execute(kind: WorkerTaskKind, run: (signal: AbortSignal) => Promise<unknown>): Promise<void> {
   try {
@@ -76,6 +80,35 @@ async function startWorker(): Promise<void> {
   }));
   logger.info('Ad Reach cron scheduled (hourly at minute 15)');
 
+  if (!localMode) {
+    scheduled.push(cron.schedule('*/5 * * * *', () => {
+      if (activeDigest) return;
+      const run = runDailyDigestIfDue().then(() => {}, error => {
+        logger.error('Daily digest check failed', undefined, error);
+      });
+      activeDigest = run;
+      void run.finally(() => { if (activeDigest === run) activeDigest = null; });
+    }, { timezone: 'UTC' }));
+    logger.info('Daily digest check scheduled (every 5 minutes, UTC)');
+  }
+
+  const eventsScanCron = process.env.EVENTS_SCAN_CRON?.trim();
+  if (!localMode && eventsScanCron) {
+    if (cron.validate(eventsScanCron)) {
+      scheduled.push(cron.schedule(eventsScanCron, () => {
+        if (activeEventScan) return;
+        const run = runEventsScan().catch(error => {
+          logger.error('Event scan failed', undefined, error);
+        });
+        activeEventScan = run;
+        void run.finally(() => { if (activeEventScan === run) activeEventScan = null; });
+      }, { timezone: 'UTC' }));
+      logger.info('Event scan scheduled', { eventsScanCron });
+    } else {
+      logger.warn('Invalid EVENTS_SCAN_CRON; event scanning disabled');
+    }
+  }
+
   if (process.env.COLLECT_ON_STARTUP === 'true') {
     logger.info('Running initial collection cycle on startup');
     await execute('collect', signal => runCollectCycle(signal));
@@ -94,7 +127,7 @@ async function shutdown(signal: string): Promise<void> {
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   const finished = await Promise.race([
-    coordinator.waitForIdle().then(() => true),
+    Promise.all([coordinator.waitForIdle(), activeDigest ?? Promise.resolve(), activeEventScan ?? Promise.resolve()]).then(() => true),
     new Promise<false>(resolve => { timer = setTimeout(() => resolve(false), 30_000); }),
   ]);
   if (timer) clearTimeout(timer);

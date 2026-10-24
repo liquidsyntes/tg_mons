@@ -139,4 +139,15 @@ describe('aggregate metrics', () => {
       expect(resFallback.avgViews24h).toBe(1500);
     });
   });
+
+  it('includes older posts in the 30-day advertising share but not the 7-day share', () => {
+    const dailyMetrics = [{ date: '2023-01-10T00:00:00Z', followers: 1000, postsCount: 1, avgViews: 100, err: 0 }];
+    const posts = [
+      { publishedAt: new Date('2023-01-09T10:00:00Z'), views: 100, text: 'regular', isAd: false },
+      { publishedAt: new Date('2022-12-25T10:00:00Z'), views: 100, text: 'advertising', isAd: true },
+    ];
+    const result = buildMetricsFromMaterialized(baseChannel, dailyMetrics, posts, now);
+    expect(result.adShare7d?.percent).toBe(0);
+    expect(result.adShare30d?.percent).toBe(50);
+  });
 });

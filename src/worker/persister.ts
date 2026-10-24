@@ -185,6 +185,7 @@ export async function finalizeSyncJob(
   totalPosts: number,
   fatalError: string | null,
   interrupted = false,
+  errorSummary: string | null = null,
 ) {
   let finalStatus: 'COMPLETED' | 'PARTIAL' | 'FAILED' = 'COMPLETED';
   
@@ -204,7 +205,7 @@ export async function finalizeSyncJob(
       endedAt: new Date(),
       durationMs,
       status: finalStatus,
-      errorSummary: interrupted ? 'Сбор прерван при остановке worker' : fatalError ? fatalError.substring(0, 200) : null,
+      errorSummary: interrupted ? 'Сбор прерван при остановке worker' : errorSummary,
       channelsSucceeded: successCount,
       channelsFailed: errorCount,
       postsAdded: totalPosts,

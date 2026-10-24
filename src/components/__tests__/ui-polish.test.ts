@@ -199,6 +199,6 @@ it('exports full Telegram channel URLs in a separate CSV column', () => {
   ]);
   const [headerLine, row1, row2] = csv.split('\n');
   expect(headerLine.split(',').slice(0, 3)).toEqual(['Название', 'Username', 'Ссылка']);
-  expect(row1.split(',').slice(0, 3)).toEqual(['"Lady Ista"', '@Lady_Ista', 'https://t.me/Lady_Ista']);
-  expect(row2.split(',').slice(0, 3)).toEqual(['"Kinky Events"', '@kinky_events_ua', 'https://t.me/kinky_events_ua']);
+  expect(row1.split(',').slice(0, 3)).toEqual(['"Lady Ista"', "'@Lady_Ista", 'https://t.me/Lady_Ista']);
+  expect(row2.split(',').slice(0, 3)).toEqual(['"Kinky Events"', "'@kinky_events_ua", 'https://t.me/kinky_events_ua']);
 });

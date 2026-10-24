@@ -1,1 +1,3 @@
-model_reasoning_summary = "concise"
+model_reasoning_summary = "auto"
+model_verbosity = "medium"
+web_search = "indexed"

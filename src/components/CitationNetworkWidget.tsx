@@ -1,114 +1,182 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Network, ArrowUpRight, ArrowDownLeft, RefreshCcw, ChevronDown } from 'lucide-react';
-import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { Network, ChevronDown } from 'lucide-react';
+import type { CitationNetworkData, CitationNetworkNode } from '@/lib/types';
 
-interface NetworkData {
-  outbound: { target: string; type: string; count: number }[];
-  inbound: { source: string; channelId: number; type: string; count: number }[];
+const WIDTH = 900;
+const NODE_WIDTH = 220;
+const NODE_HEIGHT = 48;
+
+function nodeHref(node: CitationNetworkNode): string {
+  return node.channelId !== null ? `/channel/${node.channelId}` : `https://t.me/${node.username}`;
+}
+
+function shorten(value: string, length = 23): string {
+  return value.length > length ? `${value.slice(0, length - 1)}…` : value;
+}
+
+function NetworkGraph({ data, channelId }: { data: CitationNetworkData; channelId: number }) {
+  const focalId = `channel:${channelId}`;
+  const nodeById = new Map(data.nodes.map(node => [node.id, node]));
+  const focal = nodeById.get(focalId);
+  const incoming = data.edges.filter(edge => edge.target === focalId).slice(0, 8);
+  const outgoing = data.edges.filter(edge => edge.source === focalId).slice(0, 8);
+  const height = Math.max(260, Math.max(incoming.length, outgoing.length) * 72 + 80);
+  const middleY = height / 2;
+  const [highlighted, setHighlighted] = useState<string | null>(null);
+
+  if (!focal || (incoming.length === 0 && outgoing.length === 0)) {
+    return <p className="rounded-xl border border-border p-6 text-center text-sm text-slate-400">Связей за выбранный период нет.</p>;
+  }
+
+  const position = (index: number, count: number) => middleY + (index - (count - 1) / 2) * 72;
+  const edgePath = (side: 'left' | 'right', y: number) => side === 'left'
+    ? `M 255 ${y} C 300 ${y}, 295 ${middleY}, 340 ${middleY}`
+    : `M 560 ${middleY} C 605 ${middleY}, 600 ${y}, 645 ${y}`;
+  const renderNode = (node: CitationNetworkNode, x: number, y: number, key: string) => (
+    <a key={key} href={nodeHref(node)} target={node.isTracked ? undefined : '_blank'}
+      rel={node.isTracked ? undefined : 'noopener noreferrer'}>
+      <g onMouseEnter={() => setHighlighted(node.id)} onMouseLeave={() => setHighlighted(null)}>
+        <title>{node.title}: входящих {node.inboundCount}, исходящих {node.outboundCount}</title>
+        <rect x={x} y={y - NODE_HEIGHT / 2} width={NODE_WIDTH} height={NODE_HEIGHT} rx="3"
+          fill={node.id === focalId ? '#164e63' : '#0f172a'} stroke={node.isMutualWithFocal ? '#fbbf24' : '#475569'} strokeWidth="1.5" />
+        <text x={x + 10} y={y - 2} fill="#f8fafc" fontSize="13" fontWeight="600">{shorten(node.title)}</text>
+        <text x={x + 10} y={y + 15} fill="#94a3b8" fontSize="10">
+          {node.isTracked ? `${node.subscribers === null ? 'Аудитория н/д' : `${node.subscribers.toLocaleString('ru-RU')} подписчиков`}` : 'Не отслеживается'}
+        </text>
+      </g>
+    </a>
+  );
+
+  return <div className="overflow-x-auto rounded-xl border border-border bg-slate-950/50" aria-label="Граф цитирований">
+    <svg viewBox={`0 0 ${WIDTH} ${height}`} className="min-w-[680px] w-full" role="img" aria-label="Входящие связи слева, выбранный канал в центре, исходящие справа">
+      <defs><marker id={`network-arrow-${channelId}`} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+        <path d="M 0 0 L 7 3.5 L 0 7 z" fill="#64748b" />
+      </marker></defs>
+      <text x="35" y="27" fill="#94a3b8" fontSize="12">Кто ссылается</text>
+      <text x="645" y="27" fill="#94a3b8" fontSize="12">Кого цитирует канал</text>
+      {incoming.map((edge, index) => {
+        const y = position(index, incoming.length);
+        return <path key={`${edge.source}-${edge.target}`} d={edgePath('left', y)} fill="none"
+          stroke={edge.isBidirectional ? '#fbbf24' : '#38bdf8'}
+          strokeWidth={Math.min(5, 1.5 + Math.sqrt(edge.count))}
+          opacity={highlighted && highlighted !== edge.source && highlighted !== focalId ? 0.25 : 0.9}
+          markerEnd={`url(#network-arrow-${channelId})`}>
+          <title>{edge.count} связей: {edge.mentionsCount} упоминаний, {edge.forwardsCount} пересылок</title>
+        </path>;
+      })}
+      {outgoing.map((edge, index) => {
+        const y = position(index, outgoing.length);
+        return <path key={`${edge.source}-${edge.target}`} d={edgePath('right', y)} fill="none"
+          stroke={edge.isBidirectional ? '#fbbf24' : '#38bdf8'}
+          strokeWidth={Math.min(5, 1.5 + Math.sqrt(edge.count))}
+          opacity={highlighted && highlighted !== edge.target && highlighted !== focalId ? 0.25 : 0.9}
+          markerEnd={`url(#network-arrow-${channelId})`}>
+          <title>{edge.count} связей: {edge.mentionsCount} упоминаний, {edge.forwardsCount} пересылок</title>
+        </path>;
+      })}
+      {incoming.map((edge, index) => {
+        const node = nodeById.get(edge.source);
+        return node ? renderNode(node, 35, position(index, incoming.length), `left-${node.id}`) : null;
+      })}
+      {renderNode(focal, 340, middleY, `focal-${focal.id}`)}
+      {outgoing.map((edge, index) => {
+        const node = nodeById.get(edge.target);
+        return node ? renderNode(node, 645, position(index, outgoing.length), `right-${node.id}`) : null;
+      })}
+    </svg>
+    <p className="px-3 pb-3 text-xs text-slate-400">Толщина линии отражает число связей. Жёлтый цвет означает взаимное цитирование. Показаны до 8 связей в каждом направлении.</p>
+  </div>;
 }
 
 export default function CitationNetworkWidget({ channelId }: { channelId: number }) {
-  const [data, setData] = useState<NetworkData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<CitationNetworkData | null>(null);
+  const [days, setDays] = useState<7 | 30 | 90>(30);
+  const [tab, setTab] = useState<'graph' | 'hubs'>('graph');
   const [expanded, setExpanded] = useState(true);
-  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busyHub, setBusyHub] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const loadNetwork = useCallback(async (signal?: AbortSignal) => {
+    const response = await fetch(`/api/stats/citation-network?channelId=${channelId}&days=${days}`, { signal });
+    if (!response.ok) throw new Error('Не удалось загрузить карту связей');
+    setData(await response.json() as CitationNetworkData);
+  }, [channelId, days]);
 
   useEffect(() => {
-    fetch(`/api/channels/${channelId}/network`)
-      .then(r => r.json())
-      .then(d => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch(e => {
-        console.error(e);
-        setError(true);
-        setLoading(false);
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    loadNetwork(controller.signal)
+      .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Ошибка загрузки'); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [loadNetwork]);
+
+  async function addHub(username: string) {
+    setBusyHub(username);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/channels', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: `@${username}`, isMine: false }),
       });
-  }, [channelId]);
+      if (!response.ok) {
+        const body: unknown = await response.json().catch(() => null);
+        const reason = body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+          ? body.error : 'Не удалось добавить канал';
+        throw new Error(reason);
+      }
+      await loadNetwork();
+      setMessage(`@${username} добавлен в мониторинг`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Ошибка добавления канала');
+    } finally {
+      setBusyHub(null);
+    }
+  }
 
-  return (
-    <section className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Network className="w-5 h-5 text-blue-400" />
-          <h3 className="text-base font-bold text-white">Сетка каналов (Media Network)</h3>
+  return <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 space-y-4">
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="flex items-center gap-2 text-base font-semibold text-white"><Network className="h-5 w-5 text-blue-400" />Карта связей и инфополе</h2>
+      <button type="button" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}
+        aria-controls={`network-content-${channelId}`}
+        className="flex items-center gap-1 rounded-xl border border-border px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
+        {expanded ? 'Свернуть' : 'Развернуть'}<ChevronDown className={`h-4 w-4 ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+    </div>
+    <div id={`network-content-${channelId}`} className={expanded ? 'mt-6 space-y-4' : 'hidden'}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2" role="tablist" aria-label="Раздел карты связей">
+          <button type="button" role="tab" aria-selected={tab === 'graph'} onClick={() => setTab('graph')}
+            className={`rounded-xl border px-3 py-2 text-xs ${tab === 'graph' ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}>Граф цитирований</button>
+          <button type="button" role="tab" aria-selected={tab === 'hubs'} onClick={() => setTab('hubs')}
+            className={`rounded-xl border px-3 py-2 text-xs ${tab === 'hubs' ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}>Обнаруженные каналы</button>
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded(value => !value)}
-          aria-expanded={expanded}
-          aria-controls={`network-content-${channelId}`}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700 transition-colors"
-        >
-          {expanded ? 'Свернуть' : 'Развернуть'}
-          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-        </button>
+        {tab === 'graph' && <label className="text-xs text-slate-300">Период{' '}
+          <select value={days} onChange={event => setDays(Number(event.target.value) as 7 | 30 | 90)}
+            className="rounded-xl border border-border bg-slate-900 px-2 py-1.5 text-white">
+            <option value={7}>7 дней</option><option value={30}>30 дней</option><option value={90}>90 дней</option>
+          </select>
+        </label>}
       </div>
-
-      <div id={`network-content-${channelId}`} className={expanded ? 'mt-6' : 'hidden'}>
-        {loading ? (
-          <div className="h-48 flex items-center justify-center">
-            <RefreshCcw className="w-6 h-6 animate-spin text-slate-500" />
-          </div>
-        ) : error ? (
-          <p className="text-sm text-slate-400">Не удалось загрузить сетку каналов</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="font-semibold flex items-center gap-2 mb-4 text-sm text-slate-400">
-                <ArrowUpRight className="w-4 h-4 text-orange-400" /> Кого репостит и упоминает
-              </h3>
-              {data?.outbound.length === 0 ? (
-                <div className="text-sm text-slate-500">Нет упоминаний</div>
-              ) : (
-                <ul className="space-y-3">
-                  {data?.outbound.map((item, idx) => (
-                    <li key={idx} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0">
-                      <span className="font-medium text-slate-200">
-                        {item.target.startsWith('@') || item.target.match(/^[a-zA-Z]/)
-                          ? <a href={`https://t.me/${item.target}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">@{item.target}</a>
-                          : item.target}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs px-2 py-1 bg-slate-800 rounded-md text-slate-400 capitalize">{item.type}</span>
-                        <span className="font-bold text-white">{item.count}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div>
-              <h3 className="font-semibold flex items-center gap-2 mb-4 text-sm text-slate-400">
-                <ArrowDownLeft className="w-4 h-4 text-emerald-400" /> Кто репостит его (из базы)
-              </h3>
-              {data?.inbound.length === 0 ? (
-                <div className="text-sm text-slate-500">Пока никто не репостил</div>
-              ) : (
-                <ul className="space-y-3">
-                  {data?.inbound.map((item, idx) => (
-                    <li key={idx} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0">
-                      <span className="font-medium">
-                        <Link href={`/channel/${item.channelId}`} className="text-blue-400 hover:underline">
-                          {item.source}
-                        </Link>
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs px-2 py-1 bg-slate-800 rounded-md text-slate-400 capitalize">{item.type}</span>
-                        <span className="font-bold text-white">{item.count}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
+      {error && <p role="alert" className="text-sm text-rose-400">{error}</p>}
+      {message && <p role="status" className="text-sm text-emerald-400">{message}</p>}
+      {loading ? <div className="h-56 animate-pulse rounded-xl bg-slate-900/50" aria-label="Загрузка карты связей" /> : tab === 'graph' ?
+        data ? <NetworkGraph data={data} channelId={channelId} /> : null :
+        data?.discoveredHubs.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data.discoveredHubs.map(hub =>
+          <div key={hub.username} className="rounded-xl border border-border bg-slate-900/40 p-4 space-y-2">
+            <a href={`https://t.me/${hub.username}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-white hover:text-accent">@{hub.username}</a>
+            <p className="text-xs text-slate-400">Упомянули {hub.citingChannels} канала · {hub.mentionsCount} связей за 30 дней</p>
+            <button type="button" disabled={busyHub !== null} onClick={() => void addHub(hub.username)}
+              className="rounded-xl border border-border px-3 py-1.5 text-xs text-white hover:bg-slate-800 disabled:opacity-50">
+              {busyHub === hub.username ? 'Добавление...' : '+ Добавить в мониторинг'}
+            </button>
+          </div>)}</div> : <p className="rounded-xl border border-border p-6 text-center text-sm text-slate-400">Новых каналов-хабов пока нет.</p>}
+    </div>
+  </section>;
 }

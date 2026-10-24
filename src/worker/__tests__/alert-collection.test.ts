@@ -92,4 +92,14 @@ describe('collection alert integration', () => {
     expect(result.successCount).toBe(1);
     expect(mocks.finalize).toHaveBeenCalled();
   });
+
+  it('passes failed-channel diagnostics to SyncJob finalization', async () => {
+    mocks.resolveEntity.mockRejectedValueOnce(new Error('Synthetic collection failure'));
+    const result = await runCollectCycle();
+    expect(result.errorCount).toBe(1);
+    expect(mocks.finalize).toHaveBeenCalledWith(
+      expect.any(Number), expect.any(Number), 0, 1, 1, 0, null, false,
+      expect.stringContaining('#1: Synthetic collection failure'),
+    );
+  });
 });

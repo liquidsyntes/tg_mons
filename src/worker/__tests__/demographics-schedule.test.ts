@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ schedule: vi.fn(), run: vi.fn(), warn: vi.fn() }));
+const mocks = vi.hoisted(() => ({ schedule: vi.fn(), run: vi.fn(), runDigest: vi.fn(), warn: vi.fn() }));
 vi.mock('node-cron', () => ({ default: { schedule: mocks.schedule, validate: (value: string) => value !== 'invalid' } }));
 vi.mock('../collector', () => ({ runCollectCycle: vi.fn() }));
 vi.mock('../demographics', () => ({ runDemographicsCycle: mocks.run }));
 vi.mock('../ad-reach', () => ({ runAdReachCycle: vi.fn() }));
+vi.mock('@/lib/digest', () => ({ runDailyDigestIfDue: mocks.runDigest }));
 vi.mock('../server', () => ({ createWorkerServer: vi.fn(() => ({ close: vi.fn() })), listenWorkerServer: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../client', () => ({ disconnectTelegramClient: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('dotenv', () => ({ default: { config: vi.fn() } }));
@@ -30,5 +31,52 @@ describe('demographics scheduling', () => {
     vi.spyOn(process, 'on').mockReturnValue(process);
     await import('../index');
     expect(mocks.schedule).not.toHaveBeenCalled();
+  });
+
+  it('schedules digest checks in UTC outside local mode', async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    vi.stubEnv('WORKER_LOCAL_MODE', 'false');
+    vi.stubEnv('WORKER_DISABLE_CRON', 'false');
+    vi.stubEnv('COLLECT_ON_STARTUP', 'false');
+    vi.stubEnv('COLLECT_API_TOKEN', 'test-token');
+    vi.spyOn(process, 'on').mockReturnValue(process);
+    await import('../index');
+    await vi.waitFor(() => expect(mocks.schedule).toHaveBeenCalledWith('*/5 * * * *', expect.any(Function), { timezone: 'UTC' }));
+  });
+
+  it('does not schedule digest checks in local mode', async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    vi.stubEnv('WORKER_LOCAL_MODE', 'true');
+    vi.stubEnv('WORKER_DISABLE_CRON', 'false');
+    vi.stubEnv('COLLECT_ON_STARTUP', 'false');
+    vi.stubEnv('COLLECT_API_TOKEN', 'test-token');
+    vi.spyOn(process, 'on').mockReturnValue(process);
+    await import('../index');
+    expect(mocks.schedule).not.toHaveBeenCalledWith('*/5 * * * *', expect.any(Function), { timezone: 'UTC' });
+  });
+
+  it('does not overlap digest checks', async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    vi.stubEnv('WORKER_LOCAL_MODE', 'false');
+    vi.stubEnv('WORKER_DISABLE_CRON', 'false');
+    vi.stubEnv('COLLECT_ON_STARTUP', 'false');
+    vi.stubEnv('COLLECT_API_TOKEN', 'test-token');
+    vi.spyOn(process, 'on').mockReturnValue(process);
+    let finish: (value: boolean) => void = () => {};
+    mocks.runDigest.mockReturnValue(new Promise<boolean>(resolve => { finish = resolve; }));
+    await import('../index');
+    await vi.waitFor(() => expect(mocks.schedule).toHaveBeenCalledWith('*/5 * * * *', expect.any(Function), { timezone: 'UTC' }));
+    const callback = mocks.schedule.mock.calls.find(([expression]) => expression === '*/5 * * * *')?.[1] as () => void;
+    callback();
+    callback();
+    expect(mocks.runDigest).toHaveBeenCalledOnce();
+    finish(true);
+    await vi.waitFor(() => {
+      callback();
+      expect(mocks.runDigest).toHaveBeenCalledTimes(2);
+    });
   });
 });

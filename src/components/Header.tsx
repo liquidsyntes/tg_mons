@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Activity, Plus, RefreshCw, Radio, Check, AlertCircle, Settings, LogOut } from 'lucide-react';
+import { Activity, Plus, RefreshCw, Radio, Check, AlertCircle, Settings, LogOut, Search } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 import { AddChannelModal } from '@/components/AddChannelModal';
 
@@ -116,6 +116,12 @@ export function Header({
           <Link href="/events" className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-calendar"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Афиша
+          </Link>
+
+          <Link href="/posts" title="Поиск постов" aria-label="Поиск постов"
+            className="inline-flex items-center gap-2 rounded-lg px-2 sm:px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+            <Search className="w-4 h-4" />
+            <span className="hidden sm:inline">Поиск постов</span>
           </Link>
         </div>
 

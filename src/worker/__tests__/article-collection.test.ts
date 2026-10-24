@@ -44,7 +44,7 @@ describe('article collection', () => {
     vi.mocked(fetchChannelMessages).mockResolvedValue([message(12, '', article())]);
     // Only the post ID is consumed after persistence.
     vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({
-      ...input, id: 42, isAd: input.isAd ?? false,
+      ...input, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null,
     }));
     await collectChannelData(client, channel);
     expect(upsertPostWithReactions).toHaveBeenCalledWith(expect.objectContaining({
@@ -57,7 +57,7 @@ describe('article collection', () => {
     const client = new TelegramClient(new StringSession(''), 1, 'test', {});
     vi.spyOn(client, 'getRichMessage').mockRejectedValue(new Error('unavailable'));
     vi.mocked(fetchChannelMessages).mockResolvedValue([message(12, '', article(true)), message(13, 'Обычный пост')]);
-    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, id: 42, isAd: input.isAd ?? false }));
+    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null }));
     const result = await collectChannelData(client, channel);
     expect(result.postsAdded).toBe(2);
     expect(upsertPostWithReactions).toHaveBeenNthCalledWith(1, expect.objectContaining({ text: null, isAd: undefined }));
@@ -68,7 +68,7 @@ describe('article collection', () => {
   it('continues collecting posts when an image cannot be saved', async () => {
     const client = new TelegramClient(new StringSession(''), 1, 'test', {});
     vi.mocked(fetchChannelMessages).mockResolvedValue([message(12, 'Первый'), message(13, 'Второй')]);
-    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, id: 42, isAd: input.isAd ?? false }));
+    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null }));
     vi.mocked(savePostImage).mockRejectedValueOnce(new Error('Telegram image unavailable'));
 
     const result = await collectChannelData(client, channel);

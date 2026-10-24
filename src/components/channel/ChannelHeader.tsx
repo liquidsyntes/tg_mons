@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { RiskBadge } from '@/components/RiskBadge';
 import { runFraudAudit } from '@/lib/fraudDetector';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
+import { ExportMenu } from '@/components/ExportMenu';
 import { ExportWrappedButton } from '@/components/channel/ExportWrappedButton';
 import { formatNumber } from '@/lib/utils';
 
@@ -137,6 +138,13 @@ export function ChannelHeader({ channel, period, onPeriodChange }: ChannelHeader
               channelTitle={channel.title}
               period={period}
             />
+            <ExportMenu items={(['daily', 'snapshots', 'posts'] as const).flatMap(dataset => {
+              const label = dataset === 'daily' ? 'Дневные метрики' : dataset === 'snapshots' ? 'Снимки аудитории' : 'Последние посты';
+              return (['csv', 'json'] as const).map(format => ({
+                label: `${label}, ${format.toUpperCase()}`,
+                href: `/api/channels/${channel.id}/export?dataset=${dataset}&format=${format}`,
+              }));
+            })} />
             <ExportWrappedButton filename={`tgmon-wrapped-${channel.username || channel.id}.png`} />
           </div>
         </div>

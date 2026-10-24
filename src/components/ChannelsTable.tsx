@@ -2,8 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Search, GitCompareArrows, Download } from 'lucide-react';
+import { Search, GitCompareArrows } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
+import { serializeChannelsCsv, serializeChannelsJson, formatChannelTelegramUrl as formatTelegramUrl } from '@/lib/exportData';
+import { ExportMenu } from './ExportMenu';
 import { useChannelsData } from './channel/useChannelsData';
 import { ChannelsDesktopTable } from './channel/ChannelsDesktopTable';
 import { ChannelsMobileList } from './channel/ChannelsMobileList';
@@ -13,61 +15,11 @@ interface ChannelsTableProps {
 }
 
 export function formatChannelTelegramUrl(username: string | null | undefined): string {
-  if (!username) return '';
-  const cleaned = username.trim().replace(/^(?:https?:\/\/)?(?:t\.me\/|@)+/i, '').replace(/\/+$/, '');
-  return cleaned ? `https://t.me/${cleaned}` : '';
+  return formatTelegramUrl(username);
 }
 
 export function buildChannelsExportCsv(channels: ChannelMetrics[]): string {
-  const headers = [
-    'Название',
-    'Username',
-    'Ссылка',
-    'Подписчики',
-    'Δ 24ч (чел)',
-    'Δ 24ч (%)',
-    'Δ 7д (чел)',
-    'Δ 7д (%)',
-    'Δ 30д (чел)',
-    'Δ 30д (%)',
-    'Постов (7д)',
-    'Постов (30д)',
-    'Просм. (avg 7д)',
-    'VR (7д, %)',
-    'ER (7д, %)',
-    'ERR (7д, %)',
-    'ИЦ (30д)',
-    'Моя доля (%)'
-  ];
-
-  const rows = channels.map(c => {
-    const cleanedUsername = c.username ? c.username.trim().replace(/^@/, '') : '';
-    return [
-      `"${c.title.replace(/"/g, '""')}"`,
-      cleanedUsername ? `@${cleanedUsername}` : '',
-      formatChannelTelegramUrl(c.username),
-      c.currentMembers ?? '',
-      c.delta24h.abs ?? '',
-      c.delta24h.percent ?? '',
-      c.delta7d.abs ?? '',
-      c.delta7d.percent ?? '',
-      c.delta30d.abs ?? '',
-      c.delta30d.percent ?? '',
-      c.posts7d,
-      c.posts30d,
-      c.avgViews7d ?? '',
-      c.vr7d ?? '',
-      c.er7d ?? '',
-      c.err7d ?? '',
-      c.citationIndex ?? '',
-      c.comparison?.audienceSharePercent ?? ''
-    ];
-  });
-
-  return [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
-  ].join('\n');
+  return serializeChannelsCsv(channels, false);
 }
 
 export function ChannelsTable({ channels }: ChannelsTableProps) {
@@ -82,17 +34,17 @@ export function ChannelsTable({ channels }: ChannelsTableProps) {
     processedChannels
   } = useChannelsData(channels);
 
-  const handleExportCSV = () => {
-    const csvContent = buildChannelsExportCsv(processedChannels);
-
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const handleExport = (format: 'csv' | 'json') => {
+    const content = format === 'csv' ? serializeChannelsCsv(processedChannels) : serializeChannelsJson(processedChannels);
+    const blob = new Blob([content], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `tg-monitor-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `tg-monitor-export-${new Date().toISOString().split('T')[0]}.${format}`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   return (
@@ -125,14 +77,10 @@ export function ChannelsTable({ channels }: ChannelsTableProps) {
 
           <div className="flex items-center gap-4 text-xs text-slate-400">
             <span>Всего: <strong className="text-white font-mono">{channels.length}</strong></span>
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600"
-              title="Выгрузить данные в CSV"
-            >
-              <Download className="w-3.5 h-3.5 text-accent" />
-              <span className="hidden sm:inline">Экспорт</span>
-            </button>
+            <ExportMenu items={[
+              { label: 'Таблица каналов, CSV', onClick: () => handleExport('csv') },
+              { label: 'Таблица каналов, JSON', onClick: () => handleExport('json') },
+            ]} />
           </div>
         </div>
       </div>

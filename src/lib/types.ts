@@ -42,6 +42,7 @@ export interface ChannelMetrics {
   err7d: number | null;
   cr7d: number | null;
   adShare7d?: { percent: number; level: 'none' | 'low' | 'medium' | 'high' };
+  adShare30d?: { percent: number; level: 'none' | 'low' | 'medium' | 'high' };
   status: ChannelStatus;
   sparkline7d?: number[]; // Added for 7d trend mini-chart
   contentScore?: number;
@@ -72,6 +73,161 @@ export interface OverviewStats {
   lastGlobalUpdate: string | null;
 }
 
+export type NicheBenchmarkMetricKey = 'er7d' | 'err7d' | 'vr7d' | 'posts7d' | 'adShare30d' | 'delta7dPct';
+
+export interface NicheBenchmarkMetric {
+  value: number | null;
+  p25: number | null;
+  median: number | null;
+  p75: number | null;
+  rank: number | null;
+  sampleSize: number;
+  lowerIsBetter: boolean;
+}
+
+export type NicheBenchmarkResult =
+  | { status: 'insufficient_cohort'; niche: string; cohortSize: number }
+  | { status: 'ready'; niche: string; cohortSize: number; metrics: Record<NicheBenchmarkMetricKey, NicheBenchmarkMetric> };
+
+export interface DigestChannel {
+  title: string;
+  currentMembers: number | null;
+  delta24h: number | null;
+  er7d: number | null;
+  err7d: number | null;
+  posts24h: number;
+}
+
+export interface DailyDigestSummary {
+  activeChannels: number;
+  totalAudience: number;
+  channelsWithoutAudience: number;
+  myChannel: DigestChannel | null;
+  topGainers: DigestChannel[];
+  topLosers: DigestChannel[];
+  recentFraudSignals: number;
+  problemChannels: number;
+}
+
+export type OpsSyncStatus = 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
+
+export interface OpsSyncJob {
+  id: number;
+  startedAt: string;
+  endedAt: string | null;
+  status: OpsSyncStatus;
+  channelsTotal: number;
+  channelsSucceeded: number;
+  channelsFailed: number;
+  postsAdded: number;
+  durationMs: number | null;
+  errorSummary: string | null;
+}
+
+export interface OpsProblemChannel {
+  id: number;
+  title: string;
+  username: string | null;
+  isActive: boolean;
+  consecutiveErrors: number;
+  lastError: string | null;
+  lastCollectedAt: string | null;
+}
+
+export interface OpsStatusResponse {
+  latestJob: OpsSyncJob | null;
+  jobs: OpsSyncJob[];
+  summary: {
+    lastSuccessfulAt: string | null;
+    successRate7dPercent: number | null;
+    activeChannels: number;
+    disabledWithErrors: number;
+  };
+  problemChannels: OpsProblemChannel[];
+}
+
+export interface SearchPost {
+  id: number;
+  messageId: string;
+  publishedAt: string;
+  text: string | null;
+  isAd: boolean;
+  views: number | null;
+  reactions: number | null;
+  comments: number | null;
+  forwards: number | null;
+  er: number | null;
+  err: number | null;
+  hasImage: boolean;
+  mentions: string[];
+  channel: { id: number; title: string; username: string | null; niche: string };
+}
+
+export interface GlobalPostSearchResponse {
+  posts: SearchPost[];
+  total: number;
+  niches: string[];
+  channels: Array<{ id: number; title: string; username: string | null; niche: string }>;
+}
+
+export interface AdAttributionPlacement {
+  postId: number;
+  messageId: string;
+  publishedAt: string;
+  sourceChannel: { id: number; title: string; username: string | null };
+  targetChannel: { id: number; title: string; username: string | null };
+  isAd: boolean;
+  views: number | null;
+  deltaSubscribers24h: number | null;
+  deltaSubscribers48h: number | null;
+  estimatedPricePerPost: number | null;
+  estimatedCpf: number | null;
+  conversionPercent: number | null;
+  overlappingCampaigns: boolean;
+}
+
+export interface ChannelAdAttribution {
+  periodDays: number;
+  inbound: AdAttributionPlacement[];
+  outbound: AdAttributionPlacement[];
+}
+
+export interface CitationNetworkNode {
+  id: string;
+  channelId: number | null;
+  username: string | null;
+  title: string;
+  subscribers: number | null;
+  niche: string | null;
+  isTracked: boolean;
+  inboundCount: number;
+  outboundCount: number;
+  isMutualWithFocal: boolean;
+}
+
+export interface CitationNetworkEdge {
+  source: string;
+  target: string;
+  count: number;
+  forwardsCount: number;
+  mentionsCount: number;
+  isBidirectional: boolean;
+}
+
+export interface DiscoveredHub {
+  username: string;
+  citingChannels: number;
+  mentionsCount: number;
+}
+
+export interface CitationNetworkData {
+  focalChannelId: number | null;
+  days: number;
+  nodes: CitationNetworkNode[];
+  edges: CitationNetworkEdge[];
+  discoveredHubs: DiscoveredHub[];
+}
+
 export interface TimeSeriesPoint {
   timestamp: string; // ISO String
   dateFormatted: string; // e.g. "12 мая" or "14:00"
@@ -92,6 +248,7 @@ export interface ContentTypePerformanceItem {
 
 export interface ChannelDetailStats {
   channel: ChannelMetrics;
+  nicheBenchmark?: NicheBenchmarkResult;
   myChannel: ChannelMetrics | null;
   period: '24h' | '7d' | '30d';
   scoreBreakdown?: any;

@@ -38,15 +38,25 @@ it('starts with my channel comparison off and lets the user enable it', () => {
 
 it('collapses and expands the loaded channel network without refetching', async () => {
   const fetcher = vi.fn().mockResolvedValue({
+    ok: true,
     json: async () => ({
-      outbound: [{ target: '12345', type: 'Forward', count: 3 }],
-      inbound: [],
+      focalChannelId: 7,
+      days: 30,
+      nodes: [
+        { id: 'channel:7', channelId: 7, title: 'Главный канал', username: 'main', subscribers: 100,
+          niche: 'news', isTracked: true, inboundCount: 0, outboundCount: 3, isMutualWithFocal: false },
+        { id: 'external:hubchannel', channelId: null, title: '@hubchannel', username: 'hubchannel', subscribers: null,
+          niche: null, isTracked: false, inboundCount: 3, outboundCount: 0, isMutualWithFocal: false },
+      ],
+      edges: [{ source: 'channel:7', target: 'external:hubchannel', count: 3,
+        forwardsCount: 0, mentionsCount: 3, isBidirectional: false }],
+      discoveredHubs: [],
     }),
   });
   vi.stubGlobal('fetch', fetcher);
   render(React.createElement(CitationNetworkWidget, { channelId: 7 }));
 
-  expect(await screen.findByText('12345')).toBeDefined();
+  expect(await screen.findByText('@hubchannel')).toBeDefined();
   const content = document.getElementById('network-content-7');
   const collapse = screen.getByRole('button', { name: 'Свернуть' });
   expect(collapse.getAttribute('aria-expanded')).toBe('true');
@@ -55,6 +65,6 @@ it('collapses and expands the loaded channel network without refetching', async 
   const expand = screen.getByRole('button', { name: 'Развернуть' });
   expect(expand.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(expand);
-  expect(content?.className).toBe('mt-6');
+  expect(content?.className).toContain('mt-6');
   expect(fetcher).toHaveBeenCalledTimes(1);
 });

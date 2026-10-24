@@ -49,7 +49,8 @@
 | `Event` | `events` | `id` (Int, autoincrement) | — | Дочерние: `mentions` (`EventMention[]`, `Cascade`) | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | `id` (Int, autoincrement) | `@@unique([eventId, postId])`<br>`@@index([eventId])`<br>`@@index([postId])` | `event` -> `Event` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Связь M:N между мероприятиями (`Event`) и постами (`Post`), где они упомянуты |
 | `SystemSetting` | `system_settings` | `id` (String, default "global") | — | Нет внешних связей | Глобальная конфигурация AI-провайдера, модели, токена и расписания email/telegram дайджеста |
-| `AlertRule` | `alert_rules` | `id` (Int, autoincrement) | `@@index([channelId])` | `channel` -> `Channel?` (`Cascade`) | Правила мониторинга и алертинга по метрикам канала (пороги, операторы, статус срабатывания) |
+| `AlertRule` | `alert_rules` | `id` (Int, autoincrement) | `@@index([channelId])` | `channel` -> `Channel?` (`Cascade`) | Правила мониторинга и алертинга по метрикам канала (пороги, операторы, время последней успешной отправки) |
+| `AlertRuleFire` | `alert_rule_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, channelId])`<br>`@@index([channelId])` | `rule` -> `AlertRule` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Состояние cooldown для пары «правило и канал» |
 | `FraudSignal` | `fraud_signals` | `id` (Int, autoincrement) | `@@index([channelId, detectedAt])` | `channel` -> `Channel` (`Cascade`) | Зафиксированные эвристиками факты подозрительной активности (накрутка подписчиков, реакций, просмотров) |
 
 ---
@@ -87,6 +88,7 @@
   - `channelMetricDailies`: `ChannelMetricDaily[]` (каскадное удаление)
   - `demographics`: `AudienceDemographics[]` (каскадное удаление)
   - `alertRules`: `AlertRule[]` (каскадное удаление)
+  - `alertRuleFires`: `AlertRuleFire[]` (каскадное удаление)
   - `fraudSignals`: `FraudSignal[]` (каскадное удаление)
 
 ---
@@ -126,12 +128,14 @@
 | `subscribersAtPublish` | `Int` | `subscribers_at_publish` | Да | — | Число подписчиков канала на момент публикации (для расчёта ERR) |
 | `isAd` | `Boolean` | `is_ad` | Нет | `false` | Флаг рекламной публикации (помечается эвристиками) |
 | `contentType` | `String` | `content_type` | Нет | `'text'` | Тип контента публикации (`text`, `photo`, `video`, `poll`, `link`) |
+| `eventsScannedAt` | `DateTime` | `events_scanned_at` | Да | нет | Время успешной проверки поста сканером событий |
 
 - **Индексы и ограничения:**
   - `@@unique([channelId, messageId])`
   - `@@index([channelId, groupedId])`
   - `@@index([channelId, publishedAt])`
   - `@@index([channelId, contentType])`
+  - `@@index([eventsScannedAt, publishedAt])` для выборки непроверенных постов за период
   - `@@index([text(ops: raw("gin_trgm_ops"))], type: Gin)` — триграммный индекс для полнотекстового поиска
 - **Связи:**
   - `channel`: `Channel` (`fields: [channelId], references: [id], onDelete: Cascade`)
@@ -312,6 +316,9 @@
 
 - **Связи:**
   - `mentions`: `EventMention[]` (каскадное удаление)
+  - `dismissedByUsers`: `UserDismissedEvent[]` (каскадное удаление)
+
+После успешного сканирования совпавшие по дате и правилам `isSameEvent` записи объединяются: связям `EventMention` и `UserDismissedEvent` сначала создаются аналоги у самой ранней записи, затем дубли удаляются в той же транзакции. Отсутствующие время, организатор и цены канонического события дополняются из дублей; глобальное `dismissedAt` сохраняется.
 
 ---
 
@@ -353,7 +360,7 @@
 ### 14. `AlertRule` (`alert_rules`)
 Правила мониторинга и формирования оповещений по метрикам каналов.
 
-`channelId = null` задаёт глобальное правило для всех активных каналов. Поле `lastFiredAt` хранит один общий момент отправки для правила, поэтому глобальное правило отправляется не чаще одного раза за 24 часа независимо от числа подходящих каналов. Для `delta24h` и `delta7d` сравнивается абсолютное изменение числа подписчиков со знаком; ER, ERR и VR измеряются в процентах. Сравнения `gt` и `lt` строгие, отсутствующие значения не вызывают отправку.
+`channelId = null` задаёт глобальное правило. Для владельца с `userId` оно действует только на активные `UserChannel`, а системное правило без владельца действует на все активные каналы. Cooldown 24 часа хранится отдельно для каждой пары в `AlertRuleFire`; `AlertRule.lastFiredAt` остаётся временем последней успешной отправки для UI. Для `delta24h` и `delta7d` сравнивается абсолютное изменение числа подписчиков со знаком; ER, ERR и VR измеряются в процентах. Сравнения `gt` и `lt` строгие, отсутствующие значения не вызывают отправку.
 
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
@@ -363,13 +370,28 @@
 | `operator` | `String` | `operator` | Нет | — | Оператор сравнения: `"lt"` (меньше) или `"gt"` (больше) |
 | `threshold` | `Float` | `threshold` | Нет | — | Пороговое значение срабатывания правила |
 | `enabled` | `Boolean` | `enabled` | Нет | `true` | Флаг активности правила |
-| `lastFiredAt` | `DateTime` | `last_fired_at` | Да | — | Время последнего срабатывания правила |
+| `lastFiredAt` | `DateTime` | `last_fired_at` | Да | нет | Время последней успешной отправки по любому каналу |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время создания правила |
 
 - **Индексы:**
   - `@@index([channelId])`
 - **Связи:**
   - `channel`: `Channel?` (`fields: [channelId], references: [id], onDelete: Cascade`)
+  - `fires`: `AlertRuleFire[]` (каскадное удаление)
+
+#### `AlertRuleFire` (`alert_rule_fires`)
+
+Хранит время и значение последнего срабатывания для конкретного канала. При ошибке доставки резервирование удаляется или возвращается к прежнему значению. Миграция переносит старый cooldown адресных правил. Для старых глобальных правил канал прошлого срабатывания неизвестен, поэтому их состояние по каналам начинается заново.
+
+| Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
+|---|---|---|---|---|---|
+| `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
+| `ruleId` | `Int` | `rule_id` | Нет | нет | Внешний ключ на `AlertRule.id` |
+| `channelId` | `Int` | `channel_id` | Нет | нет | Внешний ключ на `Channel.id` |
+| `lastFiredAt` | `DateTime` | `last_fired_at` | Нет | нет | Время резервирования или успешной отправки |
+| `lastValue` | `Float` | `last_value` | Да | нет | Значение метрики последнего срабатывания |
+
+Уникальность пары `(ruleId, channelId)` обеспечивает независимый cooldown. Обе связи удаляются каскадно.
 
 ---
 

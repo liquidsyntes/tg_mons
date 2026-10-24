@@ -1,77 +1,66 @@
-import { logger } from '@/lib/logger';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
+import { verifyBearerToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const auth = await verifyBearerToken(request);
+  if (!auth.authorized) return auth.response;
+  const { id } = await params;
+  const channelId = Number(id);
+  if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(channelId)) {
+    return NextResponse.json({ error: 'Некорректный ID канала' }, { status: 400 });
+  }
+
   try {
-    const { id } = await params;
-    const channelId = parseInt(id, 10);
-    if (!channelId) {
-      return NextResponse.json({ error: 'invalid id' }, { status: 400 });
-    }
+    const accessible = auth.userId === null
+      ? await prisma.channel.findMany({ where: { isActive: true }, select: { id: true, title: true, username: true, tgId: true } })
+      : (await prisma.userChannel.findMany({
+        where: { userId: auth.userId, isActive: true, channel: { isActive: true } },
+        select: { channel: { select: { id: true, title: true, username: true, tgId: true } } },
+      })).map(subscription => subscription.channel);
+    const focal = accessible.find(channel => channel.id === channelId);
+    if (!focal) return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
+    const channelIds = accessible.map(channel => channel.id);
 
-    const channel = await prisma.channel.findUnique({ where: { id: channelId } });
-    if (!channel) {
-      return NextResponse.json({ error: 'not found' }, { status: 404 });
-    }
-
-    // Outbound mentions (Who this channel mentions)
     const outboundRaw = await prisma.mention.groupBy({
       by: ['targetUsername', 'targetTgId', 'type'],
       where: { sourceChannelId: channelId },
       _count: { id: true },
     });
+    const outbound = outboundRaw.map(item => ({
+      target: item.targetUsername || (item.targetTgId ? item.targetTgId.toString() : 'unknown'),
+      type: item.type,
+      count: item._count.id,
+    })).sort((left, right) => right.count - left.count).slice(0, 10);
 
-    const outbound = outboundRaw
-      .map(o => ({
-        target: o.targetUsername || (o.targetTgId ? o.targetTgId.toString() : 'unknown'),
-        type: o.type,
-        count: o._count.id,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Inbound mentions (Who mentions this channel)
-    const orConditions = [];
-    if (channel.username) orConditions.push({ targetUsername: channel.username.toLowerCase() });
-    if (channel.tgId) orConditions.push({ targetTgId: channel.tgId });
-
-    let inbound: any[] = [];
-    if (orConditions.length > 0) {
-      const inboundRaw = await prisma.mention.groupBy({
-        by: ['sourceChannelId', 'type'],
-        where: { OR: orConditions },
-        _count: { id: true },
-      });
-
-      const sourceChannelIds = Array.from(new Set(inboundRaw.map(i => i.sourceChannelId)));
-      const sourceChannels = await prisma.channel.findMany({
-        where: { id: { in: sourceChannelIds } },
-        select: { id: true, title: true, username: true },
-      });
-
-      inbound = inboundRaw
-        .map(i => {
-          const ch = sourceChannels.find(c => c.id === i.sourceChannelId);
-          return {
-            source: ch ? (ch.username ? `@${ch.username}` : ch.title) : `Channel ${i.sourceChannelId}`,
-            channelId: i.sourceChannelId,
-            type: i.type,
-            count: i._count.id,
-          };
-        })
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
+    const conditions: Prisma.MentionWhereInput[] = [];
+    if (focal.username) {
+      const username = focal.username.replace(/^@/, '').toLowerCase();
+      conditions.push({ targetUsername: { in: [username, `@${username}`] } });
     }
-
+    if (focal.tgId) conditions.push({ targetTgId: focal.tgId });
+    const inboundRaw = conditions.length === 0 ? [] : await prisma.mention.groupBy({
+      by: ['sourceChannelId', 'type'],
+      where: { OR: conditions, sourceChannelId: { in: channelIds, not: channelId } },
+      _count: { id: true },
+    });
+    const byId = new Map(accessible.map(channel => [channel.id, channel]));
+    const inbound = inboundRaw.map(item => {
+      const channel = byId.get(item.sourceChannelId);
+      return {
+        source: channel?.username ? `@${channel.username}` : channel?.title ?? `Канал ${item.sourceChannelId}`,
+        channelId: item.sourceChannelId,
+        type: item.type,
+        count: item._count.id,
+      };
+    }).sort((left, right) => right.count - left.count).slice(0, 10);
     return NextResponse.json({ outbound, inbound });
-  } catch (error: any) {
-    logger.error('Network API error:', undefined, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    logger.error('GET /api/channels/[id]/network error:', { channelId }, error);
+    return NextResponse.json({ error: 'Не удалось загрузить связи канала' }, { status: 500 });
   }
 }
