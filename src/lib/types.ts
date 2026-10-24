@@ -175,6 +175,42 @@ export interface ChannelAdAttribution {
   outbound: AdAttributionPlacement[];
 }
 
+export interface CitationNetworkNode {
+  id: string;
+  channelId: number | null;
+  username: string | null;
+  title: string;
+  subscribers: number | null;
+  niche: string | null;
+  isTracked: boolean;
+  inboundCount: number;
+  outboundCount: number;
+  isMutualWithFocal: boolean;
+}
+
+export interface CitationNetworkEdge {
+  source: string;
+  target: string;
+  count: number;
+  forwardsCount: number;
+  mentionsCount: number;
+  isBidirectional: boolean;
+}
+
+export interface DiscoveredHub {
+  username: string;
+  citingChannels: number;
+  mentionsCount: number;
+}
+
+export interface CitationNetworkData {
+  focalChannelId: number | null;
+  days: number;
+  nodes: CitationNetworkNode[];
+  edges: CitationNetworkEdge[];
+  discoveredHubs: DiscoveredHub[];
+}
+
 export interface TimeSeriesPoint {
   timestamp: string; // ISO String
   dateFormatted: string; // e.g. "12 мая" or "14:00"

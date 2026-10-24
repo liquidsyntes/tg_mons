@@ -31,13 +31,15 @@ Middleware больше не добавляет Bearer к запросам бр�
 | `DELETE /api/channels/:id` | Необязательное `?permanent=true` | По умолчанию `isActive=false`, ответ `{success,message,channel}`; permanent удаляет запись с каскадами и возвращает `{success,message}` | Да |
 | `PUT /api/channels/:id/favorite` | `{ "isFavorite": true }` | `{ "success": true, "isFavorite": true }`; кэши метрик не сбрасывает | Да |
 | `GET /api/channels/:id/ltv` | ID | `{ "ltv": [{ "hour": 1, "percent": 12.3 }, ...] }` либо `{ "ltv": [] }` | Нет |
-| `GET /api/channels/:id/network` | ID | `{ "outbound": [...], "inbound": [...] }` | Нет |
+| `GET /api/channels/:id/network` | ID | Совместимый плоский ответ `{ "outbound": [...], "inbound": [...] }`, ограниченный доступными каналами пользователя | Да |
 | `GET /api/channels/:id/ad-price` | ID | `{estimatedPricePerPost,cpm,confidence,averageAdReach,averageReachCurve}`; 404 если канала нет | Нет |
 | `GET /api/channels/:id/ad-attribution` | ID, `days=7|30|90` (по умолчанию 30) | `{periodDays,inbound,outbound}` с приростом подписчиков +24/+48 ч и оценочными ценой/CPF | Да |
 
 `input` принимает username, Telegram-ссылку или invite-ссылку уже доступного аккаунту чата. Неверный/пустой input даёт 400. Неудачный backfill сохраняет `lastError`, но не обязательно отменяет 201. Добавление, PATCH и DELETE очищают `metricsCache`/`bestTimeCache`.
 
 `GET /api/channels/:id` использует `calculateChannelMetrics`, который не добавляет все поля overview (например, EP/консолидированный антифрод); для полной детализации используйте `/api/stats/channel/:id`.
+
+`GET /api/stats/citation-network?channelId=123&days=30` возвращает `{focalChannelId,days,nodes,edges,discoveredHubs}`. `channelId` обязателен и должен входить в активные `UserChannel` пользователя; мастер-сессия без `userId` использует все активные каналы. `days` принимает 7, 30 или 90 (по умолчанию 30); неверные параметры дают 400, недоступный канал 404. Рёбра считают упоминания и пересылки по `Post.publishedAt`, исключают самоцитирования и отмечают встречное направление. Внешние узлы содержат только видимый в посте username, без метрик каналов из чужих списков. `discoveredHubs` использует фиксированные последние 30 дней и минимум два уникальных канала-источника. В граф включаются до 30 наиболее часто упоминаемых внешних username; пересылки с одним лишь Telegram ID не становятся рекомендацией.
 
 LTV строится по PostSnapshot для постов за 14 дней с ≥2 снимками и ранним замером до округлённого шестого часа; результат охватывает часы 1–72. Пустой LTV не означает отсутствие канала: отдельной проверки его существования нет. Network агрегирует сохранённые исходящие/входящие упоминания, а не обращается к Telegram за новым графом.
 
