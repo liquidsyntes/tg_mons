@@ -153,6 +153,28 @@ export interface GlobalPostSearchResponse {
   channels: Array<{ id: number; title: string; username: string | null; niche: string }>;
 }
 
+export interface AdAttributionPlacement {
+  postId: number;
+  messageId: string;
+  publishedAt: string;
+  sourceChannel: { id: number; title: string; username: string | null };
+  targetChannel: { id: number; title: string; username: string | null };
+  isAd: boolean;
+  views: number | null;
+  deltaSubscribers24h: number | null;
+  deltaSubscribers48h: number | null;
+  estimatedPricePerPost: number | null;
+  estimatedCpf: number | null;
+  conversionPercent: number | null;
+  overlappingCampaigns: boolean;
+}
+
+export interface ChannelAdAttribution {
+  periodDays: number;
+  inbound: AdAttributionPlacement[];
+  outbound: AdAttributionPlacement[];
+}
+
 export interface TimeSeriesPoint {
   timestamp: string; // ISO String
   dateFormatted: string; // e.g. "12 мая" or "14:00"

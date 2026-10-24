@@ -33,6 +33,7 @@ Middleware больше не добавляет Bearer к запросам бр�
 | `GET /api/channels/:id/ltv` | ID | `{ "ltv": [{ "hour": 1, "percent": 12.3 }, ...] }` либо `{ "ltv": [] }` | Нет |
 | `GET /api/channels/:id/network` | ID | `{ "outbound": [...], "inbound": [...] }` | Нет |
 | `GET /api/channels/:id/ad-price` | ID | `{estimatedPricePerPost,cpm,confidence,averageAdReach,averageReachCurve}`; 404 если канала нет | Нет |
+| `GET /api/channels/:id/ad-attribution` | ID, `days=7|30|90` (по умолчанию 30) | `{periodDays,inbound,outbound}` с приростом подписчиков +24/+48 ч и оценочными ценой/CPF | Да |
 
 `input` принимает username, Telegram-ссылку или invite-ссылку уже доступного аккаунту чата. Неверный/пустой input даёт 400. Неудачный backfill сохраняет `lastError`, но не обязательно отменяет 201. Добавление, PATCH и DELETE очищают `metricsCache`/`bestTimeCache`.
 
