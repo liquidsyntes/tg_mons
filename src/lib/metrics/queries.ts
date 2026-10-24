@@ -9,6 +9,7 @@ import { runFraudAudit } from '../fraudDetector';
 import { metricsCache } from '../cache';
 import { computeNicheStats, calculateEP, type ChannelSnapshot } from '../ep';
 import { getAppTimezone, getZonedDateParts } from '../timezone';
+import { calculateNicheBenchmarks } from '../nicheBenchmarks';
 
 
 const MS_HOUR = 3600 * 1000;
@@ -79,7 +80,6 @@ export async function calculateChannelMetrics(
 export async function getOverviewStats(userId?: number | null): Promise<OverviewStats> {
   const now = new Date();
   const date30dAgo = new Date(now.getTime() - MS_30D);
-  const date7dAgo = new Date(now.getTime() - MS_7D);
 
   let allChannels: Awaited<ReturnType<typeof prisma.channel.findMany>>;
   if (userId !== undefined && userId !== null && typeof prisma.userChannel?.findMany === 'function') {
@@ -113,7 +113,7 @@ export async function getOverviewStats(userId?: number | null): Promise<Overview
   });
 
   const recentPosts = await prisma.post.findMany({
-    where: { channelId: { in: channelIds }, publishedAt: { gte: date7dAgo } },
+    where: { channelId: { in: channelIds }, publishedAt: { gte: date30dAgo } },
     select: { channelId: true, publishedAt: true, views: true, text: true, reactions: true, comments: true, forwards: true, subscribersAtPublish: true, isAd: true },
     orderBy: { publishedAt: 'desc' },
   });
@@ -600,6 +600,7 @@ export async function getChannelDetailStats(
 
   return {
     channel,
+    nicheBenchmark: calculateNicheBenchmarks(overview.channels, channelId),
     myChannel,
     period,
     scoreBreakdown,

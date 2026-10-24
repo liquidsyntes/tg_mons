@@ -154,6 +154,7 @@ function assembleChannelMetrics(
   );
 
   const adShare7d = calculateAdShare([...posts], 7, now);
+  const adShare30d = calculateAdShare([...posts], 30, now);
   const silence = detectSilencePeriods([...posts], { now });
 
   return {
@@ -193,6 +194,7 @@ function assembleChannelMetrics(
     err7d,
     cr7d,
     adShare7d,
+    adShare30d,
     status,
     sparkline7d: core.sparkline7d,
     contentScore: scoreBreakdown.total,

@@ -42,6 +42,7 @@ export interface ChannelMetrics {
   err7d: number | null;
   cr7d: number | null;
   adShare7d?: { percent: number; level: 'none' | 'low' | 'medium' | 'high' };
+  adShare30d?: { percent: number; level: 'none' | 'low' | 'medium' | 'high' };
   status: ChannelStatus;
   sparkline7d?: number[]; // Added for 7d trend mini-chart
   contentScore?: number;
@@ -71,6 +72,22 @@ export interface OverviewStats {
   activeChannels: number;
   lastGlobalUpdate: string | null;
 }
+
+export type NicheBenchmarkMetricKey = 'er7d' | 'err7d' | 'vr7d' | 'posts7d' | 'adShare30d' | 'delta7dPct';
+
+export interface NicheBenchmarkMetric {
+  value: number | null;
+  p25: number | null;
+  median: number | null;
+  p75: number | null;
+  rank: number | null;
+  sampleSize: number;
+  lowerIsBetter: boolean;
+}
+
+export type NicheBenchmarkResult =
+  | { status: 'insufficient_cohort'; niche: string; cohortSize: number }
+  | { status: 'ready'; niche: string; cohortSize: number; metrics: Record<NicheBenchmarkMetricKey, NicheBenchmarkMetric> };
 
 export interface DigestChannel {
   title: string;
@@ -231,6 +248,7 @@ export interface ContentTypePerformanceItem {
 
 export interface ChannelDetailStats {
   channel: ChannelMetrics;
+  nicheBenchmark?: NicheBenchmarkResult;
   myChannel: ChannelMetrics | null;
   period: '24h' | '7d' | '30d';
   scoreBreakdown?: any;

@@ -17,6 +17,7 @@ import CitationNetworkWidget from '@/components/CitationNetworkWidget';
 import ContentLTVChart from '@/components/channel/ContentLTVChart';
 import { WrappedCard } from '@/components/channel/WrappedCard';
 import { ChannelDangerZone } from '@/components/channel/ChannelDangerZone';
+import { NicheBenchmarkWidget } from '@/components/channel/NicheBenchmarkWidget';
 import { ChannelAdReachWidget } from '@/components/channel/ChannelAdReachWidget';
 import { AdAttributionWidget } from '@/components/channel/AdAttributionWidget';
 import { Header } from '@/components/Header';
@@ -71,6 +72,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
           <>
             <div id="report-content" className="flex flex-col gap-[6px]">
               <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} />
+              {data!.nicheBenchmark && <NicheBenchmarkWidget benchmark={data!.nicheBenchmark} />}
               <ChannelAdReachWidget channelId={channel.id} />
               <AdAttributionWidget channelId={channel.id} />
               {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
