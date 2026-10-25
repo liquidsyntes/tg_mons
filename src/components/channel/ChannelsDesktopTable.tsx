@@ -119,10 +119,10 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'views' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-1 w-[92px] min-w-[92px] hover:text-white transition-colors text-center"
+                className="py-3.5 px-1 w-16 min-w-16 hover:text-white transition-colors text-center"
               >
                 <button type="button" onClick={() => onSort('views')} className="w-full rounded text-center">
-                  {renderHeaderLabel('Avg Views', 'views', 'Средние просмотры: сверху показатель за 24 часа, снизу за 7 дней')}
+                  {renderHeaderLabel('AVG.V', 'views', 'Средние просмотры: сверху показатель за 24 часа, снизу за 7 дней')}
                 </button>
               </th>
               <th
@@ -255,17 +255,18 @@ export function ChannelsDesktopTable({
                     />
                   </td>
                   <td className="py-3.5 px-1 text-center font-mono tabular-nums">
-                    <MetricCell 
-                      value={channel.avgViews24h} 
-                      colorClass="font-semibold text-sky-400" 
-                      {...getMetricReason('views24h', channel)} 
-                    />
-                    <span className="text-slate-500 mx-1">/</span>
-                    <MetricCell 
-                      value={channel.avgViews7d} 
-                      colorClass="text-slate-300" 
-                      {...getMetricReason('views7d', channel)} 
-                    />
+                    <div className="font-semibold text-sky-400 text-sm">
+                      <MetricCell
+                        value={channel.avgViews24h}
+                        {...getMetricReason('views24h', channel)}
+                      />
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      <MetricCell
+                        value={channel.avgViews7d}
+                        {...getMetricReason('views7d', channel)}
+                      />
+                    </div>
                   </td>
                   <td className="py-3.5 px-2 text-center font-mono tabular-nums">
                     <div>

@@ -180,7 +180,7 @@ it('keeps table headers compact and explains their time windows on hover', () =>
 
   expect(screen.getByText('Trend').getAttribute('title')).toBe('тренд за 7 дней');
   expect(screen.getByText('Posts').getAttribute('title')).toBe('Кол-во постов за 7 и 30 дней, среднее кол-во постов в день');
-  for (const label of ['Avg Views', 'VR', 'ER', 'ERR', 'Ads', '% of', 'CI']) {
+  for (const label of ['AVG.V', 'VR', 'ER', 'ERR', 'Ads', '% of', 'CI']) {
     expect(screen.getByText(label).getAttribute('title')).toBeTruthy();
   }
   expect(screen.queryByText('Ad Load')).toBeNull();
