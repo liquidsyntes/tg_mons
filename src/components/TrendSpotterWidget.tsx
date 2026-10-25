@@ -35,8 +35,7 @@ export function TrendSpotterWidget() {
       if (!res.ok) throw new Error('Не удалось загрузить радар трендов');
       const data: TrendReport | null = await res.json();
       setReport(data);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError('Не удалось загрузить радар трендов. Попробуйте обновить страницу.');
     } finally {
       setLoading(false);
@@ -53,17 +52,19 @@ export function TrendSpotterWidget() {
     try {
       const res = await fetch('/api/ai/trends', { method: 'POST' });
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Ошибка при генерации трендов');
+        const errData: unknown = await res.json().catch(() => null);
+        const message = errData && typeof errData === 'object' && 'error' in errData && typeof errData.error === 'string'
+          ? errData.error : 'Не удалось обновить радар трендов. Попробуйте снова.';
+        setError(message === 'fetch failed' ? 'Не удалось связаться с OpenRouter. Повторите попытку.' : message);
+        return;
       }
       const data: TrendData = await res.json();
       setReport({
         createdAt: new Date().toISOString(),
         data
       });
-    } catch (err: unknown) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : 'Ошибка при генерации трендов');
+    } catch {
+      setError('Не удалось связаться с сервером. Повторите попытку.');
     } finally {
       setGenerating(false);
     }

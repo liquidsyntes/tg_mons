@@ -13,6 +13,19 @@ interface CallOpenRouterOptions {
   timeoutMs?: number;   // default: 60000
 }
 
+export class OpenRouterTransportError extends Error {
+  constructor(public readonly reasonCode: string | null = null) {
+    super('Не удалось связаться с OpenRouter. Повторите попытку.');
+    this.name = 'OpenRouterTransportError';
+  }
+}
+
+function getTransportReasonCode(error: unknown): string | null {
+  const cause = error instanceof Error ? error.cause : null;
+  if (!cause || typeof cause !== 'object' || !('code' in cause) || typeof cause.code !== 'string') return null;
+  return /^[A-Z0-9_]{1,40}$/.test(cause.code) ? cause.code : null;
+}
+
 /**
  * Calls OpenRouter chat completions API and returns the raw content string.
  * Always requests JSON response format (response_format: { type: 'json_object' }).
@@ -44,22 +57,28 @@ export async function callOpenRouter(
   }
   messages.push({ role: 'user', content: prompt });
 
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    signal: controller.signal,
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  clearTimeout(timeoutId);
+  let res: Response;
+  try {
+    res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        response_format: { type: 'json_object' },
+      }),
+    });
+  } catch (error) {
+    if (controller.signal.aborted) throw error;
+    throw new OpenRouterTransportError(getTransportReasonCode(error));
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     const errorData = await res.text();

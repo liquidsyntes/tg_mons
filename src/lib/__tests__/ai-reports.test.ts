@@ -20,6 +20,7 @@ import {
   handleAiRouteError,
 } from '../ai-reports';
 import { parseStatsPeriod } from '../metrics/format';
+import { OpenRouterTransportError } from '../openrouter';
 
 describe('ai-reports helpers', () => {
   it('formats timestamped posts with separator', () => {
@@ -58,6 +59,10 @@ describe('ai-reports helpers', () => {
     const res500 = handleAiRouteError(new Error('OpenRouter failed'));
     expect(res500.status).toBe(500);
     expect(await res500.json()).toEqual({ error: 'OpenRouter failed' });
+
+    const res503 = handleAiRouteError(new OpenRouterTransportError('ECONNRESET'));
+    expect(res503.status).toBe(503);
+    expect(await res503.json()).toEqual({ error: 'Не удалось связаться с OpenRouter. Повторите попытку.' });
 
     const resUnknown = handleAiRouteError('unexpected');
     expect(resUnknown.status).toBe(500);

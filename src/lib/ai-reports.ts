@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { logger } from './logger';
 import { prisma } from './prisma';
+import { OpenRouterTransportError } from './openrouter';
 
 export type AiReportType =
   | 'summary'
@@ -140,7 +141,11 @@ ${contentToAnalyze.substring(0, maxChars)}
 }
 
 export function handleAiRouteError(error: unknown): NextResponse {
-  logger.error('AI Error', undefined, error);
+  logger.error('AI Error', error instanceof OpenRouterTransportError && error.reasonCode
+    ? { reasonCode: error.reasonCode } : undefined, error);
+  if (error instanceof OpenRouterTransportError) {
+    return NextResponse.json({ error: error.message }, { status: 503 });
+  }
   if (
     (error instanceof Error && error.name === 'AbortError') ||
     (typeof error === 'object' &&

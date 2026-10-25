@@ -124,7 +124,7 @@ describe('trend radar disclosure', () => {
   });
 
   it('keeps generation failures visible while collapsed and preserves the old report', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const fetcher = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => report })
       .mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'Example failure' }) });
@@ -136,6 +136,23 @@ describe('trend radar disclosure', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('Example failure');
     expect(screen.getByText('Example trend')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Радар трендов' }).getAttribute('aria-expanded')).toBe('false');
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('shows a connection error without a development overlay and keeps the last report', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => report })
+      .mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'fetch failed' }) }));
+    render(React.createElement(TrendSpotterWidget));
+    const refresh = screen.getByRole('button', { name: 'Обновить радар' });
+    await waitFor(() => expect(refresh.hasAttribute('disabled')).toBe(false));
+
+    fireEvent.click(refresh);
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Не удалось связаться с OpenRouter');
+    expect(screen.getByText('Example trend')).toBeDefined();
+    expect(consoleError).not.toHaveBeenCalled();
   });
 });
 

@@ -5,7 +5,7 @@ vi.mock('@/lib/prisma', () => ({ prisma: { systemSetting: { findUnique: mocks.fi
 vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn(), error: vi.fn() } }));
 
 import { getAiConfig, invalidateAiConfigCache, maskAiToken } from '../ai-config';
-import { callOpenRouter } from '../openrouter';
+import { callOpenRouter, OpenRouterTransportError } from '../openrouter';
 
 const originalKey = process.env.OPENROUTER_API_KEY;
 const response = () => new Response(JSON.stringify({ choices: [{ message: { content: '{"ok":true}' } }] }), { status: 200 });
@@ -63,6 +63,17 @@ describe('callOpenRouter configuration', () => {
     mocks.findUnique.mockResolvedValue(null);
     await expect(callOpenRouter('test')).rejects.toThrow('Ключ OpenRouter не настроен');
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('classifies a connection failure without exposing the raw fetch error', async () => {
+    mocks.findUnique.mockResolvedValue(null);
+    const failure = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } });
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(failure));
+
+    await expect(callOpenRouter('test')).rejects.toMatchObject({
+      name: 'OpenRouterTransportError', reasonCode: 'ECONNRESET',
+      message: 'Не удалось связаться с OpenRouter. Повторите попытку.',
+    } satisfies Partial<OpenRouterTransportError>);
   });
 
   it('does not reveal short keys in the preview', () => {
