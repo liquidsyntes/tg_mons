@@ -83,6 +83,7 @@ cp .env.example .env
 | TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID | worker | Отправка пользовательских AlertRule и уведомлений об автоотключении; без обоих значений правила сохраняются, но не отправляются |
 | OPENROUTER_API_KEY | web AI/scanner | Общий резервный ключ для генеративных отчётов и сканера событий (включая Jev); также задаётся администратором через `/settings` |
 | APP_TIMEZONE | web | IANA-часовой пояс тепловых карт, почасового распределения и рекомендации публикации; по умолчанию `Europe/Moscow` |
+| APP_COMMIT_SHA | web | SHA исходного коммита для подписи версии в шапке. `update.sh` выставляет его после `git pull`; локальный dev читает `.git/HEAD` без этой переменной |
 | HEALTH_STUCK_THRESHOLD_MINUTES | web health и захват SyncJob в worker | 120; Compose передаёт одинаковое значение обоим сервисам |
 | HEALTH_STALE_THRESHOLD_MINUTES | web health | 720; Compose передаёт в web |
 | MY_CHANNEL_USERNAME | Никем не читается | Сохранён в примере, но не назначает «Мой канал» |
@@ -124,6 +125,9 @@ npm run dev:local
 ```bash
 bash update.sh
 ```
+
+Скрипт передаёт текущий SHA в сборку web-образа. В шапке показываются его первые семь символов (`v. abc1234`). При ручной сборке образа без `update.sh` передайте `APP_COMMIT_SHA` из того же checkout; иначе шапка покажет `v. н/д`. В локальном dev-контейнере версия читается из смонтированной `.git` и обновляется после нового коммита при перезагрузке страницы.
+
 Скрипт последовательно выполняет:
 1. `git pull --ff-only` из `origin/main`.
 2. `docker compose -f docker-compose.yml -f docker-compose.prod.yml build web worker`.

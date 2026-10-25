@@ -4,6 +4,7 @@ set -euo pipefail
 cd /opt/tgmon
 COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 git pull --ff-only
+export APP_COMMIT_SHA="$(git rev-parse HEAD)"
 $COMPOSE build web worker
 $COMPOSE stop web worker
 $COMPOSE run --rm --no-deps worker npm run prisma:migrate

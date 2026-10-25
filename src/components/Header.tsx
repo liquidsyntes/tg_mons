@@ -23,6 +23,7 @@ export function Header({
   const [isCollecting, setIsCollecting] = useState(false);
   const [collectMessage, setCollectMessage] = useState<{ text: string; isError?: boolean } | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [version, setVersion] = useState('…');
   
   const [localStats, setLocalStats] = useState<{ total: number; active: number; lastUpdate: string | null } | null>(null);
 
@@ -48,6 +49,20 @@ export function Header({
       fetchStats();
     }
   }, [totalChannels, activeChannels]);
+
+  React.useEffect(() => {
+    let active = true;
+    fetch('/api/version', { cache: 'no-store' })
+      .then(response => response.ok ? response.json() : null)
+      .then((data: unknown) => {
+        if (!active) return;
+        setVersion(data && typeof data === 'object' && 'version' in data &&
+          typeof data.version === 'string' && /^[0-9a-f]{7}$/.test(data.version)
+          ? data.version : 'н/д');
+      })
+      .catch(() => { if (active) setVersion('н/д'); });
+    return () => { active = false; };
+  }, []);
 
   const displayTotal = totalChannels || localStats?.total || 0;
   const displayActive = activeChannels || localStats?.active || 0;
@@ -100,6 +115,7 @@ export function Header({
                 TG Monitor
                 <img src="/ef.png" alt="Live Badge" className="hidden sm:block h-[22px] w-auto object-contain" />
               </span>
+              <span className="block mt-0.5 text-[10px] leading-none font-mono text-slate-500">v. {version}</span>
             </div>
           </Link>
           

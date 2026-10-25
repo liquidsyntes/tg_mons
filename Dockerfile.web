@@ -14,6 +14,8 @@ RUN npx prisma generate
 COPY . .
 
 # Build Next.js
+ARG APP_COMMIT_SHA=""
+ENV APP_COMMIT_SHA=${APP_COMMIT_SHA}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN npm run build
