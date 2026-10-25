@@ -11,38 +11,23 @@ export async function POST(req: NextRequest) {
     const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
 
-    // Ищем каналы из Watchlist и свой канал
+    // Анализируем все активные каналы из списка пользователя.
     let channels: Array<{ id: number; title: string; username: string | null }>;
     if (authCheck.userId && typeof prisma.userChannel?.findMany === 'function') {
       const subs = await prisma.userChannel.findMany({
         where: {
           userId: authCheck.userId,
           isActive: true,
-          OR: [{ isFavorite: true }, { isMine: true }],
           channel: { isActive: true },
         },
         select: {
           channel: { select: { id: true, title: true, username: true } },
         },
       });
-      if (subs.length > 0) {
-        channels = subs.map((s) => s.channel);
-      } else {
-        const allUserSubs = await prisma.userChannel.findMany({
-          where: { userId: authCheck.userId, isActive: true, channel: { isActive: true } },
-          select: { channel: { select: { id: true, title: true, username: true } } },
-        });
-        channels = allUserSubs.map((s) => s.channel);
-      }
+      channels = subs.map((s) => s.channel);
     } else {
       channels = await prisma.channel.findMany({
-        where: {
-          OR: [
-            { isFavorite: true },
-            { isMine: true }
-          ],
-          isActive: true
-        },
+        where: { isActive: true },
         select: {
           id: true,
           title: true,
@@ -59,29 +44,33 @@ export async function POST(req: NextRequest) {
 
     // Fetch posts for the last 48 hours with text
     const dateLimit = new Date(Date.now() - 48 * 3600 * 1000);
-    const posts = await prisma.post.findMany({
-      where: {
-        channelId: { in: channelIds },
-        publishedAt: { gte: dateLimit },
-        text: { not: null },
-      },
+    const postsByChannel = await Promise.all(channelIds.map(channelId => prisma.post.findMany({
+      where: { channelId, publishedAt: { gte: dateLimit }, text: { not: null } },
       orderBy: { publishedAt: 'desc' },
-      take: 100, // Limit to avoid huge context token usage
-      include: {
-        channel: {
-          select: { title: true }
-        }
-      }
-    });
+      take: 10,
+      select: { publishedAt: true, text: true },
+    })));
 
-    if (posts.length === 0) {
+    if (postsByChannel.every(posts => posts.length === 0)) {
       return NextResponse.json({ error: 'Нет текстовых постов за последние 48 часов для анализа' }, { status: 404 });
     }
 
-    // Prepare text for AI, grouped by channel or just linear
-    const contentToAnalyze = posts
-      .map(p => `[Канал: ${p.channel.title}] [${p.publishedAt.toISOString()}] ${p.text}`)
-      .join('\n\n---\n\n');
+    // Чередуем каналы, чтобы поток постов одного канала не занял весь контекст.
+    const excerpts: string[] = [];
+    let remaining = 30000;
+    const excerptLength = Math.min(1500, Math.max(100, Math.floor(27000 / channels.length) - 100));
+    for (let index = 0; index < 10 && remaining > 0; index++) {
+      for (let channelIndex = 0; channelIndex < channels.length && remaining > 0; channelIndex++) {
+        const post = postsByChannel[channelIndex][index];
+        if (!post?.text?.trim()) continue;
+        const excerpt = `[Канал: ${channels[channelIndex].title}] [${post.publishedAt.toISOString()}] ${post.text.slice(0, excerptLength)}`;
+        const available = remaining - (excerpts.length ? 7 : 0);
+        if (available <= 0) break;
+        excerpts.push(excerpt.slice(0, available));
+        remaining -= Math.min(excerpt.length, available) + (excerpts.length > 1 ? 7 : 0);
+      }
+    }
+    const contentToAnalyze = excerpts.join('\n\n---\n\n');
 
     const prompt = `
 Ты опытный аналитик трендов и маркетолог в Telegram.
@@ -91,13 +80,13 @@ export async function POST(req: NextRequest) {
 
 ИСХОДНЫЕ ДАННЫЕ
 Посты каналов (склеены вместе, ограничено 30 000 символов):
-${contentToAnalyze.substring(0, 30000)}
+${contentToAnalyze}
 
 ПРАВИЛА АНАЛИЗА
 - Ищи темы, которые обсуждаются как минимум в ДВУХ разных каналах.
 - Если ярких пересечений нет, выдели просто самые важные и обсуждаемые темы (но укажи, что пишет об этом один канал).
 - Опирайся только на предоставленный текст.
-- Выдели РОВНО 4 главных тренда (ни больше, ни меньше), чтобы сетка карточек на дашборде выглядела симметрично. Если очевидных трендов меньше, выдели дополнительные интересные темы как тренды.
+- Выдели до 4 главных тем. Если данных мало, верни меньше тем; не придумывай дополнительные новости ради количества карточек.
 
 ЯЗЫК ОТВЕТА (ОБЯЗАТЕЛЬНО)
 - Весь отчёт формируй СТРОГО на русском языке, независимо от языка исходных постов и контента канала.
