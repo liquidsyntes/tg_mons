@@ -39,11 +39,15 @@ model Channel {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
-  passwordHash String   @map("password_hash")
-  role         String   @default("USER") // "ADMIN" | "USER"
-  createdAt    DateTime @default(now()) @map("created_at")
+  id             Int       @id @default(autoincrement())
+  username       String    @unique
+  passwordHash   String    @map("password_hash")
+  role           String    @default("USER") // "ADMIN" | "USER"
+  telegramChatId String?   @map("telegram_chat_id")
+  digestEnabled  Boolean   @default(false) @map("digest_enabled")
+  digestHour     Int       @default(9) @map("digest_hour")
+  lastDigestAt   DateTime? @map("last_digest_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   userChannels    UserChannel[]
   aiReports       AiReport[]

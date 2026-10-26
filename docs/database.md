@@ -31,7 +31,7 @@
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
-| `User` | `users` | `id` (Int, autoincrement) | `@unique username` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `InviteCode` | Учётные записи пользователей (`ADMIN`, `USER`) и PBKDF2-хеши паролей |
+| `User` | `users` | `id` (Int, autoincrement) | `@unique username` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `InviteCode` | Учётные записи пользователей (`ADMIN`, `USER`), PBKDF2-хеши паролей и персональные настройки Telegram-дайджеста (`telegramChatId`, `digestEnabled`, `digestHour`, `lastDigestAt`) |
 | `InviteCode` | `invite_codes` | `id` (Int, autoincrement) | `@unique code`<br>`@unique usedById`<br>`@@index([createdById])` | `createdBy` -> `User` (`Cascade`)<br>`usedBy` -> `User?` (`SetNull`) | Одноразовые инвайт-коды для закрытой регистрации пользователей |
 | `UserChannel` | `user_channels` | `id` (Int, autoincrement) | `@@unique([userId, channelId])`<br>`@@index([userId])`<br>`@@index([channelId])` | `user` -> `User` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Персональная подписка пользователя на канал из общего пула (`isMine`, `isFavorite`, `niche`, `isActive`), необязательные `customAdPriceUah` и `customCpmUah` в гривнах |
 | `UserDismissedEvent` | `user_dismissed_events` | `id` (Int, autoincrement) | `@@unique([userId, eventId])`<br>`@@index([userId])`<br>`@@index([eventId])` | `user` -> `User` (`Cascade`)<br>`event` -> `Event` (`Cascade`) | Индивидуальное скрытие мероприятий из «Афиши» для конкретного пользователя |

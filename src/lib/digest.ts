@@ -1,12 +1,21 @@
 import { prisma } from './prisma';
 import { getOverviewStats } from './metrics';
 import { logger } from './logger';
-import type { AlertSender } from './alerts';
 import type { ChannelMetrics, DailyDigestSummary, DigestChannel } from './types';
 import { sendTelegramRuleAlert } from '../worker/retry-policy';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const numberFormat = new Intl.NumberFormat('ru-RU');
+const TELEGRAM_CHAT_ID_PATTERN = /^(-?\d{1,20}|@[a-zA-Z0-9_]{5,32})$/;
+
+export type DigestSender = (message: string, chatId?: string | null) => Promise<boolean>;
+
+export function normalizeTelegramChatId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 64) return null;
+  return TELEGRAM_CHAT_ID_PATTERN.test(trimmed) ? trimmed : null;
+}
 
 function toDigestChannel(channel: ChannelMetrics): DigestChannel {
   return {
@@ -19,15 +28,28 @@ function toDigestChannel(channel: ChannelMetrics): DigestChannel {
   };
 }
 
-export async function buildDailyDigest(now: Date = new Date()): Promise<DailyDigestSummary> {
-  const overview = await getOverviewStats();
+export async function buildDailyDigest(
+  now: Date = new Date(),
+  userId?: number | null,
+): Promise<DailyDigestSummary> {
+  const isUserScoped = userId !== undefined && userId !== null;
+  const overview = isUserScoped ? await getOverviewStats(userId) : await getOverviewStats();
   const active = overview.channels.filter(channel => channel.isActive);
-  const recentFraudSignals = await prisma.fraudSignal.count({
-    where: {
-      channel: { isActive: true },
-      detectedAt: { gte: new Date(now.getTime() - DAY_MS), lte: now },
-    },
-  });
+  const recentFraudSignals = isUserScoped
+    ? active.length === 0
+      ? 0
+      : await prisma.fraudSignal.count({
+        where: {
+          channelId: { in: active.map(channel => channel.id) },
+          detectedAt: { gte: new Date(now.getTime() - DAY_MS), lte: now },
+        },
+      })
+    : await prisma.fraudSignal.count({
+      where: {
+        channel: { isActive: true },
+        detectedAt: { gte: new Date(now.getTime() - DAY_MS), lte: now },
+      },
+    });
   const growth = active.filter(channel => channel.delta24h.abs !== null);
   const myChannel = active.find(channel => channel.isMine);
   return {
@@ -81,36 +103,89 @@ export function formatDailyDigest(summary: DailyDigestSummary, now: Date): strin
 
 export async function runDailyDigestIfDue(
   now: Date = new Date(),
-  send: AlertSender = sendTelegramRuleAlert,
+  send: DigestSender = sendTelegramRuleAlert,
 ): Promise<boolean> {
-  const settings = await prisma.systemSetting.findUnique({ where: { id: 'global' } });
-  if (!settings?.digestEnabled || settings.digestHour !== now.getUTCHours()) return false;
-
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  if (settings.lastDigestAt && settings.lastDigestAt >= today) return false;
+  const currentHour = now.getUTCHours();
+  let anyDelivered = false;
 
-  const summary = await buildDailyDigest(now);
-  const claim = await prisma.systemSetting.updateMany({
-    where: {
-      id: 'global', digestEnabled: true, digestHour: now.getUTCHours(),
-      OR: [{ lastDigestAt: null }, { lastDigestAt: { lt: today } }],
-    },
-    data: { lastDigestAt: now },
-  });
-  if (claim.count === 0) return false;
-
-  let delivered = false;
-  try {
-    delivered = await send(formatDailyDigest(summary, now));
-  } catch (error) {
-    logger.error('Daily digest delivery failed', undefined, error);
+  const settings = await prisma.systemSetting.findUnique({ where: { id: 'global' } });
+  if (settings?.digestEnabled && settings.digestHour === currentHour &&
+      (!settings.lastDigestAt || settings.lastDigestAt < today)) {
+    const summary = await buildDailyDigest(now);
+    const claim = await prisma.systemSetting.updateMany({
+      where: {
+        id: 'global', digestEnabled: true, digestHour: currentHour,
+        OR: [{ lastDigestAt: null }, { lastDigestAt: { lt: today } }],
+      },
+      data: { lastDigestAt: now },
+    });
+    if (claim.count > 0) {
+      let delivered = false;
+      try {
+        delivered = await send(formatDailyDigest(summary, now));
+      } catch (error) {
+        logger.error('Daily digest delivery failed', undefined, error);
+      }
+      if (delivered) {
+        anyDelivered = true;
+      } else {
+        logger.warn('Daily digest was not delivered');
+        await prisma.systemSetting.updateMany({
+          where: { id: 'global', lastDigestAt: now },
+          data: { lastDigestAt: settings.lastDigestAt },
+        });
+      }
+    }
   }
-  if (delivered) return true;
 
-  logger.warn('Daily digest was not delivered');
-  await prisma.systemSetting.updateMany({
-    where: { id: 'global', lastDigestAt: now },
-    data: { lastDigestAt: settings.lastDigestAt },
-  });
-  return false;
+  const dueUsers = typeof prisma.user?.findMany === 'function'
+    ? await prisma.user.findMany({
+      where: {
+        digestEnabled: true,
+        digestHour: currentHour,
+        telegramChatId: { not: null },
+        OR: [{ lastDigestAt: null }, { lastDigestAt: { lt: today } }],
+      },
+      select: { id: true, telegramChatId: true, lastDigestAt: true },
+      orderBy: { id: 'asc' },
+    })
+    : [];
+
+  for (const user of dueUsers) {
+    const chatId = normalizeTelegramChatId(user.telegramChatId);
+    if (!chatId) continue;
+
+    const userClaim = await prisma.user.updateMany({
+      where: {
+        id: user.id,
+        digestEnabled: true,
+        digestHour: currentHour,
+        telegramChatId: user.telegramChatId,
+        OR: [{ lastDigestAt: null }, { lastDigestAt: { lt: today } }],
+      },
+      data: { lastDigestAt: now },
+    });
+    if (userClaim.count === 0) continue;
+
+    let userDelivered = false;
+    try {
+      const userSummary = await buildDailyDigest(now, user.id);
+      userDelivered = await send(formatDailyDigest(userSummary, now), chatId);
+    } catch (error) {
+      logger.error('Personal daily digest delivery failed', { userId: user.id }, error);
+    }
+
+    if (userDelivered) {
+      anyDelivered = true;
+    } else {
+      logger.warn('Personal daily digest was not delivered', { userId: user.id });
+      await prisma.user.updateMany({
+        where: { id: user.id, lastDigestAt: now },
+        data: { lastDigestAt: user.lastDigestAt },
+      });
+    }
+  }
+
+  return anyDelivered;
 }

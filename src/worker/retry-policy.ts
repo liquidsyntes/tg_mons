@@ -1,9 +1,9 @@
 import { logger } from '../lib/logger';
 import { updateChannelErrorState } from './persister';
 
-export async function sendTelegramRuleAlert(message: string): Promise<boolean> {
+export async function sendTelegramRuleAlert(message: string, chatIdOverride?: string | null): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const chatId = chatIdOverride?.trim() || process.env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) return false;
 
   try {

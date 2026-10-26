@@ -5,6 +5,7 @@ import { Header } from '@/components/Header';
 import { AlertRulesSettings } from '@/components/settings/AlertRulesSettings';
 import { InviteCodesSettings } from '@/components/settings/InviteCodesSettings';
 import { OperationsMonitorSettings } from '@/components/settings/OperationsMonitorSettings';
+import { PersonalDigestSettings } from '@/components/settings/PersonalDigestSettings';
 import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu, Shield, User, Clock3 } from 'lucide-react';
 import Link from 'next/link';
 import type { FormEvent } from 'react';
@@ -289,6 +290,7 @@ export default function SettingsPage() {
           </form>
         ) : null}
         {isAdmin && <OperationsMonitorSettings />}
+        <PersonalDigestSettings />
         <AlertRulesSettings />
       </main>
     </div>
