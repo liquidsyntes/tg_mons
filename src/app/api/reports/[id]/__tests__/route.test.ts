@@ -48,6 +48,17 @@ describe('DELETE /api/reports/:id', () => {
     expect((await DELETE(request, context('42'))).status).toBe(404);
   });
 
+  it('prevents non-admin users from deleting persona reports', async () => {
+    mocks.verifyBearerToken.mockReturnValue({ authorized: true, userId: 9, role: 'USER' });
+    mocks.deleteMany.mockResolvedValue({ count: 0 });
+
+    const response = await DELETE(request, context('42'));
+    expect(response.status).toBe(404);
+    expect(mocks.deleteMany).toHaveBeenCalledWith({
+      where: { id: 42, userId: 9, type: { not: 'persona' } },
+    });
+  });
+
   it('returns a safe error when deletion fails', async () => {
     mocks.deleteMany.mockRejectedValue(new Error('database failure'));
     const response = await DELETE(request, context('42'));

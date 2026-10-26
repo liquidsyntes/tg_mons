@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       include: { channel: true } 
     });
 
-    if (!baseReport) {
+    if (!baseReport || (baseReport.type === 'persona' && authCheck.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Отчет не найден.' }, { status: 404 });
     }
 

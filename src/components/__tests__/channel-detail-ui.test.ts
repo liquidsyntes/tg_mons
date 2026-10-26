@@ -3,6 +3,7 @@ import React from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { channel } from '@/lib/__tests__/fixtures/channel-metrics';
+import { AIReportsSection } from '../channel/AIReportsSection';
 import { ChannelHeader } from '../channel/ChannelHeader';
 import { SubscriberChart } from '../channel/SubscriberChart';
 import CitationNetworkWidget from '../CitationNetworkWidget';
@@ -80,4 +81,29 @@ it('collapses and expands the loaded channel network without refetching', async 
   fireEvent.click(expand);
   expect(content?.className).toContain('mt-6');
   expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it('hides the psychological persona report for regular users and shows it only to admins', () => {
+  const { rerender } = render(React.createElement(AIReportsSection, {
+    channelId: '7',
+    channel,
+    myChannel: null,
+    period: '7d',
+    isAdmin: false,
+  }));
+
+  expect(screen.getByText('Экспресс-отчёт на основе контента')).toBeDefined();
+  expect(screen.queryByText('Психологический портрет')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Сгенерировать портрет' })).toBeNull();
+
+  rerender(React.createElement(AIReportsSection, {
+    channelId: '7',
+    channel,
+    myChannel: null,
+    period: '7d',
+    isAdmin: true,
+  }));
+
+  expect(screen.getByText('Психологический портрет')).toBeDefined();
+  expect(screen.getByRole('button', { name: 'Сгенерировать портрет' })).toBeDefined();
 });

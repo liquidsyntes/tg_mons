@@ -16,7 +16,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       include: { channel: true }
     });
 
-    if (!report || (session.userId && report.userId !== null && report.userId !== session.userId)) {
+    if (
+      !report ||
+      (report.type === 'persona' && session.role !== 'ADMIN') ||
+      (session.userId && report.userId !== null && report.userId !== session.userId)
+    ) {
       return new NextResponse('Report not found', { status: 404 });
     }
 

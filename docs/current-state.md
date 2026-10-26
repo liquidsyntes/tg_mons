@@ -1,23 +1,21 @@
 # Текущее состояние и передача работы
 
-Снимок: 26 октября 2026 года. База задачи Issue #52: `f14fe56`, ветка `main`, upstream `origin/main`; рабочее дерево до изменений было чистым. Перед следующей задачей проверить Git заново. Это состояние исходников и локальных проверок, не заключение о production.
+Снимок: 27 октября 2026 года. База задачи (ограничение доступа к отчёту «Психологический портрет» только для `ADMIN`): `b3b42a7`, ветка `main`, upstream `origin/main`; рабочее дерево до изменений было чистым. Перед следующей задачей проверить Git заново. Это состояние исходников и локальных проверок, не заключение о production.
 
 ## Реализовано в исходниках
 
-- В `prisma/schema.prisma` в модель `User` добавлены поля персонального дайджеста (`telegramChatId`, `digestEnabled`, `digestHour`, `lastDigestAt`) и создана миграция `20261026210800_add_user_personal_digest`.
-- В `src/worker/retry-policy.ts` функция `sendTelegramRuleAlert(message, chatIdOverride?)` расширена опциональным переопределением `chat_id` с сохранением fallback на `process.env.TELEGRAM_CHAT_ID`.
-- В `src/lib/digest.ts` добавлена нормализация `normalizeTelegramChatId`, функция `buildDailyDigest(now, userId?)` формирует сводку и считает сигналы антифрода строго по активным подпискам `UserChannel` указанного пользователя, а `runDailyDigestIfDue(now)` независимо обслуживает глобальный админский дайджест (`SystemSetting`) и персональные дайджесты пользователей с идемпотентностью по UTC-дню (`lastDigestAt`) и откатом при ошибке отправки.
-- Добавлен маршрут `GET`/`PATCH`/`POST` `/api/settings/digest` (`src/app/api/settings/digest/route.ts`), доступный ролям `USER` и `ADMIN`, и клиентский блок `PersonalDigestSettings.tsx` на странице `/settings`.
-- Обновлены `docs/api-reference.md`, `docs/database.md` и `docs/overview.md`.
+- В `src/components/channel/AIReportsSection.tsx` и `src/components/channel/ChannelDetailClient.tsx` блок «Психологический портрет» (`persona`) скрыт от пользователей без роли `ADMIN`: при рендере страницы канала проверяется роль через `/api/auth/me` (по умолчанию `false`), поэтому обычные пользователи (`USER`) не видят этот блок вовсе.
+- В `POST /api/ai/persona` (`src/app/api/ai/persona/route.ts`) добавлена серверная проверка `authCheck.role === 'ADMIN'` (для `USER` возвращается `403`).
+- В архиве `/reports` (`src/app/reports/page.tsx`), на странице отчёта `/reports/[id]` (`src/app/reports/[id]/page.tsx`), в экспорте `/api/reports/[id]/export`, удалении `/api/reports/[id]` и маршрутах `/api/ai/action-plan`, `/api/ai/compare-reports` отчёты типа `persona` полностью исключены/недоступны для пользователей без роли `ADMIN`.
+- Добавлены тесты `src/app/api/ai/persona/__tests__/route.test.ts` и расширены `src/components/__tests__/channel-detail-ui.test.ts`, `src/app/api/reports/[id]/__tests__/route.test.ts`. Обновлены `docs/api-reference.md` и `docs/overview.md`.
 
 ## Проверки текущей задачи
 
-- Целевые тесты дайджеста, настроек и Telegram-отправки (`src/lib/__tests__/digest.test.ts`, `src/app/api/settings/digest/__tests__/route.test.ts`, `src/app/api/settings/__tests__/route.test.ts`, `src/worker/__tests__/rule-alert.test.ts`): 4 файла, 31 тест прошёл. Полный `npm test -- --maxWorkers=4`: 103 файла, 685 тестов прошли. `npx tsc --noEmit`, `npx eslint src` и `npm run build` прошли.
-- В локальном Docker Compose применена миграция `20261026210800_add_user_personal_digest` (`npx prisma migrate deploy`), перегенерирован Prisma Client в контейнерах `web` и `worker`, контейнеры перезапущены.
-- `git diff --check` прошёл без ошибок. Живая отправка в Telegram Bot API и production не проверялись.
+- Целевые тесты (`src/app/api/ai/persona/__tests__/route.test.ts`, `src/components/__tests__/channel-detail-ui.test.ts`, `src/app/api/reports/[id]/__tests__/route.test.ts`, `src/__tests__/middleware.test.ts`): 4 файла, 16 тестов прошли. `npx tsc --noEmit`, `npx eslint src` и `npm run build` прошли.
+- `git diff --check` прошёл без ошибок. Миграция БД не требовалась.
 
 ## Ограничения и следующий шаг
 
-Для получения персонального дайджеста в Telegram пользователь должен сначала запустить бота (`/start`) или добавить его в целевой чат, а в окружении должен быть задан `TELEGRAM_BOT_TOKEN`.
+Отчёты типа `persona` в существующей таблице `AiReport` сохранены, но отображаются и доступны только сессиям с ролью `ADMIN`.
 
 После доставки перед следующей задачей проверить `git status -sb` и выбрать относящиеся к ней исходники по [карте проекта](project-map.md). Исторические `.agents/` handoff-файлы не задают план следующей работы.

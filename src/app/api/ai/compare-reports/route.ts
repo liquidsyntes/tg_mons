@@ -22,7 +22,11 @@ export async function POST(req: NextRequest) {
       prisma.aiReport.findUnique({ where: { id: Number(reportId2) }, include: { channel: true } })
     ]);
 
-    if (!report1 || !report2) {
+    if (
+      !report1 ||
+      !report2 ||
+      ((report1.type === 'persona' || report2.type === 'persona') && authCheck.role !== 'ADMIN')
+    ) {
       return NextResponse.json({ error: 'Один или оба отчета не найдены.' }, { status: 404 });
     }
 

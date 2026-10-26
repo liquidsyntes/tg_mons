@@ -10,6 +10,9 @@ export async function POST(req: NextRequest) {
   try {
     const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
+    if (authCheck.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Доступно только администратору' }, { status: 403 });
+    }
     const { channelId } = await req.json();
 
     if (!channelId) {

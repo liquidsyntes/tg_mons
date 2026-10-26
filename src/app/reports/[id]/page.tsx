@@ -30,7 +30,13 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
     include: { channel: true }
   });
 
-  if (!report || (session?.userId && report.userId !== null && report.userId !== session.userId)) notFound();
+  if (
+    !report ||
+    (report.type === 'persona' && session?.role !== 'ADMIN') ||
+    (session?.userId && report.userId !== null && report.userId !== session.userId)
+  ) {
+    notFound();
+  }
 
   let myChannel: { title: string } | null = null;
   if (report.type === 'compare') {

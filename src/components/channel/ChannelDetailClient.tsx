@@ -33,6 +33,22 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [priceRevision, setPriceRevision] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/auth/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then((me: { user?: { role?: string } } | null) => {
+        if (active) setIsAdmin(me?.user?.role === 'ADMIN');
+      })
+      .catch(() => {
+        if (active) setIsAdmin(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const fetchChannelData = useCallback(async () => {
     setLoading(true);
@@ -84,7 +100,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
               <PopularReactionsWidget summary={data!.popularReactions} />
               <ErrChart vrHistory={data!.vrHistory || []} period={period} />
               <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />
-              <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} recentPosts={data!.recentPosts} />
+              <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} recentPosts={data!.recentPosts} isAdmin={isAdmin} />
               <CitationNetworkWidget channelId={Number(channelId)} />
               <ContentLTVChart channelId={Number(channelId)} />
               <RecentPosts 

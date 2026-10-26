@@ -127,7 +127,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `/api/ai/compare` | `{channelId, days?: 7}` | Целевой канал и «Мой канал», до 50 постов каждого | `{summary: string}` | `compare` |
 | `/api/ai/trends` | Не требуется | До 10 текстовых постов на каждый активный канал из списка пользователя за 48 часов; мастер-сессия без `userId` использует все активные каналы | JSON-объект LLM | `trend` |
 | `/api/ai/audience` | `{channelId, days?: 7}` | До 20 текстовых постов | `{audience: string}` | `audience` |
-| `/api/ai/persona` | `{channelId}` | До 30 последних текстовых постов | `{persona: string}` | `persona` |
+| `/api/ai/persona` | `{channelId}` | До 30 последних текстовых постов (только для роли `ADMIN`; для `USER` возвращает `403`) | `{persona: string}` | `persona` |
 | `/api/ai/action-plan` | `{reportId}` | Существующий отчёт | `{summary: string}` | `action_plan` |
 | `/api/ai/compare-reports` | `{reportId1, reportId2}` | Два существующих отчёта | `{summary: string}` | `evolution` |
 

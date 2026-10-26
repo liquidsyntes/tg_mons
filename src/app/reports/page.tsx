@@ -11,9 +11,15 @@ export const revalidate = 0;
 export default async function ReportsPage() {
   const cookieStore = await cookies();
   const session = await parseSessionCookieValue(cookieStore.get(SESSION_COOKIE_NAME)?.value);
+  const isAdmin = session?.role === 'ADMIN';
+
+  const whereClause = {
+    ...(session?.userId ? { userId: session.userId } : {}),
+    ...(!isAdmin ? { type: { not: 'persona' } } : {}),
+  };
 
   const reports = await prisma.aiReport.findMany({
-    where: session?.userId ? { userId: session.userId } : undefined,
+    where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
     orderBy: { createdAt: 'desc' },
     include: {
       channel: true

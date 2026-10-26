@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2 } from 'lucide-react';
 import { AILoadingStatus } from '@/components/AILoadingStatus';
 import { AISummaryReport, AISummaryData, SummaryPostStats } from '@/components/AISummaryReport';
@@ -21,6 +21,7 @@ interface AIReportsSectionProps {
   myChannel: ChannelMetrics | null;
   period: '24h' | '7d' | '30d';
   recentPosts?: SummaryPostStats[];
+  isAdmin?: boolean;
 }
 
 function useAiReportRequest<T>(
@@ -71,9 +72,29 @@ function useAiReportRequest<T>(
   return { data, loading, error, success, setSuccess, run };
 }
 
-export function AIReportsSection({ channelId, channel, myChannel, period, recentPosts }: AIReportsSectionProps) {
+export function AIReportsSection({ channelId, channel, myChannel, period, recentPosts, isAdmin }: AIReportsSectionProps) {
   const isMine = channel.isMine;
   const days = period === '30d' ? 30 : period === '7d' ? 7 : 1;
+  const [resolvedIsAdmin, setResolvedIsAdmin] = useState<boolean>(Boolean(isAdmin));
+
+  useEffect(() => {
+    if (isAdmin !== undefined) {
+      setResolvedIsAdmin(isAdmin);
+      return;
+    }
+    let active = true;
+    fetch('/api/auth/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then((data: { user?: { role?: string } } | null) => {
+        if (active) setResolvedIsAdmin(data?.user?.role === 'ADMIN');
+      })
+      .catch(() => {
+        if (active) setResolvedIsAdmin(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
 
   const {
     data: aiSummary,
@@ -250,35 +271,37 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         )}
       </div>
 
-      {/* AI Persona Section */}
-      <div className="bg-surface border border-rose-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Brain className="w-4 h-4 text-rose-500" />
-              Психологический портрет
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Глубокий психологический профиль автора на основе текстов</p>
-          </div>
-          <button onClick={fetchAiPersona} disabled={aiPersonaLoading}
-            className="w-[220px] justify-center py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-            {aiPersonaLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Анализирую...</> : 'Сгенерировать портрет'}
-          </button>
-        </div>
-        <AILoadingStatus isRunning={aiPersonaLoading} success={aiPersonaSuccess} onSuccessClear={() => setAiPersonaSuccess(false)} messages={['Анализируем психологические паттерны...', 'Определяем архетипы и BDSM-профиль...', 'Нейросеть составляет глубокий портрет...', 'Почти готово...']} />
-        {aiPersonaError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiPersonaError}</div>}
-        {aiPersona && (
-          <div className="space-y-4 mt-6">
-            <AIPersonaReport data={aiPersona} />
-            <div className="flex justify-end">
-              <button onClick={() => downloadMarkdown(aiPersonaToMarkdown(aiPersona), `persona_${channel.username || channel.id}.md`)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
-                <Download className="w-3.5 h-3.5 text-rose-400" /> Экспорт в MD
-              </button>
+      {/* AI Persona Section (Admin only) */}
+      {resolvedIsAdmin && (
+        <div className="bg-surface border border-rose-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Brain className="w-4 h-4 text-rose-500" />
+                Психологический портрет
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">Глубокий психологический профиль автора на основе текстов</p>
             </div>
+            <button onClick={fetchAiPersona} disabled={aiPersonaLoading}
+              className="w-[220px] justify-center py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
+              {aiPersonaLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Анализирую...</> : 'Сгенерировать портрет'}
+            </button>
           </div>
-        )}
-      </div>
+          <AILoadingStatus isRunning={aiPersonaLoading} success={aiPersonaSuccess} onSuccessClear={() => setAiPersonaSuccess(false)} messages={['Анализируем психологические паттерны...', 'Определяем архетипы и BDSM-профиль...', 'Нейросеть составляет глубокий портрет...', 'Почти готово...']} />
+          {aiPersonaError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiPersonaError}</div>}
+          {aiPersona && (
+            <div className="space-y-4 mt-6">
+              <AIPersonaReport data={aiPersona} />
+              <div className="flex justify-end">
+                <button onClick={() => downloadMarkdown(aiPersonaToMarkdown(aiPersona), `persona_${channel.username || channel.id}.md`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
+                  <Download className="w-3.5 h-3.5 text-rose-400" /> Экспорт в MD
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
