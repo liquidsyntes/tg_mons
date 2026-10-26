@@ -51,7 +51,7 @@
 | `SystemSetting` | `system_settings` | `id` (String, default "global") | Нет | Нет внешних связей | Глобальная конфигурация AI-провайдера, модели, токена и настроек Telegram-дайджеста |
 | `AlertRule` | `alert_rules` | `id` (Int, autoincrement) | `@@index([channelId])` | `channel` -> `Channel?` (`Cascade`) | Правила мониторинга и алертинга по метрикам канала и ключевым словам (пороги, фразы, время последней успешной отправки) |
 | `AlertRuleFire` | `alert_rule_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, channelId])`<br>`@@index([channelId])` | `rule` -> `AlertRule` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Состояние cooldown для пары «правило и канал» |
-| `AlertRulePostFire` | `alert_rule_post_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, postId])`<br>`@@index([postId])` | `rule` -> `AlertRule` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Фиксация отправленных уведомлений по ключевым словам для пары «правило и пост» |
+| `AlertRulePostFire` | `alert_rule_post_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, postId])`<br>`@@index([postId])` | `rule` -> `AlertRule` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Фиксация отправленных уведомлений по ключевым словам и виральным постам для пары «правило и пост» |
 | `FraudSignal` | `fraud_signals` | `id` (Int, autoincrement) | `@@index([channelId, detectedAt])` | `channel` -> `Channel` (`Cascade`) | Зафиксированные эвристиками факты подозрительной активности (накрутка подписчиков, реакций, просмотров) |
 
 ---
@@ -369,7 +369,7 @@
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
 | `channelId` | `Int` | `channel_id` | Да | — | Внешний ключ на `Channel.id` (null для глобального правила) |
-| `metric` | `String` | `metric` | Нет | — | Отслеживаемая метрика (`followers`, `delta24h`, `delta7d`, `er7d`, `err7d`, `vr7d`, `avgViews7d`, `posts7d`, `contentScore`, `keyword`) |
+| `metric` | `String` | `metric` | Нет | — | Отслеживаемая метрика (`followers`, `delta24h`, `delta7d`, `er7d`, `err7d`, `vr7d`, `avgViews7d`, `posts7d`, `contentScore`, `keyword`, `viralPostMultiplier`) |
 | `operator` | `String` | `operator` | Нет | — | Оператор сравнения: `"lt"` (меньше) или `"gt"` (больше) |
 | `threshold` | `Float` | `threshold` | Нет | — | Пороговое значение срабатывания правила |
 | `keywordQuery` | `String` | `keyword_query` | Да | — | Нормализованный список ключевых слов/фраз через запятую (для `metric = "keyword"`, до 100 символов) |
@@ -400,7 +400,7 @@
 
 #### `AlertRulePostFire` (`alert_rule_post_fires`)
 
-Хранит факт срабатывания текстового правила (`metric = "keyword"`) по конкретному посту, чтобы уведомление на один и тот же пост отправлялось не более одного раза. При сбое доставки резервирование удаляется.
+Хранит факт срабатывания постового правила (`metric = "keyword"` или `"viralPostMultiplier"`) по конкретному посту, чтобы уведомление на один и тот же пост отправлялось не более одного раза. При сбое доставки резервирование удаляется.
 
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|

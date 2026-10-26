@@ -142,6 +142,15 @@ export function AlertRulesSettings() {
 
   const selectedMetric = metrics.find(item => item.value === metric);
   const isKeywordMetric = metric === 'keyword';
+  const isViralPostMetric = metric === 'viralPostMultiplier';
+
+  function handleMetricChange(nextMetric: string) {
+    setMetric(nextMetric);
+    if (nextMetric === 'viralPostMultiplier') {
+      setOperator('gt');
+      if (threshold.trim() === '') setThreshold('2');
+    }
+  }
 
   return (
     <section className="bg-surface border border-border rounded-2xl overflow-hidden">
@@ -150,7 +159,7 @@ export function AlertRulesSettings() {
         <div>
           <h2 className="text-lg font-semibold text-white">Правила уведомлений</h2>
           <p className="text-xs text-slate-400 mt-1">
-            Пороги метрик проверяются не чаще раза в 24 часа на канал; ключевые слова — по каждому новому совпавшему посту.
+            Пороги метрик проверяются не чаще раза в 24 часа на канал; ключевые слова и виральные посты — по каждому новому совпавшему посту.
           </p>
         </div>
       </div>
@@ -176,7 +185,7 @@ export function AlertRulesSettings() {
           </label>
           <label className="space-y-1.5 text-xs font-medium text-slate-300">
             <span>Метрика</span>
-            <select value={metric} onChange={event => setMetric(event.target.value)} disabled={loading || creating}
+            <select value={metric} onChange={event => handleMetricChange(event.target.value)} disabled={loading || creating}
               className="w-full bg-slate-900 border border-border rounded-lg px-3 py-2.5 text-sm text-white">
               {metrics.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
@@ -193,16 +202,19 @@ export function AlertRulesSettings() {
             <>
               <label className="space-y-1.5 text-xs font-medium text-slate-300">
                 <span>Условие</span>
-                <select value={operator} onChange={event => setOperator(event.target.value === 'lt' ? 'lt' : 'gt')} disabled={loading || creating}
+                <select value={isViralPostMetric ? 'gt' : operator}
+                  onChange={event => setOperator(event.target.value === 'lt' ? 'lt' : 'gt')}
+                  disabled={loading || creating || isViralPostMetric}
                   className="w-full bg-slate-900 border border-border rounded-lg px-3 py-2.5 text-sm text-white">
                   <option value="gt">Больше</option>
-                  <option value="lt">Меньше</option>
+                  {!isViralPostMetric && <option value="lt">Меньше</option>}
                 </select>
               </label>
               <label className="space-y-1.5 text-xs font-medium text-slate-300">
                 <span>Порог{selectedMetric ? ` (${selectedMetric.unit})` : ''}</span>
-                <input type="number" step="any" required value={threshold} onChange={event => setThreshold(event.target.value)}
-                  disabled={loading || creating} placeholder="Значение"
+                <input type="number" step="any" min={isViralPostMetric ? '0.1' : undefined} required value={threshold}
+                  onChange={event => setThreshold(event.target.value)}
+                  disabled={loading || creating} placeholder={isViralPostMetric ? '2.0' : 'Значение'}
                   className="w-full bg-slate-900 border border-border rounded-lg px-3 py-2.5 text-sm text-white" />
               </label>
             </>

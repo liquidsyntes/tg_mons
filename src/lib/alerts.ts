@@ -1,6 +1,7 @@
 import { Prisma, type AlertRule, type AlertRuleFire } from '@prisma/client';
 import { prisma } from './prisma';
 import { logger } from './logger';
+import { calculateViralBaseline } from './metrics/viral';
 import type { ChannelMetrics } from './types';
 
 export const ALERT_METRICS = {
@@ -14,12 +15,15 @@ export const ALERT_METRICS = {
   posts7d: { label: 'Посты за 7 дней', unit: 'постов' },
   contentScore: { label: 'Content Score', unit: 'баллов' },
   keyword: { label: 'Упоминание ключевого слова', unit: 'фраза' },
+  viralPostMultiplier: { label: 'Виральный пост (множитель к медиане охвата)', unit: 'x' },
 } as const;
 
 export type AlertMetric = keyof typeof ALERT_METRICS;
-export type NumericAlertMetric = Exclude<AlertMetric, 'keyword'>;
+export type NumericAlertMetric = Exclude<AlertMetric, 'keyword' | 'viralPostMultiplier'>;
 export type AlertOperator = 'gt' | 'lt';
 export const ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+export const VIRAL_BASELINE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+export const MIN_VIRAL_ALERT_VIEWS = 100;
 export const MAX_KEYWORD_QUERY_LENGTH = 100;
 export const MAX_KEYWORD_SNIPPET_LENGTH = 200;
 
@@ -33,7 +37,7 @@ export function isAlertMetric(value: unknown): value is AlertMetric {
 }
 
 export function isNumericAlertMetric(value: unknown): value is NumericAlertMetric {
-  return isAlertMetric(value) && value !== 'keyword';
+  return isAlertMetric(value) && value !== 'keyword' && value !== 'viralPostMultiplier';
 }
 
 export function isAlertOperator(value: unknown): value is AlertOperator {
@@ -84,7 +88,7 @@ export function matchKeywordRule(
 }
 
 export function getAlertMetricValue(metrics: ChannelMetrics, metric: AlertMetric): number | null {
-  if (metric === 'keyword') return null;
+  if (metric === 'keyword' || metric === 'viralPostMultiplier') return null;
   const value = {
     followers: metrics.currentMembers,
     delta24h: metrics.delta24h.abs,
@@ -149,9 +153,73 @@ export function formatKeywordAlert(
   return lines.join('\n');
 }
 
+export function evaluateViralPostRule(
+  rule: RuleForEvaluation,
+  post: { views?: number | null },
+  medianViews: number,
+): number | null {
+  if (!rule.enabled || rule.metric !== 'viralPostMultiplier' || rule.operator !== 'gt' ||
+      !Number.isFinite(rule.threshold) || rule.threshold <= 0 ||
+      !Number.isFinite(medianViews) || medianViews <= 0) {
+    return null;
+  }
+  if (typeof post.views !== 'number' || !Number.isFinite(post.views) || post.views < MIN_VIRAL_ALERT_VIEWS) {
+    return null;
+  }
+  if (post.views < rule.threshold * medianViews) {
+    return null;
+  }
+  return Number((post.views / medianViews).toFixed(1));
+}
+
+export function formatViralPostAlert(
+  rule: Pick<AlertRule, 'channelId' | 'threshold'>,
+  channel: Pick<ChannelMetrics, 'title' | 'username'>,
+  post: { messageId: bigint | number; text?: string | null; views: number; forwards?: number | null },
+  medianViews: number,
+  multiplier: number,
+): string {
+  const cleanUsername = channel.username ? channel.username.replace(/^@/, '') : null;
+  const usernameSuffix = cleanUsername ? ` (@${cleanUsername})` : '';
+  const scope = rule.channelId === null ? 'для всех каналов' : 'для канала';
+  const messageIdStr = String(post.messageId);
+  const link = cleanUsername && messageIdStr && messageIdStr !== '0'
+    ? `https://t.me/${cleanUsername}/${messageIdStr}`
+    : null;
+
+  const lines = [
+    `TgMon: виральный пост ${scope}`,
+    `Канал: ${channel.title}${usernameSuffix}`,
+    `Охват: ${post.views} просмотров (${multiplier}x от медианы ${Math.round(medianViews)})`,
+    `Условие: больше ${rule.threshold} x`,
+  ];
+  if (typeof post.forwards === 'number' && Number.isFinite(post.forwards)) {
+    lines.push(`Пересылки: ${post.forwards}`);
+  }
+  if (typeof post.text === 'string' && post.text.trim()) {
+    const normalizedText = post.text.replace(/\s+/g, ' ').trim();
+    const snippet = normalizedText.length > MAX_KEYWORD_SNIPPET_LENGTH
+      ? `${normalizedText.slice(0, MAX_KEYWORD_SNIPPET_LENGTH).trimEnd()}…`
+      : normalizedText;
+    lines.push(`Текст: ${snippet}`);
+  }
+  if (link) lines.push(`Ссылка: ${link}`);
+  return lines.join('\n');
+}
+
 type PreviousFire = Pick<AlertRuleFire, 'id' | 'lastFiredAt' | 'lastValue'>;
 type FireClaim = { id: number; previous: PreviousFire | null };
 type PostFireClaim = { id: number };
+interface AlertPostRow {
+  id: number;
+  messageId: bigint;
+  text: string | null;
+  publishedAt: Date;
+  views?: number | null;
+  forwards?: number | null;
+  reactions?: number | null;
+  comments?: number | null;
+}
 
 async function claimRuleFire(ruleId: number, channelId: number, value: number, now: Date): Promise<FireClaim | null> {
   try {
@@ -250,7 +318,9 @@ export async function checkChannelAlertRules(
   });
   if (rules.length === 0) return 0;
   const ownerIds = [...new Set(rules.flatMap(rule =>
-    (rule.channelId === null || rule.metric === 'keyword') && rule.userId !== null ? [rule.userId] : []
+    (rule.channelId === null || rule.metric === 'keyword' || rule.metric === 'viralPostMultiplier') && rule.userId !== null
+      ? [rule.userId]
+      : []
   ))];
   const activeOwners = new Set(ownerIds.length
     ? (await prisma.userChannel.findMany({
@@ -260,7 +330,7 @@ export async function checkChannelAlertRules(
     : []);
   const eligibleRules = rules.filter(rule => {
     if (rule.channelId !== null && rule.channelId !== channelId) return false;
-    if ((rule.channelId === null || rule.metric === 'keyword') && rule.userId !== null) {
+    if ((rule.channelId === null || rule.metric === 'keyword' || rule.metric === 'viralPostMultiplier') && rule.userId !== null) {
       return activeOwners.has(rule.userId);
     }
     return true;
@@ -272,17 +342,46 @@ export async function checkChannelAlertRules(
   const hasKeywordRules = eligibleRules.some(
     rule => rule.metric === 'keyword' && normalizeKeywordQuery(rule.keywordQuery) !== null,
   );
-  const recentPosts = hasKeywordRules
+  const hasViralRules = eligibleRules.some(
+    rule => rule.metric === 'viralPostMultiplier' && rule.operator === 'gt' &&
+      Number.isFinite(rule.threshold) && rule.threshold > 0,
+  );
+  const recentWindowStart = new Date(now.getTime() - ALERT_COOLDOWN_MS);
+
+  const loadedPosts: AlertPostRow[] = hasViralRules
     ? await prisma.post.findMany({
       where: {
         channelId,
-        publishedAt: { gte: new Date(now.getTime() - ALERT_COOLDOWN_MS) },
-        text: { not: null },
+        publishedAt: { gte: new Date(now.getTime() - VIRAL_BASELINE_WINDOW_MS) },
       },
       orderBy: [{ publishedAt: 'asc' }, { id: 'asc' }],
-      select: { id: true, messageId: true, text: true, publishedAt: true },
+      select: {
+        id: true,
+        messageId: true,
+        text: true,
+        views: true,
+        forwards: true,
+        reactions: true,
+        comments: true,
+        publishedAt: true,
+      },
     })
-    : [];
+    : hasKeywordRules
+      ? await prisma.post.findMany({
+        where: {
+          channelId,
+          publishedAt: { gte: recentWindowStart },
+          text: { not: null },
+        },
+        orderBy: [{ publishedAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, messageId: true, text: true, publishedAt: true },
+      })
+      : [];
+
+  const viralBaseline = hasViralRules ? calculateViralBaseline(loadedPosts) : null;
+  const recentPosts = hasViralRules
+    ? loadedPosts.filter(post => post.publishedAt >= recentWindowStart)
+    : loadedPosts;
 
   let sent = 0;
   for (const rule of eligibleRules) {
@@ -309,6 +408,46 @@ export async function checkChannelAlertRules(
           await recordRuleFiredAt(rule.id, metrics.id, now);
         } else {
           logger.warn('Keyword alert was not delivered', { ruleId: rule.id, channelId: metrics.id, postId: post.id });
+          await releaseKeywordPostFire(claim, now);
+        }
+      }
+      continue;
+    }
+
+    if (rule.metric === 'viralPostMultiplier') {
+      if (!viralBaseline) continue;
+      for (const post of recentPosts) {
+        const postViews = post.views ?? null;
+        const multiplier = evaluateViralPostRule(rule, { views: postViews }, viralBaseline.medianViews);
+        if (multiplier === null || typeof postViews !== 'number') continue;
+
+        const claim = await claimKeywordPostFire(rule.id, post.id, now);
+        if (!claim) continue;
+
+        let delivered = false;
+        try {
+          delivered = await send(
+            formatViralPostAlert(
+              rule,
+              metrics,
+              {
+                messageId: post.messageId,
+                text: post.text,
+                views: postViews,
+                forwards: post.forwards ?? null,
+              },
+              viralBaseline.medianViews,
+              multiplier,
+            ),
+          );
+        } catch {
+          logger.warn('Viral post alert delivery failed', { ruleId: rule.id, channelId: metrics.id, postId: post.id });
+        }
+        if (delivered) {
+          sent++;
+          await recordRuleFiredAt(rule.id, metrics.id, now);
+        } else {
+          logger.warn('Viral post alert was not delivered', { ruleId: rule.id, channelId: metrics.id, postId: post.id });
           await releaseKeywordPostFire(claim, now);
         }
       }

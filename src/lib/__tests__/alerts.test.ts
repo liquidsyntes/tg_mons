@@ -25,6 +25,7 @@ import {
   ALERT_COOLDOWN_MS,
   checkChannelAlertRules,
   evaluateAlertRule,
+  evaluateViralPostRule,
   getAlertMetricValue,
   matchKeywordRule,
   normalizeKeywordQuery,
@@ -239,5 +240,54 @@ describe('alert rule evaluation', () => {
     expect(await checkChannelAlertRules(5, async () => metrics, send, now)).toBe(0);
     expect(mocks.postFireDeleteMany).toHaveBeenCalledWith({ where: { id: 20, firedAt: now } });
     expect(mocks.ruleUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('evaluates viral post multiplier rules and requires minimum views and positive baseline', () => {
+    const viralRule = rule({ metric: 'viralPostMultiplier', operator: 'gt', threshold: 2 });
+    expect(evaluateViralPostRule(viralRule, { views: 2400 }, 1000)).toBe(2.4);
+    expect(evaluateViralPostRule(viralRule, { views: 1999 }, 1000)).toBeNull();
+    expect(evaluateViralPostRule(viralRule, { views: 80 }, 30)).toBeNull();
+    expect(evaluateViralPostRule(viralRule, { views: 2400 }, 0)).toBeNull();
+  });
+
+  it('fires viral post alerts once per fresh outlier post when channel has >= 5 baseline posts', async () => {
+    mocks.ruleFindMany.mockResolvedValue([
+      rule({ id: 9, userId: 11, channelId: null, metric: 'viralPostMultiplier', operator: 'gt', threshold: 2 }),
+    ]);
+    mocks.subscriptions.mockResolvedValue([{ userId: 11 }]);
+    const dayAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    mocks.postFindMany.mockResolvedValue([
+      { id: 301, messageId: 801n, text: 'Базовый пост 1', views: 500, forwards: 5, reactions: 10, comments: 2, publishedAt: dayAgo },
+      { id: 302, messageId: 802n, text: 'Базовый пост 2', views: 600, forwards: 6, reactions: 12, comments: 3, publishedAt: dayAgo },
+      { id: 303, messageId: 803n, text: 'Базовый пост 3', views: 550, forwards: 5, reactions: 11, comments: 2, publishedAt: dayAgo },
+      { id: 304, messageId: 804n, text: 'Базовый пост 4', views: 450, forwards: 4, reactions: 9, comments: 1, publishedAt: dayAgo },
+      { id: 305, messageId: 805n, text: 'Виральный свежий пост!', views: 1650, forwards: 42, reactions: 90, comments: 15, publishedAt: now },
+    ]);
+    const send = vi.fn().mockResolvedValue(true);
+
+    expect(await checkChannelAlertRules(5, async () => metrics, send, now)).toBe(1);
+    expect(send).toHaveBeenCalledOnce();
+    expect(send.mock.calls[0][0]).toContain('TgMon: виральный пост для всех каналов');
+    expect(send.mock.calls[0][0]).toContain('1650 просмотров (3x от медианы 550)');
+    expect(send.mock.calls[0][0]).toContain('Пересылки: 42');
+    expect(send.mock.calls[0][0]).toContain('https://t.me/channel_five/805');
+    expect(mocks.postFireCreate).toHaveBeenCalledWith({
+      data: { ruleId: 9, postId: 305, firedAt: now },
+      select: { id: true },
+    });
+  });
+
+  it('skips viral post alerts when channel has fewer than 5 historical posts with views', async () => {
+    mocks.ruleFindMany.mockResolvedValue([
+      rule({ id: 9, channelId: 5, metric: 'viralPostMultiplier', operator: 'gt', threshold: 2 }),
+    ]);
+    mocks.postFindMany.mockResolvedValue([
+      { id: 401, messageId: 901n, text: 'Пост 1', views: 500, forwards: 5, reactions: 10, comments: 2, publishedAt: now },
+      { id: 402, messageId: 902n, text: 'Пост 2', views: 2500, forwards: 50, reactions: 80, comments: 10, publishedAt: now },
+    ]);
+    const send = vi.fn();
+
+    expect(await checkChannelAlertRules(5, async () => metrics, send, now)).toBe(0);
+    expect(send).not.toHaveBeenCalled();
   });
 });

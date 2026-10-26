@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
   }
 
   const isKeywordRule = body.metric === 'keyword';
+  const isViralPostRule = body.metric === 'viralPostMultiplier';
   let operator: 'gt' | 'lt';
   let threshold: number;
   let keywordQuery: string | null = null;
@@ -86,6 +87,13 @@ export async function POST(req: NextRequest) {
     }
     operator = body.operator ?? 'gt';
     threshold = body.threshold ?? 0;
+  } else if (isViralPostRule) {
+    if ((body.operator !== undefined && body.operator !== 'gt') ||
+        typeof body.threshold !== 'number' || !Number.isFinite(body.threshold) || body.threshold <= 0) {
+      return NextResponse.json({ error: 'Некорректные параметры правила' }, { status: 400 });
+    }
+    operator = 'gt';
+    threshold = body.threshold;
   } else {
     if (!isAlertOperator(body.operator) || typeof body.threshold !== 'number' || !Number.isFinite(body.threshold)) {
       return NextResponse.json({ error: 'Некорректные параметры правила' }, { status: 400 });

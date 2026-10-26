@@ -51,11 +51,16 @@ describe('/api/alerts', () => {
     const response = await GET(request('GET'));
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.metrics).toHaveLength(10);
+    expect(body.metrics).toHaveLength(11);
     expect(body.metrics).toContainEqual({
       value: 'keyword',
       label: 'Упоминание ключевого слова',
       unit: 'фраза',
+    });
+    expect(body.metrics).toContainEqual({
+      value: 'viralPostMultiplier',
+      label: 'Виральный пост (множитель к медиане охвата)',
+      unit: 'x',
     });
     expect(body.rules).toEqual([]);
     expect(typeof body.deliveryConfigured).toBe('boolean');
@@ -104,6 +109,34 @@ describe('/api/alerts', () => {
         enabled: true,
       },
     });
+  });
+
+  it('creates a viral post multiplier rule and rejects non-positive or lt thresholds', async () => {
+    mocks.create.mockResolvedValueOnce({
+      id: 12,
+      channelId: null,
+      metric: 'viralPostMultiplier',
+      operator: 'gt',
+      threshold: 2.5,
+      enabled: true,
+    });
+    const response = await POST(request('POST', {
+      channelId: null,
+      metric: 'viralPostMultiplier',
+      threshold: 2.5,
+    }));
+    expect(response.status).toBe(201);
+    expect(mocks.create).toHaveBeenCalledWith({
+      data: {
+        channelId: null,
+        metric: 'viralPostMultiplier',
+        operator: 'gt',
+        threshold: 2.5,
+        enabled: true,
+      },
+    });
+    expect((await POST(request('POST', { metric: 'viralPostMultiplier', operator: 'lt', threshold: 2 }))).status).toBe(400);
+    expect((await POST(request('POST', { metric: 'viralPostMultiplier', operator: 'gt', threshold: 0 }))).status).toBe(400);
   });
 
   it('rejects invalid input and unknown channels', async () => {
