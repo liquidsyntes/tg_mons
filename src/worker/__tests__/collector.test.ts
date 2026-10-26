@@ -154,6 +154,21 @@ describe('collector persistence policy', () => {
     expect(db.postSnapshotCreate).not.toHaveBeenCalled();
   });
 
+  it('saves available reaction details and preserves them when a later update has none', async () => {
+    const publishedAt = new Date(now.getTime() - 60 * 60 * 1000);
+    await upsertPostWithReactions({ ...post(publishedAt), reactions: 3,
+      reactionBreakdown: [{ emoji: '🔥', count: 3 }] });
+    expect(db.postUpsert).toHaveBeenLastCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ reactions: 3, reactionBreakdown: [{ emoji: '🔥', count: 3 }] }),
+      create: expect.objectContaining({ reactions: 3, reactionBreakdown: [{ emoji: '🔥', count: 3 }] }),
+    }));
+
+    await upsertPostWithReactions({ ...post(publishedAt), reactionBreakdown: null });
+    expect(db.postUpsert).toHaveBeenLastCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ reactions: undefined, reactionBreakdown: undefined }),
+    }));
+  });
+
   it('updates one fraud signal for today and removes same-day duplicates', async () => {
     db.fraudFindFirst.mockResolvedValue({ id: 9 });
     await saveFraudSignal(1, 'uniform_err', { flag: true, value: 0.04, reason: 'Подозрительно' });

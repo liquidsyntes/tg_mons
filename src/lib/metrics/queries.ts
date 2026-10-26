@@ -3,6 +3,7 @@ import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
 import { calculateContentFormatBreakdown } from './engagement';
 import { calculateViralBaseline, classifyViralPost } from './viral';
+import { calculatePopularReactions, parseReactionBreakdown } from './reactions';
 import { detectSilencePeriods } from './silence';
 import { calculateContentScore } from '../scoring';
 import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
@@ -529,15 +530,17 @@ export async function getChannelDetailStats(
 
   const viralBaselinePosts = period === '30d' ? posts : await prisma.post.findMany({
     where: { channelId, publishedAt: { gte: new Date(now.getTime() - MS_30D) } },
-    select: { views: true, reactions: true, comments: true, forwards: true },
+    select: { views: true, reactions: true, reactionBreakdown: true, comments: true, forwards: true },
   });
   const viralBaseline = calculateViralBaseline(viralBaselinePosts);
+  const popularReactions = calculatePopularReactions(viralBaselinePosts);
   const recentPosts = posts.slice(-15).reverse().map((p) => ({
     id: p.id,
     messageId: p.messageId.toString(),
     publishedAt: p.publishedAt.toISOString(),
     views: p.views,
     reactions: p.reactions,
+    reactionBreakdown: parseReactionBreakdown(p.reactionBreakdown),
     comments: p.comments,
     forwards: p.forwards,
     text: p.text,
@@ -617,6 +620,7 @@ export async function getChannelDetailStats(
     heatmapData,
     myHeatmapData: myChannelRecord ? myHeatmapData : undefined,
     recentPosts,
+    popularReactions,
     contentTypePerformance: contentFormatBreakdown.items,
     contentFormatLeaders: contentFormatBreakdown.leaders,
     silencePeriods: silenceResult.periods,

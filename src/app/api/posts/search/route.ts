@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { detectAd } from '@/lib/adDetector';
 import { calculatePostER, calculatePostERR } from '@/lib/metrics/engagement';
 import { calculateViralBaseline, classifyViralPost, type ViralBaseline } from '@/lib/metrics/viral';
+import { parseReactionBreakdown } from '@/lib/metrics/reactions';
 
 export const dynamic = 'force-dynamic';
 
@@ -290,6 +291,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       mentions: [...new Set(post.mentions.flatMap(mention => mention.targetUsername ? [mention.targetUsername] : []))],
       er: calculatePostER(post),
       err: calculatePostERR(post),
+      reactionBreakdown: parseReactionBreakdown(post.reactionBreakdown),
       ...classifyViralPost(post, viralBaselines?.get(post.channelId) ?? null),
       ad: detectAd(post.text),
       image: undefined,

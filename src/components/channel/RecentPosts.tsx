@@ -6,6 +6,7 @@ import { detectAd } from '@/lib/adDetector';
 import { formatNumber } from '@/lib/utils';
 import type { ChannelDetailStats } from '@/lib/types';
 import { ViralBadge } from './ViralBadge';
+import { ReactionBreakdownInline } from './ReactionBreakdownInline';
 
 type RecentPost = NonNullable<ChannelDetailStats['recentPosts']>[number] & { ad: ReturnType<typeof detectAd> };
 
@@ -230,6 +231,8 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
                     <div className="text-sm text-slate-300 line-clamp-3 leading-relaxed flex-1">
                       {post.text ? highlightText(post.text, debouncedQ) : <span className="italic text-slate-500">Текст недоступен</span>}
                     </div>
+                    {(post.reactions !== null || post.reactionBreakdown?.length) &&
+                      <div className="mt-2"><ReactionBreakdownInline total={post.reactions} breakdown={post.reactionBreakdown} /></div>}
                   </div>
                 ))}
               </div>

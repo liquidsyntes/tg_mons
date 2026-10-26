@@ -33,6 +33,7 @@ import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, 
 import { detectAd } from '../lib/adDetector';
 import { detectContentType } from '../lib/contentType';
 import { readMessageContent } from './message-content';
+import { parseMessageReactions } from './message-reactions';
 import { extractPostMentions } from './post-mentions';
 import { savePostImage } from './post-image';
 import {
@@ -132,16 +133,18 @@ export async function collectChannelData(
       const comments = msg.replies && typeof msg.replies.replies === 'number' ? msg.replies.replies : null;
       const groupedId = msg.groupedId ? BigInt(msg.groupedId.toString()) : null;
       
-      let reactions: number | null = null;
-      if (msg.reactions && msg.reactions.results) {
-         reactions = msg.reactions.results.reduce((acc: number, r: any) => acc + (r.count || 0), 0);
+      let parsedReactions: ReturnType<typeof parseMessageReactions> = { reactions: null, reactionBreakdown: null };
+      try {
+        parsedReactions = parseMessageReactions(msg.reactions);
+      } catch (error) {
+        logger.warn('Could not read Telegram reactions', { channelId: channel.id, messageId: msg.id }, error);
       }
-
       let targetMessageId = messageId;
       if (groupedId) {
           const existingGroupPost = await getExistingGroupPost(channel.id, groupedId);
           if (existingGroupPost) targetMessageId = existingGroupPost.messageId;
       }
+      const isAlbumChild = targetMessageId !== messageId;
 
       const adDetection = detectAd(text);
       const isAd = content.available ? adDetection.isAd || adDetection.isPartner : undefined;
@@ -152,7 +155,8 @@ export async function collectChannelData(
         messageId: targetMessageId,
         publishedAt,
         views,
-        reactions,
+        reactions: isAlbumChild ? null : parsedReactions.reactions,
+        reactionBreakdown: isAlbumChild ? null : parsedReactions.reactionBreakdown,
         comments,
         forwards,
         text,

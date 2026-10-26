@@ -148,6 +148,21 @@ export interface OpsStatusResponse {
 
 export type ViralReason = 'views' | 'forwards' | 'err';
 
+export interface ReactionBreakdownItem {
+  emoji: string;
+  count: number;
+}
+
+export interface PopularReaction extends ReactionBreakdownItem {
+  sharePercent: number;
+}
+
+export interface ChannelReactionSummary {
+  totalReactions: number;
+  coveredPosts: number;
+  top: PopularReaction[];
+}
+
 export interface ViralClassification {
   isViral: boolean;
   viralReasons: ViralReason[];
@@ -163,6 +178,7 @@ export interface SearchPost extends ViralClassification {
   isAd: boolean;
   views: number | null;
   reactions: number | null;
+  reactionBreakdown: ReactionBreakdownItem[] | null;
   comments: number | null;
   forwards: number | null;
   er: number | null;
@@ -304,10 +320,12 @@ export interface ChannelDetailStats {
     publishedAt: string;
     views: number | null;
     reactions: number | null;
+    reactionBreakdown: ReactionBreakdownItem[] | null;
     comments: number | null;
     forwards: number | null;
     text: string | null;
   } & ViralClassification>;
+  popularReactions?: ChannelReactionSummary;
   contentTypePerformance?: ContentTypePerformanceItem[];
   contentFormatLeaders?: ContentFormatLeaders;
   silencePeriods?: {

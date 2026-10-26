@@ -140,6 +140,7 @@ model Post {
   publishedAt          DateTime           @map("published_at")
   views                Int?
   reactions            Int?
+  reactionBreakdown    Json?              @map("reaction_breakdown")
   comments             Int?
   forwards             Int?
   text                 String?

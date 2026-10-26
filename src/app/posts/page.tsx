@@ -8,6 +8,7 @@ import { Header } from '@/components/Header';
 import { formatNumber } from '@/lib/utils';
 import type { GlobalPostSearchResponse, SearchPost } from '@/lib/types';
 import { ViralBadge } from '@/components/channel/ViralBadge';
+import { ReactionBreakdownInline } from '@/components/channel/ReactionBreakdownInline';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
 
@@ -190,7 +191,7 @@ export default function PostsPage() {
                   <div className="grid grid-cols-3 gap-2 text-xs text-slate-400">
                     <span>Просмотры: {post.views === null ? 'н/д' : formatNumber(post.views)}</span>
                     <span>ER: {formatPercent(post.er)}</span><span>ERR: {formatPercent(post.err)}</span>
-                    <span>Реакции: {post.reactions ?? 'н/д'}</span><span>Комментарии: {post.comments ?? 'н/д'}</span>
+                    <ReactionBreakdownInline total={post.reactions} breakdown={post.reactionBreakdown} /><span>Комментарии: {post.comments ?? 'н/д'}</span>
                     <span>Пересылки: {post.forwards ?? 'н/д'}</span>
                   </div>
                   <button type="button" onClick={() => setSelectedPost(post)}

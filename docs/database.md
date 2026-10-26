@@ -122,6 +122,7 @@
 | `publishedAt` | `DateTime` | `published_at` | Нет | — | Дата и время публикации сообщения в Telegram |
 | `views` | `Int` | `views` | Да | — | Текущее количество просмотров |
 | `reactions` | `Int` | `reactions` | Да | — | Суммарное количество реакций всех эмодзи |
+| `reactionBreakdown` | `Json` | `reaction_breakdown` | Да | Нет | Топ-10 реакций `{emoji,count}`; старые посты имеют `null` |
 | `comments` | `Int` | `comments` | Да | — | Количество комментариев |
 | `forwards` | `Int` | `forwards` | Да | — | Количество репостов / пересылок |
 | `text` | `String` | `text` | Да | — | Текст публикации |
@@ -437,6 +438,6 @@ Worker сохраняет не более одного актуального с
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На 16 октября 2026 года в проекте 16 миграций. Последняя, `20261016000000_add_post_images`, создаёт таблицу `post_images`; предыдущая, `20261013212052_add_event_dismissed_at`, добавляет nullable-время скрытия события.
+- На 26 октября 2026 года в проекте 22 миграции. Последняя, `20261026132043_add_post_reaction_breakdown`, добавляет nullable JSONB-колонку `posts.reaction_breakdown` без изменения существующих строк.
 - Для генерации клиента Prisma используется скрипт `npm run prisma:generate`.
 - **Особенность Windows-окружения:** Если `npx prisma generate` завершился с `EPERM`, проверьте процессы Next.js и worker именно этого checkout на блокировку Prisma Query Engine. Останавливайте только установленный блокирующий процесс, затем повторите генерацию.

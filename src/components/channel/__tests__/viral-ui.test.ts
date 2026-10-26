@@ -13,7 +13,7 @@ afterEach(() => {
 
 const viralPost = {
   id: 1, messageId: '10', publishedAt: '2026-10-23T12:00:00Z',
-  views: 250, reactions: 3, comments: 0, forwards: 12, text: 'Пост',
+  views: 250, reactions: 3, reactionBreakdown: null, comments: 0, forwards: 12, text: 'Пост',
   isViral: true, viralReasons: ['views', 'forwards'] as Array<'views' | 'forwards' | 'err'>,
   viralPrimaryReason: 'forwards' as const, viralMultiplier: 6,
 };

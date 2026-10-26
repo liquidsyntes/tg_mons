@@ -5,4 +5,5 @@ export * from './metrics/queries';
 export * from './metrics/engagement';
 export * from './metrics/silence';
 export * from './metrics/viral';
+export * from './metrics/reactions';
 export * from './citationIndex';
