@@ -20,6 +20,7 @@ interface SearchParams {
   niche: string | null;
   onlyAds: boolean;
   onlyViral: boolean;
+  advertiser: string | null;
   days: number | null;
   sortBy: SortBy;
   limit: number;
@@ -64,6 +65,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
   const niche = query.has('niche') ? query.get('niche')?.trim() || null : null;
   const onlyAds = query.get('onlyAds');
   const onlyViral = query.get('onlyViral');
+  const advertiser = query.get('advertiser')?.trim().replace(/^@/, '').toLowerCase() || null;
   const rawDays = query.get('days');
   const days = legacy ? null : readInteger(rawDays, 30, 7, 90);
   const limit = readInteger(query.get('limit'), legacy ? 15 : 20, 1, 50);
@@ -80,6 +82,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
   if ((rawChannelId !== null && channelId === null) || q.length > 200 || (niche !== null && niche.length > 64) ||
       (onlyAds !== null && onlyAds !== 'true' && onlyAds !== 'false') ||
       (onlyViral !== null && onlyViral !== 'true' && onlyViral !== 'false') ||
+      (query.has('advertiser') && (advertiser === null || !/^[a-z0-9_]{4,32}$/.test(advertiser))) ||
       (rawDays !== null && ![7, 14, 30, 90].includes(days ?? -1)) || days === null && !legacy ||
       limit === null || offset === null || !['all', 'ads', 'partners'].includes(type) ||
       (query.has('dateFrom') && dateFrom === null) || (query.has('dateTo') && dateTo === null) ||
@@ -90,7 +93,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
       (!legacy && ['dateFrom', 'dateTo', 'minViews', 'maxViews', 'type'].some(key => query.has(key))) ||
       (onlyAds === 'true' && type === 'partners')) return null;
   return {
-    legacy, channelId, q, niche, onlyAds: onlyAds === 'true', onlyViral: onlyViral === 'true', days, sortBy: sortBy as SortBy,
+    legacy, channelId, q, niche, onlyAds: onlyAds === 'true', onlyViral: onlyViral === 'true', advertiser, days, sortBy: sortBy as SortBy,
     limit, offset, dateFrom, dateTo, minViews, maxViews, type: type as LegacyType,
   };
 }
@@ -105,7 +108,9 @@ function buildWhere(params: SearchParams, userId: number | null, now: Date): Pri
   };
   if (params.channelId !== null) where.channelId = params.channelId;
   if (params.q) where.text = { contains: params.q, mode: 'insensitive' };
-  if (params.onlyAds || params.type === 'ads') where.isAd = true;
+  if (params.onlyAds || params.type === 'ads' || params.advertiser) where.isAd = true;
+  if (params.advertiser) where.mentions = { some: { type: 'mention',
+    targetUsername: { equals: params.advertiser, mode: 'insensitive' } } };
   if (params.type === 'partners') where.OR = [
     { text: { contains: 'партнер', mode: 'insensitive' } },
     { text: { contains: 'партнёр', mode: 'insensitive' } },
@@ -137,7 +142,8 @@ function buildMetricSortQuery(params: SearchParams, userId: number | null, now: 
     const escaped = params.q.replace(/[\\%_]/g, character => `\\${character}`);
     filters.push(Prisma.sql`p."text" ILIKE ${`%${escaped}%`} ESCAPE E'\\\\'`);
   }
-  if (params.onlyAds || params.type === 'ads') filters.push(Prisma.sql`p."is_ad" = true`);
+  if (params.onlyAds || params.type === 'ads' || params.advertiser) filters.push(Prisma.sql`p."is_ad" = true`);
+  if (params.advertiser) filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "mentions" m WHERE m."source_post_id" = p."id" AND m."type" = 'mention' AND LOWER(m."target_username") = ${params.advertiser})`);
   if (params.days !== null) filters.push(Prisma.sql`p."published_at" >= ${new Date(now.getTime() - params.days * 86_400_000)}`);
   if (params.minViews !== null) filters.push(Prisma.sql`p."views" >= ${params.minViews}`);
   if (params.maxViews !== null) filters.push(Prisma.sql`p."views" <= ${params.maxViews}`);

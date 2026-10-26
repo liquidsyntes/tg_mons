@@ -16,6 +16,10 @@ const CPM_BENCHMARKS: Record<string, number> = {
 
 const DEFAULT_CPM = 150;
 
+export function getNicheCpm(niche: string): number {
+  return CPM_BENCHMARKS[niche] ?? DEFAULT_CPM;
+}
+
 export async function estimateAdPrice(channelId: number) {
   const channel = await prisma.channel.findUnique({
     where: { id: channelId },
@@ -24,7 +28,7 @@ export async function estimateAdPrice(channelId: number) {
 
   if (!channel) return null;
 
-  const cpm = CPM_BENCHMARKS[channel.niche] || DEFAULT_CPM;
+  const cpm = getNicheCpm(channel.niche);
 
   // Find recent ad posts
   const adPosts = await prisma.post.findMany({

@@ -73,6 +73,18 @@ describe('GET /api/posts/search', () => {
     expect(body.channels).toHaveLength(1);
   });
 
+  it('filters advertiser placements within the authenticated search scope', async () => {
+    const response = await GET(request('?days=30&advertiser=%40Brand&sortBy=err'));
+    expect(response.status).toBe(200);
+    expect(mocks.count).toHaveBeenCalledWith({ where: expect.objectContaining({
+      isAd: true, mentions: { some: { type: 'mention', targetUsername: { equals: 'brand', mode: 'insensitive' } } },
+      channel: { isActive: true, userChannels: { some: { userId: 3, isActive: true } } },
+    }) });
+    const query = mocks.raw.mock.calls[0][0];
+    expect(query.sql).toContain('FROM "mentions" m');
+    expect(query.sql).toContain('p."is_ad" = true');
+  });
+
   it('uses active channels and Channel.niche for a master session', async () => {
     mocks.auth.mockResolvedValue({ authorized: true, role: 'ADMIN', userId: null });
     mocks.channels.mockResolvedValue([{ id: 7, title: 'Технологии', username: 'tech', niche: 'science' }]);
@@ -147,7 +159,7 @@ describe('GET /api/posts/search', () => {
     });
   });
 
-  it.each(['?days=3', '?onlyAds=yes', '?onlyViral=yes', '?limit=51', '?offset=-1', '?sortBy=unknown',
+  it.each(['?days=3', '?onlyAds=yes', '?onlyViral=yes', '?advertiser=bad!', '?limit=51', '?offset=-1', '?sortBy=unknown',
     '?channelId=0', '?channelId=abc', '?niche=tech&dateFrom=2026-10-01', '?q=x&days=14&sortBy=nope'])
   ('rejects invalid parameters: %s', async query => {
     expect((await GET(request(query))).status).toBe(400);

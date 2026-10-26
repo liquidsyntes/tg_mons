@@ -46,7 +46,7 @@ describe('mergeDuplicateEventsInDb', () => {
     mentions: [{ postId: 101 }], dismissedByUsers: [],
   };
   const duplicate = {
-    ...canonical, id: 2, timeStr: '20:00', organizer: 'Клуб', prices: ['Вход 100 ₽'],
+    ...canonical, id: 2, timeStr: '20:00', organizer: 'Клуб', prices: ['Вход 100 ₴'],
     dismissedAt: new Date('2026-10-02T00:00:00Z'), createdAt: new Date('2026-10-02T00:00:00Z'),
     mentions: [{ postId: 102 }], dismissedByUsers: [{ userId: 7, dismissedAt: new Date('2026-10-03T00:00:00Z') }],
   };
@@ -75,7 +75,7 @@ describe('mergeDuplicateEventsInDb', () => {
       skipDuplicates: true,
     });
     expect(db.updateEvent).toHaveBeenCalledWith({ where: { id: 1 }, data: {
-      timeStr: '20:00', organizer: 'Клуб', prices: ['Вход 100 ₽'],
+      timeStr: '20:00', organizer: 'Клуб', prices: ['Вход 100 ₴'],
       dismissedAt: new Date('2026-10-02T00:00:00Z'),
     } });
     expect(db.deleteEvents).toHaveBeenCalledWith({ where: { id: { in: [2] } } });

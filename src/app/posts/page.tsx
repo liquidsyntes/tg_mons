@@ -9,6 +9,7 @@ import { formatNumber } from '@/lib/utils';
 import type { GlobalPostSearchResponse, SearchPost } from '@/lib/types';
 import { ViralBadge } from '@/components/channel/ViralBadge';
 import { ReactionBreakdownInline } from '@/components/channel/ReactionBreakdownInline';
+import { TopAdvertisersPanel } from '@/components/posts/TopAdvertisersPanel';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
 
@@ -20,6 +21,8 @@ export default function PostsPage() {
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const [onlyAds, setOnlyAds] = useState(false);
+  const [advertiserUsername, setAdvertiserUsername] = useState('');
+  const [advertiserDays, setAdvertiserDays] = useState<7 | 30>(30);
   const [onlyViral, setOnlyViral] = useState(false);
   const [niche, setNiche] = useState('');
   const [channelId, setChannelId] = useState('');
@@ -47,8 +50,9 @@ export default function PostsPage() {
     if (search) params.set('q', search);
     if (niche) params.set('niche', niche);
     if (channelId) params.set('channelId', channelId);
+    if (advertiserUsername) params.set('advertiser', advertiserUsername);
     return `/api/posts/search?${params.toString()}`;
-  }, [days, sortBy, onlyAds, onlyViral, search, niche, channelId]);
+  }, [days, sortBy, onlyAds, onlyViral, search, niche, channelId, advertiserUsername]);
 
   useEffect(() => {
     const version = ++requestVersion.current;
@@ -120,7 +124,7 @@ export default function PostsPage() {
               className="w-full rounded-xl border border-border bg-slate-900 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-accent/50" />
           </label>
           <div className="flex gap-2" role="group" aria-label="Режим поиска">
-            <button type="button" onClick={() => setOnlyAds(false)} aria-pressed={!onlyAds}
+            <button type="button" onClick={() => { setOnlyAds(false); setAdvertiserUsername(''); }} aria-pressed={!onlyAds}
               className={`rounded-xl border px-3 py-2 text-sm ${!onlyAds ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}>
               Все посты
             </button>
@@ -135,7 +139,7 @@ export default function PostsPage() {
           </button>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="space-y-1.5 text-xs text-slate-300"><span>Ниша</span>
-              <select value={niche} onChange={event => { setNiche(event.target.value); setChannelId(''); }}
+              <select value={niche} onChange={event => { setNiche(event.target.value); setChannelId(''); setAdvertiserUsername(''); }}
                 className="w-full rounded-xl border border-border bg-slate-900 px-3 py-2.5 text-sm text-white">
                 <option value="">Все ниши</option>
                 {niches.map(value => <option key={value} value={value}>{value}</option>)}
@@ -165,6 +169,17 @@ export default function PostsPage() {
             </label>
           </div>
         </section>
+
+        {onlyAds && <TopAdvertisersPanel niche={niche} days={advertiserDays} selectedUsername={advertiserUsername}
+          onDaysChange={value => { setAdvertiserDays(value); if (advertiserUsername) setDays(value); }}
+          onSelect={username => { setAdvertiserUsername(username); setDays(advertiserDays); }} />}
+
+        {advertiserUsername && <div className="flex items-center gap-2 text-sm text-slate-300">
+          Публикации @{advertiserUsername}
+          <button type="button" onClick={() => setAdvertiserUsername('')} className="rounded-lg border border-border px-2 py-1 text-xs text-white hover:bg-slate-800">
+            Сбросить рекламодателя
+          </button>
+        </div>}
 
         <section aria-label="Результаты поиска" className="space-y-4">
           <p className="text-sm text-slate-400">Найдено публикаций: {formatNumber(total)}</p>

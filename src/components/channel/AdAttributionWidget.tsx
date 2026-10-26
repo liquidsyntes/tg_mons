@@ -15,7 +15,7 @@ function formatDelta(value: number | null): string {
 }
 
 function formatMoney(value: number | null): string {
-  return value === null ? 'н/д' : `${moneyFormat.format(value)} ₽`;
+  return value === null ? 'н/д' : `${moneyFormat.format(value)} ₴`;
 }
 
 function PlacementCard({ placement, direction }: { placement: AdAttributionPlacement; direction: Direction }) {

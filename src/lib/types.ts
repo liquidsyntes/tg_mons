@@ -195,6 +195,33 @@ export interface GlobalPostSearchResponse {
   channels: Array<{ id: number; title: string; username: string | null; niche: string }>;
 }
 
+export interface AdvertiserDonorChannel {
+  id: number;
+  title: string;
+  username: string | null;
+  placementsCount: number;
+}
+
+export interface TopAdvertiser {
+  username: string;
+  placementsCount: number;
+  channelsCount: number;
+  donorChannels: AdvertiserDonorChannel[];
+  totalViews: number | null;
+  avgViews: number | null;
+  estimatedSpendUah: number | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  isTrackedChannel: boolean;
+  channelId: number | null;
+}
+
+export interface TopAdvertisersResponse {
+  days: 7 | 30;
+  niche: string | null;
+  advertisers: TopAdvertiser[];
+}
+
 export interface AdAttributionPlacement {
   postId: number;
   messageId: string;
