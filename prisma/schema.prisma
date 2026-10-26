@@ -193,6 +193,7 @@ model Mention {
   sourceChannelId Int      @map("source_channel_id")
   targetUsername  String?  @map("target_username")
   targetTgId      BigInt?  @map("target_tg_id")
+  targetMessageId BigInt?  @map("target_message_id")
   type            String // "forward" | "mention"
   createdAt       DateTime @default(now()) @map("created_at")
 

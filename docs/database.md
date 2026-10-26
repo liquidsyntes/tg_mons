@@ -208,6 +208,7 @@
 | `sourceChannelId` | `Int` | `source_channel_id` | Нет | — | Внешний ключ на `Channel.id` канала-автора |
 | `targetUsername` | `String` | `target_username` | Да | — | Юзернейм упомянутого канала |
 | `targetTgId` | `BigInt` | `target_tg_id` | Да | — | Telegram ID упомянутого канала |
+| `targetMessageId` | `BigInt` | `target_message_id` | Да | Нет | ID конкретного поста для пересылки или прямой ссылки, если доступен |
 | `type` | `String` | `type` | Нет | — | Тип упоминания: `"forward"` или `"mention"` |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время записи упоминания |
 
@@ -438,6 +439,6 @@ Worker сохраняет не более одного актуального с
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На 26 октября 2026 года в проекте 22 миграции. Последняя, `20261026132043_add_post_reaction_breakdown`, добавляет nullable JSONB-колонку `posts.reaction_breakdown` без изменения существующих строк.
+- На 26 октября 2026 года в проекте 23 миграции. Последняя, `20261026153255_add_mention_target_message_id`, добавляет nullable BIGINT-колонку `mentions.target_message_id` без изменения существующих строк.
 - Для генерации клиента Prisma используется скрипт `npm run prisma:generate`.
 - **Особенность Windows-окружения:** Если `npx prisma generate` завершился с `EPERM`, проверьте процессы Next.js и worker именно этого checkout на блокировку Prisma Query Engine. Останавливайте только установленный блокирующий процесс, затем повторите генерацию.

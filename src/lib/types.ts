@@ -278,6 +278,48 @@ export interface CitationNetworkData {
   nodes: CitationNetworkNode[];
   edges: CitationNetworkEdge[];
   discoveredHubs: DiscoveredHub[];
+  propagation?: PropagationData;
+}
+
+export type OriginRole = 'origin' | 'distributor' | 'balanced' | 'isolated';
+
+export interface PropagationChannel {
+  id: number;
+  title: string;
+  username: string | null;
+  tgId?: string | null;
+}
+
+export interface PropagationChain {
+  source: PropagationChannel;
+  target: PropagationChannel;
+  type: 'forward' | 'mention';
+  citingMessageId: string;
+  publishedAt: string;
+  originPostId: number | null;
+  delayMinutes: number | null;
+}
+
+export interface TopCitedPost {
+  id: number;
+  messageId: string;
+  publishedAt: string;
+  textSnippet: string | null;
+  citationsCount: number;
+  citingChannels: Array<PropagationChannel & { citationsCount: number; averageDelayMinutes: number | null }>;
+  averageDelayMinutes: number | null;
+}
+
+export interface PropagationData {
+  periodDays: 30;
+  focalTgId: string | null;
+  role: OriginRole;
+  originRatio: number | null;
+  incomingCount: number;
+  outgoingCount: number;
+  averageIncomingDelayMinutes: number | null;
+  topCitedPosts: TopCitedPost[];
+  recentChains: PropagationChain[];
 }
 
 export interface TimeSeriesPoint {

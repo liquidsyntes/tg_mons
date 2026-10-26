@@ -293,7 +293,7 @@ export async function upsertPostWithReactions(params: {
 export async function saveMentions(
     postId: number,
     channelId: number,
-    mentions: { type: string; targetUsername?: string | null; targetTgId?: bigint | null }[]
+    mentions: { type: string; targetUsername?: string | null; targetTgId?: bigint | null; targetMessageId?: bigint | null }[]
 ) {
     if (mentions.length > 0) {
         await prisma.mention.deleteMany({ where: { sourcePostId: postId } });
@@ -303,6 +303,7 @@ export async function saveMentions(
                 sourceChannelId: channelId,
                 targetUsername: m.targetUsername,
                 targetTgId: m.targetTgId,
+                targetMessageId: m.targetMessageId,
                 type: m.type,
             }))
         });
