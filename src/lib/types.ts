@@ -146,7 +146,31 @@ export interface OpsStatusResponse {
   problemChannels: OpsProblemChannel[];
 }
 
-export interface SearchPost {
+export type ViralReason = 'views' | 'forwards' | 'err';
+
+export interface ReactionBreakdownItem {
+  emoji: string;
+  count: number;
+}
+
+export interface PopularReaction extends ReactionBreakdownItem {
+  sharePercent: number;
+}
+
+export interface ChannelReactionSummary {
+  totalReactions: number;
+  coveredPosts: number;
+  top: PopularReaction[];
+}
+
+export interface ViralClassification {
+  isViral: boolean;
+  viralReasons: ViralReason[];
+  viralPrimaryReason: ViralReason | null;
+  viralMultiplier: number | null;
+}
+
+export interface SearchPost extends ViralClassification {
   id: number;
   messageId: string;
   publishedAt: string;
@@ -154,6 +178,7 @@ export interface SearchPost {
   isAd: boolean;
   views: number | null;
   reactions: number | null;
+  reactionBreakdown: ReactionBreakdownItem[] | null;
   comments: number | null;
   forwards: number | null;
   er: number | null;
@@ -170,6 +195,46 @@ export interface GlobalPostSearchResponse {
   channels: Array<{ id: number; title: string; username: string | null; niche: string }>;
 }
 
+export interface AdvertiserDonorChannel {
+  id: number;
+  title: string;
+  username: string | null;
+  placementsCount: number;
+}
+
+export interface TopAdvertiser {
+  username: string;
+  placementsCount: number;
+  channelsCount: number;
+  donorChannels: AdvertiserDonorChannel[];
+  totalViews: number | null;
+  avgViews: number | null;
+  estimatedSpendUah: number | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  isTrackedChannel: boolean;
+  channelId: number | null;
+}
+
+export interface TopAdvertisersResponse {
+  days: 7 | 30;
+  niche: string | null;
+  advertisers: TopAdvertiser[];
+}
+
+export type AdPriceSource = 'custom_price' | 'custom_cpm' | 'niche_estimate';
+
+export interface AdPriceResult {
+  estimatedPricePerPost: number | null;
+  cpm: number;
+  confidence: 'high' | 'low';
+  averageAdReach: number | null;
+  averageReachCurve: Array<{ hoursAfterPost: number; views: number }>;
+  priceSource: AdPriceSource;
+  customAdPriceUah: number | null;
+  customCpmUah: number | null;
+}
+
 export interface AdAttributionPlacement {
   postId: number;
   messageId: string;
@@ -181,6 +246,7 @@ export interface AdAttributionPlacement {
   deltaSubscribers24h: number | null;
   deltaSubscribers48h: number | null;
   estimatedPricePerPost: number | null;
+  priceSource: AdPriceSource | null;
   estimatedCpf: number | null;
   conversionPercent: number | null;
   overlappingCampaigns: boolean;
@@ -226,6 +292,48 @@ export interface CitationNetworkData {
   nodes: CitationNetworkNode[];
   edges: CitationNetworkEdge[];
   discoveredHubs: DiscoveredHub[];
+  propagation?: PropagationData;
+}
+
+export type OriginRole = 'origin' | 'distributor' | 'balanced' | 'isolated';
+
+export interface PropagationChannel {
+  id: number;
+  title: string;
+  username: string | null;
+  tgId?: string | null;
+}
+
+export interface PropagationChain {
+  source: PropagationChannel;
+  target: PropagationChannel;
+  type: 'forward' | 'mention';
+  citingMessageId: string;
+  publishedAt: string;
+  originPostId: number | null;
+  delayMinutes: number | null;
+}
+
+export interface TopCitedPost {
+  id: number;
+  messageId: string;
+  publishedAt: string;
+  textSnippet: string | null;
+  citationsCount: number;
+  citingChannels: Array<PropagationChannel & { citationsCount: number; averageDelayMinutes: number | null }>;
+  averageDelayMinutes: number | null;
+}
+
+export interface PropagationData {
+  periodDays: 30;
+  focalTgId: string | null;
+  role: OriginRole;
+  originRatio: number | null;
+  incomingCount: number;
+  outgoingCount: number;
+  averageIncomingDelayMinutes: number | null;
+  topCitedPosts: TopCitedPost[];
+  recentChains: PropagationChain[];
 }
 
 export interface TimeSeriesPoint {
@@ -289,16 +397,18 @@ export interface ChannelDetailStats {
     hour: number;
     count: number;
   }[];
-  recentPosts?: {
+  recentPosts?: Array<{
     id: number;
     messageId: string;
     publishedAt: string;
     views: number | null;
     reactions: number | null;
+    reactionBreakdown: ReactionBreakdownItem[] | null;
     comments: number | null;
     forwards: number | null;
     text: string | null;
-  }[];
+  } & ViralClassification>;
+  popularReactions?: ChannelReactionSummary;
   contentTypePerformance?: ContentTypePerformanceItem[];
   contentFormatLeaders?: ContentFormatLeaders;
   silencePeriods?: {

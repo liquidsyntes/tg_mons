@@ -9,6 +9,7 @@ import { ScoreGauge } from '@/components/channel/ScoreGauge';
 import { SubscriberChart } from '@/components/channel/SubscriberChart';
 import { PostsActivity } from '@/components/channel/PostsActivity';
 import { ContentTypePerformance } from '@/components/channel/ContentTypePerformance';
+import { PopularReactionsWidget } from '@/components/channel/PopularReactionsWidget';
 import { ErrChart } from '@/components/channel/ErrChart';
 import { ChannelHeatmap } from '@/components/channel/ChannelHeatmap';
 import { RecentPosts } from '@/components/channel/RecentPosts';
@@ -31,6 +32,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
   const [data, setData] = useState<ChannelDetailStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [priceRevision, setPriceRevision] = useState(0);
 
   const fetchChannelData = useCallback(async () => {
     setLoading(true);
@@ -71,14 +73,15 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
         ) : (
           <>
             <div id="report-content" className="flex flex-col gap-[6px]">
-              <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} />
+              <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} priceRevision={priceRevision} />
               {data!.nicheBenchmark && <NicheBenchmarkWidget benchmark={data!.nicheBenchmark} />}
               <ChannelAdReachWidget channelId={channel.id} />
-              <AdAttributionWidget channelId={channel.id} />
+              <AdAttributionWidget channelId={channel.id} onPriceSaved={() => setPriceRevision(value => value + 1)} />
               {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
               <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
               <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
               <ContentTypePerformance data={data!.contentTypePerformance || []} leaders={data!.contentFormatLeaders} period={period} />
+              <PopularReactionsWidget summary={data!.popularReactions} />
               <ErrChart vrHistory={data!.vrHistory || []} period={period} />
               <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />
               <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} recentPosts={data!.recentPosts} />

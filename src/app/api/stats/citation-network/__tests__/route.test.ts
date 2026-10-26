@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), subscriptions: vi.fn(), channels: vi.fn(), build: vi.fn() }));
+const mocks = vi.hoisted(() => ({ auth: vi.fn(), subscriptions: vi.fn(), channels: vi.fn(), build: vi.fn(), propagation: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ verifyBearerToken: mocks.auth }));
 vi.mock('@/lib/prisma', () => ({ prisma: {
   userChannel: { findMany: mocks.subscriptions }, channel: { findMany: mocks.channels },
 } }));
 vi.mock('@/lib/citationNetwork', () => ({ buildCitationNetwork: mocks.build }));
+vi.mock('@/lib/metrics/propagation', () => ({ getPropagationForChannel: mocks.propagation }));
 vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn() } }));
 
 import { GET } from '../route';
@@ -21,6 +22,8 @@ beforeEach(() => {
   mocks.subscriptions.mockResolvedValue([{ channelId: 1, niche: 'science' }, { channelId: 2, niche: 'news' }]);
   mocks.channels.mockResolvedValue([{ id: 1 }, { id: 2 }]);
   mocks.build.mockResolvedValue({ focalChannelId: 1, days: 30, nodes: [], edges: [], discoveredHubs: [] });
+  mocks.propagation.mockResolvedValue({ periodDays: 30, role: 'isolated', originRatio: null,
+    incomingCount: 0, outgoingCount: 0, averageIncomingDelayMinutes: null, topCitedPosts: [], recentChains: [] });
 });
 
 describe('GET /api/stats/citation-network', () => {
@@ -43,6 +46,7 @@ describe('GET /api/stats/citation-network', () => {
       channelIds: [1, 2], focalChannelId: 1, days: 7,
       nichesByChannelId: new Map([[1, 'science'], [2, 'news']]),
     }));
+    expect(mocks.propagation).toHaveBeenCalledWith([1, 2], 1);
   });
 
   it('returns 404 for a focal channel outside the user list', async () => {
@@ -55,5 +59,6 @@ describe('GET /api/stats/citation-network', () => {
     expect((await GET(request('channelId=1'))).status).toBe(200);
     expect(mocks.channels).toHaveBeenCalledWith({ where: { isActive: true }, select: { id: true } });
     expect(mocks.build).toHaveBeenCalledWith({ channelIds: [1, 2], focalChannelId: 1, days: 30 });
+    expect(mocks.propagation).toHaveBeenCalledWith([1, 2], 1);
   });
 });

@@ -4,7 +4,7 @@ import { StringSession } from 'telegram/sessions';
 import bigInt from 'big-integer';
 import { collectChannelData } from '../collector';
 import { fetchChannelMessages, fetchFullChannel, resolveChannelEntity } from '../fetcher';
-import { getPreviousSnapshot, saveMentions, upsertPostWithReactions } from '../persister';
+import { getExistingGroupPost, getPreviousSnapshot, saveMentions, upsertPostWithReactions } from '../persister';
 import { savePostImage } from '../post-image';
 
 vi.mock('../persister');
@@ -44,7 +44,7 @@ describe('article collection', () => {
     vi.mocked(fetchChannelMessages).mockResolvedValue([message(12, '', article())]);
     // Only the post ID is consumed after persistence.
     vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({
-      ...input, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null,
+      ...input, reactionBreakdown: input.reactionBreakdown?.map(item => ({ emoji: item.emoji, count: item.count })) ?? null, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null,
     }));
     await collectChannelData(client, channel);
     expect(upsertPostWithReactions).toHaveBeenCalledWith(expect.objectContaining({
@@ -57,7 +57,7 @@ describe('article collection', () => {
     const client = new TelegramClient(new StringSession(''), 1, 'test', {});
     vi.spyOn(client, 'getRichMessage').mockRejectedValue(new Error('unavailable'));
     vi.mocked(fetchChannelMessages).mockResolvedValue([message(12, '', article(true)), message(13, 'Обычный пост')]);
-    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null }));
+    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, reactionBreakdown: input.reactionBreakdown?.map(item => ({ emoji: item.emoji, count: item.count })) ?? null, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null }));
     const result = await collectChannelData(client, channel);
     expect(result.postsAdded).toBe(2);
     expect(upsertPostWithReactions).toHaveBeenNthCalledWith(1, expect.objectContaining({ text: null, isAd: undefined }));
@@ -68,12 +68,69 @@ describe('article collection', () => {
   it('continues collecting posts when an image cannot be saved', async () => {
     const client = new TelegramClient(new StringSession(''), 1, 'test', {});
     vi.mocked(fetchChannelMessages).mockResolvedValue([message(12, 'Первый'), message(13, 'Второй')]);
-    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null }));
+    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input, reactionBreakdown: input.reactionBreakdown?.map(item => ({ emoji: item.emoji, count: item.count })) ?? null, id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null }));
     vi.mocked(savePostImage).mockRejectedValueOnce(new Error('Telegram image unavailable'));
 
     const result = await collectChannelData(client, channel);
 
     expect(result.postsAdded).toBe(2);
     expect(savePostImage).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps album reactions and their breakdown from the primary message', async () => {
+    const client = new TelegramClient(new StringSession(''), 1, 'test', {});
+    const primary = message(12, 'Альбом');
+    const child = message(13, 'Фото');
+    primary.groupedId = bigInt(99);
+    child.groupedId = bigInt(99);
+    primary.reactions = new Api.MessageReactions({ results: [
+      new Api.ReactionCount({ reaction: new Api.ReactionEmoji({ emoticon: '🔥' }), count: 8 }),
+    ] });
+    child.reactions = new Api.MessageReactions({ results: [
+      new Api.ReactionCount({ reaction: new Api.ReactionEmoji({ emoticon: '👍' }), count: 2 }),
+    ] });
+    vi.mocked(fetchChannelMessages).mockResolvedValue([primary, child]);
+    vi.mocked(getExistingGroupPost)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 42, channelId: 1, messageId: 12n, groupedId: 99n,
+        publishedAt: new Date(primary.date * 1000), views: 100, reactions: 8,
+        reactionBreakdown: [{ emoji: '🔥', count: 8 }], comments: null, forwards: null,
+        text: 'Альбом', subscribersAtPublish: null, isAd: false, contentType: 'photo', eventsScannedAt: null,
+      });
+    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input,
+      reactionBreakdown: input.reactionBreakdown?.map(item => ({ emoji: item.emoji, count: item.count })) ?? null, id: 42,
+      isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null }));
+
+    await collectChannelData(client, channel);
+
+    expect(upsertPostWithReactions).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      messageId: 12n, reactions: 8, reactionBreakdown: [{ emoji: '🔥', count: 8 }],
+    }));
+    expect(upsertPostWithReactions).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      messageId: 12n, reactions: null, reactionBreakdown: null,
+    }));
+  });
+
+  it('continues with the next message when reading reactions throws', async () => {
+    const client = new TelegramClient(new StringSession(''), 1, 'test', {});
+    const damaged = message(12, 'Первый');
+    Object.defineProperty(damaged, 'reactions', { get() { throw new Error('damaged reactions'); } });
+    const next = message(13, 'Второй');
+    next.reactions = new Api.MessageReactions({ results: [
+      new Api.ReactionCount({ reaction: new Api.ReactionEmoji({ emoticon: '👍' }), count: 3 }),
+    ] });
+    vi.mocked(fetchChannelMessages).mockResolvedValue([damaged, next]);
+    vi.mocked(upsertPostWithReactions).mockImplementation(async input => ({ ...input,
+      reactionBreakdown: input.reactionBreakdown?.map(item => ({ emoji: item.emoji, count: item.count })) ?? null,
+      id: 42, isAd: input.isAd ?? false, contentType: input.contentType ?? 'text', eventsScannedAt: null,
+    }));
+
+    const result = await collectChannelData(client, channel);
+
+    expect(result.postsAdded).toBe(2);
+    expect(upsertPostWithReactions).toHaveBeenNthCalledWith(1, expect.objectContaining({ reactions: null, reactionBreakdown: null }));
+    expect(upsertPostWithReactions).toHaveBeenNthCalledWith(2, expect.objectContaining({ reactions: 3,
+      reactionBreakdown: [{ emoji: '👍', count: 3 }] }));
   });
 });

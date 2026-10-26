@@ -78,6 +78,8 @@ model UserChannel {
   isMine     Boolean  @default(false) @map("is_mine")
   isFavorite Boolean  @default(false) @map("is_favorite")
   niche      String   @default("general")
+  customAdPriceUah Int? @map("custom_ad_price_uah")
+  customCpmUah     Int? @map("custom_cpm_uah")
   isActive   Boolean  @default(true) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at")
 
@@ -140,6 +142,7 @@ model Post {
   publishedAt          DateTime           @map("published_at")
   views                Int?
   reactions            Int?
+  reactionBreakdown    Json?              @map("reaction_breakdown")
   comments             Int?
   forwards             Int?
   text                 String?
@@ -192,6 +195,7 @@ model Mention {
   sourceChannelId Int      @map("source_channel_id")
   targetUsername  String?  @map("target_username")
   targetTgId      BigInt?  @map("target_tg_id")
+  targetMessageId BigInt?  @map("target_message_id")
   type            String // "forward" | "mention"
   createdAt       DateTime @default(now()) @map("created_at")
 

@@ -4,16 +4,21 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FileText, Eye, Megaphone, Handshake, ExternalLink, Search, Filter, Loader2, ArrowDownUp } from 'lucide-react';
 import { detectAd } from '@/lib/adDetector';
 import { formatNumber } from '@/lib/utils';
+import type { ChannelDetailStats } from '@/lib/types';
+import { ViralBadge } from './ViralBadge';
+import { ReactionBreakdownInline } from './ReactionBreakdownInline';
+
+type RecentPost = NonNullable<ChannelDetailStats['recentPosts']>[number] & { ad: ReturnType<typeof detectAd> };
 
 interface RecentPostsProps {
-  initialPosts: any[];
+  initialPosts: NonNullable<ChannelDetailStats['recentPosts']>;
   channelId: number | string;
   channelUsername: string | null;
   channelTgId: string | null;
 }
 
 export function RecentPosts({ initialPosts, channelId, channelUsername, channelTgId }: RecentPostsProps) {
-  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [selectedPost, setSelectedPost] = useState<RecentPost | null>(null);
   
   // Search and Filter State
   const [q, setQ] = useState('');
@@ -23,12 +28,13 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
   const [minViews, setMinViews] = useState('');
   const [maxViews, setMaxViews] = useState('');
   const [type, setType] = useState<'all' | 'ads' | 'partners'>('all');
+  const [onlyViral, setOnlyViral] = useState(false);
   const [sortBy, setSortBy] = useState('date');
   
   // Pagination & Data State
   const [offset, setOffset] = useState(0);
   const [limit] = useState(15);
-  const [posts, setPosts] = useState<any[]>(initialPosts.map(p => ({ ...p, ad: detectAd(p.text) })));
+  const [posts, setPosts] = useState<RecentPost[]>(initialPosts.map(p => ({ ...p, ad: detectAd(p.text) })));
   const [total, setTotal] = useState<number>(initialPosts.length);
   const [absoluteTotal, setAbsoluteTotal] = useState<number>(initialPosts.length);
   const [loading, setLoading] = useState(false);
@@ -43,7 +49,7 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
   // Reset offset when filters change
   useEffect(() => {
     setOffset(0);
-  }, [debouncedQ, dateFrom, dateTo, minViews, maxViews, type, sortBy]);
+  }, [debouncedQ, dateFrom, dateTo, minViews, maxViews, type, onlyViral, sortBy]);
 
   const fetchPosts = useCallback(async (isLoadMore = false) => {
     try {
@@ -59,11 +65,12 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
       if (minViews) params.append('minViews', minViews);
       if (maxViews) params.append('maxViews', maxViews);
       if (type !== 'all') params.append('type', type);
+      if (onlyViral) params.append('onlyViral', 'true');
       if (sortBy) params.append('sortBy', sortBy);
 
       const res = await fetch(`/api/posts/search?${params.toString()}`);
       if (!res.ok) throw new Error('Search failed');
-      const data = await res.json();
+      const data: { posts: RecentPost[]; total: number; absoluteTotal: number } = await res.json();
       
       if (isLoadMore) {
         setPosts(prev => [...prev, ...data.posts]);
@@ -77,7 +84,7 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
     } finally {
       setLoading(false);
     }
-  }, [channelId, debouncedQ, dateFrom, dateTo, minViews, maxViews, type, sortBy, offset, limit]);
+  }, [channelId, debouncedQ, dateFrom, dateTo, minViews, maxViews, type, onlyViral, sortBy, offset, limit]);
 
   // Fetch when filters or offset change.
   useEffect(() => {
@@ -114,7 +121,11 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
               Найдено {formatNumber(total)} постов из {formatNumber(absoluteTotal)}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setOnlyViral(value => !value)} aria-pressed={onlyViral}
+              className={`rounded-lg border px-2 py-1.5 text-xs ${onlyViral ? 'border-rose-400 bg-rose-500/15 text-rose-300' : 'border-slate-700 bg-slate-800 text-slate-300'}`}>
+              Только вирусные
+            </button>
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input 
@@ -188,8 +199,9 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
                     }`}
                   >
                     <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 mb-2">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span>{new Date(post.publishedAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        <ViralBadge result={post} />
                         {post.ad.isAd && (
                           <span
                             className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
@@ -219,6 +231,8 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
                     <div className="text-sm text-slate-300 line-clamp-3 leading-relaxed flex-1">
                       {post.text ? highlightText(post.text, debouncedQ) : <span className="italic text-slate-500">Текст недоступен</span>}
                     </div>
+                    {(post.reactions !== null || post.reactionBreakdown?.length) &&
+                      <div className="mt-2"><ReactionBreakdownInline total={post.reactions} breakdown={post.reactionBreakdown} /></div>}
                   </div>
                 ))}
               </div>

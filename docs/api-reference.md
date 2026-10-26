@@ -36,20 +36,21 @@ Middleware больше не добавляет Bearer к запросам бр�
 | `PUT /api/channels/:id/favorite` | `{ "isFavorite": true }` | `{ "success": true, "isFavorite": true }`; кэши метрик не сбрасывает | Да |
 | `GET /api/channels/:id/ltv` | ID | `{ "ltv": [{ "hour": 1, "percent": 12.3 }, ...] }` либо `{ "ltv": [] }` | Нет |
 | `GET /api/channels/:id/network` | ID | Совместимый плоский ответ `{ "outbound": [...], "inbound": [...] }`, ограниченный доступными каналами пользователя | Да |
-| `GET /api/channels/:id/ad-price` | ID | `{estimatedPricePerPost,cpm,confidence,averageAdReach,averageReachCurve}`; 404 если канала нет | Нет |
+| `GET /api/channels/:id/ad-price` | ID | `{estimatedPricePerPost,cpm,confidence,averageAdReach,averageReachCurve,priceSource,customAdPriceUah,customCpmUah,canEdit}`; 404 если канал недоступен | Да |
+| `PATCH /api/channels/:id/ad-price` | `{customAdPriceUah?,customCpmUah?}` | `{success,customAdPriceUah,customCpmUah,priceSource}`; 400 при неверных значениях, 403 для мастер-сессии, 404 при отсутствии личной подписки | Да |
 | `GET /api/channels/:id/ad-attribution` | ID, `days=7|30|90` (по умолчанию 30) | `{periodDays,inbound,outbound}` с приростом подписчиков +24/+48 ч и оценочными ценой/CPF | Да |
 
 `input` принимает username, Telegram-ссылку или invite-ссылку уже доступного аккаунту чата. Неверный/пустой input даёт 400. Неудачный backfill сохраняет `lastError`, но не обязательно отменяет 201. Добавление, PATCH и DELETE очищают `metricsCache`/`bestTimeCache`.
 
 `GET /api/channels/:id` использует `calculateChannelMetrics`, который не добавляет все поля overview (например, EP/консолидированный антифрод); для полной детализации используйте `/api/stats/channel/:id`.
 
-`GET /api/stats/citation-network?channelId=123&days=30` возвращает `{focalChannelId,days,nodes,edges,discoveredHubs}`. `channelId` обязателен и должен входить в активные `UserChannel` пользователя; мастер-сессия без `userId` использует все активные каналы. `days` принимает 7, 30 или 90 (по умолчанию 30); неверные параметры дают 400, недоступный канал 404. Рёбра считают упоминания и пересылки по `Post.publishedAt`, исключают самоцитирования и отмечают встречное направление. Внешние узлы содержат только видимый в посте username, без метрик каналов из чужих списков. `discoveredHubs` использует фиксированные последние 30 дней и минимум два уникальных канала-источника. В граф включаются до 30 наиболее часто упоминаемых внешних username; пересылки с одним лишь Telegram ID не становятся рекомендацией.
+`GET /api/stats/citation-network?channelId=123&days=30` возвращает `{focalChannelId,days,nodes,edges,discoveredHubs,propagation}`. `channelId` обязателен и должен входить в активные `UserChannel` пользователя; мастер-сессия без `userId` использует все активные каналы. `days` принимает 7, 30 или 90 (по умолчанию 30); неверные параметры дают 400, недоступный канал 404. Рёбра считают упоминания и пересылки по `Post.publishedAt`, исключают самоцитирования и отмечают встречное направление. Внешние узлы содержат только видимый в посте username, без метрик каналов из чужих списков. `discoveredHubs` использует фиксированные последние 30 дней и минимум два уникальных канала-источника. В граф включаются до 30 наиболее часто упоминаемых внешних username; пересылки с одним лишь Telegram ID не становятся рекомендацией. `propagation` содержит роль канала, `originRatio`, входящие и исходящие счётчики, среднюю подтверждённую задержку, топ цитируемых постов и последние цепочки. Эта часть всегда использует окно 30 дней и только каналы текущего пользователя; неизвестная задержка возвращается как `null`.
 
 LTV строится по PostSnapshot для постов за 14 дней с ≥2 снимками и ранним замером до округлённого шестого часа; результат охватывает часы 1–72. Пустой LTV не означает отсутствие канала: отдельной проверки его существования нет. Network агрегирует сохранённые исходящие/входящие упоминания, а не обращается к Telegram за новым графом.
 
 Новые PostSnapshot записываются только в первые 72 часа после публикации с интервалом от 45 минут. Записи старше 30 дней удаляются worker после основного цикла.
 
-У ad-price отсутствие рекламы или пригодных просмотров возвращает 200 с `estimatedPricePerPost: null`, `averageAdReach: null`, пустой кривой. `confidence` — `high` при ≥3 рекламных постах, иначе `low`; это правило по числу постов, не статистический доверительный интервал.
+У ad-price отсутствие рекламы или пригодных просмотров возвращает 200 с `averageAdReach: null` и пустой кривой. `estimatedPricePerPost` при этом равен личной фиксированной цене, если она положительна, иначе `null`. Приоритет: `customAdPriceUah > 0`, затем `customCpmUah > 0`, затем нишевый CPM. `priceSource` принимает `custom_price`, `custom_cpm` или `niche_estimate`. PATCH принимает только целые неотрицательные значения до 2147483647 или `null` для сброса; пустое тело и неизвестные поля дают 400. `confidence` равен `high` при ≥3 рекламных постах, иначе `low`; это правило по числу постов, не статистический доверительный интервал. Все суммы и CPM указаны в гривнах.
 
 ## Статистика
 
@@ -57,7 +58,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | --- | --- | --- |
 | `GET /api/stats/overview` | — | `{myChannel,channels,totalChannels,activeChannels,lastGlobalUpdate}` |
 | `GET /api/stats/dashboard` | Нет тела | KPI, `avgErr`, `avgScore`, topGainers/topLosers, postsTimeline/subscribersTimeline только по активным каналам |
-| `GET /api/stats/channel/:id` | `period=24h`, `7d` или `30d`, default `7d` | `{channel,myChannel,period,scoreBreakdown,membersHistory,postsDistribution,vrHistory,heatmapData,myHeatmapData,recentPosts,contentTypePerformance,silencePeriods}` |
+| `GET /api/stats/channel/:id` | `period=24h`, `7d` или `30d`, default `7d` | `{channel,myChannel,period,scoreBreakdown,membersHistory,postsDistribution,vrHistory,heatmapData,myHeatmapData,recentPosts,popularReactions,contentTypePerformance,silencePeriods}` |
 | `GET /api/stats/compare` | Обязательные `a`, `b` — ID каналов; `period` как выше | `{ "a": ChannelDetailStats, "b": ChannelDetailStats, "period": "7d" }`; 400 без ID, 404 если канал не найден |
 | `GET /api/stats/best-time` | Нет параметров | `{timeZone,bestDay,bestHour,score,avgViews,avgVr,postCount,heatmap}` или `null`, если нет активных конкурентов |
 | `GET /api/stats/trends` | — | Последний сохранённый trend: `{createdAt,data}`; `null` при отсутствии/невалидном JSON, новую генерацию не запускает |
@@ -100,16 +101,20 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `limit`, `offset` | Пагинация; `limit` от 1 до 50, `offset` от 0 до 100000 |
 | `sortBy` | Старые значения: `date`, `views_desc`, `views_asc`; глобальный поиск: `publishedAt`, `views`, `er`, `err`, `forwards` |
 | `onlyAds` | `true` выбирает сохранённые рекламные посты; `false` оставляет все посты |
+| `advertiser` | Необязательный `@username` рекламируемой цели; выбирает только рекламные посты с соответствующим `Mention` |
+| `onlyViral` | `true` оставляет только вирусные посты по 30-дневной базовой линии канала; сочетается с остальными фильтрами |
 | `niche` | Ниша из `UserChannel` для обычной сессии или из `Channel` для мастер-сессии |
 | `days` | `7`, `14`, `30` или `90`; по умолчанию 30 в глобальном поиске |
 
 `posts[].text` — обычный текст или `null`. Для успешно собранной статьи это текст, извлечённый из `richMessage`, а не HTML и не набор блоков Telegram. Нового поля или отдельного endpoint статей нет. При неудачной догрузке сохраняется прежний текст, если он был; причина отсутствия текста отдельным полем не возвращается.
 
-Ответ: `{posts,total,absoluteTotal}`. `posts` содержит строковые messageId/groupedId и результат `detectAd` в `ad`; total учитывает фильтры, absoluteTotal учитывает все посты канала. Поиск реализован Prisma `contains`, без полнотекстового ранжирования. Фильтр `ads` использует сохранённый флаг `Post.isAd`, как и `adShare`; при сборе этот флаг выставляется по `detectAd.isAd || detectAd.isPartner`. Поле `ad` описывает маркеры из текущего текста и может отличаться от сохранённого флага, если текст изменился после классификации.
+Ответ: `{posts,total,absoluteTotal}`. `posts` содержит строковые messageId/groupedId, результат `detectAd` в `ad`, `reactionBreakdown` как массив `{emoji,count}` или `null`, а также `isViral`, `viralReasons`, `viralPrimaryReason` и `viralMultiplier`. Последний равен `null` без вирусной причины. total учитывает фильтры, absoluteTotal учитывает все посты канала. Поиск реализован Prisma `contains`, без полнотекстового ранжирования. Фильтр `ads` использует сохранённый флаг `Post.isAd`, как и `adShare`; при сборе этот флаг выставляется по `detectAd.isAd || detectAd.isPartner`. Поле `ad` описывает маркеры из текущего текста и может отличаться от сохранённого флага, если текст изменился после классификации.
 
-Запросы страницы `/posts` передают `days` и получают `{posts,total,channels,niches}`. В каждом посте есть источник, сохранённый `isAd`, ER/ERR, `hasImage` и уникальные `@упоминания` по `Mention`. Посты доступны только из активных `UserChannel` текущего пользователя и активных `Channel`; мастер-сессия без `userId` видит все активные каналы. Сортировка ER/ERR выполняется в PostgreSQL до пагинации, с пустыми метриками в конце. Некорректные параметры дают 400. Старые запросы `RecentPosts` с `channelId`, `dateFrom`/`dateTo`, `minViews`/`maxViews`, `type` и прежними значениями `sortBy` сохраняют ответ `{posts,total,absoluteTotal}`, но также проходят проверку доступа к каналу.
+Запросы страницы `/posts` передают `days` и получают `{posts,total,channels,niches}`. В каждом посте есть источник, сохранённый `isAd`, ER/ERR, `hasImage` и уникальные `@упоминания` по `Mention`. Посты доступны только из активных `UserChannel` текущего пользователя и активных `Channel`; мастер-сессия без `userId` видит все активные каналы. Без `onlyViral` сортировка ER/ERR выполняется в PostgreSQL до пагинации, с пустыми метриками в конце. При `onlyViral=true` поиск сначала классифицирует подходящие посты, затем сортирует и применяет `offset`/`limit`; `total` отражает число вирусных результатов. Некорректные параметры дают 400. Старые запросы `RecentPosts` с `channelId`, `dateFrom`/`dateTo`, `minViews`/`maxViews`, `type` и прежними значениями `sortBy` сохраняют ответ `{posts,total,absoluteTotal}`, но также проходят проверку доступа к каналу.
 
 `GET /api/posts/:id/image` требует доступ к активному каналу публикации и возвращает 404 для недоступного поста или отсутствующего изображения. Ответ с байтами изображения имеет `Cache-Control: private, no-store`.
+
+`GET /api/posts/advertisers?days=7|30&niche=...` требует авторизации. По умолчанию период 30 дней, `niche` необязательна. Ответ `{days,niche,advertisers}` содержит для каждого `@username` число размещений и каналов-доноров, их список, суммарный и средний известный охват, оценку `estimatedSpendUah`, первую и последнюю дату, а также `isTrackedChannel` и `channelId`. Источники ограничены активными каналами текущего пользователя; ID чужого отслеживаемого канала не возвращается. При неизвестных просмотрах охват и бюджет равны `null`.
 
 ## AI-отчёты
 

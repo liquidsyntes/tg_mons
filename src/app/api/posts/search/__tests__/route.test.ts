@@ -73,6 +73,18 @@ describe('GET /api/posts/search', () => {
     expect(body.channels).toHaveLength(1);
   });
 
+  it('filters advertiser placements within the authenticated search scope', async () => {
+    const response = await GET(request('?days=30&advertiser=%40Brand&sortBy=err'));
+    expect(response.status).toBe(200);
+    expect(mocks.count).toHaveBeenCalledWith({ where: expect.objectContaining({
+      isAd: true, mentions: { some: { type: 'mention', targetUsername: { equals: 'brand', mode: 'insensitive' } } },
+      channel: { isActive: true, userChannels: { some: { userId: 3, isActive: true } } },
+    }) });
+    const query = mocks.raw.mock.calls[0][0];
+    expect(query.sql).toContain('FROM "mentions" m');
+    expect(query.sql).toContain('p."is_ad" = true');
+  });
+
   it('uses active channels and Channel.niche for a master session', async () => {
     mocks.auth.mockResolvedValue({ authorized: true, role: 'ADMIN', userId: null });
     mocks.channels.mockResolvedValue([{ id: 7, title: 'Технологии', username: 'tech', niche: 'science' }]);
@@ -99,7 +111,55 @@ describe('GET /api/posts/search', () => {
     expect(query.sql).toContain('subscribers_at_publish');
   });
 
-  it.each(['?days=3', '?onlyAds=yes', '?limit=51', '?offset=-1', '?sortBy=unknown',
+  it('combines viral, ad and text filters before paginating channel posts', async () => {
+    const normal = Array.from({ length: 5 }, (_, index) => ({
+      id: index + 2, channelId: 7, publishedAt: new Date('2026-10-23T10:00:00Z'),
+      views: 100, reactions: 3, comments: 0, forwards: 2, subscribersAtPublish: 5000,
+    }));
+    const outlier = { ...post, views: 250, reactions: 3, comments: 0, forwards: 12 };
+    const secondOutlier = { ...outlier, id: 8, publishedAt: new Date('2026-10-23T11:00:00Z') };
+    mocks.count.mockResolvedValue(7);
+    mocks.findMany.mockReset()
+      .mockResolvedValueOnce([...normal, outlier, secondOutlier])
+      .mockResolvedValueOnce(normal)
+      .mockResolvedValueOnce([outlier]);
+
+    const response = await GET(request('?channelId=7&type=ads&q=бренда&sortBy=date&onlyViral=true&limit=1'));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ total: 2, absoluteTotal: 7 });
+    expect(body.posts[0]).toMatchObject({
+      id: 1, isViral: true, viralReasons: ['views', 'forwards'],
+      viralPrimaryReason: 'forwards', viralMultiplier: 6,
+    });
+    expect(mocks.findMany.mock.calls[0][0].where).toMatchObject({
+      channelId: 7, isAd: true, text: { contains: 'бренда', mode: 'insensitive' },
+    });
+    expect(mocks.findMany.mock.calls[2][0]).toMatchObject({
+      where: { AND: [expect.any(Object), { id: { in: [1] } }] },
+    });
+  });
+
+  it('filters global viral results with the existing niche and ad scope', async () => {
+    const normal = Array.from({ length: 5 }, (_, index) => ({
+      id: index + 2, channelId: 7, publishedAt: new Date('2026-10-23T10:00:00Z'),
+      views: 100, reactions: 3, comments: 0, forwards: 2, subscribersAtPublish: 5000,
+    }));
+    const outlier = { ...post, views: 250, reactions: 3, comments: 0, forwards: 12 };
+    mocks.findMany.mockReset()
+      .mockResolvedValueOnce([...normal, outlier])
+      .mockResolvedValueOnce(normal)
+      .mockResolvedValueOnce([outlier]);
+    const body = await (await GET(request('?days=30&onlyAds=true&onlyViral=true&niche=tech&q=бренд'))).json();
+    expect(body.total).toBe(1);
+    expect(body.posts[0].isViral).toBe(true);
+    expect(mocks.findMany.mock.calls[0][0].where).toMatchObject({
+      isAd: true, text: { contains: 'бренд', mode: 'insensitive' },
+      channel: { userChannels: { some: { userId: 3, isActive: true, niche: 'tech' } } },
+    });
+  });
+
+  it.each(['?days=3', '?onlyAds=yes', '?onlyViral=yes', '?advertiser=bad!', '?limit=51', '?offset=-1', '?sortBy=unknown',
     '?channelId=0', '?channelId=abc', '?niche=tech&dateFrom=2026-10-01', '?q=x&days=14&sortBy=nope'])
   ('rejects invalid parameters: %s', async query => {
     expect((await GET(request(query))).status).toBe(400);

@@ -51,12 +51,25 @@ it('collapses and expands the loaded channel network without refetching', async 
       edges: [{ source: 'channel:7', target: 'external:hubchannel', count: 3,
         forwardsCount: 0, mentionsCount: 3, isBidirectional: false }],
       discoveredHubs: [],
+      propagation: {
+        periodDays: 30, role: 'origin', originRatio: 3, incomingCount: 3, outgoingCount: 1,
+        averageIncomingDelayMinutes: 30,
+        topCitedPosts: [{ id: 10, messageId: '42', publishedAt: '2026-10-20T10:00:00Z',
+          textSnippet: 'Исходная публикация', citationsCount: 1, averageDelayMinutes: 30,
+          citingChannels: [{ id: 8, title: 'Цитатор', username: 'citer', citationsCount: 1, averageDelayMinutes: 30 }] }],
+        recentChains: [{ source: { id: 8, title: 'Цитатор', username: 'citer' },
+          target: { id: 7, title: 'Главный канал', username: 'main' }, type: 'forward',
+          citingMessageId: '100', publishedAt: '2026-10-20T10:30:00Z', originPostId: 10, delayMinutes: 30 }],
+      },
     }),
   });
   vi.stubGlobal('fetch', fetcher);
   render(React.createElement(CitationNetworkWidget, { channelId: 7 }));
 
   expect(await screen.findByText('@hubchannel')).toBeDefined();
+  expect(screen.getByText('Первоисточник')).toBeDefined();
+  expect(screen.getByText(/Входящие упоминания:/)).toBeDefined();
+  expect(screen.getByText('Открыть цитирующий пост')).toBeDefined();
   const content = document.getElementById('network-content-7');
   const collapse = screen.getByRole('button', { name: 'Свернуть' });
   expect(collapse.getAttribute('aria-expanded')).toBe('true');

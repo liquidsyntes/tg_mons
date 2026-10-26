@@ -3,19 +3,23 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Megaphone } from 'lucide-react';
-import type { AdAttributionPlacement, ChannelAdAttribution } from '@/lib/types';
+import type { AdAttributionPlacement, AdPriceSource, ChannelAdAttribution } from '@/lib/types';
+import { AdPriceSettings } from './AdPriceSettings';
 
 type Direction = 'inbound' | 'outbound';
 
 const numberFormat = new Intl.NumberFormat('ru-RU');
 const moneyFormat = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+const PRICE_LABELS: Record<AdPriceSource, string> = {
+  custom_price: 'Указанная цена', custom_cpm: 'Ваш CPM', niche_estimate: 'Оценка по нише',
+};
 
 function formatDelta(value: number | null): string {
   return value === null ? 'н/д' : `${value > 0 ? '+' : ''}${numberFormat.format(value)}`;
 }
 
 function formatMoney(value: number | null): string {
-  return value === null ? 'н/д' : `${moneyFormat.format(value)} ₽`;
+  return value === null ? 'н/д' : `${moneyFormat.format(value)} ₴`;
 }
 
 function PlacementCard({ placement, direction }: { placement: AdAttributionPlacement; direction: Direction }) {
@@ -40,7 +44,7 @@ function PlacementCard({ placement, direction }: { placement: AdAttributionPlace
         <span>Текущий охват: {placement.views === null ? 'н/д' : numberFormat.format(placement.views)}</span>
         <span>Подписчики +24 ч: {formatDelta(placement.deltaSubscribers24h)}</span>
         <span>Подписчики +48 ч: {formatDelta(placement.deltaSubscribers48h)}</span>
-        <span>Оценка цены поста: {formatMoney(placement.estimatedPricePerPost)}</span>
+        <span>Цена поста: {formatMoney(placement.estimatedPricePerPost)}{placement.priceSource ? ` · ${PRICE_LABELS[placement.priceSource]}` : ''}</span>
         <span>Оценочный CPF: {formatMoney(placement.estimatedCpf)}</span>
         {direction === 'outbound' && <span>Конверсия просмотров: {placement.conversionPercent === null ? 'н/д' : `${placement.conversionPercent}%`}</span>}
       </div>
@@ -48,12 +52,13 @@ function PlacementCard({ placement, direction }: { placement: AdAttributionPlace
   );
 }
 
-export function AdAttributionWidget({ channelId }: { channelId: number }) {
+export function AdAttributionWidget({ channelId, onPriceSaved }: { channelId: number; onPriceSaved?: () => void }) {
   const [direction, setDirection] = useState<Direction>('inbound');
   const [days, setDays] = useState<7 | 30 | 90>(30);
   const [data, setData] = useState<ChannelAdAttribution | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [priceRevision, setPriceRevision] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -70,7 +75,7 @@ export function AdAttributionWidget({ channelId }: { channelId: number }) {
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [channelId, days]);
+  }, [channelId, days, priceRevision]);
 
   const placements = data?.[direction] ?? [];
   return (
@@ -87,6 +92,10 @@ export function AdAttributionWidget({ channelId }: { channelId: number }) {
           </select>
         </label>
       </div>
+      <AdPriceSettings channelId={channelId} onSaved={() => {
+        setPriceRevision(value => value + 1);
+        onPriceSaved?.();
+      }} />
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Направление размещений">
         <button type="button" role="tab" aria-selected={direction === 'inbound'} onClick={() => setDirection('inbound')}
           className={`rounded-xl border px-3 py-2 text-xs ${direction === 'inbound' ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}>

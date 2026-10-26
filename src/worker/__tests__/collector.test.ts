@@ -10,6 +10,8 @@ const db = vi.hoisted(() => ({
   fraudUpdate: vi.fn(),
   fraudCreate: vi.fn(),
   fraudDeleteMany: vi.fn(),
+  mentionDeleteMany: vi.fn(),
+  mentionCreateMany: vi.fn(),
   transaction: vi.fn(),
 }));
 
@@ -31,6 +33,7 @@ vi.mock('@/lib/prisma', () => {
       findMany: db.postSnapshotFindMany,
       deleteMany: db.postSnapshotDeleteMany,
     },
+    mention: { deleteMany: db.mentionDeleteMany, createMany: db.mentionCreateMany },
     channelMetricDaily: { upsert: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
     fraudSignal,
     $transaction: db.transaction,
@@ -51,7 +54,7 @@ vi.mock('telegram/sessions/index.js', () => ({
 }));
 
 import { withRateLimitAndRetry, sleep } from '@/worker/fetcher';
-import { cleanupOldPostSnapshots, saveFraudSignal, upsertPostWithReactions } from '@/worker/persister';
+import { cleanupOldPostSnapshots, saveFraudSignal, saveMentions, upsertPostWithReactions } from '@/worker/persister';
 
 describe('withRateLimitAndRetry', () => {
   it('returns result on first success', async () => {
@@ -152,6 +155,29 @@ describe('collector persistence policy', () => {
     await upsertPostWithReactions(post(new Date(now.getTime() - 72 * 60 * 60 * 1000 - 1)));
     expect(db.postSnapshotFindFirst).not.toHaveBeenCalled();
     expect(db.postSnapshotCreate).not.toHaveBeenCalled();
+  });
+
+  it('saves available reaction details and preserves them when a later update has none', async () => {
+    const publishedAt = new Date(now.getTime() - 60 * 60 * 1000);
+    await upsertPostWithReactions({ ...post(publishedAt), reactions: 3,
+      reactionBreakdown: [{ emoji: '🔥', count: 3 }] });
+    expect(db.postUpsert).toHaveBeenLastCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ reactions: 3, reactionBreakdown: [{ emoji: '🔥', count: 3 }] }),
+      create: expect.objectContaining({ reactions: 3, reactionBreakdown: [{ emoji: '🔥', count: 3 }] }),
+    }));
+
+    await upsertPostWithReactions({ ...post(publishedAt), reactionBreakdown: null });
+    expect(db.postUpsert).toHaveBeenLastCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ reactions: undefined, reactionBreakdown: undefined }),
+    }));
+  });
+
+  it('persists the target message ID with a mention', async () => {
+    await saveMentions(10, 1, [{ type: 'forward', targetTgId: 7n, targetMessageId: 42n }]);
+    expect(db.mentionCreateMany).toHaveBeenCalledWith({ data: [{
+      sourcePostId: 10, sourceChannelId: 1, targetUsername: undefined,
+      targetTgId: 7n, targetMessageId: 42n, type: 'forward',
+    }] });
   });
 
   it('updates one fraud signal for today and removes same-day duplicates', async () => {

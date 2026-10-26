@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Network, ChevronDown } from 'lucide-react';
-import type { CitationNetworkData, CitationNetworkNode } from '@/lib/types';
+import type { CitationNetworkData, CitationNetworkNode, OriginRole, PropagationData } from '@/lib/types';
 
 const WIDTH = 900;
 const NODE_WIDTH = 220;
@@ -14,6 +14,68 @@ function nodeHref(node: CitationNetworkNode): string {
 
 function shorten(value: string, length = 23): string {
   return value.length > length ? `${value.slice(0, length - 1)}…` : value;
+}
+
+const ROLE_LABELS: Record<OriginRole, string> = {
+  origin: 'Первоисточник',
+  distributor: 'Агрегатор / Дистрибьютор',
+  balanced: 'Сбалансированный',
+  isolated: 'Изолированный',
+};
+
+function delayLabel(minutes: number | null): string {
+  if (minutes === null) return 'н/д';
+  if (minutes >= 1440) return `${(minutes / 1440).toFixed(1)} дн.`;
+  if (minutes >= 60) return `${(minutes / 60).toFixed(1)} ч`;
+  return `${minutes} мин`;
+}
+
+function postHref(username: string | null, tgId: string | null | undefined, messageId: string): string | null {
+  if (!/^\d+$/.test(messageId)) return null;
+  if (username && /^[a-z0-9_]{4,}$/i.test(username)) return `https://t.me/${username}/${messageId}`;
+  return tgId && /^\d+$/.test(tgId) ? `https://t.me/c/${tgId}/${messageId}` : null;
+}
+
+function PropagationPanel({ data, focalUsername }: { data: PropagationData; focalUsername: string | null }) {
+  return <div className="space-y-4" aria-label="Цепочки распространения">
+    <div className="rounded-xl border border-border bg-slate-900/50 p-4 space-y-2">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+        <span className="rounded border border-accent/40 bg-accent/10 px-2 py-1 font-semibold text-accent">{ROLE_LABELS[data.role]}</span>
+        <span>Входящие упоминания: <strong className="text-white">{data.incomingCount}</strong></span>
+        <span>Исходящие упоминания: <strong className="text-white">{data.outgoingCount}</strong></span>
+        <span>Индекс первоисточника: <strong className="text-white">{data.originRatio ?? 'н/д'}</strong></span>
+        <span>Средний отклик: <strong className="text-white">{delayLabel(data.averageIncomingDelayMinutes)}</strong></span>
+      </div>
+      <p className="text-[11px] text-slate-500">По доступным отслеживаемым каналам за 30 дней. Задержка известна только при точной ссылке на исходный пост.</p>
+    </div>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="rounded-xl border border-border bg-slate-900/40 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-white">Топ цитируемых публикаций</h3>
+        {data.topCitedPosts.length === 0 ? <p className="text-xs text-slate-400">Точные связи с публикациями пока не найдены</p>
+          : data.topCitedPosts.map(post => {
+            const href = postHref(focalUsername, data.focalTgId, post.messageId);
+            return <div key={post.id} className="border-t border-border pt-2 text-xs space-y-1">
+              <p className="text-slate-200">{href ? <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Пост от {new Date(post.publishedAt).toLocaleDateString('ru-RU')}</a>
+                : `Пост от ${new Date(post.publishedAt).toLocaleDateString('ru-RU')}`} · {post.citationsCount} цитирований</p>
+              {post.textSnippet && <p className="line-clamp-2 text-slate-400">{post.textSnippet}</p>}
+              <p className="text-slate-400">Подхватили: {post.citingChannels.map(channel => `${channel.title} (${channel.citationsCount}, ${delayLabel(channel.averageDelayMinutes)})`).join(', ')}</p>
+            </div>;
+          })}
+      </div>
+      <div className="rounded-xl border border-border bg-slate-900/40 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-white">Последние цепочки</h3>
+        {data.recentChains.length === 0 ? <p className="text-xs text-slate-400">Связей с другими отслеживаемыми каналами пока нет</p>
+          : data.recentChains.map((chain, index) => {
+            const href = postHref(chain.source.username, chain.source.tgId, chain.citingMessageId);
+            return <div key={`${chain.source.id}-${chain.target.id}-${chain.citingMessageId}-${index}`} className="border-t border-border pt-2 text-xs space-y-1">
+              <p className="text-slate-200">{chain.source.title} → {chain.target.title}</p>
+              <p className="text-slate-400">{chain.type === 'forward' ? 'Пересылка' : 'Упоминание'} · {new Date(chain.publishedAt).toLocaleString('ru-RU')} · отклик {delayLabel(chain.delayMinutes)}</p>
+              {href && <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Открыть цитирующий пост</a>}
+            </div>;
+          })}
+      </div>
+    </div>
+  </div>;
 }
 
 function NetworkGraph({ data, channelId }: { data: CitationNetworkData; channelId: number }) {
@@ -167,7 +229,9 @@ export default function CitationNetworkWidget({ channelId }: { channelId: number
       {error && <p role="alert" className="text-sm text-rose-400">{error}</p>}
       {message && <p role="status" className="text-sm text-emerald-400">{message}</p>}
       {loading ? <div className="h-56 animate-pulse rounded-xl bg-slate-900/50" aria-label="Загрузка карты связей" /> : tab === 'graph' ?
-        data ? <NetworkGraph data={data} channelId={channelId} /> : null :
+        data ? <><NetworkGraph data={data} channelId={channelId} />
+          {data.propagation && <PropagationPanel data={data.propagation}
+            focalUsername={data.nodes.find(node => node.channelId === channelId)?.username ?? null} />}</> : null :
         data?.discoveredHubs.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data.discoveredHubs.map(hub =>
           <div key={hub.username} className="rounded-xl border border-border bg-slate-900/40 p-4 space-y-2">
             <a href={`https://t.me/${hub.username}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-white hover:text-accent">@{hub.username}</a>

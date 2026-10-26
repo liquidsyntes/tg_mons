@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
+import type { ReactionBreakdownItem } from '../lib/types';
 
 export async function addChannelToDb(params: {
   tgId: bigint;
@@ -225,6 +226,7 @@ export async function upsertPostWithReactions(params: {
     publishedAt: Date;
     views: number | null;
     reactions: number | null;
+    reactionBreakdown?: ReactionBreakdownItem[] | null;
     comments: number | null;
     forwards: number | null;
     text: string | null;
@@ -233,6 +235,7 @@ export async function upsertPostWithReactions(params: {
     isAd?: boolean;
     contentType?: string;
 }) {
+    const reactionBreakdown = params.reactionBreakdown?.map(item => ({ emoji: item.emoji, count: item.count }));
     const post = await prisma.post.upsert({
         where: {
             channelId_messageId: {
@@ -243,6 +246,7 @@ export async function upsertPostWithReactions(params: {
         update: {
             views: params.views ?? undefined,
             reactions: params.reactions ?? undefined,
+            reactionBreakdown,
             comments: params.comments ?? undefined,
             forwards: params.forwards ?? undefined,
             text: params.text ?? undefined,
@@ -256,6 +260,7 @@ export async function upsertPostWithReactions(params: {
             publishedAt: params.publishedAt,
             views: params.views,
             reactions: params.reactions,
+            reactionBreakdown,
             comments: params.comments,
             forwards: params.forwards,
             text: params.text,
@@ -288,7 +293,7 @@ export async function upsertPostWithReactions(params: {
 export async function saveMentions(
     postId: number,
     channelId: number,
-    mentions: { type: string; targetUsername?: string | null; targetTgId?: bigint | null }[]
+    mentions: { type: string; targetUsername?: string | null; targetTgId?: bigint | null; targetMessageId?: bigint | null }[]
 ) {
     if (mentions.length > 0) {
         await prisma.mention.deleteMany({ where: { sourcePostId: postId } });
@@ -298,6 +303,7 @@ export async function saveMentions(
                 sourceChannelId: channelId,
                 targetUsername: m.targetUsername,
                 targetTgId: m.targetTgId,
+                targetMessageId: m.targetMessageId,
                 type: m.type,
             }))
         });

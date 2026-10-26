@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { detectAd } from '@/lib/adDetector';
 import { calculatePostER, calculatePostERR } from '@/lib/metrics/engagement';
+import { calculateViralBaseline, classifyViralPost, type ViralBaseline } from '@/lib/metrics/viral';
+import { parseReactionBreakdown } from '@/lib/metrics/reactions';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +19,8 @@ interface SearchParams {
   q: string;
   niche: string | null;
   onlyAds: boolean;
+  onlyViral: boolean;
+  advertiser: string | null;
   days: number | null;
   sortBy: SortBy;
   limit: number;
@@ -60,6 +64,8 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
   const q = (query.get('q') ?? '').trim();
   const niche = query.has('niche') ? query.get('niche')?.trim() || null : null;
   const onlyAds = query.get('onlyAds');
+  const onlyViral = query.get('onlyViral');
+  const advertiser = query.get('advertiser')?.trim().replace(/^@/, '').toLowerCase() || null;
   const rawDays = query.get('days');
   const days = legacy ? null : readInteger(rawDays, 30, 7, 90);
   const limit = readInteger(query.get('limit'), legacy ? 15 : 20, 1, 50);
@@ -75,6 +81,8 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
     : rawSort;
   if ((rawChannelId !== null && channelId === null) || q.length > 200 || (niche !== null && niche.length > 64) ||
       (onlyAds !== null && onlyAds !== 'true' && onlyAds !== 'false') ||
+      (onlyViral !== null && onlyViral !== 'true' && onlyViral !== 'false') ||
+      (query.has('advertiser') && (advertiser === null || !/^[a-z0-9_]{4,32}$/.test(advertiser))) ||
       (rawDays !== null && ![7, 14, 30, 90].includes(days ?? -1)) || days === null && !legacy ||
       limit === null || offset === null || !['all', 'ads', 'partners'].includes(type) ||
       (query.has('dateFrom') && dateFrom === null) || (query.has('dateTo') && dateTo === null) ||
@@ -85,7 +93,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
       (!legacy && ['dateFrom', 'dateTo', 'minViews', 'maxViews', 'type'].some(key => query.has(key))) ||
       (onlyAds === 'true' && type === 'partners')) return null;
   return {
-    legacy, channelId, q, niche, onlyAds: onlyAds === 'true', days, sortBy: sortBy as SortBy,
+    legacy, channelId, q, niche, onlyAds: onlyAds === 'true', onlyViral: onlyViral === 'true', advertiser, days, sortBy: sortBy as SortBy,
     limit, offset, dateFrom, dateTo, minViews, maxViews, type: type as LegacyType,
   };
 }
@@ -100,7 +108,9 @@ function buildWhere(params: SearchParams, userId: number | null, now: Date): Pri
   };
   if (params.channelId !== null) where.channelId = params.channelId;
   if (params.q) where.text = { contains: params.q, mode: 'insensitive' };
-  if (params.onlyAds || params.type === 'ads') where.isAd = true;
+  if (params.onlyAds || params.type === 'ads' || params.advertiser) where.isAd = true;
+  if (params.advertiser) where.mentions = { some: { type: 'mention',
+    targetUsername: { equals: params.advertiser, mode: 'insensitive' } } };
   if (params.type === 'partners') where.OR = [
     { text: { contains: 'партнер', mode: 'insensitive' } },
     { text: { contains: 'партнёр', mode: 'insensitive' } },
@@ -132,7 +142,8 @@ function buildMetricSortQuery(params: SearchParams, userId: number | null, now: 
     const escaped = params.q.replace(/[\\%_]/g, character => `\\${character}`);
     filters.push(Prisma.sql`p."text" ILIKE ${`%${escaped}%`} ESCAPE E'\\\\'`);
   }
-  if (params.onlyAds || params.type === 'ads') filters.push(Prisma.sql`p."is_ad" = true`);
+  if (params.onlyAds || params.type === 'ads' || params.advertiser) filters.push(Prisma.sql`p."is_ad" = true`);
+  if (params.advertiser) filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "mentions" m WHERE m."source_post_id" = p."id" AND m."type" = 'mention' AND LOWER(m."target_username") = ${params.advertiser})`);
   if (params.days !== null) filters.push(Prisma.sql`p."published_at" >= ${new Date(now.getTime() - params.days * 86_400_000)}`);
   if (params.minViews !== null) filters.push(Prisma.sql`p."views" >= ${params.minViews}`);
   if (params.maxViews !== null) filters.push(Prisma.sql`p."views" <= ${params.maxViews}`);
@@ -154,6 +165,52 @@ function orderBy(sortBy: SortBy): Prisma.PostOrderByWithRelationInput[] {
     { forwards: { sort: 'desc', nulls: 'last' } }, { publishedAt: 'desc' }, { id: 'desc' },
   ];
   return [{ publishedAt: 'desc' }, { id: 'desc' }];
+}
+
+const viralSelect = {
+  id: true, channelId: true, publishedAt: true, views: true, reactions: true,
+  comments: true, forwards: true, subscribersAtPublish: true,
+} as const;
+
+type ViralCandidate = Prisma.PostGetPayload<{ select: typeof viralSelect }>;
+
+async function loadViralBaselines(channelIds: number[], now: Date): Promise<Map<number, ViralBaseline | null>> {
+  const result = new Map<number, ViralBaseline | null>();
+  if (channelIds.length === 0) return result;
+  const posts = await prisma.post.findMany({
+    where: { channelId: { in: channelIds }, publishedAt: { gte: new Date(now.getTime() - 30 * 86_400_000) } },
+    select: { channelId: true, views: true, reactions: true, comments: true, forwards: true },
+  });
+  const grouped = new Map<number, typeof posts>();
+  for (const post of posts) {
+    const list = grouped.get(post.channelId) ?? [];
+    list.push(post);
+    grouped.set(post.channelId, list);
+  }
+  for (const channelId of channelIds) result.set(channelId, calculateViralBaseline(grouped.get(channelId) ?? []));
+  return result;
+}
+
+function sortViralCandidates(posts: ViralCandidate[], sortBy: SortBy): ViralCandidate[] {
+  const metric = (post: ViralCandidate): number | null => {
+    if (sortBy === 'views' || sortBy === 'views_asc') return post.views;
+    if (sortBy === 'forwards') return post.forwards;
+    if (sortBy === 'er') return calculatePostER(post);
+    if (sortBy === 'err') return calculatePostERR(post);
+    return null;
+  };
+  return posts.sort((left, right) => {
+    if (sortBy !== 'publishedAt') {
+      const leftValue = metric(left);
+      const rightValue = metric(right);
+      if (leftValue === null && rightValue !== null) return 1;
+      if (rightValue === null && leftValue !== null) return -1;
+      if (leftValue !== null && rightValue !== null && leftValue !== rightValue) {
+        return sortBy === 'views_asc' ? leftValue - rightValue : rightValue - leftValue;
+      }
+    }
+    return right.publishedAt.getTime() - left.publishedAt.getTime() || right.id - left.id;
+  });
 }
 
 async function loadChannelOptions(userId: number | null): Promise<ChannelOption[]> {
@@ -193,14 +250,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       image: { select: { postId: true } },
       mentions: { where: { type: 'mention', targetUsername: { not: null } }, select: { targetUsername: true } },
     } satisfies Prisma.PostInclude;
-    const [total, absoluteTotal, channelOptions] = await Promise.all([
-      prisma.post.count({ where }),
+    const [baseTotal, absoluteTotal, channelOptions] = await Promise.all([
+      params.onlyViral ? Promise.resolve(0) : prisma.post.count({ where }),
       params.legacy && params.channelId !== null
         ? prisma.post.count({ where: { channelId: params.channelId, channel: where.channel } })
         : Promise.resolve(null),
       params.legacy ? Promise.resolve<ChannelOption[]>([]) : loadChannelOptions(userId),
     ]);
-    const posts = params.sortBy === 'er' || params.sortBy === 'err'
+    let total = baseTotal;
+    let viralBaselines: Map<number, ViralBaseline | null> | null = null;
+    const posts = params.onlyViral
+      ? await (async () => {
+        const candidates = await prisma.post.findMany({ where, select: viralSelect });
+        viralBaselines = await loadViralBaselines([...new Set(candidates.map(post => post.channelId))], now);
+        const viral = sortViralCandidates(candidates.filter(post =>
+          classifyViralPost(post, viralBaselines?.get(post.channelId) ?? null).isViral), params.sortBy);
+        total = viral.length;
+        const ids = viral.slice(params.offset, params.offset + params.limit).map(post => post.id);
+        if (ids.length === 0) return [];
+        const fetched = await prisma.post.findMany({ where: { AND: [where, { id: { in: ids } }] }, include });
+        const byId = new Map(fetched.map(post => [post.id, post]));
+        return ids.flatMap(id => { const post = byId.get(id); return post ? [post] : []; });
+      })()
+      : params.sortBy === 'er' || params.sortBy === 'err'
       ? await (async () => {
         const ids = (await prisma.$queryRaw<Array<{ id: number }>>(buildMetricSortQuery(params, userId, now)))
           .map(row => row.id);
@@ -210,6 +282,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         return ids.flatMap(id => { const post = byId.get(id); return post ? [post] : []; });
       })()
       : await prisma.post.findMany({ where, include, orderBy: orderBy(params.sortBy), skip: params.offset, take: params.limit });
+
+    viralBaselines ??= await loadViralBaselines([...new Set(posts.map(post => post.channelId))], now);
 
     const enriched = posts.map(post => ({
       ...post,
@@ -223,6 +297,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       mentions: [...new Set(post.mentions.flatMap(mention => mention.targetUsername ? [mention.targetUsername] : []))],
       er: calculatePostER(post),
       err: calculatePostERR(post),
+      reactionBreakdown: parseReactionBreakdown(post.reactionBreakdown),
+      ...classifyViralPost(post, viralBaselines?.get(post.channelId) ?? null),
       ad: detectAd(post.text),
       image: undefined,
     }));

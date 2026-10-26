@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Crown, ExternalLink, LineChart, ArrowUpRight, AlertTriangle } from 'lucide-react';
 
-import { ChannelMetrics } from '@/lib/types';
+import { type AdPriceResult, type ChannelMetrics } from '@/lib/types';
 import { checkLowCitationGrowth, runFraudAudit } from '@/lib/fraudDetector';
 import { AudienceDemographics } from './AudienceDemographics';
 import { SummaryMetric, GrowthMetric } from './SummaryMetric';
@@ -19,7 +19,7 @@ interface MyChannelCardProps {
 }
 
 export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
-  const [adPrice, setAdPrice] = useState<{ estimatedPricePerPost: number | null, cpm: number, confidence: 'high'|'low' } | null>(null);
+  const [adPrice, setAdPrice] = useState<Pick<AdPriceResult, 'estimatedPricePerPost' | 'cpm' | 'confidence' | 'priceSource'> | null>(null);
 
   const fraudAudit = (channel && (channel.fraudScore == null || !channel.fraudSignals)) ? runFraudAudit(channel) : null;
   const fraudScore = channel?.fraudScore ?? fraudAudit?.fraudScore ?? 0;
@@ -33,12 +33,12 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
           if (data && !data.error) {
             setAdPrice(data);
           } else {
-            setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low' });
+            setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low', priceSource: 'niche_estimate' });
           }
         })
         .catch(err => {
           console.error('Failed to load ad price', err);
-          setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low' });
+          setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low', priceSource: 'niche_estimate' });
         });
     }
   }, [channel?.id, channel?.isMine]);
@@ -176,16 +176,19 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
           />
           <SummaryMetric
             label="Реклама · пост"
-            title={`Ориентировочная алгоритмическая оценка, не фактическая цена${adPrice?.cpm ? `; CPM ${adPrice.cpm} ₴` : ''}`}
+            title={`${adPrice?.priceSource === 'custom_price' ? 'Указанная вами цена поста' : 'Расчётная цена по охвату'}${adPrice?.cpm ? `; CPM ${adPrice.cpm} ₴` : ''}`}
             value={adPrice ? (
               adPrice.estimatedPricePerPost ? (
-                <span className={`inline-flex items-center gap-1 ${adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <span className={`inline-flex items-center gap-1 ${adPrice.priceSource === 'custom_price' || adPrice.confidence === 'high' ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {formatNumber(adPrice.estimatedPricePerPost)} ₴
-                  {adPrice.confidence === 'low' && <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-label="Мало данных для оценки" />}
+                  {adPrice.priceSource !== 'custom_price' && adPrice.confidence === 'low' && <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-label="Мало данных для оценки" />}
                 </span>
               ) : 'н/д'
             ) : <span className="animate-pulse">...</span>}
-            detail={!adPrice ? 'Загрузка оценки' : !adPrice.estimatedPricePerPost ? 'Недостаточно данных' : adPrice.confidence === 'low' ? 'Низкая уверенность' : 'Оценка за пост'}
+            detail={!adPrice ? 'Загрузка оценки' : !adPrice.estimatedPricePerPost ? 'Недостаточно данных'
+              : adPrice.priceSource === 'custom_price' ? 'Ваш прайс'
+              : adPrice.priceSource === 'custom_cpm' ? 'Ваш CPM'
+              : adPrice.confidence === 'low' ? 'Низкая уверенность' : 'Оценка за пост'}
           />
         </div>
       </div>
