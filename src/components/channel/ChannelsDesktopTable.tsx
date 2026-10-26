@@ -64,7 +64,7 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'members' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-1 w-[80px] min-w-[80px] hover:text-white transition-colors text-center"
+                className="py-3.5 px-1 w-[72px] min-w-[72px] hover:text-white transition-colors text-center"
               >
                 <button type="button" onClick={() => onSort('members')} className="w-full rounded text-center">
                   {renderHeaderLabel('Subs', 'members')}
@@ -110,7 +110,7 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'lastFact' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-1 w-[76px] min-w-[76px] hover:text-white transition-colors text-center leading-tight"
+                className="py-3.5 px-1 w-[68px] min-w-[68px] hover:text-white transition-colors text-center leading-tight"
               >
                 <button type="button" onClick={() => onSort('lastFact')} className="w-full rounded text-center">
                   {renderHeaderLabel('Last Fact', 'lastFact')}
@@ -128,7 +128,7 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'vr' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
+                className="py-3.5 px-1 hover:text-white transition-colors text-center leading-tight"
               >
                 <button type="button" onClick={() => onSort('vr')} className="w-full rounded text-center">
                   {renderHeaderLabel('VR', 'vr', 'VR: просмотры относительно аудитории. Сверху за 24 часа, снизу за 7 дней')}
@@ -137,7 +137,7 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'er' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
+                className="py-3.5 px-1 hover:text-white transition-colors text-center leading-tight"
               >
                 <button type="button" onClick={() => onSort('er')} className="w-full rounded text-center">
                   {renderHeaderLabel('ER', 'er', 'ER: просмотры и взаимодействия относительно подписчиков на момент публикации. Сверху за 24 часа, снизу за 7 дней')}
@@ -146,7 +146,7 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'err' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-2 hover:text-white transition-colors text-center leading-tight"
+                className="py-3.5 px-1 hover:text-white transition-colors text-center leading-tight"
               >
                 <button type="button" onClick={() => onSort('err')} className="w-full rounded text-center">
                   {renderHeaderLabel('ERR', 'err', 'ERR: реакции, комментарии и пересылки относительно просмотров. Сверху за 24 часа, снизу за 7 дней; для групп показан CR за 7 дней')}
@@ -220,7 +220,7 @@ export function ChannelsDesktopTable({
                       onToggleFavorite={onToggleFavorite} 
                     />
                   </td>
-                  <td className="py-3.5 px-1 text-right font-mono font-bold text-white tabular-nums text-sm">
+                  <td className="py-3.5 px-1 text-right font-mono font-bold text-white tabular-nums text-xs">
                     {formatNumber(channel.currentMembers)}
                   </td>
                   <td className="py-3.5 px-2 text-center">
@@ -248,7 +248,7 @@ export function ChannelsDesktopTable({
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-1 text-center font-mono font-semibold tabular-nums text-sky-400">
+                  <td className="py-3.5 px-1 text-center font-mono font-semibold tabular-nums text-[#6cd733]">
                     <MetricCell 
                       value={channel.lastPostViews} 
                       {...getMetricReason('lastFact', channel)} 
@@ -268,9 +268,9 @@ export function ChannelsDesktopTable({
                       />
                     </div>
                   </td>
-                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-1 text-center font-mono tabular-nums">
                     <div>
-                      <div className="font-semibold text-slate-200 text-sm">
+                      <div className="font-semibold text-slate-200 text-xs">
                         <MetricCell value={channel.vr24h} suffix="%" {...getMetricReason('vr24h', channel)} />
                       </div>
                       <div className={`text-[11px] mt-0.5 ${channel.vr7d !== null ? (channel.vr7d > 20 ? 'text-emerald-400' : channel.vr7d > 10 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
@@ -278,9 +278,9 @@ export function ChannelsDesktopTable({
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-1 text-center font-mono tabular-nums">
                     <div>
-                      <div className="font-semibold text-slate-200 text-sm">
+                      <div className="font-semibold text-slate-200 text-xs">
                         <MetricCell value={channel.er24h} suffix="%" {...getMetricReason('er24h', channel)} />
                       </div>
                       <div className={`text-[11px] mt-0.5 ${channel.er7d !== null ? (channel.er7d > 2 ? 'text-emerald-400' : channel.er7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
@@ -288,16 +288,16 @@ export function ChannelsDesktopTable({
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-2 text-center font-mono tabular-nums">
+                  <td className="py-3.5 px-1 text-center font-mono tabular-nums">
                     {channel.type === 'group' ? (
                       <div title="Comments Rate: ответы / подписчики" className="flex flex-col items-center justify-center">
-                        <div className="font-semibold text-slate-200 text-sm">
+                        <div className="font-semibold text-slate-200 text-xs">
                           <MetricCell value={channel.cr7d} suffix="% CR" />
                         </div>
                       </div>
                     ) : (
                       <div>
-                        <div className="font-semibold text-slate-200 text-sm">
+                        <div className="font-semibold text-slate-200 text-xs">
                           <MetricCell value={channel.err24h} suffix="%" {...getMetricReason('err24h', channel)} />
                         </div>
                         <div className={`text-[11px] mt-0.5 ${channel.err7d !== null ? (channel.err7d > 2 ? 'text-emerald-400' : channel.err7d > 1 ? 'text-amber-400' : 'text-slate-400') : ''}`}>
@@ -308,7 +308,7 @@ export function ChannelsDesktopTable({
                   </td>
                   <td className="py-3.5 px-1 text-center font-mono tabular-nums">
                     {channel.adShare7d ? (
-                      <div className={`font-semibold text-sm ${
+                      <div className={`font-semibold text-[13px] ${
                         channel.adShare7d.level === 'high' ? 'text-rose-400' :
                         channel.adShare7d.level === 'medium' ? 'text-amber-400' :
                         channel.adShare7d.level === 'low' ? 'text-emerald-400' :
@@ -317,7 +317,7 @@ export function ChannelsDesktopTable({
                         {channel.adShare7d.level === 'none' ? '—' : `${channel.adShare7d.percent}%`}
                       </div>
                     ) : (
-                      <div className="text-slate-500 text-sm">—</div>
+                      <div className="text-slate-500 text-[13px]">—</div>
                     )}
                   </td>
                   <td className="py-3.5 px-1 text-center font-mono tabular-nums">
