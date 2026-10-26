@@ -1,6 +1,6 @@
 # Карта кодовой базы
 
-Сверено 20 октября 2026 года. TgMon представляет собой один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
+Сверено 26 октября 2026 года. TgMon представляет собой один npm-проект с Next.js и отдельным TypeScript-worker; workspace-пакетов нет.
 
 ## Структура
 
@@ -24,7 +24,7 @@ docs/                   продуктовая и техническая док�
 | История отчётов | `src/app/reports/page.tsx`, `src/app/reports/[id]/page.tsx`, `ReportsListClient.tsx`, `src/app/api/reports/[id]/route.ts` для физического удаления |
 | События и настройки | `src/app/events/page.tsx`, `src/app/api/events/`, `src/lib/events/`, `src/app/settings/page.tsx`, `settings/InviteCodesSettings.tsx` |
 | API и доступ | `src/app/api/`, `src/middleware.ts`, `src/lib/auth.ts`, `src/lib/users.ts`; [контракты](api-reference.md) |
-| Планировщик | `src/worker/index.ts`; три независимых cron-задания (отключаются в локальном режиме `--local` / `WORKER_DISABLE_CRON=true`) |
+| Планировщик | `src/worker/index.ts`; основной сбор, демография и рекламный охват по cron; вне локального режима также проверка дайджеста и необязательный сканер событий. Все расписания отключает `--no-cron` или `WORKER_DISABLE_CRON=true` |
 | Авторизация MTProto | `src/worker/auth.ts`, `src/worker/client.ts`, `scripts/auth/qr-auth.ts`, `scripts/auth/auth-file.ts` |
 | Типы ответов | `src/lib/types.ts`, отдельные интерфейсы domain-модулей |
 

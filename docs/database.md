@@ -1,6 +1,6 @@
 # База данных и схема Prisma
 
-Сверено с [schema.prisma](../prisma/schema.prisma) 16 октября 2026 года. СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
+Сверено с [schema.prisma](../prisma/schema.prisma) 26 октября 2026 года. СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
 
 ## Общие сведения и требования к СУБД
 
@@ -27,7 +27,7 @@
 
 ## Сводная таблица моделей
 
-Схема содержит **20 моделей**, сопоставленных с таблицами PostgreSQL через атрибут `@@map`:
+Схема содержит **21 модель**, сопоставленную с таблицами PostgreSQL через атрибут `@@map`:
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
@@ -48,7 +48,7 @@
 | `AiReport` | `ai_reports` | `id` (Int, autoincrement) | `@@index([channelId, createdAt])` | `channel` -> `Channel?` (`Cascade`) | Сохранённые аналитические отчёты, сгенерированные LLM через OpenRouter |
 | `Event` | `events` | `id` (Int, autoincrement) | — | Дочерние: `mentions` (`EventMention[]`, `Cascade`) | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | `id` (Int, autoincrement) | `@@unique([eventId, postId])`<br>`@@index([eventId])`<br>`@@index([postId])` | `event` -> `Event` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Связь M:N между мероприятиями (`Event`) и постами (`Post`), где они упомянуты |
-| `SystemSetting` | `system_settings` | `id` (String, default "global") | — | Нет внешних связей | Глобальная конфигурация AI-провайдера, модели, токена и расписания email/telegram дайджеста |
+| `SystemSetting` | `system_settings` | `id` (String, default "global") | Нет | Нет внешних связей | Глобальная конфигурация AI-провайдера, модели, токена и настроек Telegram-дайджеста |
 | `AlertRule` | `alert_rules` | `id` (Int, autoincrement) | `@@index([channelId])` | `channel` -> `Channel?` (`Cascade`) | Правила мониторинга и алертинга по метрикам канала (пороги, операторы, время последней успешной отправки) |
 | `AlertRuleFire` | `alert_rule_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, channelId])`<br>`@@index([channelId])` | `rule` -> `AlertRule` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Состояние cooldown для пары «правило и канал» |
 | `FraudSignal` | `fraud_signals` | `id` (Int, autoincrement) | `@@index([channelId, detectedAt])` | `channel` -> `Channel` (`Cascade`) | Зафиксированные эвристиками факты подозрительной активности (накрутка подписчиков, реакций, просмотров) |
@@ -69,7 +69,7 @@
 | `type` | `String` | `type` | Нет | — | Тип Telegram-сущности: `"channel"` или `"group"` |
 | `niche` | `String` | `niche` | Нет | `"general"` | Категория/ниша канала для сравнительного анализа |
 | `isMine` | `Boolean` | `isMine` | Нет | `false` | Флаг «Мой канал» (определяет доступ к статистике демографии) |
-| `isFavorite` | `Boolean` | `isFavorite` | Нет | `false` | Флаг избранного (Watchlist); участвует в анализе трендов |
+| `isFavorite` | `Boolean` | `isFavorite` | Нет | `false` | Флаг избранного (Watchlist) |
 | `isActive` | `Boolean` | `isActive` | Нет | `true` | Флаг активности сбора; отключается при превышении лимита ошибок |
 | `consecutiveErrors` | `Int` | `consecutiveErrors` | Нет | `0` | Счётчик последовательных ошибок сбора подряд |
 | `lastMessageId` | `BigInt` | `lastMessageId` | Да | — | Идентификатор последнего обработанного сообщения |
@@ -125,7 +125,7 @@
 | `comments` | `Int` | `comments` | Да | — | Количество комментариев |
 | `forwards` | `Int` | `forwards` | Да | — | Количество репостов / пересылок |
 | `text` | `String` | `text` | Да | — | Текст публикации |
-| `subscribersAtPublish` | `Int` | `subscribers_at_publish` | Да | — | Число подписчиков канала на момент публикации (для расчёта ERR) |
+| `subscribersAtPublish` | `Int` | `subscribers_at_publish` | Да | Нет | Сохранённое число подписчиков при первом обнаружении поста (для расчёта ER) |
 | `isAd` | `Boolean` | `is_ad` | Нет | `false` | Флаг рекламной публикации (помечается эвристиками) |
 | `contentType` | `String` | `content_type` | Нет | `'text'` | Тип контента публикации (`text`, `photo`, `video`, `poll`, `link`) |
 | `eventsScannedAt` | `DateTime` | `events_scanned_at` | Да | нет | Время успешной проверки поста сканером событий |
@@ -136,7 +136,7 @@
   - `@@index([channelId, publishedAt])`
   - `@@index([channelId, contentType])`
   - `@@index([eventsScannedAt, publishedAt])` для выборки непроверенных постов за период
-  - `@@index([text(ops: raw("gin_trgm_ops"))], type: Gin)` — триграммный индекс для полнотекстового поиска
+  - `@@index([text(ops: raw("gin_trgm_ops"))], type: Gin)`: триграммный индекс для поиска подстрок и похожих текстов
 - **Связи:**
   - `channel`: `Channel` (`fields: [channelId], references: [id], onDelete: Cascade`)
   - `mentions`: `Mention[]` (каскадное удаление)

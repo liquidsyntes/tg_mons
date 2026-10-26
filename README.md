@@ -2,7 +2,7 @@
 
 Веб-приложение для мониторинга и сравнения Telegram-каналов и групп. MTProto-сборщик сохраняет аудиторию и публикации в PostgreSQL; интерфейс показывает динамику, метрики вовлечённости, рекламную нагрузку, цитирование, эвристические сигналы риска и AI-отчёты.
 
-Документация по текущим функциям и эксплуатации сверена с исходным кодом **20 октября 2026 года**. Версии зависимостей и команды задаются в [package.json](package.json), точные установочные версии: в [package-lock.json](package-lock.json).
+Документация по текущим функциям и эксплуатации сверена с исходным кодом **26 октября 2026 года**. Версии зависимостей и команды задаются в [package.json](package.json), точные установочные версии: в [package-lock.json](package-lock.json).
 
 **Стек:** Next.js 15 / React 19 / TypeScript, Prisma 6 / PostgreSQL 15, teleproto (преемник GramJS, npm alias `telegram`), node-cron 4, Tailwind CSS 3, Recharts, Vitest 4. Docker и CI используют Node.js 22. Web слушает порт **4000**.
 
@@ -27,7 +27,7 @@
 Проект работает в трёх средах, и критически важно не смешивать их MTProto-сессии:
 
 1. **Локальная среда (Windows `C:\TgMon` / WSL `/mnt/c/TgMon`)**:
-   - Полный стек в Docker с Hot Reload (`tgmon-postgres` + `tgmon-web` + `tgmon-worker`): запускается через `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build` (или `bash dev-web.sh`).
+   - Полный стек в Docker с Hot Reload (`tgmon-postgres` + `tgmon-web` + `tgmon-worker`): запускается через `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build` (или `bash dev-web.sh`, если образы уже собраны).
    - Контейнер `tgmon-worker` в `docker-compose.dev.yml` работает с `WORKER_LOCAL_MODE=true` и использует **строго отдельную изолированную сессию `TG_SESSION_LOCAL`** (устройство `TgMon Local Dev`), никогда не обращаясь к серверной `TG_SESSION`.
 2. **Боевой сервер OVH (`ovh-vps`, `/opt/tgmon`, домен `tgmons.online`)**:
    - Полный Docker-стек (`postgres` + `web` + `worker` через `docker-compose.yml` + `docker-compose.prod.yml`), Nginx + HTTPS, деплой скриптом `bash update.sh`.
@@ -50,15 +50,13 @@ cp .env.example .env
 Заполните в `.env` параметры `DATABASE_URL` (`postgresql://...@127.0.0.1:5432/tgmon?schema=public`), `TG_API_ID`, `TG_API_HASH` и `COLLECT_API_TOKEN`, затем один раз создайте локальную сессию `TG_SESSION_LOCAL`:
 
 ```bash
-npm run prisma:generate
-npm run prisma:migrate
 npm run auth:local:qr
 ```
 
 - Команда `npm run auth:local:qr` поднимет локальную страницу **http://localhost:4099** с картинкой QR-кода.
 - Откройте **http://localhost:4099** в браузере на ПК, а на телефоне зайдите в **Telegram → Настройки → Устройства → Подключить устройство** и наведите камеру на QR-код (не кликайте по `tg://login` ссылке напрямую — Telegram блокирует прямые клики).
 - Либо используйте `npm run auth:local` для входа по номеру телефона и коду в терминале.
-- Полученная сессия автоматически запишется в `.env` как `TG_SESSION_LOCAL`.
+- Полученная сессия автоматически запишется в `.env` как `TG_SESSION_LOCAL`. Миграции запускайте после старта PostgreSQL: `npm run prisma:migrate` (или используйте `dev-web.sh`, который выполняет эту команду).
 
 ### 2. Запуск проекта локально
 
@@ -68,16 +66,16 @@ bash dev-web.sh
 ```
 *(или `npm run dev:local`, если PostgreSQL уже запущен).*
 
-Скрипт проверит PostgreSQL, применит миграции и при наличии `TG_SESSION_LOCAL` запустит одновременно `web` ([http://localhost:4000](http://localhost:4000)) и `worker:local` (`127.0.0.1:4001`, режим по запросу без фонового cron). Если `TG_SESSION_LOCAL` не задана, запустится только `web`.
+Скрипт при доступном локальном PostgreSQL попытается остановить его, запустит Docker Compose без пересборки образов и применит миграции через локальный Prisma CLI. Контейнеры `web` и `worker` запускаются независимо от наличия `TG_SESSION_LOCAL`. Для ручного запуска без Docker существует `npm run dev:local`: он запускает web и worker с `--local --no-cron`, но требует уже работающую БД.
 
 `npm run seed` **удаляет существующие посты, снимки и каналы** перед созданием демонстрационных данных. Это команда только для отдельной тестовой БД.
 
 ## Docker и развёртывание на сервере
 
 Подробная инструкция в [docs/deployment.md](docs/deployment.md) описывает все сценарии:
-1. **Штатный локальный запуск на хосте/WSL** (`bash dev-web.sh` / `npm run dev:local` с `TG_SESSION_LOCAL`).
+1. **Штатный локальный запуск в Docker** (`bash dev-web.sh` или Compose с dev override).
 2. **Production на сервере OVH** (`docker-compose.yml` + `docker-compose.prod.yml`, обновление через `bash update.sh`, серверная сессия `TG_SESSION`).
-3. **Альтернативная разработка в Docker с Hot Reload** (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build`).
+3. **Ручной запуск на хосте** (`npm run dev:local` с уже работающей PostgreSQL и `TG_SESSION_LOCAL`).
 
 ### Production-обновление на сервере (`/opt/tgmon`)
 
@@ -104,7 +102,7 @@ bash update.sh
 | `TG_API_ID`, `TG_API_HASH` | Ключи приложения Telegram (`my.telegram.org`) |
 | `TG_SESSION` | Серверная MTProto-сессия (живёт только на сервере в worker) |
 | `TG_SESSION_LOCAL` | Локальная MTProto-сессия для `worker:local` (создаётся через `npm run auth:local` / `auth:local:qr`) |
-| `WORKER_LOCAL_MODE`, `WORKER_DISABLE_CRON` | Локальный режим worker: строго `TG_SESSION_LOCAL`, без фонового cron |
+| `WORKER_LOCAL_MODE`, `WORKER_DISABLE_CRON` | Первый выбирает `TG_SESSION_LOCAL`; второй при `true` отключает cron и сбор при старте. Dev Compose по умолчанию не отключает cron |
 | `TG_PHONE` | Подсказка номера телефона для CLI авторизации |
 | `COLLECT_API_TOKEN` | Мастер-ключ входа в Web UI, ключ подписи сессионных cookie и Bearer для worker |
 | `COLLECT_CRON` | Основной сбор, по умолчанию `0 * * * *` |

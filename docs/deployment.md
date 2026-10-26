@@ -1,6 +1,6 @@
 # Запуск и эксплуатация
 
-Сверено 20 октября 2026 года с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml).
+Сверено 26 октября 2026 года с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml).
 
 ## Среды проекта и изоляция Telegram-авторизации (`AuthKeyDuplicated`)
 
@@ -68,11 +68,11 @@ cp .env.example .env
 | TG_PHONE | auth | Телефон; при отсутствии CLI запросит его |
 | TG_SESSION | серверный worker и `npm run auth` | Серверная MTProto-сессия (`TgMon Server Worker`); локально не используется |
 | TG_SESSION_LOCAL | локальный worker (`worker:local`) и `auth:local` | Изолированная локальная MTProto-сессия (`TgMon Local Dev`), исключающая `AuthKeyDuplicated` |
-| WORKER_LOCAL_MODE | worker | При `true` (или флаге `--local`) использует строго `TG_SESSION_LOCAL` и отключает фоновый cron |
+| WORKER_LOCAL_MODE | worker | При `true` (или флаге `--local`) использует строго `TG_SESSION_LOCAL`; сам по себе cron не отключает |
 | WORKER_DISABLE_CRON | worker | При `true` отключает расписания cron и `COLLECT_ON_STARTUP`, оставляя только внутренний API (`:4001`) для запросов из UI |
 | COLLECT_API_TOKEN | вход Web UI (мастер-ключ), подпись cookie сессий, Bearer для worker | Непустой сильный случайный ключ; без него вход и защищённые маршруты недоступны |
 | COLLECT_CRON | worker | `0 * * * *`; невалидное значение заменяется этим default с логом |
-| COLLECT_ON_STARTUP | worker | Запуск только если значение строго `true`; в локальном режиме (`--local`) игнорируется |
+| COLLECT_ON_STARTUP | worker | Запуск только если значение строго `true`; при `WORKER_DISABLE_CRON=true` или `--no-cron` не выполняется |
 | DEMOGRAPHICS_CRON | worker | `0 3 * * 0`; при невалидном значении weekly fallback |
 | EVENTS_SCAN_CRON | worker | Необязательное UTC-расписание сканера событий, например `30 */6 * * *`; пустое значение отключает фоновый запуск. Локальный режим и WORKER_DISABLE_CRON также отключают его |
 | WEB_INTERNAL_URL | worker | Адрес web для сброса кэша; в Compose `http://web:4000`, локально `http://localhost:4000` |
@@ -90,28 +90,19 @@ cp .env.example .env
 
 ---
 
-## Режим 1: Штатный локальный запуск (Нативно в WSL / Windows — `dev-web.sh`)
+## Режим 1: Локальный Docker-стек (`dev-web.sh`)
 
-Основной способ локальной разработки на рабочей машине (`C:\TgMon` / `/mnt/c/TgMon`): **нативный PostgreSQL в WSL** (`127.0.0.1:5432`, база `tgmon`) и **нативный запуск Node.js** без Docker.
+Штатный локальный запуск использует `docker-compose.yml` вместе с `docker-compose.dev.yml`: PostgreSQL, web с Hot Reload и worker с `TG_SESSION_LOCAL`. Перед первым запуском соберите образы:
 
-### Запуск одной командой
-
-В терминале WSL (`/mnt/c/TgMon`):
 ```bash
-bash dev-web.sh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
-Что делает [dev-web.sh](../dev-web.sh):
-1. Проверяет доступность локального PostgreSQL на `127.0.0.1:5432` (если сервис остановлен — запускает `sudo service postgresql start`).
-2. Выполняет `npx prisma generate` и `npx prisma migrate deploy`.
-3. Проверяет наличие `TG_SESSION_LOCAL` в `.env`:
-   - **Если `TG_SESSION_LOCAL` задана** — запускает `npm run dev:local` (`next dev -p 4000` + `npx tsx src/worker/index.ts --local`). Локальный воркер поднимается в режиме **по запросу (on-demand)**: он не крутит ежечасный фоновый cron и не делает сбор при старте, но слушает `127.0.0.1:4001` и сразу выполняет добавление каналов и кнопку «Собрать сейчас» из UI через сессию `TG_SESSION_LOCAL`.
-   - **Если `TG_SESSION_LOCAL` ещё не задана** — выводит подсказку (`npm run auth:local`) и запускает только `npm run dev` (веб-интерфейс и чтение локальной БД без MTProto-сбора).
+При повторном запуске можно использовать `bash dev-web.sh`. Скрипт пытается остановить локальный PostgreSQL в WSL, если порт 5432 занят, предупреждает об отсутствии `TG_SESSION_LOCAL`, выполняет `docker compose ... up -d` **без `--build`** и запускает `npx prisma migrate deploy` на хосте. Для последней команды `DATABASE_URL` из локального `.env` должен указывать на доступный с хоста PostgreSQL. Скрипт не проверяет успешность сбора Telegram-данных.
 
-Или вручную (при уже запущенном PostgreSQL):
-```bash
-npm run dev:local
-```
+Dev Compose запускает worker с `--local` и `WORKER_LOCAL_MODE=true`, поэтому он использует только `TG_SESSION_LOCAL`. При отсутствии сессии контейнер всё равно стартует, но MTProto-сбор не сможет авторизоваться. `WORKER_DISABLE_CRON` в dev Compose по умолчанию `false`: расписания основного сбора, демографии и рекламного охвата остаются включёнными; дайджест и автоматическое сканирование событий в локальном режиме не планируются. Для режима только по запросу задайте `WORKER_DISABLE_CRON=true`.
+
+Если PostgreSQL уже запущен и нужен ручной запуск Node.js без Docker, доступна команда `npm run dev:local`: она запускает web и `worker:local` с `--local --no-cron`. Этот вариант требует корректного `DATABASE_URL`, локальной сессии для MTProto-операций и свободных портов 4000/4001.
 
 ---
 
@@ -131,23 +122,23 @@ bash update.sh
 Скрипт последовательно выполняет:
 1. `git pull --ff-only` из `origin/main`.
 2. `docker compose -f docker-compose.yml -f docker-compose.prod.yml build web worker`.
-3. Применение миграций БД: `docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps worker npx prisma migrate deploy`.
-4. Перезапуск контейнеров: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d web worker`.
+3. Остановка `web` и `worker`.
+4. Применение миграций БД: `docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps worker npm run prisma:migrate`.
+5. Запуск обновлённых `web` и `worker`, затем ожидание ответа `/api/health` до 60 секунд.
 
 В `.env` на сервере обязательно должны быть заданы `POSTGRES_PASSWORD`, `COLLECT_API_TOKEN`, `TG_API_ID`, `TG_API_HASH`, серверная `TG_SESSION` и `WEB_INTERNAL_URL=http://web:4000`.
 
 ---
 
-## Режим 3: Альтернативная разработка в Docker (`docker-compose.dev.yml`)
+## Режим 3: Ручная пересборка локальных образов
 
-Если на машине нет локального PostgreSQL в WSL и требуется поднять весь стек в Docker Desktop с Hot Reload:
+После изменений файлов, которые включаются в образы, пересоберите затронутые сервисы через Compose. Для полного первого запуска:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
-- Файл `docker-compose.dev.yml` переопределяет команду `web` на `npm run dev`, а `worker` — на `npx tsx watch src/worker/index.ts` с монтированием `.:/app` и `WATCHPACK_POLLING=true`.
-- **Важно**: даже при использовании Docker локально не помещайте в локальный `.env` боевую серверную строку `TG_SESSION`, иначе контейнер `worker` вызовет `AuthKeyDuplicated` с сервером OVH. Не запускайте одновременно локальный `npm run dev` на хосте и Docker-контейнер `web` (конфликт порта `4000` и блокировка Prisma engine `EPERM` на Windows).
+Dev override монтирует исходный код в web и worker, запускает `npm run dev` и `npx tsx watch src/worker/index.ts --local`. Не запускайте одновременно web на хосте и в контейнере: оба используют порт 4000.
 
 ## Порт 4000 и диагностика
 
