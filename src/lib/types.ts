@@ -146,7 +146,16 @@ export interface OpsStatusResponse {
   problemChannels: OpsProblemChannel[];
 }
 
-export interface SearchPost {
+export type ViralReason = 'views' | 'forwards' | 'err';
+
+export interface ViralClassification {
+  isViral: boolean;
+  viralReasons: ViralReason[];
+  viralPrimaryReason: ViralReason | null;
+  viralMultiplier: number | null;
+}
+
+export interface SearchPost extends ViralClassification {
   id: number;
   messageId: string;
   publishedAt: string;
@@ -289,7 +298,7 @@ export interface ChannelDetailStats {
     hour: number;
     count: number;
   }[];
-  recentPosts?: {
+  recentPosts?: Array<{
     id: number;
     messageId: string;
     publishedAt: string;
@@ -298,7 +307,7 @@ export interface ChannelDetailStats {
     comments: number | null;
     forwards: number | null;
     text: string | null;
-  }[];
+  } & ViralClassification>;
   contentTypePerformance?: ContentTypePerformanceItem[];
   contentFormatLeaders?: ContentFormatLeaders;
   silencePeriods?: {

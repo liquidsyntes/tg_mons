@@ -2,6 +2,7 @@ import { prisma } from '../prisma';
 import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
 import { calculateContentFormatBreakdown } from './engagement';
+import { calculateViralBaseline, classifyViralPost } from './viral';
 import { detectSilencePeriods } from './silence';
 import { calculateContentScore } from '../scoring';
 import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
@@ -526,6 +527,11 @@ export async function getChannelDetailStats(
   const heatmapData = buildHeatmapData(posts, timeZone);
   const myHeatmapData = buildHeatmapData(myPosts, timeZone);
 
+  const viralBaselinePosts = period === '30d' ? posts : await prisma.post.findMany({
+    where: { channelId, publishedAt: { gte: new Date(now.getTime() - MS_30D) } },
+    select: { views: true, reactions: true, comments: true, forwards: true },
+  });
+  const viralBaseline = calculateViralBaseline(viralBaselinePosts);
   const recentPosts = posts.slice(-15).reverse().map((p) => ({
     id: p.id,
     messageId: p.messageId.toString(),
@@ -535,6 +541,7 @@ export async function getChannelDetailStats(
     comments: p.comments,
     forwards: p.forwards,
     text: p.text,
+    ...classifyViralPost(p, viralBaseline),
   }));
 
   const vrHistory = await getVrHistory(

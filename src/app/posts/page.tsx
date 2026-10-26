@@ -7,6 +7,7 @@ import { FileSearch, Megaphone, X } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { formatNumber } from '@/lib/utils';
 import type { GlobalPostSearchResponse, SearchPost } from '@/lib/types';
+import { ViralBadge } from '@/components/channel/ViralBadge';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
 
@@ -18,6 +19,7 @@ export default function PostsPage() {
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const [onlyAds, setOnlyAds] = useState(false);
+  const [onlyViral, setOnlyViral] = useState(false);
   const [niche, setNiche] = useState('');
   const [channelId, setChannelId] = useState('');
   const [days, setDays] = useState(30);
@@ -39,13 +41,13 @@ export default function PostsPage() {
 
   const searchUrl = useCallback((offset: number): string => {
     const params = new URLSearchParams({
-      days: String(days), sortBy, onlyAds: String(onlyAds), limit: '20', offset: String(offset),
+      days: String(days), sortBy, onlyAds: String(onlyAds), onlyViral: String(onlyViral), limit: '20', offset: String(offset),
     });
     if (search) params.set('q', search);
     if (niche) params.set('niche', niche);
     if (channelId) params.set('channelId', channelId);
     return `/api/posts/search?${params.toString()}`;
-  }, [days, sortBy, onlyAds, search, niche, channelId]);
+  }, [days, sortBy, onlyAds, onlyViral, search, niche, channelId]);
 
   useEffect(() => {
     const version = ++requestVersion.current;
@@ -126,6 +128,10 @@ export default function PostsPage() {
               Только реклама (Ad Spy)
             </button>
           </div>
+          <button type="button" onClick={() => setOnlyViral(value => !value)} aria-pressed={onlyViral}
+            className={`rounded-xl border px-3 py-2 text-sm ${onlyViral ? 'border-rose-400 bg-rose-500/15 text-rose-300' : 'border-border text-slate-300'}`}>
+            Только вирусные
+          </button>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="space-y-1.5 text-xs text-slate-300"><span>Ниша</span>
               <select value={niche} onChange={event => { setNiche(event.target.value); setChannelId(''); }}
@@ -177,6 +183,7 @@ export default function PostsPage() {
                     </Link>
                     {post.isAd && <span className="shrink-0 rounded bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold text-orange-300">Реклама</span>}
                   </div>
+                  <ViralBadge result={post} />
                   <p className="text-xs text-slate-500">{post.channel.niche} · {new Date(post.publishedAt).toLocaleString('ru-RU')}</p>
                   <p className="line-clamp-4 whitespace-pre-wrap text-sm text-slate-300 flex-1">{post.text || 'Текст публикации недоступен'}</p>
                   {post.mentions.length > 0 && <p className="text-xs text-slate-400 break-words">Упомянуты: {post.mentions.map(value => `@${value}`).join(', ')}</p>}
