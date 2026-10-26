@@ -242,8 +242,19 @@ export interface ContentTypePerformanceItem {
   type: ContentType;
   label: string;
   er: number | null;
+  avgEr: number | null;
+  avgErr: number | null;
   postsCount: number;
+  sharePercent: number;
   avgViews: number | null;
+  medianViews: number | null;
+  avgForwards: number;
+  avgComments: number;
+}
+
+export interface ContentFormatLeaders {
+  byErr: ContentType | null;
+  byViews: ContentType | null;
 }
 
 export interface ChannelDetailStats {
@@ -289,6 +300,7 @@ export interface ChannelDetailStats {
     text: string | null;
   }[];
   contentTypePerformance?: ContentTypePerformanceItem[];
+  contentFormatLeaders?: ContentFormatLeaders;
   silencePeriods?: {
     startDate: string;
     endDate: string;

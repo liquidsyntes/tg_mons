@@ -6,8 +6,8 @@ export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   text: 'Текст',
   photo: 'Фото',
   video: 'Видео',
-  poll: 'Опросы',
-  link: 'Ссылки',
+  poll: 'Опрос',
+  link: 'Ссылка',
 };
 
 interface MessageLike {

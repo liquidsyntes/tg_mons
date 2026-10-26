@@ -1,7 +1,7 @@
 import { prisma } from '../prisma';
 import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
-import { calculateContentTypePerformance } from './engagement';
+import { calculateContentFormatBreakdown } from './engagement';
 import { detectSilencePeriods } from './silence';
 import { calculateContentScore } from '../scoring';
 import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
@@ -581,7 +581,7 @@ export async function getChannelDetailStats(
   channel.fraudScore = detailAudit.fraudScore;
   channel.fraudSignals = detailAudit.signals;
 
-  const contentTypePerformance = calculateContentTypePerformance(
+  const contentFormatBreakdown = calculateContentFormatBreakdown(
     posts,
     channel.currentMembers
   );
@@ -610,7 +610,8 @@ export async function getChannelDetailStats(
     heatmapData,
     myHeatmapData: myChannelRecord ? myHeatmapData : undefined,
     recentPosts,
-    contentTypePerformance,
+    contentTypePerformance: contentFormatBreakdown.items,
+    contentFormatLeaders: contentFormatBreakdown.leaders,
     silencePeriods: silenceResult.periods,
   };
 }

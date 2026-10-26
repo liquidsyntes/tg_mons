@@ -12,11 +12,12 @@ import {
   CartesianGrid,
   Cell,
 } from 'recharts';
-import type { ContentType, ContentTypePerformanceItem } from '@/lib/types';
+import type { ContentFormatLeaders, ContentType, ContentTypePerformanceItem } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 
 interface ContentTypePerformanceProps {
   data: ContentTypePerformanceItem[];
+  leaders?: ContentFormatLeaders;
   period?: '24h' | '7d' | '30d';
 }
 
@@ -53,7 +54,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
         <span>{item.label}</span>
       </div>
       <div className="text-slate-300">
-        Средний ER: <strong className="text-white">{item.er !== null ? `${item.er}%` : 'н/д'}</strong>
+        Средний ERR: <strong className="text-white">{item.avgErr !== null ? `${item.avgErr}%` : 'н/д'}</strong>
       </div>
       <div className="text-slate-400">
         Публикаций: <strong className="text-slate-200">{item.postsCount}</strong>
@@ -67,7 +68,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
   );
 }
 
-export function ContentTypePerformance({ data, period = '7d' }: ContentTypePerformanceProps) {
+export function ContentTypePerformance({ data, leaders, period = '7d' }: ContentTypePerformanceProps) {
   const items = data || [];
   const totalPosts = items.reduce((sum, item) => sum + item.postsCount, 0);
 
@@ -79,10 +80,10 @@ export function ContentTypePerformance({ data, period = '7d' }: ContentTypePerfo
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Layers className="w-4 h-4 text-accent" />
-            Эффективность по типам контента
+            Аналитика по форматам контента
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Сравнение вовлечённости (ER) и охватов по форматам публикаций за {periodLabel}
+            Охват и вовлечённость публикаций за {periodLabel}
           </p>
         </div>
         {totalPosts > 0 && (
@@ -98,7 +99,14 @@ export function ContentTypePerformance({ data, period = '7d' }: ContentTypePerfo
         </div>
       ) : (
         <>
-          <div className="h-56 w-full pt-2">
+          {(leaders?.byErr || leaders?.byViews) && (
+            <div className="flex flex-wrap gap-2 text-xs text-slate-300">
+              {leaders.byErr && <span>Лидер по ERR: <strong className="text-white">{items.find(item => item.type === leaders.byErr)?.label}</strong></span>}
+              {leaders.byViews && <span>Лидер по охвату: <strong className="text-white">{items.find(item => item.type === leaders.byViews)?.label}</strong></span>}
+              <span className="text-slate-500">от 2 постов формата</span>
+            </div>
+          )}
+          <div className="h-56 w-full pt-2" aria-label="Средний ERR по форматам">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180}>
               <BarChart data={items} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
@@ -117,7 +125,7 @@ export function ContentTypePerformance({ data, period = '7d' }: ContentTypePerfo
                   tickFormatter={(val: number) => `${val}%`}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="er" radius={[3, 3, 0, 0]} maxBarSize={48}>
+                <Bar dataKey="avgErr" radius={[3, 3, 0, 0]} maxBarSize={48}>
                   {items.map((entry) => (
                     <Cell key={entry.type} fill={TYPE_COLORS[entry.type] || '#22c55e'} />
                   ))}
@@ -126,7 +134,7 @@ export function ContentTypePerformance({ data, period = '7d' }: ContentTypePerfo
             </ResponsiveContainer>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-border/70">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 pt-2 border-t border-border/70">
             {items.map((item) => {
               const Icon = TYPE_ICONS[item.type] || FileText;
               const color = TYPE_COLORS[item.type] || '#22c55e';
@@ -143,17 +151,16 @@ export function ContentTypePerformance({ data, period = '7d' }: ContentTypePerfo
                     <span>{item.label}</span>
                   </div>
 
-                  <div className="mt-2 flex items-baseline justify-between gap-1">
-                    <span className="text-base font-bold font-mono text-white tabular-nums">
-                      {item.er !== null ? `${item.er}%` : '—'}
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {item.postsCount} {item.postsCount === 1 ? 'пост' : 'постов'}
-                    </span>
+                  <div className="mt-2 text-[11px] text-slate-400 font-mono">
+                    {item.postsCount} {item.postsCount === 1 ? 'пост' : 'постов'} · {item.sharePercent}% публикаций
                   </div>
-
-                  <div className="text-[10px] text-slate-500 font-mono mt-1">
-                    {item.avgViews !== null ? `~${formatNumber(item.avgViews)} просм.` : 'нет просмотров'}
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                    <span className="text-slate-400">Ср. просмотры</span><strong className="text-right text-white">{item.avgViews === null ? 'н/д' : formatNumber(item.avgViews)}</strong>
+                    <span className="text-slate-400">Медиана</span><strong className="text-right text-white">{item.medianViews === null ? 'н/д' : formatNumber(item.medianViews)}</strong>
+                    <span className="text-slate-400">ERR</span><strong className="text-right text-white">{item.avgErr === null ? 'н/д' : `${item.avgErr}%`}</strong>
+                    <span className="text-slate-400">ER</span><strong className="text-right text-white">{item.avgEr === null ? 'н/д' : `${item.avgEr}%`}</strong>
+                    <span className="text-slate-400">Ср. пересылки</span><strong className="text-right text-white">{item.avgForwards}</strong>
+                    <span className="text-slate-400">Ср. комментарии</span><strong className="text-right text-white">{item.avgComments}</strong>
                   </div>
                 </div>
               );

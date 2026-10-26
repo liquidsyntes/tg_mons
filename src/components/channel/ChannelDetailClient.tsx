@@ -78,7 +78,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
               {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
               <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
               <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
-              <ContentTypePerformance data={data!.contentTypePerformance || []} period={period} />
+              <ContentTypePerformance data={data!.contentTypePerformance || []} leaders={data!.contentFormatLeaders} period={period} />
               <ErrChart vrHistory={data!.vrHistory || []} period={period} />
               <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />
               <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} recentPosts={data!.recentPosts} />

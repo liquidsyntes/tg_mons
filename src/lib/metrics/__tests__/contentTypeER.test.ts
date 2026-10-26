@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   calculateERByContentType,
-  calculateContentTypePerformance,
+  calculateContentFormatBreakdown,
   getERByContentType,
 } from '../engagement';
 
@@ -81,28 +81,43 @@ describe('calculateERByContentType', () => {
   });
 });
 
-describe('calculateContentTypePerformance', () => {
-  it('returns full array with labels, counts, ER and average views', () => {
+describe('calculateContentFormatBreakdown', () => {
+  it('calculates shares, views, engagement and leaders for published formats', () => {
     const posts = [
-      { contentType: 'photo', views: 500, reactions: 20, subscribersAtPublish: 1000 },
-      { contentType: 'photo', views: 300, reactions: 10, subscribersAtPublish: 1000 },
-      { contentType: 'text', views: 200, reactions: 5, subscribersAtPublish: 1000 },
+      { contentType: 'photo', views: 500, reactions: 20, comments: 10, forwards: 5, subscribersAtPublish: 1000 },
+      { contentType: 'photo', views: 300, reactions: 10, comments: 0, forwards: 3, subscribersAtPublish: 1000 },
+      { contentType: 'text', views: 200, reactions: 30, comments: 4, forwards: 2, subscribersAtPublish: 1000 },
+      { contentType: 'text', views: 100, reactions: 20, comments: 2, forwards: 0, subscribersAtPublish: 1000 },
     ];
 
-    const performance = calculateContentTypePerformance(posts);
-    expect(performance).toHaveLength(5);
+    const result = calculateContentFormatBreakdown(posts);
+    expect(result.items).toHaveLength(2);
 
-    const photo = performance.find(p => p.type === 'photo');
-    expect(photo).toBeDefined();
-    expect(photo?.label).toBe('Фото');
-    expect(photo?.postsCount).toBe(2);
-    expect(photo?.avgViews).toBe(400);
-    expect(photo?.er).toBeGreaterThan(0);
+    const photo = result.items.find(p => p.type === 'photo');
+    expect(photo).toMatchObject({
+      label: 'Фото', postsCount: 2, sharePercent: 50, avgViews: 400,
+      medianViews: 400, avgErr: 5.67, avgEr: 42.4, avgForwards: 4, avgComments: 5,
+    });
+    expect(result.leaders).toEqual({ byErr: 'text', byViews: 'photo' });
+  });
 
-    const video = performance.find(p => p.type === 'video');
-    expect(video?.postsCount).toBe(0);
-    expect(video?.avgViews).toBeNull();
-    expect(video?.er).toBeNull();
+  it('returns empty items and no leaders without posts', () => {
+    expect(calculateContentFormatBreakdown([])).toEqual({
+      items: [], leaders: { byErr: null, byViews: null },
+    });
+  });
+
+  it('keeps unknown views distinct from zero and excludes single-post leaders', () => {
+    const result = calculateContentFormatBreakdown([
+      { contentType: 'photo', views: null, reactions: null, comments: null, forwards: null, subscribersAtPublish: null },
+      { contentType: 'photo', views: 0, reactions: null, comments: null, forwards: null, subscribersAtPublish: null },
+      { contentType: 'video', views: 100, reactions: 10, subscribersAtPublish: 1000 },
+    ]);
+    expect(result.items.find(item => item.type === 'photo')).toMatchObject({
+      postsCount: 2, avgViews: 0, medianViews: 0, avgErr: null,
+      avgEr: null, avgForwards: 0, avgComments: 0,
+    });
+    expect(result.leaders).toEqual({ byErr: null, byViews: 'photo' });
   });
 });
 

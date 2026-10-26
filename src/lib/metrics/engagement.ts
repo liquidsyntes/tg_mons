@@ -1,5 +1,5 @@
 import { ALL_CONTENT_TYPES, CONTENT_TYPE_LABELS, type ContentType } from '../contentType';
-import type { ContentTypePerformanceItem } from '../types';
+import type { ContentFormatLeaders, ContentTypePerformanceItem } from '../types';
 
 export type ContentTypeERResult = Record<ContentType, number | null>;
 
@@ -169,13 +169,10 @@ export function calculateERByContentType(
   return result;
 }
 
-/**
- * Full performance breakdown by content type with labels, ER, count, and average views.
- */
-export function calculateContentTypePerformance(
+export function calculateContentFormatBreakdown(
   posts: PostForContentTypeER[],
   fallbackSubscribers?: number | null
-): ContentTypePerformanceItem[] {
+): { items: ContentTypePerformanceItem[]; leaders: ContentFormatLeaders } {
   const erResult = calculateERByContentType(posts, fallbackSubscribers);
   const grouped: Record<ContentType, PostForContentTypeER[]> = {
     text: [],
@@ -193,22 +190,47 @@ export function calculateContentTypePerformance(
     grouped[type].push(post);
   }
 
-  return ALL_CONTENT_TYPES.map(type => {
+  const items = ALL_CONTENT_TYPES.filter(type => grouped[type].length > 0).map(type => {
     const list = grouped[type];
-    const postsWithViews = list.filter(p => typeof p.views === 'number' && Number.isFinite(p.views) && p.views! >= 0);
+    const views = list
+      .map(post => post.views)
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0)
+      .sort((a, b) => a - b);
     const avgViews =
-      postsWithViews.length > 0
-        ? Math.round(postsWithViews.reduce((acc, p) => acc + (p.views || 0), 0) / postsWithViews.length)
+      views.length > 0
+        ? Math.round(views.reduce((sum, value) => sum + value, 0) / views.length)
         : null;
+    const middle = Math.floor(views.length / 2);
+    const medianViews = views.length === 0 ? null : views.length % 2 === 0
+      ? (views[middle - 1] + views[middle]) / 2
+      : views[middle];
+    const avgErr = aggregateChannelERR(list);
+    const average = (field: 'forwards' | 'comments') =>
+      Number((list.reduce((sum, post) => sum + (post[field] ?? 0), 0) / list.length).toFixed(2));
 
     return {
       type,
       label: CONTENT_TYPE_LABELS[type],
       er: erResult[type],
+      avgEr: erResult[type],
+      avgErr: avgErr === null ? null : Number(avgErr.toFixed(2)),
       postsCount: list.length,
+      sharePercent: Number(((list.length / posts.length) * 100).toFixed(2)),
       avgViews,
+      medianViews,
+      avgForwards: average('forwards'),
+      avgComments: average('comments'),
     };
   });
+
+  const eligible = items.filter(item => item.postsCount >= 2);
+  const leader = (metric: 'avgErr' | 'avgViews'): ContentType | null => {
+    const ranked = eligible.filter(item => item[metric] !== null)
+      .sort((a, b) => (b[metric] ?? 0) - (a[metric] ?? 0));
+    return ranked[0]?.type ?? null;
+  };
+
+  return { items, leaders: { byErr: leader('avgErr'), byViews: leader('avgViews') } };
 }
 
 /**
