@@ -1,8 +1,9 @@
 import React from 'react';
 import Image from 'next/image';
-import { Calendar, Clock, MapPin, Tag, Users, Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
+import { CalendarPlus, Clock, Download, ExternalLink, Image as ImageIcon, Loader2, Tag, Trash2, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { buildEventIcs, buildGoogleCalendarUrl, getTelegramPostUrl } from '@/lib/events/calendar';
 
 interface EventPost {
   messageId: string;
@@ -36,23 +37,24 @@ interface EventCardProps {
   dismissing?: boolean;
 }
 
-function getTelegramPostUrl(post: EventPost | null): string | null {
-  if (!post || !/^[1-9]\d*$/.test(post.messageId)) return null;
-
-  const username = post.channel?.username?.trim().replace(/^@/, '');
-  if (username && /^[A-Za-z0-9_]{5,32}$/.test(username)) {
-    return `https://t.me/${username}/${post.messageId}`;
-  }
-
-  const tgId = post.channel?.tgId;
-  if (!tgId) return null;
-  const channelId = tgId.startsWith('-100') ? tgId.slice(4) : tgId;
-  return /^[1-9]\d*$/.test(channelId)
-    ? `https://t.me/c/${channelId}/${post.messageId}`
-    : null;
-}
-
 export function EventCard({ event, onDismiss, dismissDisabled = false, dismissing = false }: EventCardProps) {
+  const handleDownloadIcs = () => {
+    const icsContent = buildEventIcs(event);
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `event-${event.id}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const googleCalendarUrl = buildGoogleCalendarUrl(event);
+  const handleOpenGoogleCalendar = () => {
+    window.open(googleCalendarUrl, '_blank', 'noopener,noreferrer');
+  };
   return (
     <div className="bg-surface border border-border rounded-2xl overflow-hidden hover:border-slate-600 transition-colors flex flex-col h-full shadow-sm">
       <div className="h-40 bg-slate-900/50 flex flex-col items-center justify-center text-slate-500 border-b border-border relative overflow-hidden">
@@ -149,6 +151,28 @@ export function EventCard({ event, onDismiss, dismissDisabled = false, dismissin
             </div>
           </div>
         )}
+
+        <div className="mt-4 pt-3 border-t border-border/60 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadIcs}
+            aria-label={`Скачать .ics для события «${event.title}»`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-slate-900/70 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-accent/50 hover:text-white transition-colors"
+          >
+            <Download className="w-3.5 h-3.5 text-accent" />
+            Скачать .ics
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenGoogleCalendar}
+            aria-label={`Добавить событие «${event.title}» в Google Календарь`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-slate-900/70 px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:border-accent/50 hover:text-white transition-colors"
+          >
+            <CalendarPlus className="w-3.5 h-3.5 text-emerald-400" />
+            В Google Календарь
+            <ExternalLink className="w-3 h-3 opacity-60" />
+          </button>
+        </div>
       </div>
     </div>
   );

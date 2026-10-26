@@ -1,13 +1,21 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Calendar as CalendarIcon, Loader2, ScanSearch, Search } from 'lucide-react';
-import { isSameMonth } from 'date-fns';
+import { Calendar as CalendarIcon, Loader2, ScanSearch, Search, X } from 'lucide-react';
 import { ru } from 'date-fns/locale';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { EventCard, type EventCardData } from '@/components/events/EventCard';
 import { Header } from '@/components/Header';
+import { filterEvents, type EventDatePreset } from '@/lib/events/calendar';
+
+const DATE_PRESETS: Array<{ id: EventDatePreset; label: string }> = [
+  { id: 'month', label: 'В этом месяце' },
+  { id: 'all', label: 'Все предстоящие' },
+  { id: 'today_tomorrow', label: 'Сегодня / Завтра' },
+  { id: 'weekend', label: 'На этих выходных' },
+  { id: 'week', label: 'На этой неделе' },
+];
 
 export default function EventsPage() {
   const [events, setEvents] = useState<EventCardData[]>([]);
@@ -15,6 +23,9 @@ export default function EventsPage() {
   const [scanning, setScanning] = useState(false);
   const [dismissingId, setDismissingId] = useState<number | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [datePreset, setDatePreset] = useState<EventDatePreset>('month');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [freeOnly, setFreeOnly] = useState(false);
   
   const fetchEvents = async () => {
     setLoading(true);
@@ -76,10 +87,15 @@ export default function EventsPage() {
     return events.map(e => new Date(e.date));
   }, [events]);
 
-  // Filter events by current month
+  // Filter events by preset, search query, and free admission flag
   const selectedEvents = useMemo(() => {
-    return events.filter(e => isSameMonth(new Date(e.date), currentMonth));
-  }, [events, currentMonth]);
+    return filterEvents(events, {
+      datePreset,
+      selectedMonth: currentMonth,
+      query: searchQuery,
+      freeOnly,
+    });
+  }, [events, datePreset, currentMonth, searchQuery, freeOnly]);
 
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col">
@@ -113,7 +129,10 @@ export default function EventsPage() {
             <div className="calendar-wrapper flex justify-center custom-calendar text-slate-200">
               <DayPicker
                 month={currentMonth}
-                onMonthChange={setCurrentMonth}
+                onMonthChange={month => {
+                  setCurrentMonth(month);
+                  setDatePreset('month');
+                }}
                 locale={ru}
                 modifiers={{ hasEvent: eventDates }}
                 modifiersStyles={{
@@ -168,7 +187,64 @@ export default function EventsPage() {
         </div>
 
         {/* Right Col: Events List */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 space-y-[6px]">
+          <div className="bg-surface border border-border rounded-2xl p-4 space-y-3 shadow-sm">
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Быстрые фильтры дат">
+              {DATE_PRESETS.map(preset => {
+                const active = datePreset === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setDatePreset(preset.id)}
+                    aria-pressed={active}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
+                      active
+                        ? 'bg-accent text-slate-950 border-accent'
+                        : 'bg-slate-900/70 text-slate-300 border-border hover:border-slate-600 hover:text-white'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Поиск по названию, организатору или каналу..."
+                  aria-label="Поиск событий"
+                  className="w-full rounded-xl border border-border bg-slate-950/70 pl-9 pr-8 py-2 text-xs text-white placeholder:text-slate-500 focus:border-accent focus:outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Очистить поиск"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-slate-950/70 text-xs font-medium text-slate-300 cursor-pointer select-none hover:border-slate-700">
+                <input
+                  type="checkbox"
+                  checked={freeOnly}
+                  onChange={e => setFreeOnly(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-slate-700 bg-slate-900 text-accent focus:ring-accent"
+                />
+                Только бесплатные
+              </label>
+            </div>
+          </div>
+
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-accent" />

@@ -42,4 +42,47 @@ describe('events page dismissal', () => {
       expect(screen.queryByText(event.title)).toBeNull();
     });
   });
+
+  it('renders calendar export actions and filters events by search and free admission', async () => {
+    const todayIso = new Date().toISOString();
+    const events = [
+      {
+        id: 1,
+        title: 'Бесплатный митап',
+        date: todayIso,
+        timeStr: '19:00',
+        organizer: 'Tech Community',
+        prices: ['Бесплатно'],
+        mentions: [],
+      },
+      {
+        id: 2,
+        title: 'Платный концерт',
+        date: todayIso,
+        timeStr: '21:00',
+        organizer: 'Arena',
+        prices: ['1000 грн'],
+        mentions: [],
+      },
+    ];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ events }),
+    }));
+
+    render(React.createElement(EventsPage));
+    expect(await screen.findByText('Бесплатный митап')).toBeDefined();
+    expect(screen.getByText('Платный концерт')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Скачать .ics для события «Бесплатный митап»' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Добавить событие «Бесплатный митап» в Google Календарь' })).toBeDefined();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Только бесплатные' }));
+    expect(screen.getByText('Бесплатный митап')).toBeDefined();
+    expect(screen.queryByText('Платный концерт')).toBeNull();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Только бесплатные' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Поиск событий' }), { target: { value: 'Arena' } });
+    expect(screen.queryByText('Бесплатный митап')).toBeNull();
+    expect(screen.getByText('Платный концерт')).toBeDefined();
+  });
 });
