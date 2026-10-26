@@ -9,6 +9,7 @@ interface AlertRuleView {
   metric: string;
   operator: 'gt' | 'lt';
   threshold: number;
+  keywordQuery?: string | null;
   enabled: boolean;
   lastFiredAt: string | null;
 }
@@ -52,6 +53,7 @@ export function AlertRulesSettings() {
   const [metric, setMetric] = useState('followers');
   const [operator, setOperator] = useState<'gt' | 'lt'>('gt');
   const [threshold, setThreshold] = useState('');
+  const [keywordQuery, setKeywordQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -73,19 +75,24 @@ export function AlertRulesSettings() {
 
   async function createRule(event: FormEvent) {
     event.preventDefault();
-    if (threshold.trim() === '') return;
+    const isKeyword = metric === 'keyword';
+    if (isKeyword ? keywordQuery.trim() === '' : threshold.trim() === '') return;
     setCreating(true);
     setError(null);
     setSuccess(null);
     try {
+      const payload = isKeyword
+        ? { channelId: channelId ? Number(channelId) : null, metric, keywordQuery: keywordQuery.trim() }
+        : { channelId: channelId ? Number(channelId) : null, metric, operator, threshold: Number(threshold) };
       const response = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId: channelId ? Number(channelId) : null, metric, operator, threshold: Number(threshold) }),
+        body: JSON.stringify(payload),
       });
       const data = await readResponse<{ rule: AlertRuleView }>(response, 'Не удалось сохранить правило');
       setRules(current => [data.rule, ...current]);
       setThreshold('');
+      setKeywordQuery('');
       setSuccess('Правило добавлено');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Не удалось сохранить правило');
@@ -134,6 +141,7 @@ export function AlertRulesSettings() {
   }
 
   const selectedMetric = metrics.find(item => item.value === metric);
+  const isKeywordMetric = metric === 'keyword';
 
   return (
     <section className="bg-surface border border-border rounded-2xl overflow-hidden">
@@ -141,7 +149,9 @@ export function AlertRulesSettings() {
         <Bell className="w-5 h-5 text-accent" />
         <div>
           <h2 className="text-lg font-semibold text-white">Правила уведомлений</h2>
-          <p className="text-xs text-slate-400 mt-1">Telegram-уведомление отправляется не чаще раза в 24 часа для каждого канала.</p>
+          <p className="text-xs text-slate-400 mt-1">
+            Пороги метрик проверяются не чаще раза в 24 часа на канал; ключевые слова — по каждому новому совпавшему посту.
+          </p>
         </div>
       </div>
       <div className="p-6 space-y-5">
@@ -171,20 +181,32 @@ export function AlertRulesSettings() {
               {metrics.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </label>
-          <label className="space-y-1.5 text-xs font-medium text-slate-300">
-            <span>Условие</span>
-            <select value={operator} onChange={event => setOperator(event.target.value === 'lt' ? 'lt' : 'gt')} disabled={loading || creating}
-              className="w-full bg-slate-900 border border-border rounded-lg px-3 py-2.5 text-sm text-white">
-              <option value="gt">Больше</option>
-              <option value="lt">Меньше</option>
-            </select>
-          </label>
-          <label className="space-y-1.5 text-xs font-medium text-slate-300">
-            <span>Порог{selectedMetric ? ` (${selectedMetric.unit})` : ''}</span>
-            <input type="number" step="any" required value={threshold} onChange={event => setThreshold(event.target.value)}
-              disabled={loading || creating} placeholder="Значение"
-              className="w-full bg-slate-900 border border-border rounded-lg px-3 py-2.5 text-sm text-white" />
-          </label>
+          {isKeywordMetric ? (
+            <label className="space-y-1.5 text-xs font-medium text-slate-300 sm:col-span-2">
+              <span>Ключевое слово или фразы (через запятую)</span>
+              <input type="text" required maxLength={100} value={keywordQuery}
+                onChange={event => setKeywordQuery(event.target.value)}
+                disabled={loading || creating} placeholder="Например: биткоин, тон, дуров"
+                className="w-full bg-slate-900 border border-border rounded-lg px-3 py-2.5 text-sm text-white" />
+            </label>
+          ) : (
+            <>
+              <label className="space-y-1.5 text-xs font-medium text-slate-300">
+                <span>Условие</span>
+                <select value={operator} onChange={event => setOperator(event.target.value === 'lt' ? 'lt' : 'gt')} disabled={loading || creating}
+                  className="w-full bg-slate-900 border border-border rounded-lg px-3 py-2.5 text-sm text-white">
+                  <option value="gt">Больше</option>
+                  <option value="lt">Меньше</option>
+                </select>
+              </label>
+              <label className="space-y-1.5 text-xs font-medium text-slate-300">
+                <span>Порог{selectedMetric ? ` (${selectedMetric.unit})` : ''}</span>
+                <input type="number" step="any" required value={threshold} onChange={event => setThreshold(event.target.value)}
+                  disabled={loading || creating} placeholder="Значение"
+                  className="w-full bg-slate-900 border border-border rounded-lg px-3 py-2.5 text-sm text-white" />
+              </label>
+            </>
+          )}
           <button type="submit" disabled={loading || creating || metrics.length === 0}
             className="flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover disabled:opacity-50 rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-950">
             <Plus className="w-4 h-4" /> Добавить
@@ -202,7 +224,9 @@ export function AlertRulesSettings() {
               <div key={rule.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-border bg-slate-900/40 p-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-white">
-                    {channel?.title ?? 'Все каналы'}: {description?.label ?? rule.metric} {rule.operator === 'gt' ? '>' : '<'} {rule.threshold} {description?.unit ?? ''}
+                    {rule.metric === 'keyword'
+                      ? `${channel?.title ?? 'Все каналы'}: ${description?.label ?? 'Упоминание ключевого слова'} «${rule.keywordQuery ?? ''}»`
+                      : `${channel?.title ?? 'Все каналы'}: ${description?.label ?? rule.metric} ${rule.operator === 'gt' ? '>' : '<'} ${rule.threshold} ${description?.unit ?? ''}`}
                   </p>
                   {rule.lastFiredAt && <p className="text-xs text-slate-400 mt-1">Последняя отправка: {new Date(rule.lastFiredAt).toLocaleString('ru-RU')}</p>}
                 </div>

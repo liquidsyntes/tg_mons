@@ -5,18 +5,30 @@ import { channel } from './fixtures/channel-metrics';
 const mocks = vi.hoisted(() => ({
   ruleFindMany: vi.fn(), ruleUpdateMany: vi.fn(),
   fireFindUnique: vi.fn(), fireCreate: vi.fn(), fireUpdateMany: vi.fn(), fireDeleteMany: vi.fn(),
+  postFireFindUnique: vi.fn(), postFireCreate: vi.fn(), postFireDeleteMany: vi.fn(),
+  postFindMany: vi.fn(),
   subscriptions: vi.fn(), transaction: vi.fn(), activeRule: vi.fn(), warn: vi.fn(),
 }));
 vi.mock('../prisma', () => ({ prisma: {
   alertRule: { findMany: mocks.ruleFindMany, updateMany: mocks.ruleUpdateMany },
   alertRuleFire: { findUnique: mocks.fireFindUnique, create: mocks.fireCreate,
     updateMany: mocks.fireUpdateMany, deleteMany: mocks.fireDeleteMany },
+  alertRulePostFire: { findUnique: mocks.postFireFindUnique, create: mocks.postFireCreate,
+    deleteMany: mocks.postFireDeleteMany },
+  post: { findMany: mocks.postFindMany },
   userChannel: { findMany: mocks.subscriptions },
   $transaction: mocks.transaction,
 } }));
 vi.mock('../logger', () => ({ logger: { warn: mocks.warn } }));
 
-import { ALERT_COOLDOWN_MS, checkChannelAlertRules, evaluateAlertRule, getAlertMetricValue } from '../alerts';
+import {
+  ALERT_COOLDOWN_MS,
+  checkChannelAlertRules,
+  evaluateAlertRule,
+  getAlertMetricValue,
+  matchKeywordRule,
+  normalizeKeywordQuery,
+} from '../alerts';
 
 const now = new Date('2026-10-17T12:00:00.000Z');
 const metrics = {
@@ -36,11 +48,11 @@ const metrics = {
 
 function rule(overrides: Partial<{
   id: number; userId: number | null; channelId: number | null; metric: string; operator: string;
-  threshold: number; enabled: boolean; lastFiredAt: Date | null;
+  threshold: number; keywordQuery: string | null; enabled: boolean; lastFiredAt: Date | null;
 }> = {}) {
   return {
     id: 1, userId: null, channelId: 5, metric: 'followers', operator: 'gt', threshold: 900,
-    enabled: true, lastFiredAt: null, ...overrides,
+    keywordQuery: null, enabled: true, lastFiredAt: null, ...overrides,
   };
 }
 
@@ -52,11 +64,16 @@ beforeEach(() => {
   mocks.fireCreate.mockResolvedValue({ id: 10 });
   mocks.fireUpdateMany.mockResolvedValue({ count: 1 });
   mocks.fireDeleteMany.mockResolvedValue({ count: 1 });
+  mocks.postFireFindUnique.mockResolvedValue(null);
+  mocks.postFireCreate.mockResolvedValue({ id: 20 });
+  mocks.postFireDeleteMany.mockResolvedValue({ count: 1 });
+  mocks.postFindMany.mockResolvedValue([]);
   mocks.ruleUpdateMany.mockResolvedValue({ count: 1 });
   mocks.activeRule.mockResolvedValue([{ id: 1 }]);
   mocks.transaction.mockImplementation(async callback => callback({
     $queryRaw: mocks.activeRule,
     alertRuleFire: { findUnique: mocks.fireFindUnique, create: mocks.fireCreate, updateMany: mocks.fireUpdateMany },
+    alertRulePostFire: { findUnique: mocks.postFireFindUnique, create: mocks.postFireCreate },
   }));
 });
 
@@ -173,5 +190,54 @@ describe('alert rule evaluation', () => {
     });
     expect(mocks.ruleUpdateMany).not.toHaveBeenCalled();
     expect(mocks.warn).toHaveBeenCalled();
+  });
+
+  it('normalizes keyword queries and matches case-insensitively', () => {
+    expect(normalizeKeywordQuery('  Биткоин ,  тон , БИТКОИН, , Павел   Дуров ')).toBe('Биткоин, тон, Павел Дуров');
+    expect(normalizeKeywordQuery('   , , ')).toBeNull();
+    expect(normalizeKeywordQuery('a'.repeat(101))).toBeNull();
+    expect(matchKeywordRule('Сегодня обсуждаем Павел Дуров и Telegram', 'биткоин, Павел Дуров')).toBe('Павел Дуров');
+    expect(matchKeywordRule(null, 'биткоин')).toBeNull();
+    expect(matchKeywordRule('Обычный пост без совпадений', 'биткоин')).toBeNull();
+  });
+
+  it('fires keyword alerts once per matching post and includes snippet and Telegram link', async () => {
+    mocks.ruleFindMany.mockResolvedValue([
+      rule({ id: 7, userId: 11, channelId: null, metric: 'keyword', threshold: 0, keywordQuery: 'Биткоин, эфир' }),
+    ]);
+    mocks.subscriptions.mockResolvedValue([{ userId: 11 }]);
+    mocks.postFindMany.mockResolvedValue([
+      { id: 101, messageId: 501n, text: 'Курс эфир резко вырос за ночь!', publishedAt: now },
+      { id: 102, messageId: 502n, text: 'Пост без ключевых слов', publishedAt: now },
+      { id: 103, messageId: 503n, text: 'Новый рекорд: БИТКОИН выше ожиданий', publishedAt: now },
+    ]);
+    mocks.postFireFindUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 99 }); // post 103 already fired previously
+    const send = vi.fn().mockResolvedValue(true);
+
+    expect(await checkChannelAlertRules(5, async () => metrics, send, now)).toBe(1);
+    expect(send).toHaveBeenCalledOnce();
+    expect(send.mock.calls[0][0]).toContain('TgMon: упоминание ключевого слова для всех каналов');
+    expect(send.mock.calls[0][0]).toContain('Ключевое слово: «эфир»');
+    expect(send.mock.calls[0][0]).toContain('https://t.me/channel_five/501');
+    expect(mocks.postFireCreate).toHaveBeenCalledWith({
+      data: { ruleId: 7, postId: 101, firedAt: now },
+      select: { id: true },
+    });
+  });
+
+  it('releases keyword post reservation when delivery fails', async () => {
+    mocks.ruleFindMany.mockResolvedValue([
+      rule({ id: 8, channelId: 5, metric: 'keyword', threshold: 0, keywordQuery: 'срочно' }),
+    ]);
+    mocks.postFindMany.mockResolvedValue([
+      { id: 201, messageId: 777n, text: 'СРОЧНО: важное объявление', publishedAt: now },
+    ]);
+    const send = vi.fn().mockResolvedValue(false);
+
+    expect(await checkChannelAlertRules(5, async () => metrics, send, now)).toBe(0);
+    expect(mocks.postFireDeleteMany).toHaveBeenCalledWith({ where: { id: 20, firedAt: now } });
+    expect(mocks.ruleUpdateMany).not.toHaveBeenCalled();
   });
 });

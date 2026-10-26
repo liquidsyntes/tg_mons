@@ -51,7 +51,12 @@ describe('/api/alerts', () => {
     const response = await GET(request('GET'));
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.metrics).toHaveLength(9);
+    expect(body.metrics).toHaveLength(10);
+    expect(body.metrics).toContainEqual({
+      value: 'keyword',
+      label: 'Упоминание ключевого слова',
+      unit: 'фраза',
+    });
     expect(body.rules).toEqual([]);
     expect(typeof body.deliveryConfigured).toBe('boolean');
   });
@@ -65,10 +70,48 @@ describe('/api/alerts', () => {
     expect(mocks.channel).not.toHaveBeenCalled();
   });
 
+  it('creates and normalizes a keyword rule without explicit operator or threshold', async () => {
+    mocks.create.mockResolvedValueOnce({
+      id: 11,
+      channelId: 3,
+      metric: 'keyword',
+      operator: 'gt',
+      threshold: 0,
+      keywordQuery: 'Биткоин, тон',
+      enabled: true,
+    });
+    const response = await POST(request('POST', {
+      channelId: 3,
+      metric: 'keyword',
+      keywordQuery: '  Биткоин , тон , БИТКОИН ',
+    }));
+    expect(response.status).toBe(201);
+    expect(mocks.existing).toHaveBeenCalledWith({
+      where: {
+        channelId: 3,
+        metric: 'keyword',
+        keywordQuery: 'Биткоин, тон',
+      },
+      select: { id: true },
+    });
+    expect(mocks.create).toHaveBeenCalledWith({
+      data: {
+        channelId: 3,
+        metric: 'keyword',
+        operator: 'gt',
+        threshold: 0,
+        keywordQuery: 'Биткоин, тон',
+        enabled: true,
+      },
+    });
+  });
+
   it('rejects invalid input and unknown channels', async () => {
     expect((await POST(request('POST', { metric: 'unknown', operator: 'gt', threshold: 1 }))).status).toBe(400);
     expect((await POST(request('POST', { metric: 'followers', operator: 'eq', threshold: 1 }))).status).toBe(400);
     expect((await POST(request('POST', { metric: 'followers', operator: 'gt', threshold: '1' }))).status).toBe(400);
+    expect((await POST(request('POST', { metric: 'keyword', keywordQuery: '   ,  ' }))).status).toBe(400);
+    expect((await POST(request('POST', { metric: 'keyword', keywordQuery: 'x'.repeat(101) }))).status).toBe(400);
     mocks.channel.mockResolvedValue(null);
     expect((await POST(request('POST', { channelId: 999, metric: 'followers', operator: 'gt', threshold: 1 }))).status).toBe(404);
     expect(mocks.create).not.toHaveBeenCalled();

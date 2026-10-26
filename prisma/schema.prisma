@@ -156,6 +156,7 @@ model Post {
   viewSnapshots        PostViewSnapshot[]
   eventMentions        EventMention[]
   image                PostImage?
+  alertRulePostFires   AlertRulePostFire[]
 
   @@unique([channelId, messageId])
   @@index([channelId, groupedId])
@@ -305,23 +306,39 @@ model SystemSetting {
 }
 
 model AlertRule {
-  id          Int       @id @default(autoincrement())
-  userId      Int?      @map("user_id")
-  channelId   Int?      @map("channel_id")
-  metric      String // "followers" | "delta24h" | "delta7d" | "er7d" | "err7d" | "vr7d" | "avgViews7d" | "posts7d" | "contentScore"
-  operator    String // "lt" | "gt"
-  threshold   Float
-  enabled     Boolean   @default(true)
-  lastFiredAt DateTime? @map("last_fired_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id           Int       @id @default(autoincrement())
+  userId       Int?      @map("user_id")
+  channelId    Int?      @map("channel_id")
+  metric       String // "followers" | "delta24h" | "delta7d" | "er7d" | "err7d" | "vr7d" | "avgViews7d" | "posts7d" | "contentScore" | "keyword"
+  operator     String // "lt" | "gt"
+  threshold    Float
+  keywordQuery String?   @map("keyword_query")
+  enabled      Boolean   @default(true)
+  lastFiredAt  DateTime? @map("last_fired_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
 
-  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  fires   AlertRuleFire[]
+  user      User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   Channel?            @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  fires     AlertRuleFire[]
+  postFires AlertRulePostFire[]
 
   @@index([userId])
   @@index([channelId])
   @@map("alert_rules")
+}
+
+model AlertRulePostFire {
+  id      Int      @id @default(autoincrement())
+  ruleId  Int      @map("rule_id")
+  postId  Int      @map("post_id")
+  firedAt DateTime @default(now()) @map("fired_at")
+
+  rule AlertRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  post Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, postId])
+  @@index([postId])
+  @@map("alert_rule_post_fires")
 }
 
 model AlertRuleFire {

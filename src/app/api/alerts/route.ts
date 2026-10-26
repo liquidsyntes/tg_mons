@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { verifyBearerToken } from '@/lib/auth';
-import { ALERT_METRICS, isAlertMetric, isAlertOperator } from '@/lib/alerts';
+import { ALERT_METRICS, isAlertMetric, isAlertOperator, normalizeKeywordQuery } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,9 +68,30 @@ export async function POST(req: NextRequest) {
 
   const channelId = body.channelId === undefined ? null : body.channelId;
   if ((channelId !== null && !isId(channelId)) || !isAlertMetric(body.metric) ||
-      !isAlertOperator(body.operator) || typeof body.threshold !== 'number' ||
-      !Number.isFinite(body.threshold) || (body.enabled !== undefined && typeof body.enabled !== 'boolean')) {
+      (body.enabled !== undefined && typeof body.enabled !== 'boolean')) {
     return NextResponse.json({ error: 'Некорректные параметры правила' }, { status: 400 });
+  }
+
+  const isKeywordRule = body.metric === 'keyword';
+  let operator: 'gt' | 'lt';
+  let threshold: number;
+  let keywordQuery: string | null = null;
+
+  if (isKeywordRule) {
+    keywordQuery = normalizeKeywordQuery(body.keywordQuery);
+    if (!keywordQuery ||
+        (body.operator !== undefined && !isAlertOperator(body.operator)) ||
+        (body.threshold !== undefined && (typeof body.threshold !== 'number' || !Number.isFinite(body.threshold)))) {
+      return NextResponse.json({ error: 'Некорректные параметры правила' }, { status: 400 });
+    }
+    operator = body.operator ?? 'gt';
+    threshold = body.threshold ?? 0;
+  } else {
+    if (!isAlertOperator(body.operator) || typeof body.threshold !== 'number' || !Number.isFinite(body.threshold)) {
+      return NextResponse.json({ error: 'Некорректные параметры правила' }, { status: 400 });
+    }
+    operator = body.operator;
+    threshold = body.threshold;
   }
 
   try {
@@ -88,13 +109,20 @@ export async function POST(req: NextRequest) {
       }
     }
     const existing = await prisma.alertRule.findFirst({
-      where: {
-        ...(userId ? { userId } : {}),
-        channelId,
-        metric: body.metric,
-        operator: body.operator,
-        threshold: body.threshold,
-      },
+      where: isKeywordRule
+        ? {
+          ...(userId ? { userId } : {}),
+          channelId,
+          metric: body.metric,
+          keywordQuery,
+        }
+        : {
+          ...(userId ? { userId } : {}),
+          channelId,
+          metric: body.metric,
+          operator,
+          threshold,
+        },
       select: { id: true },
     });
     if (existing) return NextResponse.json({ error: 'Такое правило уже существует' }, { status: 409 });
@@ -103,8 +131,9 @@ export async function POST(req: NextRequest) {
         ...(userId ? { userId } : {}),
         channelId,
         metric: body.metric,
-        operator: body.operator,
-        threshold: body.threshold,
+        operator,
+        threshold,
+        ...(isKeywordRule ? { keywordQuery } : {}),
         enabled: body.enabled ?? true,
       },
     });

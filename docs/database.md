@@ -49,8 +49,9 @@
 | `Event` | `events` | `id` (Int, autoincrement) | — | Дочерние: `mentions` (`EventMention[]`, `Cascade`) | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | `id` (Int, autoincrement) | `@@unique([eventId, postId])`<br>`@@index([eventId])`<br>`@@index([postId])` | `event` -> `Event` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Связь M:N между мероприятиями (`Event`) и постами (`Post`), где они упомянуты |
 | `SystemSetting` | `system_settings` | `id` (String, default "global") | Нет | Нет внешних связей | Глобальная конфигурация AI-провайдера, модели, токена и настроек Telegram-дайджеста |
-| `AlertRule` | `alert_rules` | `id` (Int, autoincrement) | `@@index([channelId])` | `channel` -> `Channel?` (`Cascade`) | Правила мониторинга и алертинга по метрикам канала (пороги, операторы, время последней успешной отправки) |
+| `AlertRule` | `alert_rules` | `id` (Int, autoincrement) | `@@index([channelId])` | `channel` -> `Channel?` (`Cascade`) | Правила мониторинга и алертинга по метрикам канала и ключевым словам (пороги, фразы, время последней успешной отправки) |
 | `AlertRuleFire` | `alert_rule_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, channelId])`<br>`@@index([channelId])` | `rule` -> `AlertRule` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Состояние cooldown для пары «правило и канал» |
+| `AlertRulePostFire` | `alert_rule_post_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, postId])`<br>`@@index([postId])` | `rule` -> `AlertRule` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Фиксация отправленных уведомлений по ключевым словам для пары «правило и пост» |
 | `FraudSignal` | `fraud_signals` | `id` (Int, autoincrement) | `@@index([channelId, detectedAt])` | `channel` -> `Channel` (`Cascade`) | Зафиксированные эвристиками факты подозрительной активности (накрутка подписчиков, реакций, просмотров) |
 
 ---
@@ -368,9 +369,10 @@
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
 | `channelId` | `Int` | `channel_id` | Да | — | Внешний ключ на `Channel.id` (null для глобального правила) |
-| `metric` | `String` | `metric` | Нет | — | Отслеживаемая метрика (`followers`, `delta24h`, `delta7d`, `er7d`, `err7d`, `vr7d`, `avgViews7d`, `posts7d`, `contentScore`) |
+| `metric` | `String` | `metric` | Нет | — | Отслеживаемая метрика (`followers`, `delta24h`, `delta7d`, `er7d`, `err7d`, `vr7d`, `avgViews7d`, `posts7d`, `contentScore`, `keyword`) |
 | `operator` | `String` | `operator` | Нет | — | Оператор сравнения: `"lt"` (меньше) или `"gt"` (больше) |
 | `threshold` | `Float` | `threshold` | Нет | — | Пороговое значение срабатывания правила |
+| `keywordQuery` | `String` | `keyword_query` | Да | — | Нормализованный список ключевых слов/фраз через запятую (для `metric = "keyword"`, до 100 символов) |
 | `enabled` | `Boolean` | `enabled` | Нет | `true` | Флаг активности правила |
 | `lastFiredAt` | `DateTime` | `last_fired_at` | Да | нет | Время последней успешной отправки по любому каналу |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время создания правила |
@@ -380,6 +382,7 @@
 - **Связи:**
   - `channel`: `Channel?` (`fields: [channelId], references: [id], onDelete: Cascade`)
   - `fires`: `AlertRuleFire[]` (каскадное удаление)
+  - `postFires`: `AlertRulePostFire[]` (каскадное удаление)
 
 #### `AlertRuleFire` (`alert_rule_fires`)
 
@@ -394,6 +397,17 @@
 | `lastValue` | `Float` | `last_value` | Да | нет | Значение метрики последнего срабатывания |
 
 Уникальность пары `(ruleId, channelId)` обеспечивает независимый cooldown. Обе связи удаляются каскадно.
+
+#### `AlertRulePostFire` (`alert_rule_post_fires`)
+
+Хранит факт срабатывания текстового правила (`metric = "keyword"`) по конкретному посту, чтобы уведомление на один и тот же пост отправлялось не более одного раза. При сбое доставки резервирование удаляется.
+
+| Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
+|---|---|---|---|---|---|
+| `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
+| `ruleId` | `Int` | `rule_id` | Нет | нет | Внешний ключ на `AlertRule.id` |
+| `postId` | `Int` | `post_id` | Нет | нет | Внешний ключ на `Post.id` |
+| `firedAt` | `DateTime` | `fired_at` | Нет | `now()` | Время резервирования или успешной отправки |
 
 ---
 
