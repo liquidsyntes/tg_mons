@@ -110,10 +110,10 @@ export function ChannelsDesktopTable({
               <th
                 scope="col"
                 aria-sort={sortField === 'lastFact' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
-                className="py-3.5 px-1 w-[68px] min-w-[68px] hover:text-white transition-colors text-center leading-tight"
+                className="py-3.5 px-1 w-[60px] min-w-[60px] hover:text-white transition-colors text-center leading-tight"
               >
                 <button type="button" onClick={() => onSort('lastFact')} className="w-full rounded text-center">
-                  {renderHeaderLabel('Last Fact', 'lastFact')}
+                  {renderHeaderLabel('Last', 'lastFact', 'Просмотры последнего поста')}
                 </button>
               </th>
               <th
