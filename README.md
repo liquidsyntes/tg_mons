@@ -137,7 +137,7 @@ GitHub Actions выполняет typecheck, ESLint, Vitest и затем build:
 
 - [Обзор продукта и ограничения](docs/overview.md)
 - [Архитектура, схема хранения и потоки](docs/architecture.md)
-- [Карта кодовой базы](docs/codebase.md)
+- [Компактная карта проекта](docs/project-map.md)
 - [Метрики и формулы](docs/analytics-formulas.md)
 - [Полный справочник API](docs/api-reference.md)
 - [Запуск, конфигурация и эксплуатация](docs/deployment.md)
@@ -145,7 +145,7 @@ GitHub Actions выполняет typecheck, ESLint, Vitest и затем build:
 - [Решение по Telegram-клиенту и статьям](docs/adr/0002-telegram-rich-messages.md)
 - [Служебные скрипты](scripts/README.md)
 - [Git-процесс](docs/git-workflow.md), [порядок работы с кодом](docs/codex-workflow.md)
-- [Краткая карта проекта](PROJECT.md), [локальная памятка](skill.md)
+- [Текущее состояние и передача работы](docs/current-state.md)
 
 ## Допущения
 

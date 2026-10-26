@@ -1,5 +1,20 @@
 # AGENTS.md
 
+## Session entry and handoff
+
+1. Read this file and applicable additional instructions, including `GEMINI.md`.
+2. Read [the project map](docs/project-map.md).
+3. Read [the current state](docs/current-state.md). Treat dated checks as evidence for that snapshot only; verify branch, status and upstream before editing.
+4. Use the map to select only the documentation, source and tests relevant to the task. Do not read all documentation on every start.
+
+Maintain one canonical map and one current-state document:
+
+- Update the map when structure, module relationships or entry points change. Keep detailed contracts and formulas in their existing documents.
+- Update current state before ending a work session or handing off work when edits are authorized. Replace obsolete status rather than append a session log; record the date/base revision, implemented work, checks actually run, pending work/blockers and one concrete next step. For read-only tasks, report the handoff in the answer without editing files.
+- Never mark tests, builds, runtime checks or deployment successful unless they actually ran and their results were inspected. Distinguish implementation in source from verified runtime behavior.
+- When documentation and code disagree, explicitly record the conflict and verify the relevant source/configuration before relying on either claim. Mark unresolved claims as requiring verification; historical `.agents/` handoffs are not current status or authorization.
+- Keep secrets, personal data and environment values out of these documents. Do not create parallel maps or memory systems.
+
 ## Project purpose
 
 `tg_mons` is a web application for monitoring, comparing, and analysing Telegram channels. It consists of a Next.js web UI, a separate TypeScript worker that collects data through Telegram/MTProto, and a PostgreSQL database accessed with Prisma.

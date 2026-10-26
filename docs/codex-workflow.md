@@ -4,12 +4,12 @@ This document is a practical companion to the repository-level `AGENTS.md`. `AGE
 
 ## Read before editing
 
-Choose the smallest useful reading set for the task:
+Follow the entry order in [AGENTS.md](../AGENTS.md): instructions -> [project map](project-map.md) -> [current state](current-state.md). Then choose the smallest useful reading set for the task:
 
 | Task area | Read first |
 | --- | --- |
 | Product scope or terminology | `README.md`, `docs/overview.md` |
-| Architecture and module ownership | `docs/architecture.md`, `docs/codebase.md` |
+| Architecture and module ownership | `docs/architecture.md`, `docs/project-map.md` |
 | API work | `docs/api-reference.md`, relevant `src/app/api/**/route.ts` |
 | Metrics or channel analytics | `docs/analytics-formulas.md`, `src/lib/metrics.ts`, related tests |
 | Telegram collection | `src/worker/index.ts`, `collector.ts`, `fetcher.ts`, `message-content.ts`, `post-mentions.ts`, `persister.ts`, `retry-policy.ts` |
@@ -28,8 +28,9 @@ Work in the main checkout (`C:\TgMon` / `/mnt/c/TgMon`) as required by GEMINI.md
 5. Run targeted checks, then the repository scripts appropriate to the change.
 6. Inspect the diff for secrets, migrations, unintended files and behaviour gaps.
 7. Update affected local Docker services when code is built into their images; skip Docker for documentation-only changes.
-8. Commit only task files, push normally to the matching upstream and verify the remote commit.
-9. Summarise the result and explicitly identify checks that were not run.
+8. Refresh `docs/current-state.md` before handoff as required by AGENTS.md; include it in the task commit.
+9. Commit only task files, push normally to the matching upstream and verify the remote commit.
+10. Summarise the result and explicitly identify checks that were not run.
 
 ## Practical check matrix
 
@@ -52,7 +53,7 @@ The current checks are `npx tsc --noEmit`, `npx eslint src`, `npm test`, and `np
 - Never copy real values from local environment files, logs or Telegram sessions into code, tests, issues or commits.
 - Do not delete data, reset databases, rewrite migration history or change deployment configuration unless the task explicitly calls for it and the impact is understood.
 - Preserve graceful degradation for Telegram statistics that require permissions or are unavailable for a channel.
-- A Telegram dependency change must cover both web and worker, existing sessions, optional statistics, partial articles and persistence; web also invokes the collector.
+- A Telegram dependency change must cover both web and worker, existing sessions, optional statistics, partial articles and persistence; web requests collection through the worker internal API.
 - Before declaring a Docker deployment successful, verify host port mapping, the home page and the body of `/api/health`. HTTP 200 alone does not establish a successful collection cycle.
 - Prefer a clearly reported limitation to a speculative implementation.
 - Keep the repository clean: no temporary patch scripts, debug dumps, build artefacts or editor-specific files.
