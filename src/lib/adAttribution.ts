@@ -1,7 +1,7 @@
 import type { Channel, Prisma } from '@prisma/client';
 import { prisma } from './prisma';
-import { estimateAdPrice } from './pricing';
-import type { AdAttributionPlacement, ChannelAdAttribution } from './types';
+import { calculatePlacementPrice, estimateAdPrice } from './pricing';
+import type { AdAttributionPlacement, AdPriceResult, ChannelAdAttribution } from './types';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -185,11 +185,11 @@ export async function getChannelAdAttribution(
     ...[...inbound.values()].filter(item => item.mention.sourcePost.isAd).map(item => item.mention.sourceChannelId),
     ...(outbound.size > 0 ? [channelId] : []),
   ])];
-  const prices = new Map<number, number | null>();
+  const prices = new Map<number, AdPriceResult | null>();
   for (let index = 0; index < donorIds.length; index += 4) {
     const batch = await Promise.all(donorIds.slice(index, index + 4).map(async donorId => ({
       donorId,
-      price: (await estimateAdPrice(donorId))?.estimatedPricePerPost ?? null,
+      price: await estimateAdPrice(donorId, userId),
     })));
     for (const item of batch) prices.set(item.donorId, item.price);
   }
@@ -199,8 +199,11 @@ export async function getChannelAdAttribution(
     const channelSnapshots = snapshotsByChannel.get(target.id) ?? [];
     const deltaSubscribers24h = subscriberDeltaAt(channelSnapshots, publishedAt, 24, now);
     const deltaSubscribers48h = subscriberDeltaAt(channelSnapshots, publishedAt, 48, now);
-    const price = mention.sourcePost.isAd ? prices.get(mention.sourceChannelId) ?? null : null;
     const views = mention.sourcePost.views;
+    const priceData = mention.sourcePost.isAd ? prices.get(mention.sourceChannelId) ?? null : null;
+    const resolvedPrice = priceData ? calculatePlacementPrice(views, priceData.cpm, priceData,
+      priceData.priceSource === 'niche_estimate' ? priceData.estimatedPricePerPost : undefined) : null;
+    const price = resolvedPrice?.price ?? null;
     return {
       postId: mention.sourcePostId,
       messageId: mention.sourcePost.messageId.toString(),
@@ -212,6 +215,7 @@ export async function getChannelAdAttribution(
       deltaSubscribers24h,
       deltaSubscribers48h,
       estimatedPricePerPost: price,
+      priceSource: resolvedPrice?.source ?? null,
       estimatedCpf: estimatedCpf(price, deltaSubscribers24h),
       conversionPercent: isOutbound && deltaSubscribers24h !== null && deltaSubscribers24h > 0 && views !== null && views > 0
         ? roundTwo((deltaSubscribers24h / views) * 100) : null,

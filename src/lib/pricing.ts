@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { getAdReachCurve } from './metrics/queries';
+import type { AdPriceResult, AdPriceSource } from './types';
 
 const CPM_BENCHMARKS: Record<string, number> = {
   general: 200,
@@ -20,15 +21,53 @@ export function getNicheCpm(niche: string): number {
   return CPM_BENCHMARKS[niche] ?? DEFAULT_CPM;
 }
 
-export async function estimateAdPrice(channelId: number) {
-  const channel = await prisma.channel.findUnique({
-    where: { id: channelId },
-    select: { niche: true }
-  });
+export interface PriceOverrides {
+  customAdPriceUah?: number | null;
+  customCpmUah?: number | null;
+}
 
-  if (!channel) return null;
+export function priceSource(overrides: PriceOverrides): AdPriceSource {
+  if (overrides.customAdPriceUah && overrides.customAdPriceUah > 0) return 'custom_price';
+  if (overrides.customCpmUah && overrides.customCpmUah > 0) return 'custom_cpm';
+  return 'niche_estimate';
+}
 
-  const cpm = getNicheCpm(channel.niche);
+export function calculatePlacementPrice(
+  views: number | null,
+  nicheCpm: number,
+  overrides: PriceOverrides,
+  nicheEstimatedPrice?: number | null,
+): { price: number | null; source: AdPriceSource; cpm: number } {
+  const source = priceSource(overrides);
+  const cpm = source === 'custom_cpm' ? overrides.customCpmUah ?? nicheCpm : nicheCpm;
+  if (source === 'custom_price') return { price: overrides.customAdPriceUah ?? null, source, cpm };
+  if (views === null || !Number.isFinite(views) || views <= 0) return { price: null, source, cpm };
+  return { price: source === 'niche_estimate' && nicheEstimatedPrice !== undefined
+    ? nicheEstimatedPrice : Math.round(views * cpm / 1000), source, cpm };
+}
+
+export async function estimateAdPrice(channelId: number, userId: number | null = null): Promise<AdPriceResult | null> {
+  let niche: string;
+  let overrides: PriceOverrides = {};
+  if (userId === null) {
+    const channel = await prisma.channel.findUnique({ where: { id: channelId }, select: { niche: true } });
+    if (!channel) return null;
+    niche = channel.niche;
+  } else {
+    const subscription = await prisma.userChannel.findUnique({
+      where: { userId_channelId: { userId, channelId } },
+      select: { niche: true, customAdPriceUah: true, customCpmUah: true },
+    });
+    if (!subscription) return null;
+    niche = subscription.niche;
+    overrides = subscription;
+  }
+
+  const source = priceSource(overrides);
+  const cpm = source === 'custom_cpm' ? overrides.customCpmUah ?? getNicheCpm(niche) : getNicheCpm(niche);
+  const fixedPrice = source === 'custom_price' ? overrides.customAdPriceUah ?? null : null;
+  const settings = { priceSource: source, customAdPriceUah: overrides.customAdPriceUah ?? null,
+    customCpmUah: overrides.customCpmUah ?? null };
 
   // Find recent ad posts
   const adPosts = await prisma.post.findMany({
@@ -41,7 +80,8 @@ export async function estimateAdPrice(channelId: number) {
   const confidence = adPosts.length >= 3 ? 'high' : 'low';
 
   if (adPosts.length === 0) {
-    return { estimatedPricePerPost: null, cpm, confidence, averageAdReach: null, averageReachCurve: [] };
+    return { estimatedPricePerPost: fixedPrice,
+      cpm, confidence, averageAdReach: null, averageReachCurve: [], ...settings };
   }
 
   let totalReach = 0;
@@ -71,7 +111,8 @@ export async function estimateAdPrice(channelId: number) {
   }
 
   if (validPostsCount === 0) {
-    return { estimatedPricePerPost: null, cpm, confidence, averageAdReach: null, averageReachCurve: [] };
+    return { estimatedPricePerPost: fixedPrice,
+      cpm, confidence, averageAdReach: null, averageReachCurve: [], ...settings };
   }
 
   const averageCurveMap = new Map<number, { sum: number; count: number }>();
@@ -98,13 +139,15 @@ export async function estimateAdPrice(channelId: number) {
     });
 
   const averageAdReach = totalReach / validPostsCount;
-  const estimatedPricePerPost = Math.round((averageAdReach / 1000) * cpm);
+  const estimatedPricePerPost = source === 'custom_price' ? fixedPrice
+    : Math.round((averageAdReach / 1000) * cpm);
 
   return {
     estimatedPricePerPost,
     cpm,
     confidence,
     averageAdReach: Math.round(averageAdReach),
-    averageReachCurve
+    averageReachCurve,
+    ...settings,
   };
 }

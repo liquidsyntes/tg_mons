@@ -7,7 +7,9 @@ vi.mock('../prisma', () => ({ prisma: {
   channel: { findMany: mocks.channels }, userChannel: { findMany: mocks.subscriptions },
   mention: { findMany: mocks.mentions }, snapshot: { findMany: mocks.snapshots },
 } }));
-vi.mock('../pricing', () => ({ estimateAdPrice: mocks.price }));
+vi.mock('../pricing', async importOriginal => ({
+  ...await importOriginal<typeof import('../pricing')>(), estimateAdPrice: mocks.price,
+}));
 
 import { estimatedCpf, getChannelAdAttribution, hasOverlappingCampaign, subscriberDeltaAt } from '../adAttribution';
 
@@ -37,7 +39,8 @@ beforeEach(() => {
   mocks.channels.mockResolvedValue([donor, target, secondDonor]);
   mocks.mentions.mockResolvedValue([mention(101)]);
   mocks.snapshots.mockResolvedValue(snapshots);
-  mocks.price.mockResolvedValue({ estimatedPricePerPost: 200 });
+  mocks.price.mockResolvedValue({ estimatedPricePerPost: 200, cpm: 200,
+    priceSource: 'niche_estimate', customAdPriceUah: null, customCpmUah: null });
 });
 
 describe('ad attribution calculations', () => {
@@ -81,7 +84,7 @@ describe('getChannelAdAttribution', () => {
     expect(result?.inbound).toHaveLength(2);
     expect(result?.inbound.find(item => item.postId === 101)).toMatchObject({
       deltaSubscribers24h: 20, deltaSubscribers48h: 30,
-      estimatedPricePerPost: 200, estimatedCpf: 10, overlappingCampaigns: true,
+      estimatedPricePerPost: 200, priceSource: 'niche_estimate', estimatedCpf: 10, overlappingCampaigns: true,
     });
     expect(mocks.subscriptions).toHaveBeenCalledWith(expect.objectContaining({
       where: { userId: 7, isActive: true, channel: { isActive: true } },
@@ -108,5 +111,20 @@ describe('getChannelAdAttribution', () => {
     const result = await getChannelAdAttribution(2, 30, 7, now);
     expect(result?.inbound[0]).toMatchObject({ isAd: false, estimatedPricePerPost: null, estimatedCpf: null });
     expect(mocks.price).not.toHaveBeenCalled();
+  });
+
+  it('uses a personal fixed price and custom CPM for CPF', async () => {
+    mocks.price.mockResolvedValueOnce({ estimatedPricePerPost: 800, cpm: 100,
+      priceSource: 'custom_price', customAdPriceUah: 800, customCpmUah: 300 });
+    const fixed = await getChannelAdAttribution(2, 30, 7, now);
+    expect(fixed?.inbound[0]).toMatchObject({ estimatedPricePerPost: 800,
+      priceSource: 'custom_price', estimatedCpf: 40 });
+    expect(mocks.price).toHaveBeenCalledWith(1, 7);
+
+    mocks.price.mockResolvedValue({ estimatedPricePerPost: 450, cpm: 300,
+      priceSource: 'custom_cpm', customAdPriceUah: null, customCpmUah: 300 });
+    const cpm = await getChannelAdAttribution(2, 30, 7, now);
+    expect(cpm?.inbound[0]).toMatchObject({ estimatedPricePerPost: 300,
+      priceSource: 'custom_cpm', estimatedCpf: 15 });
   });
 });

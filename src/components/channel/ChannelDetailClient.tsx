@@ -32,6 +32,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
   const [data, setData] = useState<ChannelDetailStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [priceRevision, setPriceRevision] = useState(0);
 
   const fetchChannelData = useCallback(async () => {
     setLoading(true);
@@ -72,10 +73,10 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
         ) : (
           <>
             <div id="report-content" className="flex flex-col gap-[6px]">
-              <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} />
+              <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} priceRevision={priceRevision} />
               {data!.nicheBenchmark && <NicheBenchmarkWidget benchmark={data!.nicheBenchmark} />}
               <ChannelAdReachWidget channelId={channel.id} />
-              <AdAttributionWidget channelId={channel.id} />
+              <AdAttributionWidget channelId={channel.id} onPriceSaved={() => setPriceRevision(value => value + 1)} />
               {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
               <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
               <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />

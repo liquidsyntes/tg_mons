@@ -33,7 +33,7 @@
 |---|---|---|---|---|---|
 | `User` | `users` | `id` (Int, autoincrement) | `@unique username` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `InviteCode` | Учётные записи пользователей (`ADMIN`, `USER`) и PBKDF2-хеши паролей |
 | `InviteCode` | `invite_codes` | `id` (Int, autoincrement) | `@unique code`<br>`@unique usedById`<br>`@@index([createdById])` | `createdBy` -> `User` (`Cascade`)<br>`usedBy` -> `User?` (`SetNull`) | Одноразовые инвайт-коды для закрытой регистрации пользователей |
-| `UserChannel` | `user_channels` | `id` (Int, autoincrement) | `@@unique([userId, channelId])`<br>`@@index([userId])`<br>`@@index([channelId])` | `user` -> `User` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Персональная подписка пользователя на канал из общего пула (`isMine`, `isFavorite`, `niche`, `isActive`) |
+| `UserChannel` | `user_channels` | `id` (Int, autoincrement) | `@@unique([userId, channelId])`<br>`@@index([userId])`<br>`@@index([channelId])` | `user` -> `User` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Персональная подписка пользователя на канал из общего пула (`isMine`, `isFavorite`, `niche`, `isActive`), необязательные `customAdPriceUah` и `customCpmUah` в гривнах |
 | `UserDismissedEvent` | `user_dismissed_events` | `id` (Int, autoincrement) | `@@unique([userId, eventId])`<br>`@@index([userId])`<br>`@@index([eventId])` | `user` -> `User` (`Cascade`)<br>`event` -> `Event` (`Cascade`) | Индивидуальное скрытие мероприятий из «Афиши» для конкретного пользователя |
 | `Channel` | `channels` | `id` (Int, autoincrement) | `@unique username`<br>`@unique tgId` | Связи 1:N со всеми дочерними сущностями (`onDelete: Cascade`) | Telegram-каналы и группы, отслеживаемые системой, флаги и метаданные |
 | `Snapshot` | `snapshots` | `id` (Int, autoincrement) | `@@index([channelId, collectedAt])` | `channel` -> `Channel` (`Cascade`) | Временные снимки численности аудитории (подписчиков) канала |
@@ -439,6 +439,6 @@ Worker сохраняет не более одного актуального с
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На 26 октября 2026 года в проекте 23 миграции. Последняя, `20261026153255_add_mention_target_message_id`, добавляет nullable BIGINT-колонку `mentions.target_message_id` без изменения существующих строк.
+- На 26 октября 2026 года в проекте 24 миграции. Последняя, `20261026162020_add_user_channel_ad_pricing`, добавляет две nullable INTEGER-колонки `user_channels.custom_ad_price_uah` и `user_channels.custom_cpm_uah` без изменения существующих строк.
 - Для генерации клиента Prisma используется скрипт `npm run prisma:generate`.
 - **Особенность Windows-окружения:** Если `npx prisma generate` завершился с `EPERM`, проверьте процессы Next.js и worker именно этого checkout на блокировку Prisma Query Engine. Останавливайте только установленный блокирующий процесс, затем повторите генерацию.

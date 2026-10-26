@@ -222,6 +222,19 @@ export interface TopAdvertisersResponse {
   advertisers: TopAdvertiser[];
 }
 
+export type AdPriceSource = 'custom_price' | 'custom_cpm' | 'niche_estimate';
+
+export interface AdPriceResult {
+  estimatedPricePerPost: number | null;
+  cpm: number;
+  confidence: 'high' | 'low';
+  averageAdReach: number | null;
+  averageReachCurve: Array<{ hoursAfterPost: number; views: number }>;
+  priceSource: AdPriceSource;
+  customAdPriceUah: number | null;
+  customCpmUah: number | null;
+}
+
 export interface AdAttributionPlacement {
   postId: number;
   messageId: string;
@@ -233,6 +246,7 @@ export interface AdAttributionPlacement {
   deltaSubscribers24h: number | null;
   deltaSubscribers48h: number | null;
   estimatedPricePerPost: number | null;
+  priceSource: AdPriceSource | null;
   estimatedCpf: number | null;
   conversionPercent: number | null;
   overlappingCampaigns: boolean;

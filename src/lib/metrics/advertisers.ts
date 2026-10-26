@@ -1,8 +1,8 @@
 import { prisma } from '../prisma';
-import { getNicheCpm } from '../pricing';
+import { calculatePlacementPrice, getNicheCpm, type PriceOverrides } from '../pricing';
 import type { TopAdvertiser, TopAdvertisersResponse } from '../types';
 
-export interface AdvertiserChannel {
+export interface AdvertiserChannel extends PriceOverrides {
   id: number;
   title: string;
   username: string | null;
@@ -33,7 +33,7 @@ export function aggregateAdvertisers(
   }));
   const groups = new Map<string, {
     posts: Set<number>; donors: Map<number, { channel: AdvertiserChannel; posts: Set<number> }>;
-    totalViews: number; knownViews: number; estimatedSpend: number;
+    totalViews: number; knownViews: number; estimatedSpend: number; knownPrices: number;
     firstSeenAt: Date; lastSeenAt: Date;
   }>();
 
@@ -47,7 +47,7 @@ export function aggregateAdvertisers(
     let group = groups.get(username);
     if (!group) {
       group = { posts: new Set(), donors: new Map(), totalViews: 0, knownViews: 0,
-        estimatedSpend: 0, firstSeenAt: publishedAt, lastSeenAt: publishedAt };
+        estimatedSpend: 0, knownPrices: 0, firstSeenAt: publishedAt, lastSeenAt: publishedAt };
       groups.set(username, group);
     }
     if (group.posts.has(mention.sourcePostId)) continue;
@@ -58,7 +58,11 @@ export function aggregateAdvertisers(
     if (views !== null && Number.isFinite(views) && views >= 0) {
       group.totalViews += views;
       group.knownViews++;
-      group.estimatedSpend += views * getNicheCpm(donor.niche) / 1000;
+    }
+    const placementPrice = calculatePlacementPrice(views, getNicheCpm(donor.niche), donor).price;
+    if (placementPrice !== null) {
+      group.estimatedSpend += placementPrice;
+      group.knownPrices++;
     }
     if (publishedAt < group.firstSeenAt) group.firstSeenAt = publishedAt;
     if (publishedAt > group.lastSeenAt) group.lastSeenAt = publishedAt;
@@ -76,7 +80,7 @@ export function aggregateAdvertisers(
       donorChannels: donorList,
       totalViews: group.knownViews > 0 ? group.totalViews : null,
       avgViews: group.knownViews > 0 ? Math.round(group.totalViews / group.knownViews) : null,
-      estimatedSpendUah: group.knownViews > 0 ? Math.round(group.estimatedSpend) : null,
+      estimatedSpendUah: group.knownPrices > 0 ? group.estimatedSpend : null,
       firstSeenAt: group.firstSeenAt.toISOString(),
       lastSeenAt: group.lastSeenAt.toISOString(),
       isTrackedChannel: Boolean(target),
@@ -103,6 +107,7 @@ export async function getTopAdvertisers(
   } else {
     const subscriptions = await prisma.userChannel.findMany({
       where: { userId }, select: { isActive: true, niche: true,
+        customAdPriceUah: true, customCpmUah: true,
         channel: { select: { id: true, title: true, username: true, isActive: true } } },
     });
     tracked = subscriptions.map(subscription => subscription.channel);
@@ -110,6 +115,8 @@ export async function getTopAdvertisers(
       (!niche || subscription.niche === niche)).map(subscription => ({
       id: subscription.channel.id, title: subscription.channel.title,
       username: subscription.channel.username, niche: subscription.niche,
+      customAdPriceUah: subscription.customAdPriceUah,
+      customCpmUah: subscription.customCpmUah,
     }));
   }
   if (donors.length === 0) return { days, niche, advertisers: [] };

@@ -36,7 +36,8 @@ Middleware больше не добавляет Bearer к запросам бр�
 | `PUT /api/channels/:id/favorite` | `{ "isFavorite": true }` | `{ "success": true, "isFavorite": true }`; кэши метрик не сбрасывает | Да |
 | `GET /api/channels/:id/ltv` | ID | `{ "ltv": [{ "hour": 1, "percent": 12.3 }, ...] }` либо `{ "ltv": [] }` | Нет |
 | `GET /api/channels/:id/network` | ID | Совместимый плоский ответ `{ "outbound": [...], "inbound": [...] }`, ограниченный доступными каналами пользователя | Да |
-| `GET /api/channels/:id/ad-price` | ID | `{estimatedPricePerPost,cpm,confidence,averageAdReach,averageReachCurve}`; 404 если канала нет | Нет |
+| `GET /api/channels/:id/ad-price` | ID | `{estimatedPricePerPost,cpm,confidence,averageAdReach,averageReachCurve,priceSource,customAdPriceUah,customCpmUah,canEdit}`; 404 если канал недоступен | Да |
+| `PATCH /api/channels/:id/ad-price` | `{customAdPriceUah?,customCpmUah?}` | `{success,customAdPriceUah,customCpmUah,priceSource}`; 400 при неверных значениях, 403 для мастер-сессии, 404 при отсутствии личной подписки | Да |
 | `GET /api/channels/:id/ad-attribution` | ID, `days=7|30|90` (по умолчанию 30) | `{periodDays,inbound,outbound}` с приростом подписчиков +24/+48 ч и оценочными ценой/CPF | Да |
 
 `input` принимает username, Telegram-ссылку или invite-ссылку уже доступного аккаунту чата. Неверный/пустой input даёт 400. Неудачный backfill сохраняет `lastError`, но не обязательно отменяет 201. Добавление, PATCH и DELETE очищают `metricsCache`/`bestTimeCache`.
@@ -49,7 +50,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 
 Новые PostSnapshot записываются только в первые 72 часа после публикации с интервалом от 45 минут. Записи старше 30 дней удаляются worker после основного цикла.
 
-У ad-price отсутствие рекламы или пригодных просмотров возвращает 200 с `estimatedPricePerPost: null`, `averageAdReach: null`, пустой кривой. `confidence` — `high` при ≥3 рекламных постах, иначе `low`; это правило по числу постов, не статистический доверительный интервал.
+У ad-price отсутствие рекламы или пригодных просмотров возвращает 200 с `averageAdReach: null` и пустой кривой. `estimatedPricePerPost` при этом равен личной фиксированной цене, если она положительна, иначе `null`. Приоритет: `customAdPriceUah > 0`, затем `customCpmUah > 0`, затем нишевый CPM. `priceSource` принимает `custom_price`, `custom_cpm` или `niche_estimate`. PATCH принимает только целые неотрицательные значения до 2147483647 или `null` для сброса; пустое тело и неизвестные поля дают 400. `confidence` равен `high` при ≥3 рекламных постах, иначе `low`; это правило по числу постов, не статистический доверительный интервал. Все суммы и CPM указаны в гривнах.
 
 ## Статистика
 
