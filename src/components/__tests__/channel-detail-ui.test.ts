@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { channel } from '@/lib/__tests__/fixtures/channel-metrics';
 import { AIReportsSection } from '../channel/AIReportsSection';
 import { ChannelHeader } from '../channel/ChannelHeader';
@@ -16,13 +16,29 @@ it('shows channel summary values in the shared metric layout', async () => {
   }));
 
   render(React.createElement(ChannelHeader, {
-    channel, period: '7d', onPeriodChange: vi.fn(),
+    channel, period: '7d', onPeriodChange: vi.fn(), onMineChanged: vi.fn(),
   }));
 
   expect(screen.getByText('Динамика · 7д')).toBeDefined();
   expect(screen.getByText('Посты · 30д')).toBeDefined();
   expect(screen.getByText('1/д в среднем')).toBeDefined();
   expect(await screen.findByText('375 ₴')).toBeDefined();
+});
+
+it('lets the user assign a channel as mine from its page', async () => {
+  const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+  vi.stubGlobal('fetch', fetcher);
+  const onMineChanged = vi.fn().mockResolvedValue(undefined);
+  render(React.createElement(ChannelHeader, {
+    channel, period: '7d', onPeriodChange: vi.fn(), onMineChanged,
+  }));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Назначить моим каналом' }));
+  await waitFor(() => expect(onMineChanged).toHaveBeenCalledTimes(1));
+  expect(fetcher).toHaveBeenCalledWith('/api/channels/1', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isMine: true }),
+  });
 });
 
 it('starts with my channel comparison off and lets the user enable it', () => {

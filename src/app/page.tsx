@@ -5,6 +5,7 @@ import { Header } from '@/components/Header';
 import { MyChannelCard } from '@/components/MyChannelCard';
 import { ChannelsTable } from '@/components/ChannelsTable';
 import { AddChannelModal } from '@/components/AddChannelModal';
+import { ChannelListTransfer } from '@/components/ChannelListTransfer';
 import { OverviewSkeleton } from '@/components/SkeletonLoader';
 import { Dashboard } from '@/components/Dashboard';
 import { WatchlistWidget } from '@/components/WatchlistWidget';
@@ -46,6 +47,7 @@ export default function OverviewPage() {
       <Header onRefresh={fetchOverview} />
 
       <main className="flex-1 site-shell w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <ChannelListTransfer onImported={fetchOverview} />
         {loading ? (
           <OverviewSkeleton />
         ) : error ? (

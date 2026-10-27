@@ -17,14 +17,35 @@ interface ChannelHeaderProps {
   channel: ChannelMetrics;
   period: '24h' | '7d' | '30d';
   onPeriodChange: (period: '24h' | '7d' | '30d') => void;
+  onMineChanged: () => Promise<void>;
   priceRevision?: number;
   stats?: ChannelDetailStats | null;
 }
 
 import { useEffect, useState } from 'react';
 
-export function ChannelHeader({ channel, period, onPeriodChange, priceRevision = 0, stats }: ChannelHeaderProps) {
+export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, priceRevision = 0, stats }: ChannelHeaderProps) {
   const [adPrice, setAdPrice] = useState<Pick<AdPriceResult, 'estimatedPricePerPost' | 'cpm' | 'confidence' | 'priceSource'> | null>(null);
+  const [savingMine, setSavingMine] = useState(false);
+  const [mineError, setMineError] = useState<string | null>(null);
+
+  const markAsMine = async () => {
+    setSavingMine(true);
+    setMineError(null);
+    try {
+      const response = await fetch(`/api/channels/${channel.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isMine: true }),
+      });
+      if (!response.ok) throw new Error('Не удалось назначить канал');
+      await onMineChanged();
+    } catch (error) {
+      setMineError(error instanceof Error ? error.message : 'Не удалось назначить канал');
+    } finally {
+      setSavingMine(false);
+    }
+  };
 
   useEffect(() => {
     if (channel?.id) {
@@ -91,6 +112,12 @@ export function ChannelHeader({ channel, period, onPeriodChange, priceRevision =
                   Мой канал
                 </span>
               )}
+              {!channel.isMine && (
+                <button type="button" data-pdf-hide disabled={savingMine} onClick={() => void markAsMine()} className="inline-flex items-center gap-1 rounded-lg border border-accent/30 px-2.5 py-0.5 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-50">
+                  <Crown className="h-3.5 w-3.5" /> {savingMine ? 'Сохранение...' : 'Назначить моим каналом'}
+                </button>
+              )}
+              {mineError && <span role="alert" className="text-xs text-rose-400">{mineError}</span>}
               <StatusBadge
                 status={channel.status}
                 lastCollectedAt={channel.lastCollectedAt}
