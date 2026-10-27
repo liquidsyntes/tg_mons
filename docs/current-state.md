@@ -1,22 +1,23 @@
 # Текущее состояние и передача работы
 
-Снимок: 27 октября 2026 года. База задачи Issue #54: `571a5c6`, ветка `main`, upstream `origin/main`; рабочее дерево до изменений было чистым. Перед следующей задачей проверить Git заново. Это состояние исходников и локальных проверок, не заключение о production.
+Снимок: 27 октября 2026 года. База задачи актуализации документации и архитектурных диаграмм: `46fba14`, ветка `main`, upstream `origin/main`; рабочее дерево до изменений было чистым. Перед следующей задачей проверить Git заново. Это состояние исходников и локальных проверок, не заключение о production.
 
 ## Реализовано в исходниках
 
-- В `src/lib/ai-reports.ts` добавлен тип отчёта `'content-gap'` в `AiReportType`.
-- Создан маршрут `POST /api/ai/content-gap` (`src/app/api/ai/content-gap/route.ts`), который определяет «Мой канал» (`isMine: true` или переданный `myChannelId`) среди активных подписок пользователя, собирает до 40 последних постов своего канала и топ-60 наиболее эффективных постов конкурентов за период `days` (по умолчанию 14 дней), генерирует структурированный JSON-отчёт через OpenRouter (`summary`, `missingTopics`, `coveredTopicsComparison`, `quickWins`) и сохраняет его в `AiReport` (`type: 'content-gap'`).
-- Создан компонент `src/components/AIContentGapReport.tsx` и функция экспорта в Markdown `aiContentGapToMarkdown` в `src/lib/ai-markdown.ts`.
-- Поддержка отчёта `'content-gap'` интегрирована в `src/components/channel/AIReportsSection.tsx` (для «Моего канала»), `src/components/TrendSpotterWidget.tsx` (кнопка «Упущенные темы» на главной странице), реестр `/reports` (`src/components/ReportsListClient.tsx`), детальную страницу `/reports/[id]` (`src/app/reports/[id]/page.tsx`) и HTML-экспорт (`src/app/api/reports/[id]/export/route.ts`).
-- Добавлены unit-тесты `src/app/api/ai/content-gap/__tests__/route.test.ts` и обновлён `src/__tests__/middleware.test.ts`. Обновлена документация в `docs/api-reference.md`, `docs/database.md` и `docs/overview.md`.
+- В `README.md` добавлена сводная архитектурная диаграмма (`flowchart LR`) и актуализирован перечень возможностей (9 AI-маршрутов с `content-gap` и закрытым для `USER` отчётом `persona`, трёхконтурная система уведомлений и персональных дайджестов, рейтинг рекламодателей в Ad Spy с персональными ценами в гривнах, экспорт событий в `.ics` / Google Календарь).
+- В `docs/architecture.md` восстановлены и актуализированы наглядные Mermaid-диаграммы всех ключевых контуров: контейнерная схема системы, компонентная архитектура Web & API, координация задач Worker (`TaskCoordinator` и PostgreSQL advisory lock), многопользовательская изоляция данных и авторизация (`Cookie v2/v1`, `Bearer`), сквозные диаграммы последовательности основного цикла сбора и чтения аналитики с кэшем, двухэтапный пайплайн сканера событий (`Jev` + LLM + слияние дублей) и контур 9 типов AI-отчётов. Таблица моделей синхронизирована со схемой Prisma (**22 модели**, включая `AlertRulePostFire`, и **26 миграций**).
+- В `docs/database.md` добавлены полная `erDiagram` всех 22 моделей схемы Prisma, диаграмма каскадного удаления (`flowchart TD`), детальная спецификация таблиц многопользовательского доступа (`User`, `InviteCode`, `UserChannel`, `UserDismissedEvent`) и актуализирован список из 26 миграций.
+- В `docs/overview.md` добавлены диаграмма пользовательских сценариев по страницам приложения (`flowchart TD`) и схема работы трёх контуров Telegram-уведомлений и ежедневных дайджестов (`flowchart LR`).
+- В `docs/analytics-formulas.md` добавлена сквозная схема расчёта метрик, рейтингов, рекламной аналитики, цитирования и гибридного антифрода (`flowchart TD`).
+- В `docs/deployment.md` добавлены схема трёх сред эксплуатации и изоляции MTProto-сессий (`TG_SESSION_LOCAL` vs `TG_SESSION`), последовательность production-обновления `update.sh` (`sequenceDiagram`) и дерево принятия решений `/api/health` (`flowchart TD`). Обновлена `docs/project-map.md`.
 
 ## Проверки текущей задачи
 
-- Целевые тесты (`src/app/api/ai/content-gap/__tests__/route.test.ts`, `src/__tests__/middleware.test.ts`, `src/components/__tests__/ui-polish.test.ts`, `src/components/__tests__/channel-detail-ui.test.ts`, `src/lib/__tests__/ai-markdown.test.ts`): 5 файлов, 33 теста прошли. Полный `npm test -- --maxWorkers=4`: 106 файлов, 700 тестов прошли. `npx tsc --noEmit`, `npx eslint src` и `npm run build` прошли.
-- `git diff --check` прошёл без ошибок. Миграция БД не требовалась (`AiReport.type` — строковое поле `String`).
+- Проверены соответствие диаграмм и таблиц текущим исходникам (`prisma/schema.prisma`, `src/worker/`, `src/lib/`, `src/app/api/`), синтаксис Mermaid-блоков, относительные ссылки, кодировка UTF-8 и `git diff --check`.
+- Изменения затрагивают только документацию (`README.md`, `docs/*.md`), поэтому пересборка Docker-контейнеров не требуется.
 
 ## Ограничения и следующий шаг
 
-Генерация отчёта упущенных тем требует наличия хотя бы одного канала с `isMine: true` (или явного `myChannelId`), хотя бы одного активного канала конкурента в подписках пользователя и настроенного `OPENROUTER_API_KEY`.
+При последующих изменениях схемы Prisma, маршрутов API или фоновых задач worker синхронно обновлять соответствующие диаграммы в `docs/architecture.md` и `docs/database.md`.
 
 После доставки перед следующей задачей проверить `git status -sb` и выбрать относящиеся к ней исходники по [карте проекта](project-map.md). Исторические `.agents/` handoff-файлы не задают план следующей работы.

@@ -1,8 +1,64 @@
 # Метрики и формулы
 
-Предметная сверка формул с исполняемым кодом выполнена 23 сентября 2026 года; исходные модули формул не менялись по истории Git до 16 октября 2026 года. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [materialize.ts](../src/lib/materialize.ts).
+Предметная сверка формул с исполняемым кодом выполнена **27 октября 2026 года**. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [materialize.ts](../src/lib/materialize.ts), [ep.ts](../src/lib/ep.ts), [scoring.ts](../src/lib/scoring.ts), [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [pricing.ts](../src/lib/pricing.ts).
 
 Обозначения: $V$ — просмотры, $R$ — реакции, $C$ — комментарии, $F$ — пересылки, $S$ — аудитория, $E=R+C+F$. Пропущенные взаимодействия в формулах принимаются за 0, но отсутствующий знаменатель обычно даёт null. Процентные метрики хранятся как проценты (например, 2.5 означает 2.5%).
+
+## Общая схема расчёта аналитических показателей
+
+```mermaid
+flowchart TD
+    subgraph RawData["Сырые данные PostgreSQL (собираются Worker)"]
+        Snap["Snapshot (подписчики S)"]
+        Posts["Post (V, R, C, F, reactionBreakdown, contentType, isAd, subscribersAtPublish)"]
+        PSnap["PostSnapshot (LTV 1..72ч) и PostViewSnapshot (Реклама 1, 12, 24, 48ч)"]
+        Ment["Mention (sourceChannelId, targetUsername, targetMessageId)"]
+        FSignals["FraudSignal (сохранённые сигналы за 30д)"]
+    end
+
+    subgraph Materialization["Материализация (materialize.ts)"]
+        Daily["ChannelMetricDaily (UTC-дни: followers, postsCount, avgViews, VR_d, ERR_d)"]
+    end
+
+    subgraph BaseMetrics["Базовые метрики канала и постов (metrics/*)"]
+        PathChoice{"Есть строки ChannelMetricDaily за 30д?"}
+        ErErr["ER, ERR (24ч/7д), trueErr7d, VR, CR групп, Дельты (24ч/7д/30д)"]
+        Formats["Форматы контента (text, photo, video, poll, link) и Топ-5 реакций"]
+        ViralSilence["Вирусные посты (медианы 30д: views >=2x, forwards >=3x, ERR >=2x) и Детектор тишины"]
+    end
+
+    subgraph CompositeScores["Интегральные рейтинги и бенчмарки"]
+        EP["Effective Point (EP) и CEI (Z-нормализация внутри ниши + сигмоида)"]
+        CS["Content Score (0..100, грейды A+..D по 5 компонентам)"]
+        Bench["Позиция в нише (перцентили P25, P50, P75 и ранг по 6 метрикам)"]
+    end
+
+    subgraph AdAndNetwork["Реклама, цитирование и антифрод"]
+        AdIntel["Ad Load, Оценка цены поста (₴: фикс -> личный CPM -> ниша), Топ рекламодателей, Атрибуция (+24/48ч и CPF)"]
+        Citation["Индекс цитирования (CI = sum count * log10(subs)), Роль в инфополе и Цепочки распространения"]
+        Fraud["runFraudAudit: 4 эвристики -> fraudScore (0, 25, 50, 75, 100) + checkLowCitationGrowth"]
+    end
+
+    Snap --> Daily
+    Posts --> Daily
+    Daily --> PathChoice
+    Snap --> PathChoice
+    Posts --> PathChoice
+    PathChoice -->|Materialized / Fallback| ErErr
+    Posts --> Formats
+    Posts --> ViralSilence
+    PSnap --> AdIntel
+    Posts --> AdIntel
+    Ment --> AdIntel
+    Ment --> Citation
+    ErErr --> EP
+    ErErr --> CS
+    ErErr --> Bench
+    Daily --> Fraud
+    Posts --> Fraud
+    FSignals --> Fraud
+    Citation --> Fraud
+```
 
 ## Источники и временные окна
 

@@ -1,8 +1,48 @@
 # Запуск и эксплуатация
 
-Сверено 26 октября 2026 года с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml).
+Сверено **27 октября 2026 года** с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml).
 
 ## Среды проекта и изоляция Telegram-авторизации (`AuthKeyDuplicated`)
+
+```mermaid
+flowchart TB
+    subgraph LocalEnv["1. Локальная среда разработки (Windows C:\TgMon / WSL)"]
+        DevCompose["docker-compose.yml + docker-compose.dev.yml (Hot Reload)"]
+        LocalWeb["tgmon-web (:4000, npm run dev)"]
+        LocalWorker["tgmon-worker (:4001, WORKER_LOCAL_MODE=true)"]
+        LocalDB[("tgmon-postgres (:5432)")]
+        LocalSession["Локальный .env: TG_SESSION_LOCAL (устройство TgMon Local Dev)"]
+        DevCompose --> LocalWeb
+        DevCompose --> LocalWorker
+        DevCompose --> LocalDB
+        LocalSession --> LocalWorker
+    end
+
+    subgraph ProdEnv["2. Боевой сервер OVH (ovh-vps, /opt/tgmon, tgmons.online)"]
+        Nginx["Nginx Reverse Proxy (HTTPS + Let's Encrypt)"]
+        ProdCompose["docker-compose.yml + docker-compose.prod.yml"]
+        ProdWeb["tgmon-web (:4000, production build)"]
+        ProdWorker["tgmon-worker (:4001, полный cron + дайджесты)"]
+        ProdDB[("tgmon-postgres (127.0.0.1:5432)")]
+        ProdSession["Серверный .env: TG_SESSION (устройство TgMon Server Worker)"]
+        Nginx --> ProdWeb
+        ProdCompose --> ProdWeb
+        ProdCompose --> ProdWorker
+        ProdCompose --> ProdDB
+        ProdSession --> ProdWorker
+    end
+
+    subgraph GitHubCI["3. GitHub (liquidsyntes/tg_mons, origin/main)"]
+        CI["GitHub Actions CI (prisma generate, tsc, eslint, vitest, next build)"]
+    end
+
+    TGCloud["Серверы Telegram MTProto"]
+
+    LocalWorker -->|Свой независимый auth_key| TGCloud
+    ProdWorker -->|Свой независимый auth_key| TGCloud
+    LocalEnv -->|git push origin main (без секретов)| GitHubCI
+    GitHubCI -->|git pull --ff-only (update.sh)| ProdEnv
+```
 
 Проект эксплуатируется в **трёх чётко разделённых средах**, которые нельзя смешивать:
 
@@ -126,6 +166,30 @@ bash update.sh
 4. Применение миграций БД: `docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps worker npm run prisma:migrate`.
 5. Запуск обновлённых `web` и `worker`, затем ожидание ответа `/api/health` до 60 секунд.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Администратор (SSH ovh-vps)
+    participant Script as bash update.sh
+    participant Git as GitHub (origin/main)
+    participant Docker as Docker Compose (prod)
+    participant DB as PostgreSQL 15
+    participant Web as tgmon-web (:4000)
+
+    Admin->>Script: Запуск update.sh в /opt/tgmon
+    Script->>Git: git pull --ff-only и чтение APP_COMMIT_SHA
+    Script->>Docker: build web (с APP_COMMIT_SHA) и worker
+    Script->>Docker: stop web worker (graceful shutdown до 30–45с)
+    Script->>Docker: run --rm --no-deps worker npm run prisma:migrate
+    Docker->>DB: prisma migrate deploy
+    Script->>Docker: up -d web worker
+    loop До 60 секунд
+        Script->>Web: GET http://127.0.0.1:4000/api/health
+        Web-->>Script: 200 OK
+    end
+    Script-->>Admin: Обновление успешно завершено
+```
+
 В `.env` на сервере обязательно должны быть заданы `POSTGRES_PASSWORD`, `COLLECT_API_TOKEN`, `TG_API_ID`, `TG_API_HASH`, серверная `TG_SESSION` и `WEB_INTERNAL_URL=http://web:4000`.
 
 ---
@@ -183,7 +247,7 @@ curl -i http://localhost:4000/api/health
 
 3. **Управление инвайтами и общим ключом OpenRouter (`/settings`)**:
    - Ключ OpenRouter (`SystemSetting.aiToken` / `OPENROUTER_API_KEY`) является **общим** для всех приглашённых пользователей — им не нужно вводить собственные ключи для генерации AI-отчётов.
-   - Просмотр и изменение настроек OpenRouter, а также создание и отзыв инвайт-кодов (`/api/invites`, блок «Многопользовательский доступ (Инвайты)» на странице `/settings`) доступны **только пользователям с ролью `ADMIN`**. Обычные пользователи (`USER`) на странице `/settings` управляют только своими правилами уведомлений (`AlertRule`).
+   - Просмотр и изменение настроек OpenRouter, а также создание и отзыв инвайт-кодов (`/api/invites`, блок «Многопользовательский доступ (Инвайты)» на странице `/settings`) доступны **только пользователям с ролью `ADMIN`**. Обычные пользователи (`USER`) на странице `/settings` управляют своим персональным ежедневным Telegram-дайджестом и своими правилами уведомлений (`AlertRule`).
 
 4. **Обратный прокси (Nginx)**:
    - Направляйте upstream на `http://127.0.0.1:4000`, передавайте `Host` и `X-Forwarded-Proto=https`, чтобы cookie получала флаг `Secure`, а CSRF-проверка `Origin` корректно сверяла внешний домен (`tgmons.online`). Таймауты прокси должны учитывать синхронный сбор и генерацию AI-отчётов (до 60–120 секунд).
@@ -193,6 +257,24 @@ curl -i http://localhost:4000/api/health
 ```bash
 docker compose ps
 curl -i http://localhost:4000/api/health
+```
+
+```mermaid
+flowchart TD
+    Req["GET /api/health"] --> DBCheck{"SELECT 1 в PostgreSQL успешен?"}
+    DBCheck -->|Нет| ErrDB["503 Service Unavailable (Database error)"]
+    DBCheck -->|Да| ActiveCh{"Есть активные каналы (Channel.isActive = true)?"}
+    ActiveCh -->|Нет| Idle["200 OK (status: idle)"]
+    ActiveCh -->|Да| HasSync{"Есть хотя бы один SyncJob в БД?"}
+    HasSync -->|Нет| InitWin{"Прошло <= 720 мин со старта web или создания канала?"}
+    InitWin -->|Да| Init["200 OK (status: initializing)"]
+    InitWin -->|Нет| StaleInit["503 Service Unavailable (sync job stale)"]
+    HasSync -->|Да| RunningCheck{"Последний SyncJob в статусе RUNNING?"}
+    RunningCheck -->|Да, старше 120 мин| Stuck["503 Service Unavailable (sync job stuck)"]
+    RunningCheck -->|Да, <= 120 мин| HealthyRun["200 OK (status: healthy, RUNNING)"]
+    RunningCheck -->|Нет (завершён)| AgeCheck{"С момента завершения прошло > 720 мин?"}
+    AgeCheck -->|Да| Stale["503 Service Unavailable (sync job stale)"]
+    AgeCheck -->|Нет| HealthyDone["200 OK (status: healthy; проверять lastSyncStatus и channelsFailed)"]
 ```
 
 Логи нужного сервиса можно изучить локально через `docker compose logs --tail=100 worker` или `web`; они могут содержать данные каналов, поэтому перед публикацией их нужно обезличить.

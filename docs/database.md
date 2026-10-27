@@ -1,6 +1,6 @@
 # База данных и схема Prisma
 
-Сверено с [schema.prisma](../prisma/schema.prisma) 26 октября 2026 года. СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
+Сверено с [schema.prisma](../prisma/schema.prisma) **27 октября 2026 года**. СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
 
 ## Общие сведения и требования к СУБД
 
@@ -9,7 +9,7 @@
 - **Расширение `pg_trgm`:** активировано в `datasource` схемы (`extensions = [pg_trgm]`). Обеспечивает поддержку GIN-индекса на триграммах (`gin_trgm_ops`) по полю `Post.text` для эффективного поиска подстрок и поиска похожих текстов в Telegram-публикациях.
 - **Несовместимость с SQLite:**
   - Провайдер схемы строго зафиксирован: `provider = "postgresql"`.
-  - Использование специфических типов PostgreSQL: `DateTime @db.Date` для календарных дней метрик, `Json` (PostgreSQL `jsonb`) для хранения распределения демографии (`AudienceDemographics.languageBreakdown`, `countryBreakdown`) и цен мероприятий (`Event.prices`).
+  - Использование специфических типов PostgreSQL: `DateTime @db.Date` для календарных дней метрик, `Json` (PostgreSQL `jsonb`) для хранения распределения демографии (`AudienceDemographics.languageBreakdown`, `countryBreakdown`), разбивки реакций (`Post.reactionBreakdown`) и цен мероприятий (`Event.prices`).
   - Поддержка триграммных GIN-индексов PostgreSQL (`@@index([text(ops: raw("gin_trgm_ops"))], type: Gin)`).
   - Попытка переключения на SQLite приведёт к ошибкам валидации схемы Prisma и отсутствию необходимых расширений.
 
@@ -25,9 +25,110 @@
 | `PARTIAL` | Цикл сбора завершён, но сбор для одного или нескольких каналов завершился с ошибкой |
 | `FAILED` | Критический сбой всего цикла сбора (например, потеря связи с Telegram MTProto или ошибка БД) |
 
+## ER-диаграмма схемы базы данных (22 модели)
+
+```mermaid
+erDiagram
+    User ||--o{ UserChannel : "подписки (Cascade)"
+    User ||--o{ AiReport : "отчёты (Cascade)"
+    User ||--o{ AlertRule : "правила (Cascade)"
+    User ||--o{ UserDismissedEvent : "скрытые события (Cascade)"
+    User ||--o{ InviteCode : "создал инвайты (Cascade)"
+    User |o--o| InviteCode : "использовал инвайт (SetNull)"
+
+    Channel ||--o{ UserChannel : "участники пула (Cascade)"
+    Channel ||--o{ Snapshot : "история подписчиков (Cascade)"
+    Channel ||--o{ ChannelMetricDaily : "дневные агрегаты (Cascade)"
+    Channel ||--o{ AudienceDemographics : "демография (Cascade)"
+    Channel ||--o{ FraudSignal : "антифрод-сигналы (Cascade)"
+    Channel ||--o{ Post : "публикации (Cascade)"
+    Channel ||--o{ Mention : "исходящие упоминания (Cascade)"
+    Channel ||--o{ AiReport : "канальные отчёты (Cascade)"
+    Channel ||--o{ AlertRule : "канальные правила (Cascade)"
+    Channel ||--o{ AlertRuleFire : "cooldown правил (Cascade)"
+
+    Post ||--o| PostImage : "изображение до 1 МБ (Cascade)"
+    Post ||--o{ PostSnapshot : "замеры LTV 72ч (Cascade)"
+    Post ||--o{ PostViewSnapshot : "точки охвата рекламы (Cascade)"
+    Post ||--o{ Mention : "ссылки в посте (Cascade)"
+    Post ||--o{ EventMention : "связь с афишей (Cascade)"
+    Post ||--o{ AlertRulePostFire : "срабатывания по постам (Cascade)"
+
+    Event ||--o{ EventMention : "упоминания в постах (Cascade)"
+    Event ||--o{ UserDismissedEvent : "персональные скрытия (Cascade)"
+
+    AlertRule ||--o{ AlertRuleFire : "история по каналам (Cascade)"
+    AlertRule ||--o{ AlertRulePostFire : "история по постам (Cascade)"
+
+    User {
+        int id PK
+        string username UK
+        string role "ADMIN | USER"
+        string telegram_chat_id
+        boolean digest_enabled
+        int digest_hour
+    }
+    InviteCode {
+        int id PK
+        string code UK
+        int created_by_id FK
+        int used_by_id FK
+    }
+    UserChannel {
+        int id PK
+        int user_id FK
+        int channel_id FK
+        boolean is_mine
+        boolean is_favorite
+        string niche
+        int custom_ad_price_uah
+        int custom_cpm_uah
+        boolean is_active
+    }
+    Channel {
+        int id PK
+        string username UK
+        bigint tgId UK
+        string title
+        string type "channel | group"
+        boolean isActive
+    }
+    Post {
+        int id PK
+        int channel_id FK
+        bigint message_id
+        datetime published_at
+        int views
+        jsonb reaction_breakdown
+        boolean is_ad
+        string content_type
+    }
+    Event {
+        int id PK
+        string title
+        datetime date
+        string timeStr
+        jsonb prices
+    }
+    AlertRule {
+        int id PK
+        int user_id FK
+        int channel_id FK
+        string metric
+        float threshold
+        string keyword_query
+    }
+    AiReport {
+        int id PK
+        int user_id FK
+        int channel_id FK
+        string type
+    }
+```
+
 ## Сводная таблица моделей
 
-Схема содержит **21 модель**, сопоставленную с таблицами PostgreSQL через атрибут `@@map`:
+Схема содержит **22 модели**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
@@ -37,7 +138,7 @@
 | `UserDismissedEvent` | `user_dismissed_events` | `id` (Int, autoincrement) | `@@unique([userId, eventId])`<br>`@@index([userId])`<br>`@@index([eventId])` | `user` -> `User` (`Cascade`)<br>`event` -> `Event` (`Cascade`) | Индивидуальное скрытие мероприятий из «Афиши» для конкретного пользователя |
 | `Channel` | `channels` | `id` (Int, autoincrement) | `@unique username`<br>`@unique tgId` | Связи 1:N со всеми дочерними сущностями (`onDelete: Cascade`) | Telegram-каналы и группы, отслеживаемые системой, флаги и метаданные |
 | `Snapshot` | `snapshots` | `id` (Int, autoincrement) | `@@index([channelId, collectedAt])` | `channel` -> `Channel` (`Cascade`) | Временные снимки численности аудитории (подписчиков) канала |
-| `Post` | `posts` | `id` (Int, autoincrement) | `@@unique([channelId, messageId])`<br>`@@index([channelId, groupedId])`<br>`@@index([channelId, publishedAt])`<br>`@@index([text], type: Gin)` | `channel` -> `Channel` (`Cascade`)<br>Дочерние: `mentions`, `snapshots`, `viewSnapshots`, `eventMentions`, `image` (`Cascade`) | Собранные публикации Telegram: просмотры, реакции, репосты, текст |
+| `Post` | `posts` | `id` (Int, autoincrement) | `@@unique([channelId, messageId])`<br>`@@index([channelId, groupedId])`<br>`@@index([channelId, publishedAt])`<br>`@@index([text], type: Gin)` | `channel` -> `Channel` (`Cascade`)<br>Дочерние: `mentions`, `snapshots`, `viewSnapshots`, `eventMentions`, `image`, `alertRulePostFires` (`Cascade`) | Собранные публикации Telegram: просмотры, реакции, репосты, текст |
 | `PostImage` | `post_images` | `postId` (Int) | Нет | `post` -> `Post` (`Cascade`) | Одно ограниченное по размеру изображение публикации |
 | `PostSnapshot` | `post_snapshots` | `id` (Int, autoincrement) | `@@index([postId, collectedAt])` | `post` -> `Post` (`Cascade`) | Снимки просмотров первых 72 часов для LTV; удаляются после 30 дней хранения |
 | `PostViewSnapshot` | `post_view_snapshots` | `id` (Int, autoincrement) | `@@unique([postId, hoursAfterPost])`<br>`@@index([postId])` | `post` -> `Post` (`Cascade`) | Контрольные точки просмотров рекламных постов (1, 12, 24, 48 часов) для оценки рекламного охвата |
@@ -45,11 +146,11 @@
 | `SyncJob` | `sync_jobs` | `id` (Int, autoincrement) | — | Нет внешних связей | История и аудит запусков циклов сбора данных: статус `SyncStatus`, счётчики, длительность |
 | `ChannelMetricDaily` | `channel_metrics_daily` | `id` (Int, autoincrement) | `@@unique([channelId, date])`<br>`@@index([date])` | `channel` -> `Channel` (`Cascade`) | Материализованные суточные агрегаты метрик канала (UTC) для быстрых аналитических выборок |
 | `AudienceDemographics` | `audience_demographics` | `id` (Int, autoincrement) | `@@index([channelId, capturedAt])` | `channel` -> `Channel` (`Cascade`) | Снимки языкового и географического распределения аудитории канала |
-| `AiReport` | `ai_reports` | `id` (Int, autoincrement) | `@@index([channelId, createdAt])` | `channel` -> `Channel?` (`Cascade`) | Сохранённые аналитические отчёты, сгенерированные LLM через OpenRouter |
-| `Event` | `events` | `id` (Int, autoincrement) | — | Дочерние: `mentions` (`EventMention[]`, `Cascade`) | Мероприятия и события, извлечённые из публикаций Telegram |
+| `AiReport` | `ai_reports` | `id` (Int, autoincrement) | `@@index([userId, createdAt])`<br>`@@index([channelId, createdAt])` | `user` -> `User?` (`Cascade`)<br>`channel` -> `Channel?` (`Cascade`) | Сохранённые аналитические отчёты, сгенерированные LLM через OpenRouter |
+| `Event` | `events` | `id` (Int, autoincrement) | — | Дочерние: `mentions` (`EventMention[]`, `Cascade`), `dismissedByUsers` (`UserDismissedEvent[]`, `Cascade`) | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | `id` (Int, autoincrement) | `@@unique([eventId, postId])`<br>`@@index([eventId])`<br>`@@index([postId])` | `event` -> `Event` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Связь M:N между мероприятиями (`Event`) и постами (`Post`), где они упомянуты |
 | `SystemSetting` | `system_settings` | `id` (String, default "global") | Нет | Нет внешних связей | Глобальная конфигурация AI-провайдера, модели, токена и настроек Telegram-дайджеста |
-| `AlertRule` | `alert_rules` | `id` (Int, autoincrement) | `@@index([channelId])` | `channel` -> `Channel?` (`Cascade`) | Правила мониторинга и алертинга по метрикам канала и ключевым словам (пороги, фразы, время последней успешной отправки) |
+| `AlertRule` | `alert_rules` | `id` (Int, autoincrement) | `@@index([userId])`<br>`@@index([channelId])` | `user` -> `User?` (`Cascade`)<br>`channel` -> `Channel?` (`Cascade`) | Правила мониторинга и алертинга по метрикам канала, ключевым словам и виральным постам |
 | `AlertRuleFire` | `alert_rule_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, channelId])`<br>`@@index([channelId])` | `rule` -> `AlertRule` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Состояние cooldown для пары «правило и канал» |
 | `AlertRulePostFire` | `alert_rule_post_fires` | `id` (Int, autoincrement) | `@@unique([ruleId, postId])`<br>`@@index([postId])` | `rule` -> `AlertRule` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Фиксация отправленных уведомлений по ключевым словам и виральным постам для пары «правило и пост» |
 | `FraudSignal` | `fraud_signals` | `id` (Int, autoincrement) | `@@index([channelId, detectedAt])` | `channel` -> `Channel` (`Cascade`) | Зафиксированные эвристиками факты подозрительной активности (накрутка подписчиков, реакций, просмотров) |
@@ -58,8 +159,59 @@
 
 ## Детальная спецификация моделей и полей
 
-### 1. `Channel` (`channels`)
-Хранит базовые данные Telegram-каналов и групп, отслеживаемых в системе.
+### 1. Модели многопользовательского доступа (`User`, `InviteCode`, `UserChannel`, `UserDismissedEvent`)
+
+#### `User` (`users`)
+Учётные записи пользователей системы и персональные настройки ежедневного дайджеста.
+
+| Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
+|---|---|---|---|---|---|
+| `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
+| `username` | `String` | `username` | Нет | — | Уникальный логин пользователя (в нижнем регистре) |
+| `passwordHash` | `String` | `password_hash` | Нет | — | PBKDF2-SHA256 хеш пароля с солью |
+| `role` | `String` | `role` | Нет | `"USER"` | Роль доступа: `"ADMIN"` или `"USER"` |
+| `telegramChatId` | `String` | `telegram_chat_id` | Да | — | Персональный Telegram Chat ID для алертов и личного дайджеста |
+| `digestEnabled` | `Boolean` | `digest_enabled` | Нет | `false` | Включён ли ежедневный персональный дайджест |
+| `digestHour` | `Int` | `digest_hour` | Нет | `9` | Час отправки персонального дайджеста (0..23 UTC) |
+| `lastDigestAt` | `DateTime` | `last_digest_at` | Да | — | Время последней успешной отправки личного дайджеста |
+| `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время регистрации аккаунта |
+
+#### `InviteCode` (`invite_codes`)
+Одноразовые инвайт-коды для закрытой регистрации новых пользователей.
+
+| Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
+|---|---|---|---|---|---|
+| `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
+| `code` | `String` | `code` | Нет | — | Уникальный код приглашения (`TGMON-...`) |
+| `createdById` | `Int` | `created_by_id` | Нет | — | Внешний ключ на создателя `User.id` (`onDelete: Cascade`) |
+| `usedById` | `Int` | `used_by_id` | Да | — | Уникальный внешний ключ на зарегистрированного `User.id` (`onDelete: SetNull`) |
+| `usedAt` | `DateTime` | `used_at` | Да | — | Время погашения инвайт-кода |
+| `expiresAt` | `DateTime` | `expires_at` | Да | — | Необязательный срок действия инвайта |
+| `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время генерации кода |
+
+#### `UserChannel` (`user_channels`)
+Персональная подписка пользователя на канал из общего пула `Channel`. Уникальный индекс `@@unique([userId, channelId])`.
+
+| Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
+|---|---|---|---|---|---|
+| `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
+| `userId` | `Int` | `user_id` | Нет | — | Внешний ключ на `User.id` (`onDelete: Cascade`) |
+| `channelId` | `Int` | `channel_id` | Нет | — | Внешний ключ на `Channel.id` (`onDelete: Cascade`) |
+| `isMine` | `Boolean` | `is_mine` | Нет | `false` | Персональный флаг «Мой канал» пользователя |
+| `isFavorite` | `Boolean` | `is_favorite` | Нет | `false` | Персональный флаг «Избранное» (Watchlist) |
+| `niche` | `String` | `niche` | Нет | `"general"` | Выбранная пользователем тематическая ниша канала |
+| `customAdPriceUah` | `Int` | `custom_ad_price_uah` | Да | — | Персональная фиксированная цена рекламного поста (₴) |
+| `customCpmUah` | `Int` | `custom_cpm_uah` | Да | — | Персональный CPM канала (₴ за 1000 просмотров) |
+| `isActive` | `Boolean` | `is_active` | Нет | `true` | Активна ли подписка в личном списке пользователя |
+| `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время добавления канала в список пользователя |
+
+#### `UserDismissedEvent` (`user_dismissed_events`)
+Персональное скрытие карточек мероприятий на странице `/events` (`@@unique([userId, eventId])`). При удалении `User` или `Event` записи удаляются каскадно.
+
+---
+
+### 1a. `Channel` (`channels`)
+Хранит базовые данные Telegram-каналов и групп, отслеживаемых в общем пуле системы.
 
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
@@ -289,14 +441,17 @@
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `channelId` | `Int` | `channel_id` | Да | — | Внешний ключ на `Channel.id` (null для общих трендов) |
+| `userId` | `Int` | `user_id` | Да | — | Внешний ключ на владельца отчёта `User.id` |
+| `channelId` | `Int` | `channel_id` | Да | — | Внешний ключ на `Channel.id` (null для общих трендов и эволюции) |
 | `type` | `String` | `type` | Нет | Нет | Строковый тип: `summary`, `super_report`, `compare`, `trend`, `content-gap`, `audience`, `persona`, `action_plan` или `evolution` |
 | `content` | `String` | `content` | Нет | — | JSON-строка полезной нагрузки отчёта |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время создания отчёта |
 
 - **Индексы:**
+  - `@@index([userId, createdAt])`
   - `@@index([channelId, createdAt])`
 - **Связи:**
+  - `user`: `User?` (`fields: [userId], references: [id], onDelete: Cascade`)
   - `channel`: `Channel?` (`fields: [channelId], references: [id], onDelete: Cascade`)
 
 Удаление отчёта через `DELETE /api/reports/:id` физически удаляет эту строку. Другие отчёты не связаны с ней внешним ключом и не удаляются вместе с ней.
@@ -368,6 +523,7 @@
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
+| `userId` | `Int` | `user_id` | Да | — | Внешний ключ на владельца правила `User.id` |
 | `channelId` | `Int` | `channel_id` | Да | — | Внешний ключ на `Channel.id` (null для глобального правила) |
 | `metric` | `String` | `metric` | Нет | — | Отслеживаемая метрика (`followers`, `delta24h`, `delta7d`, `er7d`, `err7d`, `vr7d`, `avgViews7d`, `posts7d`, `contentScore`, `keyword`, `viralPostMultiplier`) |
 | `operator` | `String` | `operator` | Нет | — | Оператор сравнения: `"lt"` (меньше) или `"gt"` (больше) |
@@ -378,8 +534,10 @@
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время создания правила |
 
 - **Индексы:**
+  - `@@index([userId])`
   - `@@index([channelId])`
 - **Связи:**
+  - `user`: `User?` (`fields: [userId], references: [id], onDelete: Cascade`)
   - `channel`: `Channel?` (`fields: [channelId], references: [id], onDelete: Cascade`)
   - `fires`: `AlertRuleFire[]` (каскадное удаление)
   - `postFires`: `AlertRulePostFire[]` (каскадное удаление)
@@ -434,25 +592,46 @@ Worker сохраняет не более одного актуального с
 
 ## Каскадное удаление (Cascades) и целостность данных
 
-Все внешние ключи (`foreign key`) в Prisma-схеме спроектированы с политикой `onDelete: Cascade`:
+```mermaid
+flowchart TD
+    DelCh["DELETE Channel (permanent=true, только ADMIN)"] --> C1["snapshots, channel_metrics_daily, audience_demographics, fraud_signals"]
+    DelCh --> C2["user_channels, ai_reports, alert_rules, alert_rule_fires"]
+    DelCh --> DelPost["posts (все публикации канала)"]
+    DelPost --> P1["post_images, post_snapshots, post_view_snapshots"]
+    DelPost --> P2["mentions, event_mentions, alert_rule_post_fires"]
+
+    DelUser["DELETE User"] --> U1["user_channels, ai_reports, alert_rules, user_dismissed_events"]
+    DelUser --> U2["invite_codes (createdBy -> Cascade, usedBy -> SetNull)"]
+
+    DelEvent["DELETE Event (или слияние дублей)"] --> E1["event_mentions, user_dismissed_events"]
+```
+
+Все внешние ключи (`foreign key`) в Prisma-схеме спроектированы с политикой `onDelete: Cascade` (за исключением `InviteCode.usedById` со стратегией `SetNull`):
 1. **Удаление канала (`Channel`):**
    При физическом удалении канала из таблицы `channels` PostgreSQL автоматически и каскадно удаляет все связанные с ним записи:
+   - Подписки пользователей (`user_channels`);
    - Снимки аудитории (`snapshots`);
-   - Посты (`posts`) и все их дочерние сущности (`post_snapshots`, `post_view_snapshots`, `mentions`, `event_mentions`);
+   - Посты (`posts`) и все их дочерние сущности (`post_images`, `post_snapshots`, `post_view_snapshots`, `mentions`, `event_mentions`, `alert_rule_post_fires`);
    - Исходящие упоминания (`mentions`), где данный канал выступал источником (`sourceChannelId`);
    - Суточные агрегаты метрик (`channel_metrics_daily`);
    - Снимки демографии (`audience_demographics`);
    - Сгенерированные AI-отчёты (`ai_reports`);
-   - Пользовательские правила алертов (`alert_rules`);
+   - Правила алертов (`alert_rules`) и записи их срабатываний (`alert_rule_fires`);
    - Зафиксированные сигналы накрутки (`fraud_signals`).
 2. **Удаление постов (`Post`):**
-   Каскадно удаляет замеры просмотров (`post_snapshots`), рекламные точки (`post_view_snapshots`), упоминания (`mentions`), связи с мероприятиями (`event_mentions`) и сохранённое изображение (`post_images`).
+   Каскадно удаляет замеры просмотров (`post_snapshots`), рекламные точки (`post_view_snapshots`), упоминания (`mentions`), связи с мероприятиями (`event_mentions`), срабатывания постовых алертов (`alert_rule_post_fires`) и сохранённое изображение (`post_images`).
 3. **Удаление событий (`Event`):**
-   Каскадно удаляет промежуточные связующие записи `event_mentions`.
+   Каскадно удаляет промежуточные связующие записи `event_mentions` и персональные скрытия `user_dismissed_events`.
 
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На 26 октября 2026 года в проекте 24 миграции. Последняя, `20261026162020_add_user_channel_ad_pricing`, добавляет две nullable INTEGER-колонки `user_channels.custom_ad_price_uah` и `user_channels.custom_cpm_uah` без изменения существующих строк.
+- На **27 октября 2026 года** в проекте **26 миграций**:
+  - `20261026210800_add_user_personal_digest` — добавляет поля персонального Telegram-дайджеста (`telegram_chat_id`, `digest_enabled`, `digest_hour`, `last_digest_at`) в таблицу `users`;
+  - `20261026201200_add_keyword_alert_rules` — добавляет колонку `alert_rules.keyword_query` и таблицу `alert_rule_post_fires`;
+  - `20261026162020_add_user_channel_ad_pricing` — добавляет две nullable INTEGER-колонки `user_channels.custom_ad_price_uah` и `user_channels.custom_cpm_uah`;
+  - `20261026153255_add_mention_target_message_id` — добавляет `mentions.target_message_id`;
+  - `20261026132043_add_post_reaction_breakdown` — добавляет JSONB-колонку `posts.reaction_breakdown`;
+  - `20261024195714_add_events_scanned_at` — добавляет `posts.events_scanned_at`.
 - Для генерации клиента Prisma используется скрипт `npm run prisma:generate`.
 - **Особенность Windows-окружения:** Если `npx prisma generate` завершился с `EPERM`, проверьте процессы Next.js и worker именно этого checkout на блокировку Prisma Query Engine. Останавливайте только установленный блокирующий процесс, затем повторите генерацию.
