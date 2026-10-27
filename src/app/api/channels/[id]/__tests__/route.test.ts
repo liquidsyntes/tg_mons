@@ -122,4 +122,19 @@ describe('PATCH /api/channels/[id] tags', () => {
     );
     expect(response.status).toBe(400);
   });
+
+  it('assigns my channel only inside the current user list', async () => {
+    const response = await PATCH(
+      makePatchRequest({ isMine: true }),
+      { params: Promise.resolve({ id: '7' }) }
+    );
+    expect(response.status).toBe(200);
+    expect(mocks.userChannelUpdateMany).toHaveBeenCalledWith({
+      where: { userId: 3, isMine: true }, data: { isMine: false },
+    });
+    expect(mocks.userChannelUpdate).toHaveBeenCalledWith({
+      where: { userId_channelId: { userId: 3, channelId: 7 } },
+      data: { isMine: true },
+    });
+  });
 });
