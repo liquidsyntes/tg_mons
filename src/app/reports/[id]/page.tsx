@@ -9,6 +9,7 @@ import { AIActionPlan } from '@/components/AIActionPlan';
 import { AITrendReport } from '@/components/AITrendReport';
 import { AIAudienceReport } from '@/components/AIAudienceReport';
 import { AIContentGapReport } from '@/components/AIContentGapReport';
+import { AIMetricsExplainerReport } from '@/components/AIMetricsExplainerReport';
 import { AIPersonaReport } from '@/components/channel/AIPersonaReport';
 import { GenerateActionPlanButton } from '@/components/GenerateActionPlanButton';
 import { ArrowLeft, Calendar, Download } from 'lucide-react';
@@ -60,7 +61,9 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
   }
 
   const titleMap: Record<string, string> = {
+    metrics_explainer: 'Разбор показателей канала (SMM)',
     summary: 'Контент-анализ',
+    super_report: 'Супер Отчет (50 постов)',
     evolution: 'Динамика изменений',
     action_plan: 'Пошаговое руководство',
     compare: 'Сравнение каналов',
@@ -133,7 +136,9 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 <div className="bg-surface border border-border rounded-2xl p-6 text-slate-300 whitespace-pre-wrap">
                   {report.content}
                 </div>
-              ) : report.type === 'summary' ? (
+              ) : report.type === 'metrics_explainer' ? (
+                <AIMetricsExplainerReport data={parsedData} />
+              ) : report.type === 'summary' || report.type === 'super_report' ? (
                 <AISummaryReport data={parsedData} />
               ) : report.type === 'evolution' ? (
                 <AIReportEvolution data={parsedData} />

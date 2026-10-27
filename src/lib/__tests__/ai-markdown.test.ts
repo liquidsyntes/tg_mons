@@ -3,6 +3,7 @@ import {
   aiAudienceToMarkdown,
   aiCompareDataToMarkdown,
   aiDataToMarkdown,
+  aiMetricsExplainerToMarkdown,
 } from '../ai-markdown';
 
 describe('ai-markdown converters', () => {
@@ -10,6 +11,7 @@ describe('ai-markdown converters', () => {
     expect(aiDataToMarkdown(null)).toBe('');
     expect(aiCompareDataToMarkdown(null, 'Mine', 'Target')).toBe('');
     expect(aiAudienceToMarkdown(null)).toBe('');
+    expect(aiMetricsExplainerToMarkdown(null)).toBe('');
   });
 
   it('formats AISummaryData to Markdown', () => {
@@ -68,5 +70,43 @@ describe('ai-markdown converters', () => {
     expect(audienceMd).toContain('**Резюме:** Опытные разработчики');
     expect(audienceMd).toContain('- **Возраст:** 25-34');
     expect(audienceMd).toContain('- IT');
+
+    const explainerMd = aiMetricsExplainerToMarkdown(
+      {
+        overallVerdict: {
+          headline: 'Читают регулярно, но редко комментируют',
+          plainExplanation: 'Аудитория лояльная, но предпочитает быстрые реакции.',
+          healthBadge: 'Хорошая база',
+        },
+        audienceBehaviorSummary: {
+          whatTheyDo: ['Ставят быстрые реакции'],
+          whatTheyAvoid: ['Длинные дискуссии в комментариях'],
+        },
+        metricsBreakdown: [
+          {
+            metricName: 'ERR 7д',
+            metricValue: '4.5%',
+            status: 'good',
+            statusLabel: 'Отлично',
+            whatItMeans: 'Доля реакций среди прочитавших пост.',
+            whatUsersDo: 'Ставят лайки после чтения.',
+            whatUsersDontDo: 'Не пишут комментарии.',
+            smmAdvice: 'Добавляйте опросы.',
+          },
+        ],
+        topPriorities: [
+          {
+            step: 'Добавить опросы',
+            why: 'Снизит порог входа в интерактив',
+            expectedChange: 'Вырастет ER',
+          },
+        ],
+      },
+      'AI News'
+    );
+
+    expect(explainerMd).toContain('# Разбор показателей канала простыми словами — AI News');
+    expect(explainerMd).toContain('### ERR 7д: 4.5% (Отлично)');
+    expect(explainerMd).toContain('- **Совет SMM-щика:** Добавляйте опросы.');
   });
 });

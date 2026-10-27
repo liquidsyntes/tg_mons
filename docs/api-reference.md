@@ -125,10 +125,11 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 
 ## AI-отчёты
 
-Все девять маршрутов используют **POST** и явно проверяют общий гард: UI-сессию или Bearer. Тело JSON. Все используют сохранённый в `SystemSetting` ключ OpenRouter с резервом `OPENROUTER_API_KEY`, стандартный timeout 60 секунд и сохранённую модель с резервом `z-ai/glm-5.3-flash`.
+Все десять маршрутов используют **POST** и явно проверяют общий гард: UI-сессию или Bearer. Тело JSON. Все используют сохранённый в `SystemSetting` ключ OpenRouter с резервом `OPENROUTER_API_KEY`, стандартный timeout 60 секунд и сохранённую модель с резервом `z-ai/glm-5.3-flash`.
 
 | Путь | Тело | Выборка / основание | Успешный ответ | Тип в AiReport |
 | --- | --- | --- | --- | --- |
+| `/api/ai/metrics-explainer` | `{channelId, period?: "24h" \| "7d" \| "30d"}` | Рассчитанные метрики канала (`getChannelDetailStats`: подписчики, дельты, VR, ER, ERR, True ERR, CR, частота постинга, форматы, реакции, рекламная нагрузка, цитируемость, EP, антифрод и бенчмарк ниши) | `{explainer: string}` | `metrics_explainer` |
 | `/api/ai/summary` | `{channelId, days?: 7}` | До 50 текстовых постов за период | `{summary: string}` | `summary` |
 | `/api/ai/super-report` | `{channelId}` | Последние 50 текстовых постов канала | `{summary: string}` | `super_report` |
 | `/api/ai/compare` | `{channelId, days?: 7}` | Целевой канал и «Мой канал», до 50 постов каждого | `{summary: string}` | `compare` |

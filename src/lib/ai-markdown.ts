@@ -2,6 +2,7 @@ import type { AISummaryData } from '@/components/AISummaryReport';
 import type { AICompareData } from '@/components/AICompareReport';
 import type { AIAudienceData } from '@/components/AIAudienceReport';
 import type { AIContentGapData } from '@/components/AIContentGapReport';
+import type { AIMetricsExplainerData } from '@/components/AIMetricsExplainerReport';
 
 export function downloadMarkdown(content: string, filename: string): void {
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
@@ -165,5 +166,51 @@ ${(data.coveredTopicsComparison || []).map((row) => `| **${row.topic}** | ${row.
 
 ## 3. Быстрые победы (Quick Wins)
 ${(data.quickWins || []).map((win, idx) => `### ${idx + 1}. ${win.headline} (${win.format})\n${win.hook}`).join('\n\n')}
+  `.trim();
+}
+
+export function aiMetricsExplainerToMarkdown(
+  data: AIMetricsExplainerData | null,
+  channelTitle?: string
+): string {
+  if (!data) return '';
+  const verdict = data.overallVerdict;
+  const behavior = data.audienceBehaviorSummary;
+  const metrics = data.metricsBreakdown || [];
+  const priorities = data.topPriorities || [];
+
+  return `
+# Разбор показателей канала простыми словами${channelTitle ? ` — ${channelTitle}` : ''}
+
+${verdict?.healthBadge ? `**Статус:** ${verdict.healthBadge}\n` : ''}${verdict?.headline ? `## ${verdict.headline}\n` : ''}${verdict?.plainExplanation ? `${verdict.plainExplanation}\n` : ''}
+
+## 1. Поведение подписчиков
+**Что подписчики реально делают:**
+${(behavior?.whatTheyDo || []).map((item) => `- ${item}`).join('\n') || '- Нет данных'}
+
+**Чего подписчики НЕ делают:**
+${(behavior?.whatTheyAvoid || []).map((item) => `- ${item}`).join('\n') || '- Нет данных'}
+
+## 2. Показатели канала простыми словами
+${metrics
+  .map(
+    (m) =>
+      `### ${m.metricName}: ${m.metricValue} (${m.statusLabel || m.status})\n` +
+      `- **Что это значит:** ${m.whatItMeans}\n` +
+      `- **Что делают люди:** ${m.whatUsersDo}\n` +
+      `- **Чего НЕ делают:** ${m.whatUsersDontDo}\n` +
+      `- **Совет SMM-щика:** ${m.smmAdvice}`
+  )
+  .join('\n\n')}
+
+## 3. Что подкрутить в первую очередь
+${priorities
+  .map(
+    (p, idx) =>
+      `### Шаг ${idx + 1}. ${p.step}\n` +
+      `- **Зачем:** ${p.why}\n` +
+      `- **Какая цифра вырастет:** ${p.expectedChange}`
+  )
+  .join('\n\n')}
   `.trim();
 }

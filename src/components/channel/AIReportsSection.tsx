@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2, Target } from 'lucide-react';
+import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2, Target, BarChart3 } from 'lucide-react';
 import { AILoadingStatus } from '@/components/AILoadingStatus';
 import { AISummaryReport, AISummaryData, SummaryPostStats } from '@/components/AISummaryReport';
 import { AICompareReport, AICompareData } from '@/components/AICompareReport';
 import { AIAudienceReport, AIAudienceData } from '@/components/AIAudienceReport';
 import { AIContentGapReport, AIContentGapData } from '@/components/AIContentGapReport';
+import { AIMetricsExplainerReport, AIMetricsExplainerData } from '@/components/AIMetricsExplainerReport';
 import { AIPersonaReport, AIPersonaData, aiPersonaToMarkdown } from '@/components/channel/AIPersonaReport';
 import {
   aiAudienceToMarkdown,
   aiCompareDataToMarkdown,
   aiContentGapToMarkdown,
   aiDataToMarkdown,
+  aiMetricsExplainerToMarkdown,
   downloadMarkdown,
 } from '@/lib/ai-markdown';
 import { ChannelMetrics } from '@/lib/types';
@@ -28,7 +30,7 @@ interface AIReportsSectionProps {
 
 function useAiReportRequest<T>(
   endpoint: string,
-  responseField: 'summary' | 'audience' | 'persona' | 'contentGap'
+  responseField: 'summary' | 'audience' | 'persona' | 'contentGap' | 'explainer'
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
@@ -99,6 +101,15 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
   }, [isAdmin]);
 
   const {
+    data: aiExplainer,
+    loading: aiExplainerLoading,
+    error: aiExplainerError,
+    success: aiExplainerSuccess,
+    setSuccess: setAiExplainerSuccess,
+    run: runAiExplainer,
+  } = useAiReportRequest<AIMetricsExplainerData>('/api/ai/metrics-explainer', 'explainer');
+
+  const {
     data: aiSummary,
     loading: aiLoading,
     error: aiError,
@@ -152,6 +163,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiContentGap,
   } = useAiReportRequest<AIContentGapData>('/api/ai/content-gap', 'contentGap');
 
+  const fetchAiExplainer = () => runAiExplainer({ channelId, period });
   const fetchAiSummary = () => runAiSummary({ channelId, days });
   const fetchAiSuperSummary = () => runAiSuperSummary({ channelId });
   const fetchAiCompare = () => runAiCompare({ channelId, days });
@@ -165,6 +177,69 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
 
   return (
     <>
+      {/* AI Metrics Explainer Section (First Report, Yellow Button) */}
+      <div className="bg-surface border border-amber-400/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.15)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-amber-400" />
+              Разбор показателей канала простыми словами
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Опытный SMM-специалист объяснит каждую метрику (ERR, VR, ER, CR и др.): что делают и чего не делают ваши подписчики
+            </p>
+          </div>
+          <button
+            onClick={fetchAiExplainer}
+            disabled={aiExplainerLoading}
+            className="w-[220px] justify-center py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {aiExplainerLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Разбираю метрики...
+              </>
+            ) : (
+              'Разобрать показатели'
+            )}
+          </button>
+        </div>
+        <AILoadingStatus
+          isRunning={aiExplainerLoading}
+          success={aiExplainerSuccess}
+          onSuccessClear={() => setAiExplainerSuccess(false)}
+          messages={[
+            'Собираем все показатели канала (ERR, VR, ER, CR, охваты)...',
+            'Сравниваем метрики с поведением аудитории...',
+            'SMM-эксперт переводит цифры на простой человеческий язык...',
+            'Почти готово...',
+          ]}
+        />
+        {aiExplainerError && (
+          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+            {aiExplainerError}
+          </div>
+        )}
+        {aiExplainer && (
+          <div className="space-y-4 mt-6">
+            <AIMetricsExplainerReport data={aiExplainer} />
+            <div className="flex justify-end">
+              <button
+                onClick={() =>
+                  downloadMarkdown(
+                    aiMetricsExplainerToMarkdown(aiExplainer, channel.title),
+                    `metrics_explainer_${channel.username || channel.id}.md`
+                  )
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
+                data-pdf-hide
+              >
+                <Download className="w-3.5 h-3.5 text-amber-400" /> Экспорт в MD
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* AI Summary Section */}
       <div className="bg-surface border border-accent/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-accent shadow-[0_0_15px_rgba(56,189,248,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

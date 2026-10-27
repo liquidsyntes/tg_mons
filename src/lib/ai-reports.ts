@@ -12,7 +12,8 @@ export type AiReportType =
   | 'action_plan'
   | 'persona'
   | 'super_report'
-  | 'content-gap';
+  | 'content-gap'
+  | 'metrics_explainer';
 
 export interface TimestampedPost {
   publishedAt: Date;

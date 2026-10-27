@@ -12,7 +12,7 @@
 | HTTP и доступ | `src/app/api/`, включая рейтинг `/api/posts/advertisers`, закладки `/api/posts/saved` и персональный дайджест `/api/settings/digest`, `src/middleware.ts`, `src/lib/auth.ts`, `src/lib/users.ts`, `src/lib/tags.ts`; сессии, роли, пользовательский доступ и персональные теги каналов |
 | Аналитика | `src/lib/metrics.ts` и `src/lib/metrics/`: выборки и расчёты, включая сводку реакций, рейтинг рекламодателей и динамику цитирований; `src/lib/materialize.ts`: дневные агрегаты; `src/lib/types.ts`: общие контракты |
 | Telegram worker | `src/worker/index.ts`: расписания; `src/worker/server.ts`: внутренний HTTP; `src/worker/auth.ts`: авторизация; сбор в `src/worker/collector.ts`, разбор реакций в `src/worker/message-reactions.ts`, ссылки на посты в `src/worker/post-mentions.ts` |
-| AI и события | `src/lib/openrouter.ts`, `src/lib/ai-reports.ts`, `src/lib/ai-markdown.ts`, `src/lib/events/` (включая `calendar.ts`), маршруты `src/app/api/ai/` (9 типов, включая `content-gap`) и `src/app/api/events/` |
+| AI и события | `src/lib/openrouter.ts`, `src/lib/ai-reports.ts`, `src/lib/ai-markdown.ts`, `src/lib/events/` (включая `calendar.ts`), маршруты `src/app/api/ai/` (10 типов, включая `metrics-explainer` и `content-gap`) и `src/app/api/events/` |
 | Хранилище | `prisma/schema.prisma`, `prisma/migrations/`, `src/lib/prisma.ts`; процессный кэш в `src/lib/cache.ts` |
 | Эксплуатация | `docker-compose.yml` с dev/prod/local overrides, `Dockerfile.web`, `Dockerfile.worker`, `dev-web.sh`, `update.sh`; проверки в `.github/workflows/ci.yml` |
 

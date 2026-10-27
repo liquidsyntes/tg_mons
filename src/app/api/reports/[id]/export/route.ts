@@ -322,6 +322,48 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         </div>
       `;
 
+    } else if (report.type === 'metrics_explainer') {
+      contentHtml = `
+        <div class="bg-[#07111f] rounded-3xl p-6 border border-[#523d1b] text-[#edf4fb] space-y-6">
+          <div class="p-5 rounded-2xl bg-amber-950/30 border border-amber-500/30 space-y-2">
+            <div class="text-xs uppercase font-bold text-amber-400">${parsedData.overallVerdict?.healthBadge || 'Разбор показателей'}</div>
+            <h2 class="text-2xl font-bold text-white">${parsedData.overallVerdict?.headline || ''}</h2>
+            <p class="text-sm text-amber-100">${parsedData.overallVerdict?.plainExplanation || ''}</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4">
+              <div class="text-xs uppercase font-bold text-emerald-400 mb-2">Что подписчики делают</div>
+              <ul class="list-disc pl-4 text-sm text-emerald-100 space-y-1">
+                ${(parsedData.audienceBehaviorSummary?.whatTheyDo || []).map((item: string) => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="bg-rose-950/20 border border-rose-500/30 rounded-2xl p-4">
+              <div class="text-xs uppercase font-bold text-rose-400 mb-2">Чего подписчики НЕ делают</div>
+              <ul class="list-disc pl-4 text-sm text-rose-100 space-y-1">
+                ${(parsedData.audienceBehaviorSummary?.whatTheyAvoid || []).map((item: string) => `<li>${item}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+          <h3 class="text-xl font-bold text-white">Показатели канала простыми словами</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${(parsedData.metricsBreakdown || []).map((m: any) => `
+              <div class="bg-[#0d1c2f] border border-[#1b3552] rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between border-b border-[#1b3552] pb-2">
+                  <div>
+                    <div class="text-xs text-[#91a6bc]">${m.metricName || ''}</div>
+                    <div class="text-lg font-bold text-amber-300">${m.metricValue || ''}</div>
+                  </div>
+                  <span class="text-xs font-semibold text-amber-300">${m.statusLabel || ''}</span>
+                </div>
+                <p class="text-sm text-[#edf4fb]">${m.whatItMeans || ''}</p>
+                <div class="text-xs text-emerald-200"><strong>Делают:</strong> ${m.whatUsersDo || ''}</div>
+                <div class="text-xs text-rose-200"><strong>Не делают:</strong> ${m.whatUsersDontDo || ''}</div>
+                <div class="text-xs text-amber-200 bg-amber-950/30 p-3 rounded-xl"><strong>Совет SMM-щика:</strong> ${m.smmAdvice || ''}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
     } else if (report.type === 'content-gap') {
       contentHtml = `
         <div class="bg-[#07111f] rounded-3xl p-6 border border-[#1b4652] text-[#edf4fb] space-y-6">
@@ -383,7 +425,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const titleMap: Record<string, string> = {
+      metrics_explainer: 'Разбор показателей канала (SMM)',
       summary: 'Контент-анализ',
+      super_report: 'Супер Отчет (50 постов)',
       evolution: 'Динамика изменений',
       action_plan: 'Пошаговое руководство',
       compare: 'Сравнение каналов',

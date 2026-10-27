@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users, Trash2, Target } from 'lucide-react';
+import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users, Trash2, Target, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -105,7 +105,9 @@ export function ReportsListClient({ reports }: Props) {
           const isSelected = selectedIds.includes(report.id);
           const getReportMeta = (type: string) => {
             switch(type) {
+              case 'metrics_explainer': return { Icon: BarChart3, colorClass: 'text-amber-400 bg-amber-400/10', title: 'Разбор показателей канала (SMM)' };
               case 'summary': return { Icon: Sparkles, colorClass: 'text-amber-400 bg-amber-400/10', title: 'Контент-анализ' };
+              case 'super_report': return { Icon: Sparkles, colorClass: 'text-orange-400 bg-orange-400/10', title: 'Супер Отчет (50 постов)' };
               case 'evolution': return { Icon: Zap, colorClass: 'text-emerald-400 bg-emerald-400/10', title: 'Динамика изменений' };
               case 'action_plan': return { Icon: ListTodo, colorClass: 'text-cyan-400 bg-cyan-400/10', title: 'Пошаговое руководство' };
               case 'audience': return { Icon: Users, colorClass: 'text-emerald-400 bg-emerald-400/10', title: 'Анализ Целевой Аудитории' };
