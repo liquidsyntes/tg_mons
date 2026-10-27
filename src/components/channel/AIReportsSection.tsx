@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * Секция AI-отчетов на странице детального анализа канала (/channel/[id]).
+ * Содержит блоки для генерации и просмотра аналитики от нейросети:
+ * SMM-разбор метрик, саммари контента, сравнение с конкурентом,
+ * анализ аудитории, поиск упущенных тем и психологический портрет автора.
+ */
+
 import { useState, useCallback, useEffect } from 'react';
 import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2, Target, BarChart3 } from 'lucide-react';
 import { AILoadingStatus } from '@/components/AILoadingStatus';
@@ -19,6 +26,7 @@ import {
 } from '@/lib/ai-markdown';
 import { ChannelMetrics } from '@/lib/types';
 
+/** Пропсы секции отчетов: данные целевого канала, эталонного канала, период и посты */
 interface AIReportsSectionProps {
   channelId: string;
   channel: ChannelMetrics;
@@ -28,6 +36,10 @@ interface AIReportsSectionProps {
   isAdmin?: boolean;
 }
 
+/**
+ * Универсальный хук для отправки запроса к AI API.
+ * Управляет состояниями загрузки, ошибки, успеха и парсингом входящего JSON-ответа.
+ */
 function useAiReportRequest<T>(
   endpoint: string,
   responseField: 'summary' | 'audience' | 'persona' | 'contentGap' | 'explainer'
@@ -78,9 +90,11 @@ function useAiReportRequest<T>(
 
 export function AIReportsSection({ channelId, channel, myChannel, period, recentPosts, isAdmin }: AIReportsSectionProps) {
   const isMine = channel.isMine;
+  // Преобразование строкового периода в количество дней для выборки постов
   const days = period === '30d' ? 30 : period === '7d' ? 7 : 1;
   const [resolvedIsAdmin, setResolvedIsAdmin] = useState<boolean>(Boolean(isAdmin));
 
+  // Если флаг isAdmin не передан явно из родителя, запрашиваем роль текущего пользователя через API
   useEffect(() => {
     if (isAdmin !== undefined) {
       setResolvedIsAdmin(isAdmin);
@@ -100,6 +114,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     };
   }, [isAdmin]);
 
+  // 1. Отчет: Понятный SMM-разбор метрик канала
   const {
     data: aiExplainer,
     loading: aiExplainerLoading,
@@ -109,6 +124,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiExplainer,
   } = useAiReportRequest<AIMetricsExplainerData>('/api/ai/metrics-explainer', 'explainer');
 
+  // 2. Отчет: Экспресс-саммари по контенту
   const {
     data: aiSummary,
     loading: aiLoading,
@@ -118,6 +134,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiSummary,
   } = useAiReportRequest<AISummaryData>('/api/ai/summary', 'summary');
 
+  // 3. Отчет: Супер-отчет на основе 50 постов
   const {
     data: aiSuperSummary,
     loading: aiSuperLoading,
@@ -127,6 +144,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiSuperSummary,
   } = useAiReportRequest<AISummaryData>('/api/ai/super-report', 'summary');
 
+  // 4. Отчет: Сравнение с каналом пользователя
   const {
     data: aiCompareSummary,
     loading: aiCompareLoading,
@@ -136,6 +154,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiCompare,
   } = useAiReportRequest<AICompareData>('/api/ai/compare', 'summary');
 
+  // 5. Отчет: Анализ целевой аудитории
   const {
     data: aiAudience,
     loading: aiAudienceLoading,
@@ -145,6 +164,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiAudience,
   } = useAiReportRequest<AIAudienceData>('/api/ai/audience', 'audience');
 
+  // 6. Отчет: Психологический портрет автора (только для ADMIN)
   const {
     data: aiPersona,
     loading: aiPersonaLoading,
@@ -154,6 +174,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiPersona,
   } = useAiReportRequest<AIPersonaData>('/api/ai/persona', 'persona');
 
+  // 7. Отчет: Упущенные темы конкурентов (Content Gap)
   const {
     data: aiContentGap,
     loading: aiContentGapLoading,
@@ -163,6 +184,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiContentGap,
   } = useAiReportRequest<AIContentGapData>('/api/ai/content-gap', 'contentGap');
 
+  // Обработчики запуска генерации отчетов с передачей соответствующих параметров
   const fetchAiExplainer = () => runAiExplainer({ channelId, period });
   const fetchAiSummary = () => runAiSummary({ channelId, days });
   const fetchAiSuperSummary = () => runAiSuperSummary({ channelId });
@@ -177,7 +199,10 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
 
   return (
     <>
-      {/* AI Metrics Explainer Section (First Report, Yellow Button) */}
+      {/* =========================================================================
+          1. Разбор показателей канала простыми словами (SMM-переводчик метрик)
+          Первый отчет в блоке, акцентная желтая кнопка запуска.
+         ========================================================================= */}
       <div className="bg-surface border border-amber-400/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -240,7 +265,9 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         )}
       </div>
 
-      {/* AI Summary Section */}
+      {/* =========================================================================
+          2. Экспресс-отчет на основе контента (быстрое саммари за выбранный период)
+         ========================================================================= */}
       <div className="bg-surface border border-accent/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-accent shadow-[0_0_15px_rgba(56,189,248,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -270,7 +297,9 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         )}
       </div>
 
-      {/* AI Super Report Section */}
+      {/* =========================================================================
+          3. Супер Отчет (глубокий анализ по последним 50 публикациям)
+         ========================================================================= */}
       <div className="bg-surface border border-orange-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -300,7 +329,10 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         )}
       </div>
 
-      {/* AI Comparative Section */}
+      {/* =========================================================================
+          4. Сравнительный AI-анализ с каналом пользователя
+          Отображается только для каналов-конкурентов, когда назначен "Мой канал".
+         ========================================================================= */}
       {!isMine && myChannel && (
         <div className="bg-surface border border-violet-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -332,7 +364,10 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         </div>
       )}
 
-      {/* AI Content Gap Section */}
+      {/* =========================================================================
+          5. Упущенные темы конкурентов (AI Content Gap)
+          Выявляет популярные форматы и темы у конкурентов, которых нет у вас.
+         ========================================================================= */}
       {(isMine || myChannel) && (
         <div className="bg-surface border border-cyan-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -391,7 +426,9 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         </div>
       )}
 
-      {/* AI Audience Section */}
+      {/* =========================================================================
+          6. Анализ предполагаемой целевой аудитории (демография, боли, интересы)
+         ========================================================================= */}
       <div className="bg-surface border border-emerald-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -421,7 +458,10 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         )}
       </div>
 
-      {/* AI Persona Section (Admin only) */}
+      {/* =========================================================================
+          7. Психологический портрет автора
+          Конфиденциальный глубокий анализ, доступный исключительно администратору.
+         ========================================================================= */}
       {resolvedIsAdmin && (
         <div className="bg-surface border border-rose-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
