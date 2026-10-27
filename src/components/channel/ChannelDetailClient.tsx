@@ -89,7 +89,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
         ) : (
           <>
             <div id="report-content" className="flex flex-col gap-[6px]">
-              <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} priceRevision={priceRevision} />
+              <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} priceRevision={priceRevision} stats={data} />
               {data!.nicheBenchmark && <NicheBenchmarkWidget benchmark={data!.nicheBenchmark} />}
               <ChannelAdReachWidget channelId={channel.id} />
               <AdAttributionWidget channelId={channel.id} onPriceSaved={() => setPriceRevision(value => value + 1)} />

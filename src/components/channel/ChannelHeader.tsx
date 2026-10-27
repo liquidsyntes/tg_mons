@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Crown, ExternalLink, AlertTriangle } from 'lucide-react';
-import { type AdPriceResult, type ChannelMetrics } from '@/lib/types';
+import { type AdPriceResult, type ChannelMetrics, type ChannelDetailStats } from '@/lib/types';
 import { SummaryMetric, GrowthMetric } from '@/components/SummaryMetric';
 import { StatusBadge } from '@/components/StatusBadge';
 import { RiskBadge } from '@/components/RiskBadge';
@@ -18,11 +18,12 @@ interface ChannelHeaderProps {
   period: '24h' | '7d' | '30d';
   onPeriodChange: (period: '24h' | '7d' | '30d') => void;
   priceRevision?: number;
+  stats?: ChannelDetailStats | null;
 }
 
 import { useEffect, useState } from 'react';
 
-export function ChannelHeader({ channel, period, onPeriodChange, priceRevision = 0 }: ChannelHeaderProps) {
+export function ChannelHeader({ channel, period, onPeriodChange, priceRevision = 0, stats }: ChannelHeaderProps) {
   const [adPrice, setAdPrice] = useState<Pick<AdPriceResult, 'estimatedPricePerPost' | 'cpm' | 'confidence' | 'priceSource'> | null>(null);
 
   useEffect(() => {
@@ -146,6 +147,8 @@ export function ChannelHeader({ channel, period, onPeriodChange, priceRevision =
               reportContainerId="report-content"
               channelTitle={channel.title}
               period={period}
+              channelId={channel.id}
+              stats={stats}
             />
             <ExportMenu items={(['daily', 'snapshots', 'posts'] as const).flatMap(dataset => {
               const label = dataset === 'daily' ? 'Дневные метрики' : dataset === 'snapshots' ? 'Снимки аудитории' : 'Последние посты';
