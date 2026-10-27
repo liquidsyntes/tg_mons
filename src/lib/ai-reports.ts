@@ -11,7 +11,8 @@ export type AiReportType =
   | 'evolution'
   | 'action_plan'
   | 'persona'
-  | 'super_report';
+  | 'super_report'
+  | 'content-gap';
 
 export interface TimestampedPost {
   publishedAt: Date;

@@ -42,7 +42,7 @@ describe('middleware access boundary', () => {
       ['POST', '/api/events/scan'],
       ['PATCH', '/api/events/1/dismiss'],
       ['DELETE', '/api/reports/1'],
-      ...['summary', 'super-report', 'compare', 'audience', 'persona', 'trends', 'action-plan', 'compare-reports']
+      ...['summary', 'super-report', 'compare', 'audience', 'persona', 'trends', 'action-plan', 'compare-reports', 'content-gap']
         .map(name => ['POST', `/api/ai/${name}`]),
     ];
     for (const [method, path] of routes) {

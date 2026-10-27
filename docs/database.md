@@ -290,7 +290,7 @@
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
 | `channelId` | `Int` | `channel_id` | Да | — | Внешний ключ на `Channel.id` (null для общих трендов) |
-| `type` | `String` | `type` | Нет | Нет | Строковый тип: `summary`, `super_report`, `compare`, `trend`, `audience`, `persona`, `action_plan` или `evolution` |
+| `type` | `String` | `type` | Нет | Нет | Строковый тип: `summary`, `super_report`, `compare`, `trend`, `content-gap`, `audience`, `persona`, `action_plan` или `evolution` |
 | `content` | `String` | `content` | Нет | — | JSON-строка полезной нагрузки отчёта |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время создания отчёта |
 

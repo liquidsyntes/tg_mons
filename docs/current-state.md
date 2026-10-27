@@ -1,21 +1,22 @@
 # Текущее состояние и передача работы
 
-Снимок: 27 октября 2026 года. База задачи Issue #53: `888c08c`, ветка `main`, upstream `origin/main`; рабочее дерево до изменений было чистым. Перед следующей задачей проверить Git заново. Это состояние исходников и локальных проверок, не заключение о production.
+Снимок: 27 октября 2026 года. База задачи Issue #54: `571a5c6`, ветка `main`, upstream `origin/main`; рабочее дерево до изменений было чистым. Перед следующей задачей проверить Git заново. Это состояние исходников и локальных проверок, не заключение о production.
 
 ## Реализовано в исходниках
 
-- В `src/lib/events/calendar.ts` добавлены чистые утилиты парсинга времени проведения (`parseEventTimeWindow`: одиночное время, интервал через полночь и события на весь день при отсутствии `timeStr`), экранирования спецсимволов RFC 5545 (`escapeIcsText`), генерации `.ics`-файла (`buildEventIcs`), формирования ссылки Google Calendar (`buildGoogleCalendarUrl`) и фильтрации событий (`filterEvents`, `matchesEventDatePreset`, `isFreeEvent`).
-- В `src/components/events/EventCard.tsx` добавлены действия экспорта события: кнопка «Скачать .ics» и кнопка «В Google Календарь».
-- На странице `/events` (`src/app/events/page.tsx`) добавлена панель быстрых фильтров дат («В этом месяце», «Все предстоящие», «Сегодня / Завтра», «На этих выходных», «На этой неделе»), поиск по названию/организатору/каналу-источнику и переключатель «Только бесплатные».
-- Добавлены unit-тесты `src/lib/events/__tests__/calendar.test.ts` и расширены тесты страницы `src/app/events/__tests__/page.test.ts`. Обновлён `docs/overview.md`.
+- В `src/lib/ai-reports.ts` добавлен тип отчёта `'content-gap'` в `AiReportType`.
+- Создан маршрут `POST /api/ai/content-gap` (`src/app/api/ai/content-gap/route.ts`), который определяет «Мой канал» (`isMine: true` или переданный `myChannelId`) среди активных подписок пользователя, собирает до 40 последних постов своего канала и топ-60 наиболее эффективных постов конкурентов за период `days` (по умолчанию 14 дней), генерирует структурированный JSON-отчёт через OpenRouter (`summary`, `missingTopics`, `coveredTopicsComparison`, `quickWins`) и сохраняет его в `AiReport` (`type: 'content-gap'`).
+- Создан компонент `src/components/AIContentGapReport.tsx` и функция экспорта в Markdown `aiContentGapToMarkdown` в `src/lib/ai-markdown.ts`.
+- Поддержка отчёта `'content-gap'` интегрирована в `src/components/channel/AIReportsSection.tsx` (для «Моего канала»), `src/components/TrendSpotterWidget.tsx` (кнопка «Упущенные темы» на главной странице), реестр `/reports` (`src/components/ReportsListClient.tsx`), детальную страницу `/reports/[id]` (`src/app/reports/[id]/page.tsx`) и HTML-экспорт (`src/app/api/reports/[id]/export/route.ts`).
+- Добавлены unit-тесты `src/app/api/ai/content-gap/__tests__/route.test.ts` и обновлён `src/__tests__/middleware.test.ts`. Обновлена документация в `docs/api-reference.md`, `docs/database.md` и `docs/overview.md`.
 
 ## Проверки текущей задачи
 
-- Целевые тесты событий (`src/lib/events/__tests__/calendar.test.ts`, `src/components/events/__tests__/EventCard.test.ts`, `src/app/events/__tests__/page.test.ts`, `src/lib/events/__tests__/digest.test.ts`, `src/lib/events/__tests__/jev.test.ts`, `src/lib/events/__tests__/matching.test.ts`, `src/app/api/events/__tests__/route.test.ts`): 7 файлов, 38 тестов прошли. Полный `npm test -- --maxWorkers=4`: 105 файлов, 696 тестов прошли. `npx tsc --noEmit`, `npx eslint src` и `npm run build` прошли.
-- `git diff --check` прошёл без ошибок. Миграция БД не требовалась.
+- Целевые тесты (`src/app/api/ai/content-gap/__tests__/route.test.ts`, `src/__tests__/middleware.test.ts`, `src/components/__tests__/ui-polish.test.ts`, `src/components/__tests__/channel-detail-ui.test.ts`, `src/lib/__tests__/ai-markdown.test.ts`): 5 файлов, 33 теста прошли. Полный `npm test -- --maxWorkers=4`: 106 файлов, 700 тестов прошли. `npx tsc --noEmit`, `npx eslint src` и `npm run build` прошли.
+- `git diff --check` прошёл без ошибок. Миграция БД не требовалась (`AiReport.type` — строковое поле `String`).
 
 ## Ограничения и следующий шаг
 
-Экспорт в `.ics` и Google Calendar использует распознанное время из `Event.timeStr` в локальном времени календаря без жёсткой привязки к часовому поясу площадки; если точное время не распознано, событие создаётся на весь день (`VALUE=DATE`).
+Генерация отчёта упущенных тем требует наличия хотя бы одного канала с `isMine: true` (или явного `myChannelId`), хотя бы одного активного канала конкурента в подписках пользователя и настроенного `OPENROUTER_API_KEY`.
 
 После доставки перед следующей задачей проверить `git status -sb` и выбрать относящиеся к ней исходники по [карте проекта](project-map.md). Исторические `.agents/` handoff-файлы не задают план следующей работы.

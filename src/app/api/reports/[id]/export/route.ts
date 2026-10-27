@@ -322,6 +322,36 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         </div>
       `;
 
+    } else if (report.type === 'content-gap') {
+      contentHtml = `
+        <div class="bg-[#07111f] rounded-3xl p-6 border border-[#1b4652] text-[#edf4fb] space-y-6">
+          <h2 class="text-2xl font-bold text-cyan-400">Упущенные темы (Content Gap)</h2>
+          ${parsedData.summary ? `<div class="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 text-sm text-cyan-100">${parsedData.summary}</div>` : ''}
+          <h3 class="text-xl font-bold text-white">1. Упущенные темы конкурентов</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${(parsedData.missingTopics || []).map((item: any) => `
+              <div class="bg-[#0d1c2f] border border-[#1b3552] rounded-2xl p-5 space-y-2">
+                <div class="font-bold text-white">${item.topic || ''}</div>
+                <div class="text-xs text-cyan-300">${item.engagementPotential || ''}</div>
+                <p class="text-sm text-[#91a6bc]">${item.whyItWorked || ''}</p>
+                <div class="text-xs text-cyan-200 bg-cyan-950/30 p-3 rounded-xl"><strong>Угол подачи:</strong> ${item.suggestedAngle || ''}</div>
+                ${item.quote ? `<div class="italic text-xs text-slate-400">«${item.quote}»</div>` : ''}
+                <div class="text-[10px] uppercase text-slate-400">Каналы: ${(item.competitorChannels || []).join(', ')}</div>
+              </div>
+            `).join('')}
+          </div>
+          <h3 class="text-xl font-bold text-white">2. Быстрые победы</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${(parsedData.quickWins || []).map((win: any) => `
+              <div class="bg-[#0d1c2f] border border-[#1b3552] rounded-2xl p-4 space-y-1">
+                <div class="text-xs text-amber-400 uppercase font-bold">${win.format || ''}</div>
+                <div class="font-bold text-white">${win.headline || ''}</div>
+                <div class="text-xs text-[#91a6bc]">${win.hook || ''}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
     } else {
       contentHtml = `
         <div class="bg-[#07111f] rounded-3xl p-6 border border-[#231b52] text-[#edf4fb]">
@@ -359,6 +389,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       compare: 'Сравнение каналов',
       trend: 'Радар Трендов (Рынок)',
       audience: 'Анализ Целевой Аудитории',
+      'content-gap': 'Упущенные темы (Content Gap)',
       persona: 'Психологический портрет'
     };
     

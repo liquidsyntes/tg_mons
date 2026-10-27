@@ -1,6 +1,7 @@
 import type { AISummaryData } from '@/components/AISummaryReport';
 import type { AICompareData } from '@/components/AICompareReport';
 import type { AIAudienceData } from '@/components/AIAudienceReport';
+import type { AIContentGapData } from '@/components/AIContentGapReport';
 
 export function downloadMarkdown(content: string, filename: string): void {
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
@@ -131,5 +132,38 @@ ${data.psychographics?.values?.map((v) => `- ${v}`).join('\n')}
 
 **Боли и страхи:**
 ${data.psychographics?.fears?.map((f) => `- ${f}`).join('\n')}
+  `.trim();
+}
+
+export function aiContentGapToMarkdown(data: AIContentGapData | null, myTitle?: string): string {
+  if (!data) return '';
+  return `
+# Упущенные темы конкурентов (AI Content Gap)
+${myTitle ? `**Мой канал:** ${myTitle}\n` : ''}
+${data.summary ? `**Резюме:** ${data.summary}\n` : ''}
+
+## 1. Упущенные темы конкурентов
+${
+  data.missingTopics?.length
+    ? data.missingTopics
+        .map(
+          (item) =>
+            `### ${item.topic} (${item.engagementPotential || 'высокий потенциал'})\n` +
+            `- **Почему сработало:** ${item.whyItWorked}\n` +
+            `- **Каналы:** ${(item.competitorChannels || []).join(', ')}\n` +
+            `- **Угол подачи для нашего канала:** ${item.suggestedAngle}` +
+            (item.quote ? `\n> «${item.quote}»` : ''),
+        )
+        .join('\n\n')
+    : '*Упущенных тем не выявлено.*'
+}
+
+## 2. Сравнение общих тем
+| Тема | Мой канал | Конкуренты | Как усилить |
+|---|---|---|---|
+${(data.coveredTopicsComparison || []).map((row) => `| **${row.topic}** | ${row.myPerformance} | ${row.competitorPerformance} | ${row.improvementTip} |`).join('\n')}
+
+## 3. Быстрые победы (Quick Wins)
+${(data.quickWins || []).map((win, idx) => `### ${idx + 1}. ${win.headline} (${win.format})\n${win.hook}`).join('\n\n')}
   `.trim();
 }

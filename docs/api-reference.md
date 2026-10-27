@@ -118,7 +118,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 
 ## AI-отчёты
 
-Все восемь маршрутов используют **POST** и явно проверяют общий гард: UI-сессию или Bearer. Тело JSON. Все используют сохранённый в `SystemSetting` ключ OpenRouter с резервом `OPENROUTER_API_KEY`, стандартный timeout 60 секунд и сохранённую модель с резервом `z-ai/glm-5.3-flash`.
+Все девять маршрутов используют **POST** и явно проверяют общий гард: UI-сессию или Bearer. Тело JSON. Все используют сохранённый в `SystemSetting` ключ OpenRouter с резервом `OPENROUTER_API_KEY`, стандартный timeout 60 секунд и сохранённую модель с резервом `z-ai/glm-5.3-flash`.
 
 | Путь | Тело | Выборка / основание | Успешный ответ | Тип в AiReport |
 | --- | --- | --- | --- | --- |
@@ -126,6 +126,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `/api/ai/super-report` | `{channelId}` | Последние 50 текстовых постов канала | `{summary: string}` | `super_report` |
 | `/api/ai/compare` | `{channelId, days?: 7}` | Целевой канал и «Мой канал», до 50 постов каждого | `{summary: string}` | `compare` |
 | `/api/ai/trends` | Не требуется | До 10 текстовых постов на каждый активный канал из списка пользователя за 48 часов; мастер-сессия без `userId` использует все активные каналы | JSON-объект LLM | `trend` |
+| `/api/ai/content-gap` | `{myChannelId?, days?: 14}` | До 40 постов «Моего канала» и топ-60 постов активных каналов-конкурентов пользователя за период (приоритет своей нише при наличии от 2 конкурентов) | `{contentGap: string, reportId: number \| null}` | `content-gap` |
 | `/api/ai/audience` | `{channelId, days?: 7}` | До 20 текстовых постов | `{audience: string}` | `audience` |
 | `/api/ai/persona` | `{channelId}` | До 30 последних текстовых постов (только для роли `ADMIN`; для `USER` возвращает `403`) | `{persona: string}` | `persona` |
 | `/api/ai/action-plan` | `{reportId}` | Существующий отчёт | `{summary: string}` | `action_plan` |

@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2 } from 'lucide-react';
+import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2, Target } from 'lucide-react';
 import { AILoadingStatus } from '@/components/AILoadingStatus';
 import { AISummaryReport, AISummaryData, SummaryPostStats } from '@/components/AISummaryReport';
 import { AICompareReport, AICompareData } from '@/components/AICompareReport';
 import { AIAudienceReport, AIAudienceData } from '@/components/AIAudienceReport';
+import { AIContentGapReport, AIContentGapData } from '@/components/AIContentGapReport';
 import { AIPersonaReport, AIPersonaData, aiPersonaToMarkdown } from '@/components/channel/AIPersonaReport';
 import {
   aiAudienceToMarkdown,
   aiCompareDataToMarkdown,
+  aiContentGapToMarkdown,
   aiDataToMarkdown,
   downloadMarkdown,
 } from '@/lib/ai-markdown';
@@ -26,7 +28,7 @@ interface AIReportsSectionProps {
 
 function useAiReportRequest<T>(
   endpoint: string,
-  responseField: 'summary' | 'audience' | 'persona'
+  responseField: 'summary' | 'audience' | 'persona' | 'contentGap'
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,11 +143,25 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
     run: runAiPersona,
   } = useAiReportRequest<AIPersonaData>('/api/ai/persona', 'persona');
 
+  const {
+    data: aiContentGap,
+    loading: aiContentGapLoading,
+    error: aiContentGapError,
+    success: aiContentGapSuccess,
+    setSuccess: setAiContentGapSuccess,
+    run: runAiContentGap,
+  } = useAiReportRequest<AIContentGapData>('/api/ai/content-gap', 'contentGap');
+
   const fetchAiSummary = () => runAiSummary({ channelId, days });
   const fetchAiSuperSummary = () => runAiSuperSummary({ channelId });
   const fetchAiCompare = () => runAiCompare({ channelId, days });
   const fetchAiAudience = () => runAiAudience({ channelId, days });
   const fetchAiPersona = () => runAiPersona({ channelId });
+  const fetchAiContentGap = () =>
+    runAiContentGap({
+      myChannelId: isMine ? channel.id : myChannel?.id,
+      days: days === 1 ? 14 : days,
+    });
 
   return (
     <>
@@ -234,6 +250,65 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
                 <button onClick={() => downloadMarkdown(aiCompareDataToMarkdown(aiCompareSummary, myChannel.title, channel.title), `compare_${channel.username || channel.id}_vs_mine.md`)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
                   <Download className="w-3.5 h-3.5 text-violet-400" /> Экспорт в MD
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI Content Gap Section */}
+      {(isMine || myChannel) && (
+        <div className="bg-surface border border-cyan-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Target className="w-4 h-4 text-cyan-400" />
+                Упущенные темы конкурентов (AI Content Gap)
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Темы и форматы с высоким охватом у конкурентов, которые ещё не выходили в канале «{isMine ? channel.title : myChannel?.title}»
+              </p>
+            </div>
+            <button
+              onClick={fetchAiContentGap}
+              disabled={aiContentGapLoading}
+              className="w-[220px] justify-center py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {aiContentGapLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Ищу темы...</> : 'Найти упущенные темы'}
+            </button>
+          </div>
+          <AILoadingStatus
+            isRunning={aiContentGapLoading}
+            success={aiContentGapSuccess}
+            onSuccessClear={() => setAiContentGapSuccess(false)}
+            messages={[
+              'Собираем топ-публикации конкурентов...',
+              'Сравниваем с темами вашего канала...',
+              'Нейросеть находит упущенные темы и быстрые победы...',
+              'Почти готово...',
+            ]}
+          />
+          {aiContentGapError && (
+            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+              {aiContentGapError}
+            </div>
+          )}
+          {aiContentGap && (
+            <div className="space-y-4 mt-6">
+              <AIContentGapReport data={aiContentGap} />
+              <div className="flex justify-end">
+                <button
+                  onClick={() =>
+                    downloadMarkdown(
+                      aiContentGapToMarkdown(aiContentGap, isMine ? channel.title : myChannel?.title),
+                      `content_gap_${channel.username || channel.id}.md`,
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
+                  data-pdf-hide
+                >
+                  <Download className="w-3.5 h-3.5 text-cyan-400" /> Экспорт в MD
                 </button>
               </div>
             </div>

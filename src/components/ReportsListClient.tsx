@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users, Trash2 } from 'lucide-react';
+import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users, Trash2, Target } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -109,6 +109,7 @@ export function ReportsListClient({ reports }: Props) {
               case 'evolution': return { Icon: Zap, colorClass: 'text-emerald-400 bg-emerald-400/10', title: 'Динамика изменений' };
               case 'action_plan': return { Icon: ListTodo, colorClass: 'text-cyan-400 bg-cyan-400/10', title: 'Пошаговое руководство' };
               case 'audience': return { Icon: Users, colorClass: 'text-emerald-400 bg-emerald-400/10', title: 'Анализ Целевой Аудитории' };
+              case 'content-gap': return { Icon: Target, colorClass: 'text-cyan-400 bg-cyan-400/10', title: 'Упущенные темы (Content Gap)' };
               case 'persona': return { Icon: Sparkles, colorClass: 'text-rose-400 bg-rose-400/10', title: 'Психологический портрет' };
               default: return { Icon: Layers, colorClass: 'text-violet-400 bg-violet-400/10', title: 'Сравнение с конкурентом' };
             }

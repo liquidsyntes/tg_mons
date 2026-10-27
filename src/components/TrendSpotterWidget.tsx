@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Radar, RefreshCw, TrendingUp, AlertCircle, ChevronDown } from 'lucide-react';
+import { Radar, RefreshCw, TrendingUp, AlertCircle, ChevronDown, Target } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { AIContentGapReport, type AIContentGapData } from './AIContentGapReport';
 
 interface TrendItem {
   topic: string;
@@ -26,6 +27,8 @@ export function TrendSpotterWidget() {
   const [report, setReport] = useState<TrendReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [gapGenerating, setGapGenerating] = useState(false);
+  const [gapData, setGapData] = useState<AIContentGapData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
@@ -70,6 +73,31 @@ export function TrendSpotterWidget() {
     }
   };
 
+  const generateContentGap = async () => {
+    setGapGenerating(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/ai/content-gap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: 14 }),
+      });
+      const payload = (await res.json().catch(() => null)) as { contentGap?: string; error?: string } | null;
+      if (!res.ok) {
+        setError(payload?.error || 'Не удалось выполнить анализ упущенных тем.');
+        return;
+      }
+      if (payload?.contentGap) {
+        setGapData(JSON.parse(payload.contentGap) as AIContentGapData);
+        setExpanded(true);
+      }
+    } catch {
+      setError('Не удалось связаться с сервером. Повторите попытку.');
+    } finally {
+      setGapGenerating(false);
+    }
+  };
+
   return (
     <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
       {/* Header */}
@@ -99,14 +127,25 @@ export function TrendSpotterWidget() {
           </div>
         </div>
 
-        <button
-          onClick={generateTrends}
-          disabled={generating || loading}
-          className="inline-flex min-h-9 items-center justify-center gap-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${generating ? 'animate-spin text-purple-400' : ''}`} />
-          {generating ? 'Анализируем...' : 'Обновить радар'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={generateContentGap}
+            disabled={gapGenerating || generating || loading}
+            className="inline-flex min-h-9 items-center justify-center gap-2 px-3 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 rounded-lg text-xs font-semibold border border-cyan-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Target className={`w-3.5 h-3.5 ${gapGenerating ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
+            {gapGenerating ? 'Ищем упущенные темы...' : 'Упущенные темы (Content Gap)'}
+          </button>
+
+          <button
+            onClick={generateTrends}
+            disabled={generating || gapGenerating || loading}
+            className="inline-flex min-h-9 items-center justify-center gap-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${generating ? 'animate-spin text-purple-400' : ''}`} />
+            {generating ? 'Анализируем...' : 'Обновить радар'}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -160,6 +199,12 @@ export function TrendSpotterWidget() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {gapData && (
+          <div className="mt-6 pt-6 border-t border-border/60">
+            <AIContentGapReport data={gapData} />
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import { AIReportEvolution } from '@/components/AIReportEvolution';
 import { AIActionPlan } from '@/components/AIActionPlan';
 import { AITrendReport } from '@/components/AITrendReport';
 import { AIAudienceReport } from '@/components/AIAudienceReport';
+import { AIContentGapReport } from '@/components/AIContentGapReport';
 import { AIPersonaReport } from '@/components/channel/AIPersonaReport';
 import { GenerateActionPlanButton } from '@/components/GenerateActionPlanButton';
 import { ArrowLeft, Calendar, Download } from 'lucide-react';
@@ -65,6 +66,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
     compare: 'Сравнение каналов',
     trend: 'Радар Трендов (Рынок)',
     audience: 'Анализ Целевой Аудитории',
+    'content-gap': 'Упущенные темы (Content Gap)',
     persona: 'Психологический портрет'
   };
 
@@ -141,6 +143,8 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 <AITrendReport data={parsedData} />
               ) : report.type === 'audience' ? (
                 <AIAudienceReport data={parsedData} />
+              ) : report.type === 'content-gap' ? (
+                <AIContentGapReport data={parsedData} />
               ) : report.type === 'persona' ? (
                 <AIPersonaReport data={parsedData} />
               ) : (
