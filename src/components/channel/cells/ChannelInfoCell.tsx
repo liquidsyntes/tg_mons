@@ -2,11 +2,14 @@ import React from 'react';
 import Link from 'next/link';
 import { Crown, Star, ExternalLink } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
+import { ChannelTagsEditor } from '../ChannelTagsEditor';
 
 interface ChannelInfoCellProps {
   channel: ChannelMetrics;
   isFavorite: boolean;
   onToggleFavorite: (e: React.MouseEvent, channelId: number, currentFav: boolean) => void;
+  availableTags?: string[];
+  onTagsChange?: (channelId: number, nextTags: string[]) => void;
 }
 
 export function getAvatarStyles(channel: ChannelMetrics) {
@@ -30,7 +33,13 @@ export function getAvatarStyles(channel: ChannelMetrics) {
   return 'bg-violet-500/30 text-violet-400 border-violet-500/40';
 }
 
-export function ChannelInfoCell({ channel, isFavorite, onToggleFavorite }: ChannelInfoCellProps) {
+export function ChannelInfoCell({
+  channel,
+  isFavorite,
+  onToggleFavorite,
+  availableTags = [],
+  onTagsChange,
+}: ChannelInfoCellProps) {
   const isMineRow = channel.isMine;
   const lastCollectedStr = channel.lastCollectedAt ? new Date(channel.lastCollectedAt).toLocaleString('ru-RU') : 'Никогда';
 
@@ -95,6 +104,15 @@ export function ChannelInfoCell({ channel, isFavorite, onToggleFavorite }: Chann
             <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-60" />
           </a>
         )}
+        <div className="mt-1">
+          <ChannelTagsEditor
+            channelId={channel.id}
+            tags={channel.tags ?? []}
+            availableTags={availableTags}
+            compact
+            onTagsChange={onTagsChange}
+          />
+        </div>
       </div>
     </div>
   );

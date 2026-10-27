@@ -8,18 +8,23 @@ import { StatusBadge } from '../StatusBadge';
 import { RiskBadge } from '../RiskBadge';
 import { TrendCell } from './cells/TrendCell';
 import { MetricCell, getMetricReason } from './cells/MetricCell';
+import { ChannelTagsEditor } from './ChannelTagsEditor';
 import { formatNumber } from '@/lib/utils';
 
 interface ChannelsMobileListProps {
   channels: ChannelMetrics[];
   localFavorites: Record<number, boolean>;
   onToggleFavorite: (e: React.MouseEvent, channelId: number, currentFav: boolean) => void;
+  availableTags?: string[];
+  onTagsChange?: (channelId: number, nextTags: string[]) => void;
 }
 
 export function ChannelsMobileList({
   channels,
   localFavorites,
   onToggleFavorite,
+  availableTags = [],
+  onTagsChange,
 }: ChannelsMobileListProps) {
   return (
     <div className="block md:hidden space-y-3">
@@ -68,6 +73,15 @@ export function ChannelsMobileList({
                     <ExternalLink className="w-3 h-3 opacity-60" />
                   </a>
                 )}
+                <div className="mt-1.5">
+                  <ChannelTagsEditor
+                    channelId={channel.id}
+                    tags={channel.tags ?? []}
+                    availableTags={availableTags}
+                    compact
+                    onTagsChange={onTagsChange}
+                  />
+                </div>
               </div>
 
               <div className="text-right">

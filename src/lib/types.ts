@@ -48,6 +48,7 @@ export interface ChannelMetrics {
   contentScore?: number;
   contentGrade?: string;
   niche?: string;
+  tags?: string[];
   ep?: number;
   epBreakdown?: any;
   citationIndex?: number | null;
@@ -192,7 +193,8 @@ export interface GlobalPostSearchResponse {
   posts: SearchPost[];
   total: number;
   niches: string[];
-  channels: Array<{ id: number; title: string; username: string | null; niche: string }>;
+  tags?: string[];
+  channels: Array<{ id: number; title: string; username: string | null; niche: string; tags?: string[] }>;
 }
 
 export interface AdvertiserDonorChannel {

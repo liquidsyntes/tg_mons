@@ -25,12 +25,14 @@ export default function PostsPage() {
   const [advertiserDays, setAdvertiserDays] = useState<7 | 30>(30);
   const [onlyViral, setOnlyViral] = useState(false);
   const [niche, setNiche] = useState('');
+  const [tag, setTag] = useState('');
   const [channelId, setChannelId] = useState('');
   const [days, setDays] = useState(30);
   const [sortBy, setSortBy] = useState<SortBy>('publishedAt');
   const [posts, setPosts] = useState<SearchPost[]>([]);
   const [total, setTotal] = useState(0);
   const [niches, setNiches] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [channels, setChannels] = useState<GlobalPostSearchResponse['channels']>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -49,10 +51,11 @@ export default function PostsPage() {
     });
     if (search) params.set('q', search);
     if (niche) params.set('niche', niche);
+    if (tag) params.set('tag', tag);
     if (channelId) params.set('channelId', channelId);
     if (advertiserUsername) params.set('advertiser', advertiserUsername);
     return `/api/posts/search?${params.toString()}`;
-  }, [days, sortBy, onlyAds, onlyViral, search, niche, channelId, advertiserUsername]);
+  }, [days, sortBy, onlyAds, onlyViral, search, niche, tag, channelId, advertiserUsername]);
 
   useEffect(() => {
     const version = ++requestVersion.current;
@@ -71,6 +74,7 @@ export default function PostsPage() {
         setPosts(data.posts);
         setTotal(data.total);
         setNiches(data.niches);
+        setTags(data.tags ?? []);
         setChannels(data.channels);
       })
       .catch(reason => {
@@ -137,7 +141,7 @@ export default function PostsPage() {
             className={`rounded-xl border px-3 py-2 text-sm ${onlyViral ? 'border-rose-400 bg-rose-500/15 text-rose-300' : 'border-border text-slate-300'}`}>
             Только вирусные
           </button>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <label className="space-y-1.5 text-xs text-slate-300"><span>Ниша</span>
               <select value={niche} onChange={event => { setNiche(event.target.value); setChannelId(''); setAdvertiserUsername(''); }}
                 className="w-full rounded-xl border border-border bg-slate-900 px-3 py-2.5 text-sm text-white">
@@ -145,11 +149,18 @@ export default function PostsPage() {
                 {niches.map(value => <option key={value} value={value}>{value}</option>)}
               </select>
             </label>
+            <label className="space-y-1.5 text-xs text-slate-300"><span>Папка / тег</span>
+              <select value={tag} onChange={event => { setTag(event.target.value); setChannelId(''); }}
+                className="w-full rounded-xl border border-border bg-slate-900 px-3 py-2.5 text-sm text-white">
+                <option value="">Все теги</option>
+                {tags.map(value => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
             <label className="space-y-1.5 text-xs text-slate-300"><span>Канал</span>
               <select value={channelId} onChange={event => setChannelId(event.target.value)}
                 className="w-full rounded-xl border border-border bg-slate-900 px-3 py-2.5 text-sm text-white">
                 <option value="">Все каналы</option>
-                {channels.filter(channel => !niche || channel.niche === niche).map(channel =>
+                {channels.filter(channel => (!niche || channel.niche === niche) && (!tag || (channel.tags ?? []).includes(tag))).map(channel =>
                   <option key={channel.id} value={channel.id}>{channel.title}</option>)}
               </select>
             </label>

@@ -29,9 +29,9 @@ Middleware больше не добавляет Bearer к запросам бр�
 | Метод и путь | Вход | Ответ / поведение | Гард в обработчике |
 | --- | --- | --- | --- |
 | `GET /api/channels` | — | Массив `ChannelMetrics` из overview, включая отключённые каналы | Нет |
-| `POST /api/channels` | `{ "input": "@example_channel", "isMine": false }` | 201, метрики добавленного/повторно активированного канала; worker выполняет resolve и попытку backfill до ответа; при недоступном worker 503 | Да |
+| `POST /api/channels` | `{ "input": "@example_channel", "isMine": false, "tags"?: string[] }` | 201, метрики добавленного/повторно активированного канала; worker выполняет resolve и попытку backfill до ответа; при недоступном worker 503 | Да |
 | `GET /api/channels/:id` | ID | `ChannelMetrics`; 400 для нечислового ID, 404 если канала нет | Нет |
-| `PATCH /api/channels/:id` | Необязательные boolean `isActive`, `isMine` | Обновлённые метрики; назначение `isMine: true` снимает прежний флаг в транзакции | Да |
+| `PATCH /api/channels/:id` | Необязательные boolean `isActive`, `isMine` и массив строк `tags` (до 10 тегов по 30 символов) | Обновлённые метрики; назначение `isMine: true` снимает прежний флаг в транзакции; `tags` обновляет персональные теги в `UserChannel` | Да |
 | `DELETE /api/channels/:id` | Необязательное `?permanent=true` | По умолчанию `isActive=false`, ответ `{success,message,channel}`; permanent удаляет запись с каскадами и возвращает `{success,message}` | Да |
 | `PUT /api/channels/:id/favorite` | `{ "isFavorite": true }` | `{ "success": true, "isFavorite": true }`; кэши метрик не сбрасывает | Да |
 | `GET /api/channels/:id/ltv` | ID | `{ "ltv": [{ "hour": 1, "percent": 12.3 }, ...] }` либо `{ "ltv": [] }` | Нет |
@@ -104,13 +104,14 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `advertiser` | Необязательный `@username` рекламируемой цели; выбирает только рекламные посты с соответствующим `Mention` |
 | `onlyViral` | `true` оставляет только вирусные посты по 30-дневной базовой линии канала; сочетается с остальными фильтрами |
 | `niche` | Ниша из `UserChannel` для обычной сессии или из `Channel` для мастер-сессии |
+| `tag` | Необязательный персональный тег канала из `UserChannel.tags` (до 30 символов) |
 | `days` | `7`, `14`, `30` или `90`; по умолчанию 30 в глобальном поиске |
 
 `posts[].text` — обычный текст или `null`. Для успешно собранной статьи это текст, извлечённый из `richMessage`, а не HTML и не набор блоков Telegram. Нового поля или отдельного endpoint статей нет. При неудачной догрузке сохраняется прежний текст, если он был; причина отсутствия текста отдельным полем не возвращается.
 
 Ответ: `{posts,total,absoluteTotal}`. `posts` содержит строковые messageId/groupedId, результат `detectAd` в `ad`, `reactionBreakdown` как массив `{emoji,count}` или `null`, а также `isViral`, `viralReasons`, `viralPrimaryReason` и `viralMultiplier`. Последний равен `null` без вирусной причины. total учитывает фильтры, absoluteTotal учитывает все посты канала. Поиск реализован Prisma `contains`, без полнотекстового ранжирования. Фильтр `ads` использует сохранённый флаг `Post.isAd`, как и `adShare`; при сборе этот флаг выставляется по `detectAd.isAd || detectAd.isPartner`. Поле `ad` описывает маркеры из текущего текста и может отличаться от сохранённого флага, если текст изменился после классификации.
 
-Запросы страницы `/posts` передают `days` и получают `{posts,total,channels,niches}`. В каждом посте есть источник, сохранённый `isAd`, ER/ERR, `hasImage` и уникальные `@упоминания` по `Mention`. Посты доступны только из активных `UserChannel` текущего пользователя и активных `Channel`; мастер-сессия без `userId` видит все активные каналы. Без `onlyViral` сортировка ER/ERR выполняется в PostgreSQL до пагинации, с пустыми метриками в конце. При `onlyViral=true` поиск сначала классифицирует подходящие посты, затем сортирует и применяет `offset`/`limit`; `total` отражает число вирусных результатов. Некорректные параметры дают 400. Старые запросы `RecentPosts` с `channelId`, `dateFrom`/`dateTo`, `minViews`/`maxViews`, `type` и прежними значениями `sortBy` сохраняют ответ `{posts,total,absoluteTotal}`, но также проходят проверку доступа к каналу.
+Запросы страницы `/posts` передают `days` и получают `{posts,total,channels,niches,tags}`. В каждом посте есть источник, сохранённый `isAd`, ER/ERR, `hasImage` и уникальные `@упоминания` по `Mention`. Посты доступны только из активных `UserChannel` текущего пользователя и активных `Channel`; мастер-сессия без `userId` видит все активные каналы. Без `onlyViral` сортировка ER/ERR выполняется в PostgreSQL до пагинации, с пустыми метриками в конце. При `onlyViral=true` поиск сначала классифицирует подходящие посты, затем сортирует и применяет `offset`/`limit`; `total` отражает число вирусных результатов. Некорректные параметры дают 400. Старые запросы `RecentPosts` с `channelId`, `dateFrom`/`dateTo`, `minViews`/`maxViews`, `type` и прежними значениями `sortBy` сохраняют ответ `{posts,total,absoluteTotal}`, но также проходят проверку доступа к каналу.
 
 `GET /api/posts/:id/image` требует доступ к активному каналу публикации и возвращает 404 для недоступного поста или отсутствующего изображения. Ответ с байтами изображения имеет `Cache-Control: private, no-store`.
 

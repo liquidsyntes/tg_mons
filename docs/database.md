@@ -81,6 +81,7 @@ erDiagram
         boolean is_mine
         boolean is_favorite
         string niche
+        text_array tags
         int custom_ad_price_uah
         int custom_cpm_uah
         boolean is_active
@@ -200,6 +201,7 @@ erDiagram
 | `isMine` | `Boolean` | `is_mine` | Нет | `false` | Персональный флаг «Мой канал» пользователя |
 | `isFavorite` | `Boolean` | `is_favorite` | Нет | `false` | Персональный флаг «Избранное» (Watchlist) |
 | `niche` | `String` | `niche` | Нет | `"general"` | Выбранная пользователем тематическая ниша канала |
+| `tags` | `String[]` | `tags` | Нет | `[]` | Персональные теги/папки канала (до 10 тегов по 30 символов) |
 | `customAdPriceUah` | `Int` | `custom_ad_price_uah` | Да | — | Персональная фиксированная цена рекламного поста (₴) |
 | `customCpmUah` | `Int` | `custom_cpm_uah` | Да | — | Персональный CPM канала (₴ за 1000 просмотров) |
 | `isActive` | `Boolean` | `is_active` | Нет | `true` | Активна ли подписка в личном списке пользователя |
@@ -626,7 +628,8 @@ flowchart TD
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На **27 октября 2026 года** в проекте **26 миграций**:
+- На **27 октября 2026 года** в проекте **27 миграций**:
+  - `20261027081700_add_user_channel_tags` — добавляет массив персональных тегов `user_channels.tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]`;
   - `20261026210800_add_user_personal_digest` — добавляет поля персонального Telegram-дайджеста (`telegram_chat_id`, `digest_enabled`, `digest_hour`, `last_digest_at`) в таблицу `users`;
   - `20261026201200_add_keyword_alert_rules` — добавляет колонку `alert_rules.keyword_query` и таблицу `alert_rule_post_fires`;
   - `20261026162020_add_user_channel_ad_pricing` — добавляет две nullable INTEGER-колонки `user_channels.custom_ad_price_uah` и `user_channels.custom_cpm_uah`;

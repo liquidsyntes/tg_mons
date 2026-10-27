@@ -3,14 +3,14 @@
  */
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { useChannelsData } from '../useChannelsData';
+import { useChannelsData, FAVORITES_FOLDER_KEY } from '../useChannelsData';
 import { ChannelMetrics } from '@/lib/types';
 
 describe('useChannelsData', () => {
   const mockChannels = [
-    { id: 1, title: 'Channel B', isMine: false, currentMembers: 100 },
-    { id: 2, title: 'My Channel', isMine: true, currentMembers: 50 },
-    { id: 3, title: 'Channel A', isMine: false, currentMembers: 200 }
+    { id: 1, title: 'Channel B', isMine: false, isFavorite: true, tags: ['Конкуренты'], currentMembers: 100 },
+    { id: 2, title: 'My Channel', isMine: true, isFavorite: false, tags: ['Мои'], currentMembers: 50 },
+    { id: 3, title: 'Channel A', isMine: false, isFavorite: false, tags: ['Конкуренты', 'VIP'], currentMembers: 200 }
   ] as unknown as ChannelMetrics[];
 
   it('initializes with members desc sort and pinned myChannel', () => {
@@ -53,5 +53,31 @@ describe('useChannelsData', () => {
     expect(result.current.sortOrder).toBe('asc');
     expect(result.current.processedChannels[1].id).toBe(3);
     expect(result.current.processedChannels[2].id).toBe(1);
+  });
+
+  it('filters by favorites folder and user tags', () => {
+    const { result } = renderHook(() => useChannelsData(mockChannels));
+
+    expect(result.current.favoritesCount).toBe(1);
+    expect(result.current.tagSummaries).toEqual([
+      { tag: 'Конкуренты', count: 2 },
+      { tag: 'Мои', count: 1 },
+      { tag: 'VIP', count: 1 },
+    ]);
+
+    act(() => {
+      result.current.setFolderFilter(FAVORITES_FOLDER_KEY);
+    });
+    expect(result.current.processedChannels.map((c) => c.id)).toEqual([1]);
+
+    act(() => {
+      result.current.setFolderFilter('VIP');
+    });
+    expect(result.current.processedChannels.map((c) => c.id)).toEqual([3]);
+
+    act(() => {
+      result.current.updateChannelTags(1, ['Конкуренты', 'VIP']);
+    });
+    expect(result.current.processedChannels.map((c) => c.id)).toEqual([3, 1]);
   });
 });

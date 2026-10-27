@@ -4,6 +4,7 @@ import { calculateChannelMetrics, getOverviewStats } from '@/lib/metrics';
 import { requestWorkerAddChannel, WorkerRequestError } from '@/lib/worker-client';
 import { verifyBearerToken } from '@/lib/auth';
 import { getActiveSession } from '@/lib/users';
+import { normalizeChannelTags } from '@/lib/tags';
 import { metricsCache, bestTimeCache } from '@/lib/cache';
 import { prisma } from '@/lib/prisma';
 
@@ -25,13 +26,25 @@ export async function POST(req: NextRequest) {
     const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
     const body = await req.json();
-    const { input, isMine } = body;
+    const { input, isMine, tags } = body;
 
     if (!input || typeof input !== 'string') {
       return NextResponse.json(
         { error: 'Параметр input (username или ссылка) обязателен' },
         { status: 400 }
       );
+    }
+
+    let normalizedTags: string[] | undefined;
+    if (tags !== undefined) {
+      const parsed = normalizeChannelTags(tags);
+      if (parsed === null) {
+        return NextResponse.json(
+          { error: 'Некорректный формат тегов (максимум 10 тегов до 30 символов)' },
+          { status: 400 }
+        );
+      }
+      normalizedTags = parsed;
     }
 
     const channelId = await requestWorkerAddChannel(input, authCheck.userId ? false : Boolean(isMine));
@@ -50,12 +63,14 @@ export async function POST(req: NextRequest) {
           update: {
             isActive: true,
             ...(typeof isMine === 'boolean' ? { isMine } : {}),
+            ...(normalizedTags !== undefined ? { tags: normalizedTags } : {}),
           },
           create: {
             userId,
             channelId,
             isMine: Boolean(isMine),
             isActive: true,
+            ...(normalizedTags !== undefined ? { tags: normalizedTags } : {}),
           },
         });
       });

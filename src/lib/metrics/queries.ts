@@ -27,7 +27,7 @@ export async function calculateChannelMetrics(
   const rawChannel = await prisma.channel.findUnique({ where: { id: channelId } });
   if (!rawChannel) return null;
 
-  let channel = rawChannel;
+  let channel: typeof rawChannel & { tags?: string[] } = rawChannel;
   if (userId !== undefined && userId !== null && typeof prisma.userChannel?.findUnique === 'function') {
     const userSub = await prisma.userChannel.findUnique({
       where: { userId_channelId: { userId, channelId } },
@@ -38,6 +38,7 @@ export async function calculateChannelMetrics(
       isMine: userSub.isMine,
       isFavorite: userSub.isFavorite,
       niche: userSub.niche || rawChannel.niche,
+      tags: userSub.tags ?? [],
       isActive: userSub.isActive && rawChannel.isActive,
     };
   }
@@ -83,7 +84,7 @@ export async function getOverviewStats(userId?: number | null): Promise<Overview
   const now = new Date();
   const date30dAgo = new Date(now.getTime() - MS_30D);
 
-  let allChannels: Awaited<ReturnType<typeof prisma.channel.findMany>>;
+  let allChannels: Array<Awaited<ReturnType<typeof prisma.channel.findMany>>[number] & { tags?: string[] }>;
   if (userId !== undefined && userId !== null && typeof prisma.userChannel?.findMany === 'function') {
     const subs = await prisma.userChannel.findMany({
       where: { userId },
@@ -95,6 +96,7 @@ export async function getOverviewStats(userId?: number | null): Promise<Overview
       isMine: sub.isMine,
       isFavorite: sub.isFavorite,
       niche: sub.niche || sub.channel.niche,
+      tags: sub.tags ?? [],
       isActive: sub.isActive && sub.channel.isActive,
     }));
   } else {

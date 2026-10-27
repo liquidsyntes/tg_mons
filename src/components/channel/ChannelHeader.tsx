@@ -10,6 +10,7 @@ import { runFraudAudit } from '@/lib/fraudDetector';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
 import { ExportMenu } from '@/components/ExportMenu';
 import { ExportWrappedButton } from '@/components/channel/ExportWrappedButton';
+import { ChannelTagsEditor } from '@/components/channel/ChannelTagsEditor';
 import { formatNumber } from '@/lib/utils';
 
 interface ChannelHeaderProps {
@@ -117,6 +118,13 @@ export function ChannelHeader({ channel, period, onPeriodChange, priceRevision =
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             )}
+
+            <div className="pt-1">
+              <ChannelTagsEditor
+                channelId={channel.id}
+                tags={channel.tags ?? []}
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-6">

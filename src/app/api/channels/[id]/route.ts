@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateChannelMetrics } from '@/lib/metrics';
 import { extractRequestSession, verifyBearerToken } from '@/lib/auth';
+import { normalizeChannelTags } from '@/lib/tags';
 import { metricsCache, bestTimeCache } from '@/lib/cache';
 
 interface RouteContext {
@@ -46,7 +47,25 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     const body = await req.json();
-    const { isActive, isMine } = body;
+    const { isActive, isMine, tags } = body;
+
+    let normalizedTags: string[] | undefined;
+    if (tags !== undefined) {
+      const parsed = normalizeChannelTags(tags);
+      if (parsed === null) {
+        return NextResponse.json(
+          { error: 'Некорректный формат тегов (максимум 10 тегов до 30 символов)' },
+          { status: 400 }
+        );
+      }
+      if (!authCheck.userId) {
+        return NextResponse.json(
+          { error: 'Персональные теги доступны только для авторизованного пользователя' },
+          { status: 400 }
+        );
+      }
+      normalizedTags = parsed;
+    }
 
     const channel = await prisma.channel.findUnique({ where: { id: channelId } });
     if (!channel) {
@@ -75,6 +94,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
           data: {
             ...(typeof isActive === 'boolean' ? { isActive } : {}),
             ...(typeof isMine === 'boolean' ? { isMine } : {}),
+            ...(normalizedTags !== undefined ? { tags: normalizedTags } : {}),
           },
         });
 

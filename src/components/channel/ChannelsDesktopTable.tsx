@@ -18,6 +18,8 @@ interface ChannelsDesktopTableProps {
   onSort: (field: SortField) => void;
   localFavorites: Record<number, boolean>;
   onToggleFavorite: (e: React.MouseEvent, channelId: number, currentFav: boolean) => void;
+  availableTags?: string[];
+  onTagsChange?: (channelId: number, nextTags: string[]) => void;
 }
 
 export function ChannelsDesktopTable({
@@ -27,6 +29,8 @@ export function ChannelsDesktopTable({
   onSort,
   localFavorites,
   onToggleFavorite,
+  availableTags = [],
+  onTagsChange,
 }: ChannelsDesktopTableProps) {
   const renderSortIcon = (field: SortField) => {
     if (sortField !== field) {
@@ -217,7 +221,9 @@ export function ChannelsDesktopTable({
                     <ChannelInfoCell 
                       channel={channel} 
                       isFavorite={localFavorites[channel.id] ?? channel.isFavorite} 
-                      onToggleFavorite={onToggleFavorite} 
+                      onToggleFavorite={onToggleFavorite}
+                      availableTags={availableTags}
+                      onTagsChange={onTagsChange}
                     />
                   </td>
                   <td className="py-3.5 px-1 text-right font-mono font-bold text-white tabular-nums text-xs">

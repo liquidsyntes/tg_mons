@@ -19,6 +19,7 @@ export interface ChannelRecordInput {
   title: string;
   type: string;
   niche?: string;
+  tags?: string[];
   isMine: boolean;
   isFavorite?: boolean;
   isActive: boolean;
@@ -164,6 +165,7 @@ function assembleChannelMetrics(
     title: channel.title,
     type: channel.type === 'group' ? 'group' : 'channel',
     niche: channel.niche,
+    tags: channel.tags ?? [],
     isMine: channel.isMine,
     isFavorite: channel.isFavorite || false,
     isActive: channel.isActive,

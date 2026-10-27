@@ -18,6 +18,7 @@ interface SearchParams {
   channelId: number | null;
   q: string;
   niche: string | null;
+  tag: string | null;
   onlyAds: boolean;
   onlyViral: boolean;
   advertiser: string | null;
@@ -37,6 +38,7 @@ interface ChannelOption {
   title: string;
   username: string | null;
   niche: string;
+  tags: string[];
 }
 
 function readInteger(value: string | null, fallback: number, min: number, max: number): number | null {
@@ -59,10 +61,11 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
   const rawChannelId = query.get('channelId');
   const channelId = rawChannelId === null ? null : readInteger(rawChannelId, 0, 1, Number.MAX_SAFE_INTEGER);
   const rawSort = query.get('sortBy');
-  const legacy = channelId !== null && !query.has('days') && !query.has('onlyAds') && !query.has('niche') &&
+  const legacy = channelId !== null && !query.has('days') && !query.has('onlyAds') && !query.has('niche') && !query.has('tag') &&
     (rawSort === null || ['date', 'views_desc', 'views_asc'].includes(rawSort));
   const q = (query.get('q') ?? '').trim();
   const niche = query.has('niche') ? query.get('niche')?.trim() || null : null;
+  const tag = query.has('tag') ? query.get('tag')?.trim() || null : null;
   const onlyAds = query.get('onlyAds');
   const onlyViral = query.get('onlyViral');
   const advertiser = query.get('advertiser')?.trim().replace(/^@/, '').toLowerCase() || null;
@@ -80,6 +83,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
     : rawSort === 'views_desc' ? 'views'
     : rawSort;
   if ((rawChannelId !== null && channelId === null) || q.length > 200 || (niche !== null && niche.length > 64) ||
+      (tag !== null && tag.length > 30) ||
       (onlyAds !== null && onlyAds !== 'true' && onlyAds !== 'false') ||
       (onlyViral !== null && onlyViral !== 'true' && onlyViral !== 'false') ||
       (query.has('advertiser') && (advertiser === null || !/^[a-z0-9_]{4,32}$/.test(advertiser))) ||
@@ -93,7 +97,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
       (!legacy && ['dateFrom', 'dateTo', 'minViews', 'maxViews', 'type'].some(key => query.has(key))) ||
       (onlyAds === 'true' && type === 'partners')) return null;
   return {
-    legacy, channelId, q, niche, onlyAds: onlyAds === 'true', onlyViral: onlyViral === 'true', advertiser, days, sortBy: sortBy as SortBy,
+    legacy, channelId, q, niche, tag, onlyAds: onlyAds === 'true', onlyViral: onlyViral === 'true', advertiser, days, sortBy: sortBy as SortBy,
     limit, offset, dateFrom, dateTo, minViews, maxViews, type: type as LegacyType,
   };
 }
@@ -101,9 +105,11 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
 function buildWhere(params: SearchParams, userId: number | null, now: Date): Prisma.PostWhereInput {
   const where: Prisma.PostWhereInput = {
     channel: userId === null
-      ? { isActive: true, ...(params.niche ? { niche: params.niche } : {}) }
+      ? { isActive: true, ...(params.niche ? { niche: params.niche } : {}), ...(params.tag ? { id: -1 } : {}) }
       : { isActive: true, userChannels: { some: {
-        userId, isActive: true, ...(params.niche ? { niche: params.niche } : {}),
+        userId, isActive: true,
+        ...(params.niche ? { niche: params.niche } : {}),
+        ...(params.tag ? { tags: { has: params.tag } } : {}),
       } } },
   };
   if (params.channelId !== null) where.channelId = params.channelId;
@@ -133,9 +139,14 @@ function buildWhere(params: SearchParams, userId: number | null, now: Date): Pri
 function buildMetricSortQuery(params: SearchParams, userId: number | null, now: Date): Prisma.Sql {
   const filters: Prisma.Sql[] = [Prisma.sql`c."isActive" = true`];
   if (userId !== null) {
-    filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "user_channels" uc WHERE uc."channel_id" = p."channel_id" AND uc."user_id" = ${userId} AND uc."is_active" = true${params.niche ? Prisma.sql` AND uc."niche" = ${params.niche}` : Prisma.empty})`);
-  } else if (params.niche) {
-    filters.push(Prisma.sql`c."niche" = ${params.niche}`);
+    filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "user_channels" uc WHERE uc."channel_id" = p."channel_id" AND uc."user_id" = ${userId} AND uc."is_active" = true${params.niche ? Prisma.sql` AND uc."niche" = ${params.niche}` : Prisma.empty}${params.tag ? Prisma.sql` AND ${params.tag} = ANY(uc."tags")` : Prisma.empty})`);
+  } else {
+    if (params.niche) {
+      filters.push(Prisma.sql`c."niche" = ${params.niche}`);
+    }
+    if (params.tag) {
+      filters.push(Prisma.sql`1 = 0`);
+    }
   }
   if (params.channelId !== null) filters.push(Prisma.sql`p."channel_id" = ${params.channelId}`);
   if (params.q) {
@@ -221,16 +232,17 @@ async function loadChannelOptions(userId: number | null): Promise<ChannelOption[
       orderBy: { title: 'asc' },
     });
     return channels.map(channel => ({ id: channel.id, title: channel.title,
-      username: channel.username, niche: channel.niche }));
+      username: channel.username, niche: channel.niche, tags: [] }));
   }
   const subscriptions = await prisma.userChannel.findMany({
     where: { userId, isActive: true, channel: { isActive: true } },
-    select: { niche: true, channel: { select: { id: true, title: true, username: true } } },
+    select: { niche: true, tags: true, channel: { select: { id: true, title: true, username: true } } },
     orderBy: { channel: { title: 'asc' } },
   });
   return subscriptions.map(subscription => ({
     id: subscription.channel.id, title: subscription.channel.title,
     username: subscription.channel.username, niche: subscription.niche,
+    tags: subscription.tags ?? [],
   }));
 }
 
@@ -303,8 +315,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       image: undefined,
     }));
     if (params.legacy) return NextResponse.json({ posts: enriched, total, absoluteTotal });
+    const allTags = [...new Set(channelOptions.flatMap(channel => channel.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ru'));
     return NextResponse.json({ posts: enriched, total, channels: channelOptions,
-      niches: [...new Set(channelOptions.map(channel => channel.niche))].sort() });
+      niches: [...new Set(channelOptions.map(channel => channel.niche))].sort(),
+      tags: allTags });
   } catch (error) {
     logger.error('GET /api/posts/search error:', undefined, error);
     return NextResponse.json({ error: 'Не удалось найти публикации' }, { status: 500 });

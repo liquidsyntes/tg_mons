@@ -73,6 +73,25 @@ describe('GET /api/posts/search', () => {
     expect(body.channels).toHaveLength(1);
   });
 
+  it('filters global results by personal userChannel tag and returns available tags', async () => {
+    mocks.subscriptions.mockResolvedValue([{
+      niche: 'tech', tags: ['Конкуренты', 'AI'], channel: { id: 7, title: 'Технологии', username: 'tech' },
+    }]);
+    const response = await GET(request('?days=30&tag=Конкуренты&sortBy=publishedAt'));
+    expect(response.status).toBe(200);
+    expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        channel: {
+          isActive: true,
+          userChannels: { some: { userId: 3, isActive: true, tags: { has: 'Конкуренты' } } },
+        },
+      }),
+    }));
+    const body = await response.json();
+    expect(body.tags).toEqual(['Конкуренты', 'AI']);
+    expect(body.channels[0].tags).toEqual(['Конкуренты', 'AI']);
+  });
+
   it('filters advertiser placements within the authenticated search scope', async () => {
     const response = await GET(request('?days=30&advertiser=%40Brand&sortBy=err'));
     expect(response.status).toBe(200);

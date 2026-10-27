@@ -1,15 +1,20 @@
 import { useState, useMemo, useCallback } from 'react';
 import { ChannelMetrics } from '@/lib/types';
+import { channelHasTag, summarizeChannelTags } from '@/lib/tags';
 
 export type SortField = 'title' | 'members' | 'delta24h' | 'delta7d' | 'delta30d' | 'posts7d' | 'share' | 'views' | 'vr' | 'er' | 'err' | 'score' | 'ep' | 'lastFact' | 'citationIndex' | 'adShare';
 
 export type SortOrder = 'asc' | 'desc';
 
+export const FAVORITES_FOLDER_KEY = '__favorites__';
+
 export function useChannelsData(channels: ChannelMetrics[]) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [folderFilter, setFolderFilter] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('members');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [localFavorites, setLocalFavorites] = useState<Record<number, boolean>>({});
+  const [localTags, setLocalTags] = useState<Record<number, string[]>>({});
 
   const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
@@ -39,8 +44,43 @@ export function useChannelsData(channels: ChannelMetrics[]) {
     }
   }, []);
 
+  const updateChannelTags = useCallback((channelId: number, nextTags: string[]) => {
+    setLocalTags((prev) => ({ ...prev, [channelId]: nextTags }));
+  }, []);
+
+  const channelsWithLocalState = useMemo(
+    () =>
+      channels.map((c) => ({
+        ...c,
+        isFavorite: localFavorites[c.id] ?? c.isFavorite,
+        tags: localTags[c.id] ?? c.tags ?? [],
+      })),
+    [channels, localFavorites, localTags]
+  );
+
+  const tagSummaries = useMemo(
+    () => summarizeChannelTags(channelsWithLocalState),
+    [channelsWithLocalState]
+  );
+
+  const availableTags = useMemo(
+    () => tagSummaries.map((item) => item.tag),
+    [tagSummaries]
+  );
+
+  const favoritesCount = useMemo(
+    () => channelsWithLocalState.filter((c) => Boolean(c.isFavorite)).length,
+    [channelsWithLocalState]
+  );
+
   const processedChannels = useMemo(() => {
-    let list = [...channels];
+    let list = [...channelsWithLocalState];
+
+    if (folderFilter === FAVORITES_FOLDER_KEY) {
+      list = list.filter((c) => Boolean(c.isFavorite));
+    } else if (folderFilter) {
+      list = list.filter((c) => channelHasTag(c.tags, folderFilter));
+    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -131,16 +171,22 @@ export function useChannelsData(channels: ChannelMetrics[]) {
     });
 
     return myCh ? [myCh, ...competitors] : competitors;
-  }, [channels, searchQuery, sortField, sortOrder]);
+  }, [channelsWithLocalState, folderFilter, searchQuery, sortField, sortOrder]);
 
   return {
     searchQuery,
     setSearchQuery,
+    folderFilter,
+    setFolderFilter,
+    tagSummaries,
+    availableTags,
+    favoritesCount,
     sortField,
     sortOrder,
     handleSort,
     localFavorites,
     toggleFavorite,
+    updateChannelTags,
     processedChannels
   };
 }
