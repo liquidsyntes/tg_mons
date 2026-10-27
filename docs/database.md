@@ -25,7 +25,7 @@
 | `PARTIAL` | Цикл сбора завершён, но сбор для одного или нескольких каналов завершился с ошибкой |
 | `FAILED` | Критический сбой всего цикла сбора (например, потеря связи с Telegram MTProto или ошибка БД) |
 
-## ER-диаграмма схемы базы данных (22 модели)
+## ER-диаграмма схемы базы данных (23 модели)
 
 ```mermaid
 erDiagram
@@ -33,6 +33,7 @@ erDiagram
     User ||--o{ AiReport : "отчёты (Cascade)"
     User ||--o{ AlertRule : "правила (Cascade)"
     User ||--o{ UserDismissedEvent : "скрытые события (Cascade)"
+    User ||--o{ UserSavedPost : "закладки постов (Cascade)"
     User ||--o{ InviteCode : "создал инвайты (Cascade)"
     User |o--o| InviteCode : "использовал инвайт (SetNull)"
 
@@ -53,6 +54,7 @@ erDiagram
     Post ||--o{ Mention : "ссылки в посте (Cascade)"
     Post ||--o{ EventMention : "связь с афишей (Cascade)"
     Post ||--o{ AlertRulePostFire : "срабатывания по постам (Cascade)"
+    Post ||--o{ UserSavedPost : "персональные закладки (Cascade)"
 
     Event ||--o{ EventMention : "упоминания в постах (Cascade)"
     Event ||--o{ UserDismissedEvent : "персональные скрытия (Cascade)"
@@ -209,6 +211,17 @@ erDiagram
 
 #### `UserDismissedEvent` (`user_dismissed_events`)
 Персональное скрытие карточек мероприятий на странице `/events` (`@@unique([userId, eventId])`). При удалении `User` или `Event` записи удаляются каскадно.
+
+#### `UserSavedPost` (`user_saved_posts`)
+Персональные закладки и рабочие заметки к публикациям (`@@unique([userId, postId])`, `@@index([userId, createdAt])`).
+
+| Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
+|---|---|---|---|---|---|
+| `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
+| `userId` | `Int` | `user_id` | Нет | — | Внешний ключ на `User.id` (`onDelete: Cascade`) |
+| `postId` | `Int` | `post_id` | Нет | — | Внешний ключ на `Post.id` (`onDelete: Cascade`) |
+| `note` | `String` | `note` | Да | — | Персональная заметка пользователя к посту (до 500 символов) |
+| `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время сохранения поста в закладки |
 
 ---
 
@@ -628,7 +641,8 @@ flowchart TD
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На **27 октября 2026 года** в проекте **27 миграций**:
+- На **27 октября 2026 года** в проекте **28 миграций**:
+  - `20261027092200_add_user_saved_posts` — создаёт таблицу `user_saved_posts` для персональных закладок и заметок к постам;
   - `20261027081700_add_user_channel_tags` — добавляет массив персональных тегов `user_channels.tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]`;
   - `20261026210800_add_user_personal_digest` — добавляет поля персонального Telegram-дайджеста (`telegram_chat_id`, `digest_enabled`, `digest_hour`, `last_digest_at`) в таблицу `users`;
   - `20261026201200_add_keyword_alert_rules` — добавляет колонку `alert_rules.keyword_query` и таблицу `alert_rule_post_fires`;

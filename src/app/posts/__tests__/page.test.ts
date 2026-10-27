@@ -23,8 +23,9 @@ describe('global post filters', () => {
     render(React.createElement(PostsPage));
     fireEvent.click(screen.getByRole('button', { name: 'Только реклама (Ad Spy)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Только вирусные' }));
+    fireEvent.click(screen.getByRole('button', { name: 'В закладках' }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([url]) =>
-      String(url).includes('onlyAds=true') && String(url).includes('onlyViral=true'))).toBe(true));
+      String(url).includes('onlyAds=true') && String(url).includes('onlyViral=true') && String(url).includes('onlySaved=true'))).toBe(true));
   });
 
   it('filters the post list when an advertiser is selected', async () => {

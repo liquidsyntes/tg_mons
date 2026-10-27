@@ -9,6 +9,7 @@ import { formatNumber } from '@/lib/utils';
 import type { GlobalPostSearchResponse, SearchPost } from '@/lib/types';
 import { ViralBadge } from '@/components/channel/ViralBadge';
 import { ReactionBreakdownInline } from '@/components/channel/ReactionBreakdownInline';
+import { PostBookmarkButton } from '@/components/channel/PostBookmarkButton';
 import { TopAdvertisersPanel } from '@/components/posts/TopAdvertisersPanel';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
@@ -24,6 +25,7 @@ export default function PostsPage() {
   const [advertiserUsername, setAdvertiserUsername] = useState('');
   const [advertiserDays, setAdvertiserDays] = useState<7 | 30>(30);
   const [onlyViral, setOnlyViral] = useState(false);
+  const [onlySaved, setOnlySaved] = useState(false);
   const [niche, setNiche] = useState('');
   const [tag, setTag] = useState('');
   const [channelId, setChannelId] = useState('');
@@ -49,13 +51,14 @@ export default function PostsPage() {
     const params = new URLSearchParams({
       days: String(days), sortBy, onlyAds: String(onlyAds), onlyViral: String(onlyViral), limit: '20', offset: String(offset),
     });
+    if (onlySaved) params.set('onlySaved', 'true');
     if (search) params.set('q', search);
     if (niche) params.set('niche', niche);
     if (tag) params.set('tag', tag);
     if (channelId) params.set('channelId', channelId);
     if (advertiserUsername) params.set('advertiser', advertiserUsername);
     return `/api/posts/search?${params.toString()}`;
-  }, [days, sortBy, onlyAds, onlyViral, search, niche, tag, channelId, advertiserUsername]);
+  }, [days, sortBy, onlyAds, onlyViral, onlySaved, search, niche, tag, channelId, advertiserUsername]);
 
   useEffect(() => {
     const version = ++requestVersion.current;
@@ -137,10 +140,16 @@ export default function PostsPage() {
               Только реклама (Ad Spy)
             </button>
           </div>
-          <button type="button" onClick={() => setOnlyViral(value => !value)} aria-pressed={onlyViral}
-            className={`rounded-xl border px-3 py-2 text-sm ${onlyViral ? 'border-rose-400 bg-rose-500/15 text-rose-300' : 'border-border text-slate-300'}`}>
-            Только вирусные
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setOnlyViral(value => !value)} aria-pressed={onlyViral}
+              className={`rounded-xl border px-3 py-2 text-sm ${onlyViral ? 'border-rose-400 bg-rose-500/15 text-rose-300' : 'border-border text-slate-300'}`}>
+              Только вирусные
+            </button>
+            <button type="button" onClick={() => setOnlySaved(value => !value)} aria-pressed={onlySaved}
+              className={`rounded-xl border px-3 py-2 text-sm ${onlySaved ? 'border-amber-400 bg-amber-500/15 text-amber-300' : 'border-border text-slate-300'}`}>
+              В закладках
+            </button>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <label className="space-y-1.5 text-xs text-slate-300"><span>Ниша</span>
               <select value={niche} onChange={event => { setNiche(event.target.value); setChannelId(''); setAdvertiserUsername(''); }}
@@ -224,6 +233,21 @@ export default function PostsPage() {
                     className="self-start rounded-xl border border-border px-3 py-1.5 text-xs text-white hover:bg-slate-800">
                     Читать полностью
                   </button>
+                  <PostBookmarkButton
+                    postId={post.id}
+                    isSaved={post.isSaved}
+                    savedNote={post.savedNote}
+                    onSavedChange={(id, isSaved, savedNote) => {
+                      setPosts(current =>
+                        onlySaved && !isSaved
+                          ? current.filter(item => item.id !== id)
+                          : current.map(item => item.id === id ? { ...item, isSaved, savedNote } : item)
+                      );
+                      if (onlySaved && !isSaved) {
+                        setTotal(current => Math.max(0, current - 1));
+                      }
+                    }}
+                  />
                 </div>
               </article>)}
             </div>}

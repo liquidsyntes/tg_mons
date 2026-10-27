@@ -186,6 +186,9 @@ export interface SearchPost extends ViralClassification {
   err: number | null;
   hasImage: boolean;
   mentions: string[];
+  isSaved?: boolean;
+  savedNote?: string | null;
+  savedAt?: string | null;
   channel: { id: number; title: string; username: string | null; niche: string };
 }
 
@@ -409,6 +412,9 @@ export interface ChannelDetailStats {
     comments: number | null;
     forwards: number | null;
     text: string | null;
+    isSaved?: boolean;
+    savedNote?: string | null;
+    savedAt?: string | null;
   } & ViralClassification>;
   popularReactions?: ChannelReactionSummary;
   contentTypePerformance?: ContentTypePerformanceItem[];

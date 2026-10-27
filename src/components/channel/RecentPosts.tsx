@@ -7,6 +7,7 @@ import { formatNumber } from '@/lib/utils';
 import type { ChannelDetailStats } from '@/lib/types';
 import { ViralBadge } from './ViralBadge';
 import { ReactionBreakdownInline } from './ReactionBreakdownInline';
+import { PostBookmarkButton } from './PostBookmarkButton';
 
 type RecentPost = NonNullable<ChannelDetailStats['recentPosts']>[number] & { ad: ReturnType<typeof detectAd> };
 
@@ -233,6 +234,16 @@ export function RecentPosts({ initialPosts, channelId, channelUsername, channelT
                     </div>
                     {(post.reactions !== null || post.reactionBreakdown?.length) &&
                       <div className="mt-2"><ReactionBreakdownInline total={post.reactions} breakdown={post.reactionBreakdown} /></div>}
+                    <div className="mt-2 pt-2 border-t border-slate-800/80">
+                      <PostBookmarkButton
+                        postId={post.id}
+                        isSaved={post.isSaved}
+                        savedNote={post.savedNote}
+                        onSavedChange={(id, isSaved, savedNote) => {
+                          setPosts(prev => prev.map(item => item.id === id ? { ...item, isSaved, savedNote } : item));
+                        }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

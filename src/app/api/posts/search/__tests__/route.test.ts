@@ -92,6 +92,28 @@ describe('GET /api/posts/search', () => {
     expect(body.channels[0].tags).toEqual(['Конкуренты', 'AI']);
   });
 
+  it('filters global results by onlySaved=true and enriches saved status and note', async () => {
+    mocks.findMany.mockResolvedValueOnce([
+      {
+        ...post,
+        savedByUsers: [{ note: 'Разобрать в пятницу', createdAt: new Date('2026-10-27T08:00:00Z') }],
+      },
+    ]);
+    const response = await GET(request('?days=30&onlySaved=true&sortBy=publishedAt'));
+    expect(response.status).toBe(200);
+    expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        savedByUsers: { some: { userId: 3 } },
+      }),
+    }));
+    const body = await response.json();
+    expect(body.posts[0]).toMatchObject({
+      id: 1,
+      isSaved: true,
+      savedNote: 'Разобрать в пятницу',
+    });
+  });
+
   it('filters advertiser placements within the authenticated search scope', async () => {
     const response = await GET(request('?days=30&advertiser=%40Brand&sortBy=err'));
     expect(response.status).toBe(200);

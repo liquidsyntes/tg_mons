@@ -21,6 +21,7 @@ interface SearchParams {
   tag: string | null;
   onlyAds: boolean;
   onlyViral: boolean;
+  onlySaved: boolean;
   advertiser: string | null;
   days: number | null;
   sortBy: SortBy;
@@ -68,6 +69,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
   const tag = query.has('tag') ? query.get('tag')?.trim() || null : null;
   const onlyAds = query.get('onlyAds');
   const onlyViral = query.get('onlyViral');
+  const onlySaved = query.get('onlySaved');
   const advertiser = query.get('advertiser')?.trim().replace(/^@/, '').toLowerCase() || null;
   const rawDays = query.get('days');
   const days = legacy ? null : readInteger(rawDays, 30, 7, 90);
@@ -86,6 +88,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
       (tag !== null && tag.length > 30) ||
       (onlyAds !== null && onlyAds !== 'true' && onlyAds !== 'false') ||
       (onlyViral !== null && onlyViral !== 'true' && onlyViral !== 'false') ||
+      (onlySaved !== null && onlySaved !== 'true' && onlySaved !== 'false') ||
       (query.has('advertiser') && (advertiser === null || !/^[a-z0-9_]{4,32}$/.test(advertiser))) ||
       (rawDays !== null && ![7, 14, 30, 90].includes(days ?? -1)) || days === null && !legacy ||
       limit === null || offset === null || !['all', 'ads', 'partners'].includes(type) ||
@@ -97,7 +100,7 @@ function parseSearchParams(query: URLSearchParams): SearchParams | null {
       (!legacy && ['dateFrom', 'dateTo', 'minViews', 'maxViews', 'type'].some(key => query.has(key))) ||
       (onlyAds === 'true' && type === 'partners')) return null;
   return {
-    legacy, channelId, q, niche, tag, onlyAds: onlyAds === 'true', onlyViral: onlyViral === 'true', advertiser, days, sortBy: sortBy as SortBy,
+    legacy, channelId, q, niche, tag, onlyAds: onlyAds === 'true', onlyViral: onlyViral === 'true', onlySaved: onlySaved === 'true', advertiser, days, sortBy: sortBy as SortBy,
     limit, offset, dateFrom, dateTo, minViews, maxViews, type: type as LegacyType,
   };
 }
@@ -112,6 +115,10 @@ function buildWhere(params: SearchParams, userId: number | null, now: Date): Pri
         ...(params.tag ? { tags: { has: params.tag } } : {}),
       } } },
   };
+  if (params.onlySaved) {
+    if (userId === null) where.id = -1;
+    else where.savedByUsers = { some: { userId } };
+  }
   if (params.channelId !== null) where.channelId = params.channelId;
   if (params.q) where.text = { contains: params.q, mode: 'insensitive' };
   if (params.onlyAds || params.type === 'ads' || params.advertiser) where.isAd = true;
@@ -154,6 +161,13 @@ function buildMetricSortQuery(params: SearchParams, userId: number | null, now: 
     filters.push(Prisma.sql`p."text" ILIKE ${`%${escaped}%`} ESCAPE E'\\\\'`);
   }
   if (params.onlyAds || params.type === 'ads' || params.advertiser) filters.push(Prisma.sql`p."is_ad" = true`);
+  if (params.onlySaved) {
+    if (userId !== null) {
+      filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "user_saved_posts" usp WHERE usp."post_id" = p."id" AND usp."user_id" = ${userId})`);
+    } else {
+      filters.push(Prisma.sql`1 = 0`);
+    }
+  }
   if (params.advertiser) filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "mentions" m WHERE m."source_post_id" = p."id" AND m."type" = 'mention' AND LOWER(m."target_username") = ${params.advertiser})`);
   if (params.days !== null) filters.push(Prisma.sql`p."published_at" >= ${new Date(now.getTime() - params.days * 86_400_000)}`);
   if (params.minViews !== null) filters.push(Prisma.sql`p."views" >= ${params.minViews}`);
@@ -261,6 +275,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         userChannels: { where: { userId: userId ?? -1 }, select: { niche: true } } } },
       image: { select: { postId: true } },
       mentions: { where: { type: 'mention', targetUsername: { not: null } }, select: { targetUsername: true } },
+      savedByUsers: { where: { userId: userId ?? -1 }, select: { note: true, createdAt: true } },
     } satisfies Prisma.PostInclude;
     const [baseTotal, absoluteTotal, channelOptions] = await Promise.all([
       params.onlyViral ? Promise.resolve(0) : prisma.post.count({ where }),
@@ -297,23 +312,32 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     viralBaselines ??= await loadViralBaselines([...new Set(posts.map(post => post.channelId))], now);
 
-    const enriched = posts.map(post => ({
-      ...post,
-      messageId: post.messageId.toString(),
-      groupedId: post.groupedId?.toString() ?? null,
-      channel: {
-        id: post.channel.id, title: post.channel.title, username: post.channel.username,
-        niche: userId === null ? post.channel.niche : post.channel.userChannels[0]?.niche ?? post.channel.niche,
-      },
-      hasImage: post.image !== null,
-      mentions: [...new Set(post.mentions.flatMap(mention => mention.targetUsername ? [mention.targetUsername] : []))],
-      er: calculatePostER(post),
-      err: calculatePostERR(post),
-      reactionBreakdown: parseReactionBreakdown(post.reactionBreakdown),
-      ...classifyViralPost(post, viralBaselines?.get(post.channelId) ?? null),
-      ad: detectAd(post.text),
-      image: undefined,
-    }));
+    const enriched = posts.map(post => {
+      const savedEntry = Array.isArray((post as { savedByUsers?: Array<{ note: string | null; createdAt: Date }> }).savedByUsers)
+        ? (post as { savedByUsers?: Array<{ note: string | null; createdAt: Date }> }).savedByUsers?.[0]
+        : undefined;
+      return {
+        ...post,
+        messageId: post.messageId.toString(),
+        groupedId: post.groupedId?.toString() ?? null,
+        channel: {
+          id: post.channel.id, title: post.channel.title, username: post.channel.username,
+          niche: userId === null ? post.channel.niche : post.channel.userChannels[0]?.niche ?? post.channel.niche,
+        },
+        hasImage: post.image !== null,
+        mentions: [...new Set(post.mentions.flatMap(mention => mention.targetUsername ? [mention.targetUsername] : []))],
+        er: calculatePostER(post),
+        err: calculatePostERR(post),
+        reactionBreakdown: parseReactionBreakdown(post.reactionBreakdown),
+        ...classifyViralPost(post, viralBaselines?.get(post.channelId) ?? null),
+        ad: detectAd(post.text),
+        isSaved: Boolean(savedEntry),
+        savedNote: savedEntry?.note ?? null,
+        savedAt: savedEntry?.createdAt ? new Date(savedEntry.createdAt).toISOString() : null,
+        image: undefined,
+        savedByUsers: undefined,
+      };
+    });
     if (params.legacy) return NextResponse.json({ posts: enriched, total, absoluteTotal });
     const allTags = [...new Set(channelOptions.flatMap(channel => channel.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ru'));
     return NextResponse.json({ posts: enriched, total, channels: channelOptions,

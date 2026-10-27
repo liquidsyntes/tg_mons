@@ -536,18 +536,43 @@ export async function getChannelDetailStats(
   });
   const viralBaseline = calculateViralBaseline(viralBaselinePosts);
   const popularReactions = calculatePopularReactions(viralBaselinePosts);
-  const recentPosts = posts.slice(-15).reverse().map((p) => ({
-    id: p.id,
-    messageId: p.messageId.toString(),
-    publishedAt: p.publishedAt.toISOString(),
-    views: p.views,
-    reactions: p.reactions,
-    reactionBreakdown: parseReactionBreakdown(p.reactionBreakdown),
-    comments: p.comments,
-    forwards: p.forwards,
-    text: p.text,
-    ...classifyViralPost(p, viralBaseline),
-  }));
+  const recentSourcePosts = posts.slice(-15).reverse();
+  const savedMap = new Map<number, { note: string | null; createdAt: Date }>();
+  if (
+    userId !== undefined &&
+    userId !== null &&
+    recentSourcePosts.length > 0 &&
+    typeof prisma.userSavedPost?.findMany === 'function'
+  ) {
+    const savedRows = await prisma.userSavedPost.findMany({
+      where: {
+        userId,
+        postId: { in: recentSourcePosts.map((p) => p.id) },
+      },
+      select: { postId: true, note: true, createdAt: true },
+    });
+    for (const row of savedRows) {
+      savedMap.set(row.postId, { note: row.note, createdAt: row.createdAt });
+    }
+  }
+  const recentPosts = recentSourcePosts.map((p) => {
+    const saved = savedMap.get(p.id);
+    return {
+      id: p.id,
+      messageId: p.messageId.toString(),
+      publishedAt: p.publishedAt.toISOString(),
+      views: p.views,
+      reactions: p.reactions,
+      reactionBreakdown: parseReactionBreakdown(p.reactionBreakdown),
+      comments: p.comments,
+      forwards: p.forwards,
+      text: p.text,
+      isSaved: Boolean(saved),
+      savedNote: saved?.note ?? null,
+      savedAt: saved ? saved.createdAt.toISOString() : null,
+      ...classifyViralPost(p, viralBaseline),
+    };
+  });
 
   const vrHistory = await getVrHistory(
     channelId,

@@ -53,6 +53,7 @@ model User {
   aiReports       AiReport[]
   alertRules      AlertRule[]
   dismissedEvents UserDismissedEvent[]
+  savedPosts      UserSavedPost[]
   createdInvites  InviteCode[]         @relation("InviteCreator")
   usedInvite      InviteCode?          @relation("InviteConsumer")
 
@@ -112,6 +113,21 @@ model UserDismissedEvent {
   @@map("user_dismissed_events")
 }
 
+model UserSavedPost {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  postId    Int      @map("post_id")
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, createdAt])
+  @@map("user_saved_posts")
+}
+
 model AiReport {
   id        Int      @id @default(autoincrement())
   userId    Int?     @map("user_id")
@@ -162,6 +178,7 @@ model Post {
   eventMentions        EventMention[]
   image                PostImage?
   alertRulePostFires   AlertRulePostFire[]
+  savedByUsers         UserSavedPost[]
 
   @@unique([channelId, messageId])
   @@index([channelId, groupedId])
