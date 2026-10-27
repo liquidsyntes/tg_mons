@@ -1,7 +1,16 @@
 'use client';
 
+/**
+ * Компонент отображения отчета «Психологический портрет автора канала».
+ * Анализирует тексты публикаций и выявляет психотип автора:
+ * ядро личности (архетип, BDSM-склонность, темперамент, нарциссизм),
+ * сильные стороны, триггеры, отношение к деньгам и стиль общения.
+ * Доступен исключительно администраторам сервиса.
+ */
+
 import { User } from 'lucide-react';
 
+/** Структура данных ответа нейросети для психологического портрета */
 export interface AIPersonaData {
   corePersonality?: {
     archetype?: string;
@@ -47,7 +56,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
   return (
     <div className="space-y-6 text-sm text-slate-300 leading-relaxed">
       
-      {/* Core Personality */}
+      {/* 1. Ядро личности: архетип, темперамент, BDSM-роль и уровень нарциссизма */}
       {data.corePersonality && (
         <div className="space-y-3">
           <h4 className="text-white font-semibold flex items-center gap-2 border-b border-rose-500/30 pb-2">
@@ -71,6 +80,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
               <span className="block text-xs text-slate-400 mb-1">Темперамент</span>
               <span className="font-medium text-slate-200">{data.corePersonality.temperament}</span>
             </div>
+            {/* Оценка нарциссизма с баллом и развернутым обоснованием */}
             {data.corePersonality.narcissismLevel && (
               <div className="bg-rose-950/40 rounded-lg p-3 border border-rose-900/50 col-span-1 sm:col-span-2 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-rose-900/50 text-rose-300 font-black text-xl border border-rose-500/30">
@@ -86,7 +96,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
         </div>
       )}
 
-      {/* Psychological Traits */}
+      {/* 2. Психологические черты: сильные стороны, слабости/тени и триггеры */}
       {data.psychologicalTraits && (
         <div className="space-y-3">
           <h4 className="text-white font-semibold flex items-center gap-2 border-b border-rose-500/30 pb-2">
@@ -131,7 +141,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
         </div>
       )}
 
-      {/* Fears */}
+      {/* 3. Страхи и компенсации: проговариваемые и скрытые страхи, коупинг-механизм */}
       {data.fears && (
         <div className="space-y-3">
           <h4 className="text-white font-semibold flex items-center gap-2 border-b border-slate-600 pb-2">
@@ -159,7 +169,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
         </div>
       )}
 
-      {/* Money and Success Attitude */}
+      {/* 4. Деньги и Успех: отношение к финансам, маркеры успеха и шкала флекса */}
       {data.moneyAndSuccessAttitude && (
         <div className="space-y-3">
           <h4 className="text-white font-semibold flex items-center gap-2 border-b border-amber-500/30 pb-2">
@@ -175,6 +185,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
               <span className="block text-xs text-amber-500/80 mb-1">Маркеры успеха</span>
               <p className="text-slate-200">{data.moneyAndSuccessAttitude.relationToSuccess}</p>
             </div>
+            {/* Шкала демонстративности (флекса) от 0 до 10 */}
             <div className="pt-3 border-t border-amber-900/30">
               <span className="block text-xs text-amber-500/80 mb-2">Уровень флекса (демонстративности)</span>
               {(() => {
@@ -203,7 +214,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
         </div>
       )}
 
-      {/* Communication Style */}
+      {/* 5. Стиль общения: тон, манипулятивные техники и личные границы */}
       {data.communicationStyle && (
         <div className="space-y-3">
           <h4 className="text-white font-semibold flex items-center gap-2 border-b border-rose-500/30 pb-2">
@@ -227,7 +238,7 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
         </div>
       )}
 
-      {/* Summary */}
+      {/* 6. Итоговое резюме автора от нейросети */}
       {data.summary && (
         <div className="mt-6 p-4 bg-rose-950/20 border border-rose-900/30 rounded-xl flex items-start gap-3">
           <User className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
@@ -238,6 +249,9 @@ export function AIPersonaReport({ data }: AIPersonaReportProps) {
   );
 }
 
+/**
+ * Конвертер психологического портрета в Markdown для скачивания и архива.
+ */
 export function aiPersonaToMarkdown(data: AIPersonaData | null): string {
   if (!data) return '';
 
