@@ -9,7 +9,7 @@
 | Область | Ответственность и точки входа |
 | --- | --- |
 | Web | `src/app/page.tsx`, `src/app/channel/[id]/page.tsx`; страницы сравнения, постов, отчётов, событий и настроек в `src/app/`; UI в `src/components/` |
-| HTTP и доступ | `src/app/api/`, включая рейтинг `/api/posts/advertisers`, закладки `/api/posts/saved` и персональный дайджест `/api/settings/digest`, `src/middleware.ts`, `src/lib/auth.ts`, `src/lib/users.ts`, `src/lib/tags.ts`; сессии, роли, пользовательский доступ и персональные теги каналов |
+| HTTP и доступ | `src/app/api/`, включая Telegram OIDC в `/api/auth/telegram/`, заявки в `/api/admin/registrations`, рейтинг, закладки и дайджест; `src/middleware.ts`, `src/lib/auth.ts`, `src/lib/telegram-login.ts`, `src/lib/users.ts`, `src/lib/tags.ts`; сессии, роли и актуальный статус доступа |
 | Аналитика | `src/lib/metrics.ts` и `src/lib/metrics/`: выборки и расчёты, включая сводку реакций, рейтинг рекламодателей и динамику цитирований; `src/lib/channel-activity.ts` и `/api/stats/channel/:id/activity`: 48 часовых строк; `src/lib/materialize.ts`: дневные агрегаты; `src/lib/types.ts`: общие контракты |
 | Telegram worker | `src/worker/index.ts`: расписания; `src/worker/server.ts`: внутренний HTTP; `src/worker/auth.ts`: авторизация; сбор в `src/worker/collector.ts`, разбор реакций в `src/worker/message-reactions.ts`, ссылки на посты в `src/worker/post-mentions.ts` |
 | AI и события | `src/lib/openrouter.ts`, `src/lib/ai-reports.ts`, `src/lib/ai-markdown.ts`, `src/lib/events/` (включая `calendar.ts`), маршруты `src/app/api/ai/` (10 типов, включая `metrics-explainer` и `content-gap`) и `src/app/api/events/` |
@@ -35,6 +35,7 @@
 | Сбор, очередь, повторы | `src/worker/collector.ts`, `src/worker/persister.ts`, `src/worker/task-coordinator.ts`, `src/worker/retry-policy.ts` | `src/worker/__tests__/collector.test.ts`, `src/worker/__tests__/sync-job-lock.test.ts`, `src/worker/__tests__/retry-policy.test.ts` |
 | Статьи и медиа | `src/worker/message-content.ts`, `src/worker/post-image.ts` | `src/worker/__tests__/article-collection.test.ts`, `src/worker/__tests__/post-image.test.ts` |
 | Доступ и API | `src/middleware.ts`, `src/lib/auth.ts`, нужный `route.ts` в `src/app/api/` | `src/__tests__/middleware.test.ts`, `src/lib/__tests__/auth.test.ts`, соседний `__tests__/route.test.ts`, если существует |
+| Telegram-вход и одобрение | `src/lib/telegram-login.ts`, `src/app/api/auth/telegram/`, `src/app/api/admin/registrations/`, `src/app/login/page.tsx`, `src/app/pending/page.tsx` | `src/lib/__tests__/telegram-login.test.ts`, соседние тесты маршрутов, `src/__tests__/middleware.test.ts` |
 | AI, радар, события | `src/app/api/ai/trends/route.ts`, `src/lib/ai-reports.ts`, `src/lib/events/` | `src/app/api/ai/trends/__tests__/route.test.ts`, `src/lib/__tests__/ai-reports.test.ts`, `src/lib/events/__tests__/` |
 | Уведомления и эксплуатация | `src/lib/alerts.ts`, `src/lib/digest.ts`, `src/lib/ops.ts`, `src/worker/index.ts` | `src/lib/__tests__/alerts.test.ts`, `src/lib/__tests__/digest.test.ts`, `src/lib/__tests__/ops.test.ts` |
 | Данные и миграции | `prisma/schema.prisma`, `prisma/migrations/`, затронутые чтение и запись | Проверить SQL миграции и ближайшие тесты потребителей; порядок в [эксплуатации](deployment.md) |

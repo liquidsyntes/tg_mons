@@ -92,7 +92,7 @@ flowchart TB
         PostsAPI["/api/posts/search и /api/posts/advertisers"]
         AiAPI["/api/ai/* (9 генераторов отчётов)"]
         EventsAPI["/api/events/* (Список, скан, скрытие)"]
-        AdminOpsAPI["/api/settings, /api/invites, /api/ops/status, /api/alerts"]
+        AdminOpsAPI["/api/settings, /api/admin/registrations, /api/ops/status, /api/alerts"]
     end
 
     subgraph Domain["Доменное ядро и аналитика (src/lib)"]
@@ -181,7 +181,7 @@ flowchart LR
 flowchart TB
     subgraph AuthModes["Способы аутентификации (/login и API)"]
         LoginPass["Логин + Пароль (PBKDF2-SHA256)"]
-        InviteReg["Регистрация по InviteCode (TGMON-...)"]
+        TelegramOIDC["Telegram OIDC (вход и заявка)"]
         MasterKey["Мастер-ключ (COLLECT_API_TOKEN)"]
     end
 
@@ -190,6 +190,9 @@ flowchart TB
         CookieV1["HttpOnly Cookie v1 (резервный мастер-вход ADMIN)"]
         Bearer["Authorization: Bearer (межсервисный доступ worker <-> web)"]
     end
+
+    Review["User.accessStatus: PENDING, ACTIVE, BLOCKED"]
+    AdminDecision["ADMIN: одобрить, удалить заявку или заблокировать"]
 
     subgraph PersonalWorkspace["Персональное пространство пользователя (изоляция по userId)"]
         UC["UserChannel (список каналов, isMine, isFavorite, niche, customAdPriceUah, customCpmUah)"]
@@ -207,24 +210,26 @@ flowchart TB
     end
 
     LoginPass --> CookieV2
-    InviteReg --> CookieV2
+    TelegramOIDC --> Review
+    AdminDecision --> Review
+    Review --> CookieV2
     MasterKey --> CookieV1
     MasterKey --> Bearer
 
-    CookieV2 --> PersonalWorkspace
+    CookieV2 -->|Только ACTIVE после проверки БД| PersonalWorkspace
     PersonalWorkspace -->|Чтение только подключённых каналов| SharedPool
     CookieV1 -->|Полный доступ ADMIN| SharedPool
-    CookieV1 -->|Управление /settings и /api/invites| Sys
+    CookieV1 -->|Управление /settings и заявками| Sys
 ```
 
 Полная спецификация моделей PostgreSQL 15, типов полей, вторичных индексов, перечислений и каскадов приведена в документе [База данных и схема Prisma](database.md).
 
-Схема `prisma/schema.prisma` включает **22 модели** и одно перечисление (`SyncStatus`: `RUNNING`, `COMPLETED`, `PARTIAL`, `FAILED`). Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`), отдельного enum в Prisma нет:
+Схема `prisma/schema.prisma` включает **24 модели** и два перечисления: `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок. Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
 
 | Prisma-модель | Таблица | Назначение |
 | --- | --- | --- |
-| `User` | `users` | Учётные записи пользователей (`username`, `passwordHash`, `role`, настройки личного дайджеста `telegramChatId`, `digestEnabled`, `digestHour`, `lastDigestAt`) |
-| `InviteCode` | `invite_codes` | Пригласительные коды для закрытой регистрации (`code`, `createdById`, `usedById`, `usedAt`, `expiresAt`) |
+| `User` | `users` | Учётные записи (`username`, необязательный `passwordHash`, `telegramSub`, `accessStatus`, `role`, настройки дайджеста) |
+| `InviteCode` | `invite_codes` | Исторические коды; новая регистрация их не использует |
 | `UserChannel` | `user_channels` | Персональные подписки пользователя на каналы (`isMine`, `isFavorite`, `niche`, `customAdPriceUah`, `customCpmUah`, `isActive`); unique `(userId, channelId)` |
 | `UserDismissedEvent` | `user_dismissed_events` | Персонально скрытые пользователем карточки событий; unique `(userId, eventId)` |
 | `Channel` | `channels` | Общий пул Telegram-каналов: идентификаторы, тип, ниша, статус и ошибки сбора |
@@ -456,4 +461,4 @@ flowchart TD
 
 ## 8. Граница доступа и безопасность Middleware
 
-Middleware (`src/middleware.ts`) проверяет `Bearer` для сервисных запросов либо подписанную `HttpOnly`-cookie Web UI (`v2` с `userId` и `role` при входе по аккаунту/инвайту, либо `v1` при резервном входе по `COLLECT_API_TOKEN`). Сессия действует 12 часов и не содержит секретный ключ. Cookie-мутации требуют совпадающий `Origin`; `/api/internal/*` принимает только `Bearer`. Страницы и API закрыты, кроме `/login`, `/api/auth/login`, `/api/auth/register` и `/api/health`. Управление ключом OpenRouter (`/api/settings`), инвайт-кодами (`/api/invites`), операционным статусом (`/api/ops/status`) и отчётом `persona` доступно только роли `ADMIN`, а данные каналов, AI-отчётов, алертов, личного дайджеста и скрытых событий изолированы по `userId`. [Эксплуатация](deployment.md).
+Middleware (`src/middleware.ts`) проверяет `Bearer` для сервисных запросов либо подписанную `HttpOnly`-cookie Web UI (`v2` с `userId` и `role` либо `v1` при резервном мастер-входе). Для пользовательской cookie middleware в Node.js runtime дополнительно читает текущие роль и `User.accessStatus` из БД. `PENDING` видит только страницу ожидания, `BLOCKED` теряет доступ с действующей cookie. Сессия действует 12 часов и не содержит секретный ключ. Cookie-мутации требуют совпадающий `Origin`; `/api/internal/*` принимает только `Bearer`. Заявками управляет `ADMIN` через `/api/admin/registrations`; данные каналов, отчётов, алертов и скрытых событий изолированы по `userId`. [Эксплуатация](deployment.md).

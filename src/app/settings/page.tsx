@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/Header';
 import { AlertRulesSettings } from '@/components/settings/AlertRulesSettings';
-import { InviteCodesSettings } from '@/components/settings/InviteCodesSettings';
+import { TelegramRegistrationsSettings } from '@/components/settings/TelegramRegistrationsSettings';
+import { TelegramAccountLink } from '@/components/settings/TelegramAccountLink';
 import { OperationsMonitorSettings } from '@/components/settings/OperationsMonitorSettings';
 import { PersonalDigestSettings } from '@/components/settings/PersonalDigestSettings';
 import { Settings, Save, AlertCircle, CheckCircle2, Server, Key, Cpu, Shield, User, Clock3 } from 'lucide-react';
@@ -25,6 +26,8 @@ interface CurrentUser {
   id: number | null;
   username: string;
   role: 'ADMIN' | 'USER';
+  telegramLinked?: boolean;
+  telegramName?: string | null;
 }
 
 export default function SettingsPage() {
@@ -124,7 +127,7 @@ export default function SettingsPage() {
               Настройки системы
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              Управление параметрами приложения, приглашениями и уведомлениями.
+              Управление параметрами приложения, заявками и уведомлениями.
             </p>
           </div>
 
@@ -136,7 +139,7 @@ export default function SettingsPage() {
                 <User className="w-4 h-4 text-accent" />
               )}
               <span className="text-slate-300">
-                Аккаунт: <strong className="text-white">@{currentUser.username}</strong>
+                Аккаунт: <strong className="text-white">{currentUser.telegramName || `@${currentUser.username}`}</strong>
               </span>
               <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] uppercase">
                 {currentUser.role === 'ADMIN' ? 'Админ' : 'Пользователь'}
@@ -151,7 +154,8 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {isAdmin && <InviteCodesSettings />}
+        {currentUser?.id && <TelegramAccountLink linked={Boolean(currentUser.telegramLinked)} name={currentUser.telegramName ?? null} />}
+        {isAdmin && <TelegramRegistrationsSettings />}
 
         {loading ? (
           <div className="animate-pulse flex flex-col space-y-4">

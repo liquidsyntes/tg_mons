@@ -42,8 +42,14 @@ model Channel {
 model User {
   id             Int       @id @default(autoincrement())
   username       String    @unique
-  passwordHash   String    @map("password_hash")
+  passwordHash   String?   @map("password_hash")
   role           String    @default("USER") // "ADMIN" | "USER"
+  accessStatus   UserAccessStatus @default(ACTIVE) @map("access_status")
+  telegramSub    String?   @unique @map("telegram_sub")
+  telegramName   String?   @map("telegram_name")
+  telegramUsername String? @map("telegram_username")
+  telegramPhotoUrl String? @map("telegram_photo_url")
+  reviewedAt     DateTime? @map("reviewed_at")
   telegramChatId String?   @map("telegram_chat_id")
   digestEnabled  Boolean   @default(false) @map("digest_enabled")
   digestHour     Int       @default(9) @map("digest_hour")
@@ -59,6 +65,12 @@ model User {
   usedInvite      InviteCode?          @relation("InviteConsumer")
 
   @@map("users")
+}
+
+enum UserAccessStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
 }
 
 model InviteCode {

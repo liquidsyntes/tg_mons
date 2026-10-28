@@ -42,8 +42,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const user = await prisma.user.findUnique({ where: { username } });
-    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
       return NextResponse.json({ error: 'Неверный логин или пароль' }, { status: 401 });
+    }
+    if (user.accessStatus !== 'ACTIVE') {
+      return NextResponse.json({ error: 'Доступ к аккаунту закрыт' }, { status: 403 });
     }
 
     const role: UserRole = user.role === 'ADMIN' ? 'ADMIN' : 'USER';
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (typeof prisma.user?.findFirst === 'function') {
       const adminUser = await prisma.user.findFirst({
-        where: { role: 'ADMIN' },
+        where: { role: 'ADMIN', accessStatus: 'ACTIVE' },
         orderBy: { id: 'asc' },
         select: { id: true },
       });

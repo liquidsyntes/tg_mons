@@ -82,20 +82,7 @@ describe('POST /api/auth/register', () => {
     expect(response.headers.get('set-cookie')).toContain(`${SESSION_COOKIE_NAME}=v2.1.ADMIN.`);
   });
 
-  it('registers a USER account with a valid unused invite code', async () => {
-    mocks.findInvite.mockResolvedValue({
-      id: 5,
-      code: 'TGMON-ABCD-2345',
-      usedById: null,
-      expiresAt: null,
-    });
-    mocks.transaction.mockImplementation(async (fn) =>
-      fn({
-        user: { create: vi.fn().mockResolvedValue({ id: 2, username: 'member1', role: 'USER' }) },
-        inviteCode: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-      }),
-    );
-
+  it('closes password and invite registration once an admin exists', async () => {
     const response = await POST(
       registerRequest({
         username: 'member1',
@@ -103,24 +90,12 @@ describe('POST /api/auth/register', () => {
         inviteCode: 'tgmon-abcd-2345',
       }),
     );
-
-    expect(response.status).toBe(201);
-    const data = await response.json();
-    expect(data).toEqual({
-      success: true,
-      user: { id: 2, username: 'member1', role: 'USER' },
-    });
-    expect(response.headers.get('set-cookie')).toContain(`${SESSION_COOKIE_NAME}=v2.2.USER.`);
+    expect(response.status).toBe(410);
+    expect(mocks.createUser).not.toHaveBeenCalled();
   });
 
-  it('rejects invalid or already used invite codes', async () => {
-    mocks.findInvite.mockResolvedValue({
-      id: 5,
-      code: 'TGMON-USED-CODE',
-      usedById: 99,
-      expiresAt: null,
-    });
-
+  it('rejects invalid master key during first-admin bootstrap', async () => {
+    mocks.countUser.mockResolvedValue(0);
     const response = await POST(
       registerRequest({
         username: 'member2',
@@ -128,7 +103,7 @@ describe('POST /api/auth/register', () => {
         inviteCode: 'TGMON-USED-CODE',
       }),
     );
-
     expect(response.status).toBe(400);
+    expect(mocks.createUser).not.toHaveBeenCalled();
   });
 });

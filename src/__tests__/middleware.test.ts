@@ -1,10 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+const findSessionUser = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/prisma', () => ({ prisma: { user: { findUnique: findSessionUser } } }));
 import { middleware } from '../middleware';
 import { createSessionCookieValue, SESSION_COOKIE_NAME } from '../lib/auth';
 
 describe('middleware access boundary', () => {
-  beforeEach(() => vi.stubEnv('COLLECT_API_TOKEN', 'unit-test-access-key'));
+  beforeEach(() => {
+    vi.stubEnv('COLLECT_API_TOKEN', 'unit-test-access-key');
+    findSessionUser.mockReset();
+  });
   afterEach(() => vi.unstubAllEnvs());
 
   it('redirects pages and blocks API mutations without credentials', async () => {
@@ -72,5 +77,23 @@ describe('middleware access boundary', () => {
       headers: { Cookie: `${SESSION_COOKIE_NAME}=${cookie}`, Origin: 'https://other.example' },
     }));
     expect(crossOrigin.status).toBe(403);
+  });
+
+  it('keeps pending users out of the app and revokes blocked sessions immediately', async () => {
+    const cookie = await createSessionCookieValue({ userId: 7, role: 'USER' });
+    const headers = { Cookie: `${SESSION_COOKIE_NAME}=${cookie}` };
+    findSessionUser.mockResolvedValue({ role: 'USER', accessStatus: 'PENDING' });
+    expect((await middleware(new NextRequest('http://localhost:4000/api/channels', { headers }))).status).toBe(403);
+    expect((await middleware(new NextRequest('http://localhost:4000/', { headers }))).headers.get('location'))
+      .toBe('http://localhost:4000/pending');
+    expect((await middleware(new NextRequest('http://localhost:4000/pending', { headers }))).status).toBe(200);
+
+    findSessionUser.mockResolvedValue({ role: 'USER', accessStatus: 'ACTIVE' });
+    expect((await middleware(new NextRequest('http://localhost:4000/api/channels', { headers }))).status).toBe(200);
+
+    findSessionUser.mockResolvedValue({ role: 'USER', accessStatus: 'BLOCKED' });
+    const blocked = await middleware(new NextRequest('http://localhost:4000/api/channels', { headers }));
+    expect(blocked.status).toBe(403);
+    expect(blocked.headers.get('set-cookie')).toContain(`${SESSION_COOKIE_NAME}=`);
   });
 });

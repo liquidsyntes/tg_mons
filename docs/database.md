@@ -15,6 +15,9 @@
 
 ## Перечисления (Enums)
 
+### `UserAccessStatus`
+Статус доступа: `PENDING` ожидает решения администратора, `ACTIVE` имеет доступ, `BLOCKED` не может войти или подать новую заявку с тем же Telegram-аккаунтом. Существующие пользователи получили `ACTIVE` через значение по умолчанию миграции.
+
 ### `SyncStatus`
 Определяет статус выполнения фонового цикла сбора данных в модели `SyncJob`:
 
@@ -68,6 +71,8 @@ erDiagram
         int id PK
         string username UK
         string role "ADMIN | USER"
+        string telegram_sub UK
+        string access_status "PENDING | ACTIVE | BLOCKED"
         string telegram_chat_id
         boolean digest_enabled
         int digest_hour
@@ -137,8 +142,8 @@ erDiagram
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
-| `User` | `users` | `id` (Int, autoincrement) | `@unique username` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `UserSavedPost`, `InviteCode` | Учётные записи пользователей (`ADMIN`, `USER`), PBKDF2-хеши паролей и персональные настройки Telegram-дайджеста (`telegramChatId`, `digestEnabled`, `digestHour`, `lastDigestAt`) |
-| `InviteCode` | `invite_codes` | `id` (Int, autoincrement) | `@unique code`<br>`@unique usedById`<br>`@@index([createdById])` | `createdBy` -> `User` (`Cascade`)<br>`usedBy` -> `User?` (`SetNull`) | Одноразовые инвайт-коды для закрытой регистрации пользователей |
+| `User` | `users` | `id` (Int, autoincrement) | `@unique username`<br>`@unique telegramSub` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `UserSavedPost`, `InviteCode` | Учётные записи с ролями `ADMIN`/`USER`, статусом доступа и необязательной привязкой Telegram; пароль может отсутствовать |
+| `InviteCode` | `invite_codes` | `id` (Int, autoincrement) | `@unique code`<br>`@unique usedById`<br>`@@index([createdById])` | `createdBy` -> `User` (`Cascade`)<br>`usedBy` -> `User?` (`SetNull`) | Исторические инвайты сохранены; новая регистрация их не использует |
 | `UserChannel` | `user_channels` | `id` (Int, autoincrement) | `@@unique([userId, channelId])`<br>`@@index([userId])`<br>`@@index([channelId])` | `user` -> `User` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Персональная подписка пользователя на канал из общего пула (`isMine`, `isFavorite`, `niche`, `isActive`), необязательные `customAdPriceUah` и `customCpmUah` в гривнах |
 | `UserDismissedEvent` | `user_dismissed_events` | `id` (Int, autoincrement) | `@@unique([userId, eventId])`<br>`@@index([userId])`<br>`@@index([eventId])` | `user` -> `User` (`Cascade`)<br>`event` -> `Event` (`Cascade`) | Индивидуальное скрытие мероприятий из «Афиши» для конкретного пользователя |
 | `UserSavedPost` | `user_saved_posts` | `id` (Int, autoincrement) | `@@unique([userId, postId])`<br>`@@index([userId, createdAt])` | `user` -> `User` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Личные закладки публикаций и заметки пользователя |
@@ -174,9 +179,15 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `username` | `String` | `username` | Нет | — | Уникальный логин пользователя (в нижнем регистре) |
-| `passwordHash` | `String` | `password_hash` | Нет | — | PBKDF2-SHA256 хеш пароля с солью |
+| `username` | `String` | `username` | Нет | — | Уникальный внутренний логин; для Telegram-аккаунта формируется из `sub` |
+| `passwordHash` | `String` | `password_hash` | Да | — | PBKDF2-SHA256 хеш для прежних парольных аккаунтов |
 | `role` | `String` | `role` | Нет | `"USER"` | Роль доступа: `"ADMIN"` или `"USER"` |
+| `accessStatus` | `UserAccessStatus` | `access_status` | Нет | `ACTIVE` | Ожидание, активный доступ или блокировка |
+| `telegramSub` | `String` | `telegram_sub` | Да | — | Уникальный постоянный идентификатор Telegram OIDC |
+| `telegramName` | `String` | `telegram_name` | Да | — | Имя профиля на момент последнего входа |
+| `telegramUsername` | `String` | `telegram_username` | Да | — | Публичный Telegram username, может измениться |
+| `telegramPhotoUrl` | `String` | `telegram_photo_url` | Да | — | Адрес фото профиля, если предоставлен |
+| `reviewedAt` | `DateTime` | `reviewed_at` | Да | — | Время решения администратора |
 | `telegramChatId` | `String` | `telegram_chat_id` | Да | — | Персональный Telegram Chat ID для алертов и личного дайджеста |
 | `digestEnabled` | `Boolean` | `digest_enabled` | Нет | `false` | Включён ли ежедневный персональный дайджест |
 | `digestHour` | `Int` | `digest_hour` | Нет | `9` | Час отправки персонального дайджеста (0..23 UTC) |
@@ -184,7 +195,7 @@ erDiagram
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время регистрации аккаунта |
 
 #### `InviteCode` (`invite_codes`)
-Одноразовые инвайт-коды для закрытой регистрации новых пользователей.
+Исторические одноразовые инвайт-коды. Маршруты их выдачи и регистрации обычных пользователей по ним больше не работают; таблица оставлена без удаления данных.
 
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
@@ -663,7 +674,8 @@ flowchart TD
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На **28 октября 2026 года** в проекте **29 миграций**:
+- На **28 октября 2026 года** в проекте **30 миграций**:
+  - `20261028192148_add_telegram_registration`: добавляет статусы, Telegram-профиль и необязательный пароль пользователя;
   - `20261028155134_add_post_engagement_hour`: создаёт таблицу почасовых приростов реакций и пересылок;
   - `20261027092200_add_user_saved_posts` — создаёт таблицу `user_saved_posts` для персональных закладок и заметок к постам;
   - `20261027081700_add_user_channel_tags` — добавляет массив персональных тегов `user_channels.tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]`;
