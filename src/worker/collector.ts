@@ -27,6 +27,7 @@ import {
   updateChannelTitle,
   saveFraudSignal,
   cleanupOldPostSnapshots,
+  cleanupOldPostEngagementHours,
 } from './persister';
 import { prisma } from '../lib/prisma';
 import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, checkUniformReactionRatio } from '../lib/fraudDetector';
@@ -158,7 +159,7 @@ export async function collectChannelData(
         reactions: isAlbumChild ? null : parsedReactions.reactions,
         reactionBreakdown: isAlbumChild ? null : parsedReactions.reactionBreakdown,
         comments,
-        forwards,
+        forwards: isAlbumChild ? null : forwards,
         text,
         groupedId,
         subscribersAtPublish: participantsCount,
@@ -399,6 +400,11 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
           if (deleted > 0) logger.info('Old post snapshots removed', { deleted });
         })
         .catch(error => logger.warn('Post snapshot cleanup failed', undefined, error));
+      await cleanupOldPostEngagementHours()
+        .then(deleted => {
+          if (deleted > 0) logger.info('Old hourly engagement removed', { deleted });
+        })
+        .catch(error => logger.warn('Hourly engagement cleanup failed', undefined, error));
     }
     
     const webInternalUrl = process.env.WEB_INTERNAL_URL;

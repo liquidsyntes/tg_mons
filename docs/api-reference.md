@@ -1,6 +1,6 @@
 # Справочник API
 
-Сверено с `src/app/api/**/route.ts` 26 октября 2026 года. Базовый URL локального web: `http://localhost:4000`. `:id` обозначает внутренний ID PostgreSQL, а не Telegram ID. Типы сводных ответов: [src/lib/types.ts](../src/lib/types.ts).
+Основные маршруты сверены с `src/app/api/**/route.ts` 26 октября 2026 года; маршрут почасовой активности добавлен и сверен 28 октября 2026 года. Базовый URL локального web: `http://localhost:4000`. `:id` обозначает внутренний ID PostgreSQL, а не Telegram ID. Типы сводных ответов: [src/lib/types.ts](../src/lib/types.ts).
 
 ## Формат и доступ
 
@@ -63,12 +63,15 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `GET /api/stats/overview` | — | `{myChannel,channels,totalChannels,activeChannels,lastGlobalUpdate}` |
 | `GET /api/stats/dashboard` | Нет тела | KPI, `avgErr`, `avgScore`, topGainers/topLosers, postsTimeline/subscribersTimeline только по активным каналам |
 | `GET /api/stats/channel/:id` | `period=24h`, `7d` или `30d`, default `7d` | `{channel,myChannel,period,scoreBreakdown,membersHistory,postsDistribution,vrHistory,heatmapData,myHeatmapData,recentPosts,popularReactions,contentTypePerformance,silencePeriods}` |
+| `GET /api/stats/channel/:id/activity` | Положительный ID канала | `{timeZone,rows}`: 48 часовых строк с `hourStart`, `sampledAt`, `membersCount`, `membersDelta`, `posts[]`, `reactionsAdded`, `forwardsAdded`; 400 при неверном ID, 404 без доступа к каналу |
 | `GET /api/stats/compare` | Обязательные `a`, `b` — ID каналов; `period` как выше | `{ "a": ChannelDetailStats, "b": ChannelDetailStats, "period": "7d" }`; 400 без ID, 404 если канал не найден |
 | `GET /api/stats/best-time` | Нет параметров | `{timeZone,bestDay,bestHour,score,avgViews,avgVr,postCount,heatmap}` или `null`, если нет активных конкурентов |
 | `GET /api/stats/trends` | — | Последний сохранённый trend: `{createdAt,data}`; `null` при отсутствии/невалидном JSON, новую генерацию не запускает |
 | `GET /api/stats/demographics/:id` | Положительный Int ID | Последний языковой снимок; контракт ниже |
 
-Эти GET доступны с Web UI-сессией или Bearer; отдельного гарда в обработчиках нет. Overview/dashboard/detail кэшируются в web на 5 минут, best-time на 30 минут. Detail берёт EP из кэшированного overview; при пустом кэше overview рассчитывается и сохраняется для следующих запросов. Неизвестное значение period заменяется на `7d`. Best-time использует VR и количество постов; `avgVr` уже в процентах. Дни/часы слотов берутся в часовом поясе процесса.
+Эти GET доступны с Web UI-сессией или Bearer; у `/api/stats/channel/:id/activity` есть дополнительный гард в обработчике: обычный пользователь должен иметь личный `UserChannel`. Overview/dashboard/detail кэшируются в web на 5 минут, best-time на 30 минут; activity не кэшируется. Detail берёт EP из кэшированного overview; при пустом кэше overview рассчитывается и сохраняется для следующих запросов. Неизвестное значение period заменяется на `7d`. Best-time использует VR и количество постов; `avgVr` уже в процентах. Дни/часы слотов берутся в часовом поясе процесса.
+
+Activity группирует последние 48 календарных часов по UTC, а UI показывает их в `timeZone` приложения. В каждом часе используется последний `Snapshot`; `membersDelta` считается только при наличии замера в предыдущем соседнем часе, иначе `null`. Посты привязаны к часу `publishedAt`; `isForwarded` показывает, что пост канала переслал запись другого канала. `reactionsAdded` и `forwardsAdded` отражают положительные изменения счётчиков уже известных постов, замеченные worker в этом часе, а не точное время действий пользователей. Первый доступный счётчик служит базой. Старую почасовую историю реакций и пересылок восстановить нельзя; сбор обновляет до 200 последних сообщений канала за цикл.
 
 ### Демография
 

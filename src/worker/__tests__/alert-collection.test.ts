@@ -31,6 +31,7 @@ vi.mock('../persister', () => ({
   updateChannelTitle: vi.fn(),
   saveFraudSignal: mocks.fraudSave,
   cleanupOldPostSnapshots: mocks.cleanup,
+  cleanupOldPostEngagementHours: mocks.cleanup,
 }));
 vi.mock('@/lib/materialize', () => ({ materializeDailyMetrics: mocks.materialize }));
 vi.mock('@/lib/metrics', () => ({ calculateChannelMetrics: mocks.calculateMetrics }));

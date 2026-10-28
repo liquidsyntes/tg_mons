@@ -1,6 +1,6 @@
 # Метрики и формулы
 
-Предметная сверка формул с исполняемым кодом выполнена **27 октября 2026 года**. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [materialize.ts](../src/lib/materialize.ts), [ep.ts](../src/lib/ep.ts), [scoring.ts](../src/lib/scoring.ts), [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [pricing.ts](../src/lib/pricing.ts).
+Предметная сверка формул с исполняемым кодом выполнена **27 октября 2026 года**; почасовая активность сверена 28 октября 2026 года. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [materialize.ts](../src/lib/materialize.ts), [ep.ts](../src/lib/ep.ts), [scoring.ts](../src/lib/scoring.ts), [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [pricing.ts](../src/lib/pricing.ts), [channel-activity.ts](../src/lib/channel-activity.ts).
 
 Обозначения: $V$ — просмотры, $R$ — реакции, $C$ — комментарии, $F$ — пересылки, $S$ — аудитория, $E=R+C+F$. Пропущенные взаимодействия в формулах принимаются за 0, но отсутствующий знаменатель обычно даёт null. Процентные метрики хранятся как проценты (например, 2.5 означает 2.5%).
 
@@ -61,6 +61,12 @@ flowchart TD
 ```
 
 ## Источники и временные окна
+
+### Почасовая активность канала
+
+Блок на странице канала строит 48 последовательных UTC-часов, включая текущий. Число подписчиков берётся из последнего `Snapshot` за каждый час. Разница равна текущему числу минус число предыдущего соседнего часа; при отсутствии одного из замеров показывается `н/д`, а не нуль. Посты относятся к часу `Post.publishedAt`; пересланный каналом пост определяется сохранённым `Mention.type=forward`.
+
+`PostEngagementHour` хранит положительный прирост суммарных `Post.reactions` и `Post.forwards`, обнаруженный при очередном сборе. Первый известный счётчик не даёт прироста, недоступный (`null`) счётчик не заменяется нулём, повторный сбор с тем же значением ничего не добавляет. После пропуска сбора изменение относится к часу следующего наблюдения. Данные старше семи дней удаляются worker; исторические почасовые приросты до введения таблицы не восстанавливаются. Время в UI отображается в `APP_TIMEZONE`.
 
 API использует материализованный путь, если в запросе за 30 дней есть хотя бы одна строка ChannelMetricDaily. В противном случае выбираются сырые Snapshot/Post. Свежесть и полнота агрегатов отдельно не проверяются.
 

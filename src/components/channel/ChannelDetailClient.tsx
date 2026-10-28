@@ -18,6 +18,7 @@ import CitationNetworkWidget from '@/components/CitationNetworkWidget';
 import ContentLTVChart from '@/components/channel/ContentLTVChart';
 import { WrappedCard } from '@/components/channel/WrappedCard';
 import { ChannelDangerZone } from '@/components/channel/ChannelDangerZone';
+import { ChannelActivityTimeline } from '@/components/channel/ChannelActivityTimeline';
 import { NicheBenchmarkWidget } from '@/components/channel/NicheBenchmarkWidget';
 import { ChannelAdReachWidget } from '@/components/channel/ChannelAdReachWidget';
 import { AdAttributionWidget } from '@/components/channel/AdAttributionWidget';
@@ -96,6 +97,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
               {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
               <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
               <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
+              <ChannelActivityTimeline channelId={channel.id} username={channel.username} tgId={channel.tgId} />
               <ContentTypePerformance data={data!.contentTypePerformance || []} leaders={data!.contentFormatLeaders} period={period} />
               <PopularReactionsWidget summary={data!.popularReactions} />
               <ErrChart vrHistory={data!.vrHistory || []} period={period} />
