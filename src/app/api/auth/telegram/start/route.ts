@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasSameOrigin, isSecureRequest, verifyBearerToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { createTelegramFlow, encodeTelegramCookie, TELEGRAM_FLOW_COOKIE, TELEGRAM_FLOW_SECONDS } from '@/lib/telegram-login';
+import { createTelegramFlow, encodeTelegramCookie, telegramAppUrl, TELEGRAM_FLOW_COOKIE, TELEGRAM_FLOW_SECONDS } from '@/lib/telegram-login';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!hasSameOrigin(request)) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
   if (process.env.TELEGRAM_LOGIN_REDIRECT_URI
     && new URL(process.env.TELEGRAM_LOGIN_REDIRECT_URI).origin !== request.headers.get('origin')) {
-    return NextResponse.redirect(new URL(mode === 'link'
+    return NextResponse.redirect(telegramAppUrl(mode === 'link'
       ? '/settings?telegramError=unavailable' : '/login?telegramError=unavailable', request.url), { status: 303 });
   }
   let userId: number | null = null;
@@ -52,6 +52,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return response;
   } catch {
     const target = mode === 'link' ? '/settings?telegramError=unavailable' : '/login?telegramError=unavailable';
-    return NextResponse.redirect(new URL(target, request.url), { status: 303 });
+    return NextResponse.redirect(telegramAppUrl(target, request.url), { status: 303 });
   }
 }

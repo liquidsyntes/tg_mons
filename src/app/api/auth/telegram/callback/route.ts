@@ -4,13 +4,13 @@ import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import {
   decodeTelegramCookie, encodeTelegramCookie, exchangeTelegramCode, internalTelegramUsername, isTelegramFlow,
-  TELEGRAM_FLOW_COOKIE, TELEGRAM_FLOW_SECONDS, TELEGRAM_LINK_COOKIE,
+  telegramAppUrl, TELEGRAM_FLOW_COOKIE, TELEGRAM_FLOW_SECONDS, TELEGRAM_LINK_COOKIE,
 } from '@/lib/telegram-login';
 
 export const dynamic = 'force-dynamic';
 
 function redirectWithClearedFlow(request: NextRequest, path: string): NextResponse {
-  const response = NextResponse.redirect(new URL(path, request.url), { status: 303 });
+  const response = NextResponse.redirect(telegramAppUrl(path, request.url), { status: 303 });
   response.headers.set('Cache-Control', 'no-store');
   response.cookies.set({ name: TELEGRAM_FLOW_COOKIE, value: '', expires: new Date(0), path: '/api/auth/telegram' });
   return response;
@@ -23,8 +23,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return redirectWithClearedFlow(request, '/login?telegramError=invalid');
   }
 
+  let stage: 'exchange' | 'account' = 'exchange';
   try {
     const profile = await exchangeTelegramCode(request.nextUrl, flow);
+    stage = 'account';
     if (flow.mode === 'link') {
       if (!Number.isSafeInteger(flow.userId) || flow.userId === null || flow.userId <= 0) {
         return redirectWithClearedFlow(request, '/login?telegramError=invalid');
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
     return response;
   } catch (error) {
-    logger.warn('Telegram Login callback failed', { reason: error instanceof Error ? error.name : 'unknown' });
+    logger.warn('Telegram Login callback failed', { stage, reason: error instanceof Error ? error.name : 'unknown' });
     return redirectWithClearedFlow(request, '/login?telegramError=failed');
   }
 }

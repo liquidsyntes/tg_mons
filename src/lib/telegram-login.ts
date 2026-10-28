@@ -34,6 +34,10 @@ export function telegramLoginConfigured(): boolean {
     && process.env.TELEGRAM_LOGIN_REDIRECT_URI);
 }
 
+export function telegramAppUrl(path: string, requestUrl: string): URL {
+  return new URL(path, process.env.TELEGRAM_LOGIN_REDIRECT_URI || requestUrl);
+}
+
 function redirectUri(): string {
   const value = process.env.TELEGRAM_LOGIN_REDIRECT_URI;
   if (!value) throw new Error('Telegram Login redirect URI is not configured');
@@ -146,7 +150,7 @@ export async function exchangeTelegramCode(callbackUrl: URL, flow: TelegramFlow)
     expectedState: flow.state,
     expectedNonce: flow.nonce,
     idTokenExpected: true,
-  });
+  }, { client_id: process.env.TELEGRAM_LOGIN_CLIENT_ID! });
   const claims = tokens.claims();
   if (!claims || typeof claims.sub !== 'string' || !claims.sub) {
     throw new Error('Telegram did not return an account identifier');

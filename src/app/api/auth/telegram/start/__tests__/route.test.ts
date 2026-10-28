@@ -51,3 +51,16 @@ it('does not let a pending user begin account linking', async () => {
   expect((await POST(request('link'))).status).toBe(403);
   expect(mocks.createFlow).not.toHaveBeenCalled();
 });
+
+it('returns configuration errors to the public site behind the proxy', async () => {
+  vi.stubEnv('TELEGRAM_LOGIN_REDIRECT_URI', 'https://tgmons.online/api/auth/telegram/callback');
+  const proxied = new NextRequest('https://localhost:4000/api/auth/telegram/start', {
+    method: 'POST',
+    headers: { Origin: 'https://tgmons.online', 'X-Forwarded-Host': 'tgmons.online',
+      'X-Forwarded-Proto': 'https', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ mode: 'login' }),
+  });
+  mocks.createFlow.mockRejectedValue(new Error('Provider unavailable'));
+  const response = await POST(proxied);
+  expect(response.headers.get('location')).toBe('https://tgmons.online/login?telegramError=unavailable');
+});
