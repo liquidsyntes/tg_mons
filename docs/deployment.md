@@ -12,6 +12,7 @@ flowchart TB
         LocalWorker["tgmon-worker (:4001, WORKER_LOCAL_MODE=true)"]
         LocalDB[("tgmon-postgres (:5432)")]
         LocalSession["Локальный .env: TG_SESSION_LOCAL (устройство TgMon Local Dev)"]
+
         DevCompose --> LocalWeb
         DevCompose --> LocalWorker
         DevCompose --> LocalDB
@@ -25,6 +26,7 @@ flowchart TB
         ProdWorker["tgmon-worker (:4001, полный cron + дайджесты)"]
         ProdDB[("tgmon-postgres (127.0.0.1:5432)")]
         ProdSession["Серверный .env: TG_SESSION (устройство TgMon Server Worker)"]
+
         Nginx --> ProdWeb
         ProdCompose --> ProdWeb
         ProdCompose --> ProdWorker
@@ -38,10 +40,10 @@ flowchart TB
 
     TGCloud["Серверы Telegram MTProto"]
 
-    LocalWorker -->|Свой независимый auth_key| TGCloud
-    ProdWorker -->|Свой независимый auth_key| TGCloud
-    LocalEnv -->|git push origin main (без секретов)| GitHubCI
-    GitHubCI -->|git pull --ff-only (update.sh)| ProdEnv
+    LocalWorker -->|"Свой независимый auth_key"| TGCloud
+    ProdWorker -->|"Свой независимый auth_key"| TGCloud
+    LocalEnv -->|"git push origin main (без секретов)"| GitHubCI
+    GitHubCI -->|"git pull --ff-only (update.sh)"| ProdEnv
 ```
 
 Проект эксплуатируется в **трёх чётко разделённых средах**, которые нельзя смешивать:
