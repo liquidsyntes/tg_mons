@@ -4,7 +4,6 @@ const mocks = vi.hoisted(() => ({
   discovery: vi.fn(),
   authorizationCodeGrant: vi.fn(),
   enableNonRepudiationChecks: vi.fn(),
-  ClientSecretBasic: vi.fn(),
 }));
 vi.mock('openid-client', () => mocks);
 
@@ -30,4 +29,9 @@ it('includes the client ID in the Telegram token request and uses the registered
     new URL('https://tgmons.online/api/auth/telegram/callback?code=one-use-code&state=state-1'),
     { pkceCodeVerifier: 'verifier-1', expectedState: 'state-1', expectedNonce: 'nonce-1', idTokenExpected: true },
     { client_id: 'bot-client-id' });
+
+  const authentication = mocks.discovery.mock.calls[0][3];
+  const headers = new Headers();
+  authentication({}, { client_id: 'bot-client-id' }, new URLSearchParams(), headers);
+  expect(headers.get('authorization')).toBe(`Basic ${Buffer.from('bot-client-id:test-secret').toString('base64')}`);
 });

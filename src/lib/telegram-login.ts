@@ -29,6 +29,13 @@ export interface TelegramLinkProof {
 
 let cachedConfig: Promise<oidc.Configuration> | null = null;
 
+function telegramClientAuth(clientSecret: string): oidc.ClientAuth {
+  return (_server, client, _body, headers) => {
+    // Telegram expects the literal credentials in Basic, without form encoding.
+    headers.set('authorization', `Basic ${Buffer.from(`${client.client_id}:${clientSecret}`).toString('base64')}`);
+  };
+}
+
 export function telegramLoginConfigured(): boolean {
   return Boolean(process.env.TELEGRAM_LOGIN_CLIENT_ID && process.env.TELEGRAM_LOGIN_CLIENT_SECRET
     && process.env.TELEGRAM_LOGIN_REDIRECT_URI);
@@ -55,7 +62,7 @@ async function config(): Promise<oidc.Configuration> {
       new URL('https://oauth.telegram.org'),
       process.env.TELEGRAM_LOGIN_CLIENT_ID!,
       { client_secret: process.env.TELEGRAM_LOGIN_CLIENT_SECRET! },
-      oidc.ClientSecretBasic(process.env.TELEGRAM_LOGIN_CLIENT_SECRET!),
+      telegramClientAuth(process.env.TELEGRAM_LOGIN_CLIENT_SECRET!),
       { timeout: 10 },
     ).then(value => {
       oidc.enableNonRepudiationChecks(value);
