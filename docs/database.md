@@ -1,6 +1,6 @@
 # База данных и схема Prisma
 
-Сверено с [schema.prisma](../prisma/schema.prisma) **27 октября 2026 года**. СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
+Сверено с [schema.prisma](../prisma/schema.prisma) **28 октября 2026 года**. СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
 
 ## Общие сведения и требования к СУБД
 
@@ -25,7 +25,7 @@
 | `PARTIAL` | Цикл сбора завершён, но сбор для одного или нескольких каналов завершился с ошибкой |
 | `FAILED` | Критический сбой всего цикла сбора (например, потеря связи с Telegram MTProto или ошибка БД) |
 
-## ER-диаграмма схемы базы данных (23 модели)
+## ER-диаграмма схемы базы данных (24 модели)
 
 ```mermaid
 erDiagram
@@ -43,6 +43,7 @@ erDiagram
     Channel ||--o{ AudienceDemographics : "демография (Cascade)"
     Channel ||--o{ FraudSignal : "антифрод-сигналы (Cascade)"
     Channel ||--o{ Post : "публикации (Cascade)"
+    Channel ||--o{ PostEngagementHour : "почасовая активность постов (Cascade)"
     Channel ||--o{ Mention : "исходящие упоминания (Cascade)"
     Channel ||--o{ AiReport : "канальные отчёты (Cascade)"
     Channel ||--o{ AlertRule : "канальные правила (Cascade)"
@@ -50,6 +51,7 @@ erDiagram
 
     Post ||--o| PostImage : "изображение до 1 МБ (Cascade)"
     Post ||--o{ PostSnapshot : "замеры LTV 72ч (Cascade)"
+    Post ||--o{ PostEngagementHour : "прирост реакций и пересылок (Cascade)"
     Post ||--o{ PostViewSnapshot : "точки охвата рекламы (Cascade)"
     Post ||--o{ Mention : "ссылки в посте (Cascade)"
     Post ||--o{ EventMention : "связь с афишей (Cascade)"
@@ -131,19 +133,21 @@ erDiagram
 
 ## Сводная таблица моделей
 
-Схема содержит **22 модели**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
+Схема содержит **24 модели**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
-| `User` | `users` | `id` (Int, autoincrement) | `@unique username` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `InviteCode` | Учётные записи пользователей (`ADMIN`, `USER`), PBKDF2-хеши паролей и персональные настройки Telegram-дайджеста (`telegramChatId`, `digestEnabled`, `digestHour`, `lastDigestAt`) |
+| `User` | `users` | `id` (Int, autoincrement) | `@unique username` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `UserSavedPost`, `InviteCode` | Учётные записи пользователей (`ADMIN`, `USER`), PBKDF2-хеши паролей и персональные настройки Telegram-дайджеста (`telegramChatId`, `digestEnabled`, `digestHour`, `lastDigestAt`) |
 | `InviteCode` | `invite_codes` | `id` (Int, autoincrement) | `@unique code`<br>`@unique usedById`<br>`@@index([createdById])` | `createdBy` -> `User` (`Cascade`)<br>`usedBy` -> `User?` (`SetNull`) | Одноразовые инвайт-коды для закрытой регистрации пользователей |
 | `UserChannel` | `user_channels` | `id` (Int, autoincrement) | `@@unique([userId, channelId])`<br>`@@index([userId])`<br>`@@index([channelId])` | `user` -> `User` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Персональная подписка пользователя на канал из общего пула (`isMine`, `isFavorite`, `niche`, `isActive`), необязательные `customAdPriceUah` и `customCpmUah` в гривнах |
 | `UserDismissedEvent` | `user_dismissed_events` | `id` (Int, autoincrement) | `@@unique([userId, eventId])`<br>`@@index([userId])`<br>`@@index([eventId])` | `user` -> `User` (`Cascade`)<br>`event` -> `Event` (`Cascade`) | Индивидуальное скрытие мероприятий из «Афиши» для конкретного пользователя |
+| `UserSavedPost` | `user_saved_posts` | `id` (Int, autoincrement) | `@@unique([userId, postId])`<br>`@@index([userId, createdAt])` | `user` -> `User` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Личные закладки публикаций и заметки пользователя |
 | `Channel` | `channels` | `id` (Int, autoincrement) | `@unique username`<br>`@unique tgId` | Связи 1:N со всеми дочерними сущностями (`onDelete: Cascade`) | Telegram-каналы и группы, отслеживаемые системой, флаги и метаданные |
 | `Snapshot` | `snapshots` | `id` (Int, autoincrement) | `@@index([channelId, collectedAt])` | `channel` -> `Channel` (`Cascade`) | Временные снимки численности аудитории (подписчиков) канала |
 | `Post` | `posts` | `id` (Int, autoincrement) | `@@unique([channelId, messageId])`<br>`@@index([channelId, groupedId])`<br>`@@index([channelId, publishedAt])`<br>`@@index([text], type: Gin)` | `channel` -> `Channel` (`Cascade`)<br>Дочерние: `mentions`, `snapshots`, `viewSnapshots`, `eventMentions`, `image`, `alertRulePostFires` (`Cascade`) | Собранные публикации Telegram: просмотры, реакции, репосты, текст |
 | `PostImage` | `post_images` | `postId` (Int) | Нет | `post` -> `Post` (`Cascade`) | Одно ограниченное по размеру изображение публикации |
 | `PostSnapshot` | `post_snapshots` | `id` (Int, autoincrement) | `@@index([postId, collectedAt])` | `post` -> `Post` (`Cascade`) | Снимки просмотров первых 72 часов для LTV; удаляются после 30 дней хранения |
+| `PostEngagementHour` | `post_engagement_hours` | `id` (Int, autoincrement) | `@@unique([postId, hourStart])`<br>`@@index([channelId, hourStart])`<br>`@@index([hourStart])` | `channel` -> `Channel` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Положительные изменения реакций и пересылок, замеченные worker в UTC-часе; хранение 7 дней |
 | `PostViewSnapshot` | `post_view_snapshots` | `id` (Int, autoincrement) | `@@unique([postId, hoursAfterPost])`<br>`@@index([postId])` | `post` -> `Post` (`Cascade`) | Контрольные точки просмотров рекламных постов (1, 12, 24, 48 часов) для оценки рекламного охвата |
 | `Mention` | `mentions` | `id` (Int, autoincrement) | `@@index([sourceChannelId])`<br>`@@index([targetUsername])` | `sourcePost` -> `Post` (`Cascade`)<br>`sourceChannel` -> `Channel` (`Cascade`) | Упоминания и репосты других каналов, найденные в собранных постах (без FK на целевой канал) |
 | `SyncJob` | `sync_jobs` | `id` (Int, autoincrement) | — | Нет внешних связей | История и аудит запусков циклов сбора данных: статус `SyncStatus`, счётчики, длительность |
@@ -311,6 +315,7 @@ erDiagram
   - `mentions`: `Mention[]` (каскадное удаление)
   - `snapshots`: `PostSnapshot[]` (каскадное удаление)
   - `viewSnapshots`: `PostViewSnapshot[]` (каскадное удаление)
+  - `engagementHours`: `PostEngagementHour[]` (каскадное удаление)
   - `eventMentions`: `EventMention[]` (каскадное удаление)
   - `image`: `PostImage?` (каскадное удаление)
 
@@ -344,6 +349,23 @@ erDiagram
   - `@@index([postId, collectedAt])`
 - **Связи:**
   - `post`: `Post` (`fields: [postId], references: [id], onDelete: Cascade`)
+
+---
+
+### 4a. `PostEngagementHour` (`post_engagement_hours`)
+
+Положительные изменения суммарных счётчиков реакций и пересылок поста, замеченные в одном UTC-часе. Первое наблюдение служит базой; повторный сбор того же значения не добавляет строку. При ошибке записи этой необязательной статистики основной пост сохраняется. После цикла worker удаляет записи старше семи дней партиями по 1000.
+
+| Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
+|---|---|---|---|---|---|
+| `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
+| `channelId` | `Int` | `channel_id` | Нет | Нет | Канал для быстрой почасовой выборки |
+| `postId` | `Int` | `post_id` | Нет | Нет | Пост, чей счётчик изменился |
+| `hourStart` | `DateTime` | `hour_start` | Нет | Нет | Начало часа наблюдения в UTC |
+| `reactionsAdded` | `Int` | `reactions_added` | Нет | `0` | Замеченный положительный прирост реакций |
+| `forwardsAdded` | `Int` | `forwards_added` | Нет | `0` | Замеченный положительный прирост пересылок |
+
+Уникальность `(postId, hourStart)` не даёт повторному сбору создать дубль; индекс `(channelId, hourStart)` обслуживает 48-часовую выборку, индекс `hourStart` обслуживает очистку. Миграция: `20261028155134_add_post_engagement_hour`.
 
 ---
 
@@ -641,7 +663,8 @@ flowchart TD
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На **27 октября 2026 года** в проекте **28 миграций**:
+- На **28 октября 2026 года** в проекте **29 миграций**:
+  - `20261028155134_add_post_engagement_hour`: создаёт таблицу почасовых приростов реакций и пересылок;
   - `20261027092200_add_user_saved_posts` — создаёт таблицу `user_saved_posts` для персональных закладок и заметок к постам;
   - `20261027081700_add_user_channel_tags` — добавляет массив персональных тегов `user_channels.tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]`;
   - `20261026210800_add_user_personal_digest` — добавляет поля персонального Telegram-дайджеста (`telegram_chat_id`, `digest_enabled`, `digest_hour`, `last_digest_at`) в таблицу `users`;

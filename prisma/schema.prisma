@@ -34,6 +34,7 @@ model Channel {
   alertRuleFires       AlertRuleFire[]
   fraudSignals         FraudSignal[]
   userChannels         UserChannel[]
+  postEngagementHours  PostEngagementHour[]
 
   @@map("channels")
 }
@@ -179,6 +180,7 @@ model Post {
   image                PostImage?
   alertRulePostFires   AlertRulePostFire[]
   savedByUsers         UserSavedPost[]
+  engagementHours      PostEngagementHour[]
 
   @@unique([channelId, messageId])
   @@index([channelId, groupedId])
@@ -210,6 +212,23 @@ model PostSnapshot {
 
   @@index([postId, collectedAt])
   @@map("post_snapshots")
+}
+
+model PostEngagementHour {
+  id             Int      @id @default(autoincrement())
+  channelId      Int      @map("channel_id")
+  postId         Int      @map("post_id")
+  hourStart      DateTime @map("hour_start")
+  reactionsAdded Int      @default(0) @map("reactions_added")
+  forwardsAdded  Int      @default(0) @map("forwards_added")
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, hourStart])
+  @@index([channelId, hourStart])
+  @@index([hourStart])
+  @@map("post_engagement_hours")
 }
 
 model Mention {

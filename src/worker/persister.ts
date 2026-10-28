@@ -2,6 +2,12 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import type { ReactionBreakdownItem } from '../lib/types';
 
+class HourlyEngagementError extends Error {
+  constructor(cause: unknown) {
+    super('Could not save hourly engagement', { cause });
+  }
+}
+
 export async function addChannelToDb(params: {
   tgId: bigint;
   username: string | null;
@@ -236,7 +242,7 @@ export async function upsertPostWithReactions(params: {
     contentType?: string;
 }) {
     const reactionBreakdown = params.reactionBreakdown?.map(item => ({ emoji: item.emoji, count: item.count }));
-    const post = await prisma.post.upsert({
+    const upsert = {
         where: {
             channelId_messageId: {
                 channelId: params.channelId,
@@ -269,7 +275,49 @@ export async function upsertPostWithReactions(params: {
             isAd: params.isAd ?? false,
             contentType: params.contentType ?? 'text',
         },
-    });
+    };
+
+    let post;
+    try {
+        post = await prisma.$transaction(async (tx) => {
+            let previous: { reactions: number | null; forwards: number | null } | null;
+            try {
+                previous = await tx.post.findUnique({
+                    where: { channelId_messageId: { channelId: params.channelId, messageId: params.messageId } },
+                    select: { reactions: true, forwards: true },
+                });
+            } catch (error) {
+                throw new HourlyEngagementError(error);
+            }
+            const saved = await tx.post.upsert(upsert);
+            const reactionsAdded = previous?.reactions != null && params.reactions != null
+                ? Math.max(0, params.reactions - previous.reactions) : 0;
+            const forwardsAdded = previous?.forwards != null && params.forwards != null
+                ? Math.max(0, params.forwards - previous.forwards) : 0;
+            if (reactionsAdded > 0 || forwardsAdded > 0) {
+                const hourStart = new Date(Math.floor(Date.now() / 3_600_000) * 3_600_000);
+                try {
+                    await tx.postEngagementHour.upsert({
+                        where: { postId_hourStart: { postId: saved.id, hourStart } },
+                        create: { channelId: params.channelId, postId: saved.id, hourStart, reactionsAdded, forwardsAdded },
+                        update: {
+                            reactionsAdded: { increment: reactionsAdded },
+                            forwardsAdded: { increment: forwardsAdded },
+                        },
+                    });
+                } catch (error) {
+                    throw new HourlyEngagementError(error);
+                }
+            }
+            return saved;
+        });
+    } catch (error) {
+        if (!(error instanceof HourlyEngagementError)) throw error;
+        logger.warn('Hourly engagement unavailable; saving post without it', {
+            channelId: params.channelId, messageId: params.messageId.toString(),
+        }, error);
+        post = await prisma.post.upsert(upsert);
+    }
 
     if (params.views !== null && params.views !== undefined) {
         const now = new Date();
@@ -288,6 +336,23 @@ export async function upsertPostWithReactions(params: {
         }
     }
     return post;
+}
+
+export async function cleanupOldPostEngagementHours(now = new Date()): Promise<number> {
+    const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    let deleted = 0;
+    while (true) {
+        const stale = await prisma.postEngagementHour.findMany({
+            where: { hourStart: { lt: cutoff } }, select: { id: true }, orderBy: { id: 'asc' }, take: 1000,
+        });
+        if (stale.length === 0) break;
+        const result = await prisma.postEngagementHour.deleteMany({
+            where: { id: { in: stale.map(hour => hour.id) }, hourStart: { lt: cutoff } },
+        });
+        deleted += result.count;
+        if (stale.length < 1000) break;
+    }
+    return deleted;
 }
 
 export async function saveMentions(

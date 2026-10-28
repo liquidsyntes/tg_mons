@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 
 const db = vi.hoisted(() => ({
   postUpsert: vi.fn(),
+  postFindUnique: vi.fn(),
+  engagementUpsert: vi.fn(),
+  engagementFindMany: vi.fn(),
+  engagementDeleteMany: vi.fn(),
   postSnapshotFindFirst: vi.fn(),
   postSnapshotCreate: vi.fn(),
   postSnapshotFindMany: vi.fn(),
@@ -26,7 +30,10 @@ vi.mock('@/lib/prisma', () => {
   return { prisma: {
     channel: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     snapshot: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
-    post: { findMany: vi.fn().mockResolvedValue([]), count: vi.fn(), upsert: db.postUpsert },
+    post: { findMany: vi.fn().mockResolvedValue([]), count: vi.fn(), upsert: db.postUpsert,
+      findUnique: db.postFindUnique },
+    postEngagementHour: { upsert: db.engagementUpsert, findMany: db.engagementFindMany,
+      deleteMany: db.engagementDeleteMany },
     postSnapshot: {
       findFirst: db.postSnapshotFindFirst,
       create: db.postSnapshotCreate,
@@ -54,7 +61,7 @@ vi.mock('telegram/sessions/index.js', () => ({
 }));
 
 import { withRateLimitAndRetry, sleep } from '@/worker/fetcher';
-import { cleanupOldPostSnapshots, saveFraudSignal, saveMentions, upsertPostWithReactions } from '@/worker/persister';
+import { cleanupOldPostEngagementHours, cleanupOldPostSnapshots, saveFraudSignal, saveMentions, upsertPostWithReactions } from '@/worker/persister';
 
 describe('withRateLimitAndRetry', () => {
   it('returns result on first success', async () => {
@@ -115,11 +122,16 @@ describe('collector persistence policy', () => {
     vi.setSystemTime(now);
     vi.clearAllMocks();
     db.postUpsert.mockResolvedValue({ id: 7 });
+    db.postFindUnique.mockResolvedValue(null);
+    db.engagementFindMany.mockResolvedValue([]);
+    db.engagementDeleteMany.mockResolvedValue({ count: 0 });
     db.postSnapshotFindFirst.mockResolvedValue(null);
     db.postSnapshotFindMany.mockResolvedValue([]);
     db.postSnapshotDeleteMany.mockResolvedValue({ count: 0 });
     db.fraudFindFirst.mockResolvedValue(null);
     db.transaction.mockImplementation(async (callback: (tx: object) => Promise<unknown>) => callback({
+      post: { findUnique: db.postFindUnique, upsert: db.postUpsert },
+      postEngagementHour: { upsert: db.engagementUpsert },
       fraudSignal: {
         findFirst: db.fraudFindFirst,
         update: db.fraudUpdate,
@@ -170,6 +182,45 @@ describe('collector persistence policy', () => {
     expect(db.postUpsert).toHaveBeenLastCalledWith(expect.objectContaining({
       update: expect.objectContaining({ reactions: undefined, reactionBreakdown: undefined }),
     }));
+  });
+
+  it('records only positive changes after the first observed counters', async () => {
+    const publishedAt = new Date(now.getTime() - 60 * 60 * 1000);
+    await upsertPostWithReactions({ ...post(publishedAt), reactions: 3, forwards: 1 });
+    expect(db.engagementUpsert).not.toHaveBeenCalled();
+
+    db.postFindUnique.mockResolvedValue({ reactions: 3, forwards: 1 });
+    await upsertPostWithReactions({ ...post(publishedAt), reactions: 7, forwards: 2 });
+    expect(db.engagementUpsert).toHaveBeenCalledWith({
+      where: { postId_hourStart: { postId: 7, hourStart: now } },
+      create: { channelId: 1, postId: 7, hourStart: now, reactionsAdded: 4, forwardsAdded: 1 },
+      update: { reactionsAdded: { increment: 4 }, forwardsAdded: { increment: 1 } },
+    });
+
+    db.engagementUpsert.mockClear();
+    db.postFindUnique.mockResolvedValue({ reactions: 7, forwards: 2 });
+    await upsertPostWithReactions({ ...post(publishedAt), reactions: 7, forwards: 2 });
+    expect(db.engagementUpsert).not.toHaveBeenCalled();
+
+    await upsertPostWithReactions({ ...post(publishedAt), reactions: null, forwards: 1 });
+    expect(db.engagementUpsert).not.toHaveBeenCalled();
+  });
+
+  it('preserves the post when optional hourly engagement persistence fails', async () => {
+    db.postFindUnique.mockResolvedValue({ reactions: 1, forwards: 0 });
+    db.engagementUpsert.mockRejectedValueOnce(new Error('engagement unavailable'));
+    await upsertPostWithReactions({ ...post(now), reactions: 2, forwards: 0 });
+    expect(db.postUpsert).toHaveBeenCalledTimes(2);
+  });
+
+  it('cleans up hourly engagement older than seven days', async () => {
+    db.engagementFindMany.mockResolvedValueOnce([{ id: 9 }]).mockResolvedValueOnce([]);
+    db.engagementDeleteMany.mockResolvedValue({ count: 1 });
+    expect(await cleanupOldPostEngagementHours(now)).toBe(1);
+    expect(db.engagementFindMany).toHaveBeenCalledWith({
+      where: { hourStart: { lt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } },
+      select: { id: true }, orderBy: { id: 'asc' }, take: 1000,
+    });
   });
 
   it('persists the target message ID with a mention', async () => {
