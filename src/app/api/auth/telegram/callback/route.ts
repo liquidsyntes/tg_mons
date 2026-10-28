@@ -9,6 +9,14 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+function field(value: unknown, name: string): unknown {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>)[name] : undefined;
+}
+
+function safeErrorCode(value: unknown): string | undefined {
+  return typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(value) ? value : undefined;
+}
+
 function redirectWithClearedFlow(request: NextRequest, path: string): NextResponse {
   const response = NextResponse.redirect(telegramAppUrl(path, request.url), { status: 303 });
   response.headers.set('Cache-Control', 'no-store');
@@ -87,7 +95,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
     return response;
   } catch (error) {
-    logger.warn('Telegram Login callback failed', { stage, reason: error instanceof Error ? error.name : 'unknown' });
+    const cause = field(error, 'cause');
+    const providerBody = field(field(cause, 'cause'), 'body');
+    logger.warn('Telegram Login callback failed', {
+      stage,
+      reason: error instanceof Error ? error.name : 'unknown',
+      causeCode: safeErrorCode(field(cause, 'code')),
+      providerError: safeErrorCode(field(providerBody, 'error')),
+    });
     return redirectWithClearedFlow(request, '/login?telegramError=failed');
   }
 }

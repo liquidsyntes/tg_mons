@@ -13,6 +13,7 @@ vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn() } }));
 import { GET } from '../route';
 import { encodeTelegramCookie, TELEGRAM_FLOW_COOKIE } from '@/lib/telegram-login';
 import { SESSION_COOKIE_NAME } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 function request(mode: 'login' | 'link' = 'login', state = 'state-1'): NextRequest {
   const flow = { state: 'state-1', nonce: 'nonce-1', verifier: 'verifier-1', mode,
@@ -83,5 +84,19 @@ describe('Telegram OIDC callback', () => {
     const response = await GET(request('link'));
     expect(response.headers.get('location')).toContain('/settings?telegramLink=ready');
     expect(mocks.createUser).not.toHaveBeenCalled();
+  });
+
+  it('logs only safe OAuth error codes after a failed token exchange', async () => {
+    const error = Object.assign(new Error('sensitive token response'), {
+      cause: { code: 'OAUTH_INVALID_RESPONSE', cause: { body: {
+        error: 'invalid_grant', access_token: 'must-not-be-logged',
+      } } },
+    });
+    mocks.exchange.mockRejectedValueOnce(error);
+    const response = await GET(request());
+    expect(response.headers.get('location')).toContain('telegramError=failed');
+    expect(logger.warn).toHaveBeenCalledWith('Telegram Login callback failed', {
+      stage: 'exchange', reason: 'Error', causeCode: 'OAUTH_INVALID_RESPONSE', providerError: 'invalid_grant',
+    });
   });
 });
