@@ -264,19 +264,24 @@ curl -i http://localhost:4000/api/health
 ```mermaid
 flowchart TD
     Req["GET /api/health"] --> DBCheck{"SELECT 1 в PostgreSQL успешен?"}
-    DBCheck -->|Нет| ErrDB["503 Service Unavailable (Database error)"]
-    DBCheck -->|Да| ActiveCh{"Есть активные каналы (Channel.isActive = true)?"}
-    ActiveCh -->|Нет| Idle["200 OK (status: idle)"]
-    ActiveCh -->|Да| HasSync{"Есть хотя бы один SyncJob в БД?"}
-    HasSync -->|Нет| InitWin{"Прошло <= 720 мин со старта web или создания канала?"}
-    InitWin -->|Да| Init["200 OK (status: initializing)"]
-    InitWin -->|Нет| StaleInit["503 Service Unavailable (sync job stale)"]
-    HasSync -->|Да| RunningCheck{"Последний SyncJob в статусе RUNNING?"}
-    RunningCheck -->|Да, старше 120 мин| Stuck["503 Service Unavailable (sync job stuck)"]
-    RunningCheck -->|Да, <= 120 мин| HealthyRun["200 OK (status: healthy, RUNNING)"]
-    RunningCheck -->|Нет (завершён)| AgeCheck{"С момента завершения прошло > 720 мин?"}
-    AgeCheck -->|Да| Stale["503 Service Unavailable (sync job stale)"]
-    AgeCheck -->|Нет| HealthyDone["200 OK (status: healthy; проверять lastSyncStatus и channelsFailed)"]
+
+    DBCheck -->|"Нет"| ErrDB["503 Service Unavailable (Database error)"]
+    DBCheck -->|"Да"| ActiveCh{"Есть активные каналы (Channel.isActive = true)?"}
+
+    ActiveCh -->|"Нет"| Idle["200 OK (status: idle)"]
+    ActiveCh -->|"Да"| HasSync{"Есть хотя бы один SyncJob в БД?"}
+
+    HasSync -->|"Нет"| InitWin{"Прошло <= 720 мин со старта web или создания канала?"}
+    InitWin -->|"Да"| Init["200 OK (status: initializing)"]
+    InitWin -->|"Нет"| StaleInit["503 Service Unavailable (sync job stale)"]
+
+    HasSync -->|"Да"| RunningCheck{"Последний SyncJob в статусе RUNNING?"}
+    RunningCheck -->|"Да, старше 120 мин"| Stuck["503 Service Unavailable (sync job stuck)"]
+    RunningCheck -->|"Да, <= 120 мин"| HealthyRun["200 OK (status: healthy, RUNNING)"]
+    RunningCheck -->|"Нет (завершён)"| AgeCheck{"С момента завершения прошло > 720 мин?"}
+
+    AgeCheck -->|"Да"| Stale["503 Service Unavailable (sync job stale)"]
+    AgeCheck -->|"Нет"| HealthyDone["200 OK (status: healthy; проверять lastSyncStatus и channelsFailed)"]
 ```
 
 Логи нужного сервиса можно изучить локально через `docker compose logs --tail=100 worker` или `web`; они могут содержать данные каналов, поэтому перед публикацией их нужно обезличить.
