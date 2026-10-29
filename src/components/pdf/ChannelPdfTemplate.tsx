@@ -1,805 +1,312 @@
 'use client';
 
 import React from 'react';
-import type { ChannelDetailStats, ContentTypePerformanceItem } from '@/lib/types';
-import { formatNumber, formatPercent } from '@/lib/utils';
+import type { ChannelDetailStats } from '@/lib/types';
+import { getChannelPdfPeriodMetrics, getTopRecentPosts } from '@/lib/channel-pdf-report';
+import { formatDelta, formatNumber, formatPercent } from '@/lib/utils';
 
 export interface ChannelPdfTemplateProps {
   stats: ChannelDetailStats;
   period: '24h' | '7d' | '30d' | string;
 }
 
-/**
- * Вспомогательная функция расчёта SVG-дуги для Donut Chart
- */
-function describeDonutArc(
-  cx: number,
-  cy: number,
-  rInner: number,
-  rOuter: number,
-  startAngle: number,
-  endAngle: number
-): string {
-  const toRad = (deg: number) => ((deg - 90) * Math.PI) / 180;
-  const sweep = Math.min(Math.max(endAngle - startAngle, 0.1), 359.99);
-  const end = startAngle + sweep;
+const ink = '#0f172a';
+const muted = '#64748b';
+const blue = '#2563eb';
+const border = '#e2e8f0';
 
-  const a1 = toRad(startAngle);
-  const a2 = toRad(end);
+const pageStyle: React.CSSProperties = {
+  width: 794, height: 1123, boxSizing: 'border-box', padding: '42px 46px 32px',
+  background: '#ffffff', color: ink, fontFamily: 'Arial, Helvetica, sans-serif',
+  display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+};
 
-  const x1 = cx + rOuter * Math.cos(a1);
-  const y1 = cy + rOuter * Math.sin(a1);
-  const x2 = cx + rOuter * Math.cos(a2);
-  const y2 = cy + rOuter * Math.sin(a2);
+const tableStyle: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: 11 };
+const thStyle: React.CSSProperties = { padding: '9px 10px', textAlign: 'left', color: '#ffffff', background: ink, fontWeight: 700 };
+const tdStyle: React.CSSProperties = { padding: '9px 10px', borderBottom: `1px solid ${border}`, verticalAlign: 'top' };
 
-  const x3 = cx + rInner * Math.cos(a2);
-  const y3 = cy + rInner * Math.sin(a2);
-  const x4 = cx + rInner * Math.cos(a1);
-  const y4 = cy + rInner * Math.sin(a1);
-
-  const largeArcFlag = sweep > 180 ? 1 : 0;
-
-  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${rOuter} ${rOuter} 0 ${largeArcFlag} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rInner} ${rInner} 0 ${largeArcFlag} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
+function dateText(value: string | null | undefined): string {
+  if (!value) return 'н/д';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'н/д' : date.toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
 }
 
-/**
- * Компонент 3-страничного печатного PDF-отчета TG Monitor
- * Точно повторяет дизайн предоставленного референса:
- * - Стр. 1: Общий обзор / Статистика за период
- * - Стр. 2: Динамика и сравнение / Показатели в сравнении
- * - Стр. 3: Подробные данные / Детализация показателей
- */
+function numberText(value: number | null | undefined): string {
+  return formatNumber(value);
+}
+
+function percentText(value: number | null | undefined, signed = false): string {
+  return formatPercent(value, signed, 2);
+}
+
+function decimalText(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return 'н/д';
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(value);
+}
+
+function SectionTitle({ children, note }: { children: React.ReactNode; note?: string }) {
+  return <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+    <h2 style={{ fontSize: 17, margin: 0, fontWeight: 800 }}>{children}</h2>
+    {note && <span style={{ fontSize: 10, color: muted }}>{note}</span>}
+  </div>;
+}
+
+function PdfPage({ number, title, periodLabel, channelLabel, children }: {
+  number: number; title: string; periodLabel: string; channelLabel: string; children: React.ReactNode;
+}) {
+  return <div id={`pdf-page-${number}`} data-pdf-page style={pageStyle}>
+    <div>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14, borderBottom: `1px solid ${border}` }}>
+        <strong style={{ fontSize: 13, letterSpacing: '0.08em' }}>TG MONITOR</strong>
+        <span style={{ fontSize: 10, color: muted }}>ОТЧЁТ ПО КАНАЛУ · {periodLabel.toUpperCase()}</span>
+      </header>
+      <div style={{ padding: '22px 0 20px' }}>
+        <div style={{ color: blue, fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', marginBottom: 6 }}>
+          {String(number).padStart(2, '0')} / 05
+        </div>
+        <h1 style={{ fontSize: 28, lineHeight: 1.16, margin: 0 }}>{title}</h1>
+        <div style={{ fontSize: 11, color: muted, marginTop: 7 }}>{channelLabel}</div>
+      </div>
+      <main>{children}</main>
+    </div>
+    <footer style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${border}`, paddingTop: 12, fontSize: 10, color: muted }}>
+      <span>TG Monitor · Сформировано {dateText(new Date().toISOString())}</span>
+      <strong style={{ color: ink }}>{String(number).padStart(2, '0')} / 05</strong>
+    </footer>
+  </div>;
+}
+
+function Kpi({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return <div style={{ border: `1px solid ${border}`, background: '#f8fafc', borderRadius: 3, padding: '15px 16px', minHeight: 76 }}>
+    <div style={{ color: muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>{label}</div>
+    <div style={{ color: ink, fontSize: 23, fontWeight: 800, marginTop: 7 }}>{value}</div>
+    {detail && <div style={{ color: muted, fontSize: 10, marginTop: 5 }}>{detail}</div>}
+  </div>;
+}
+
+function Note({ children }: { children: React.ReactNode }) {
+  return <div style={{ borderLeft: `3px solid ${blue}`, background: '#f8fafc', borderRadius: 3, padding: '12px 15px', color: '#475569', fontSize: 11, lineHeight: 1.5 }}>
+    {children}
+  </div>;
+}
+
+function AudienceChart({ history }: { history: ChannelDetailStats['membersHistory'] }) {
+  const valid = history.filter(point => Number.isFinite(point.membersCount) && !Number.isNaN(new Date(point.collectedAt).getTime()));
+  if (valid.length < 2) return <Note>Недостаточно снимков аудитории для графика. Нужны как минимум два замера.</Note>;
+  const step = Math.max(1, Math.ceil(valid.length / 80));
+  const points = valid.filter((_, index) => index % step === 0);
+  if (points[points.length - 1] !== valid[valid.length - 1]) points.push(valid[valid.length - 1]);
+  const values = points.map(point => point.membersCount);
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const range = Math.max(maximum - minimum, 1);
+  const coords = points.map((point, index) => ({
+    x: 44 + index * 600 / (points.length - 1),
+    y: 175 - (point.membersCount - minimum) * 125 / range,
+  }));
+  const path = coords.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+  return <div style={{ border: `1px solid ${border}`, borderRadius: 3, padding: 12 }}>
+    <svg viewBox="0 0 690 215" width="100%" height="215" role="img" aria-label="Динамика аудитории по сохранённым снимкам">
+      {[0, 1, 2].map(index => <g key={index}>
+        <line x1="44" y1={50 + index * 62.5} x2="645" y2={50 + index * 62.5} stroke={border} strokeDasharray="3 3" />
+        <text x="38" y={53 + index * 62.5} textAnchor="end" fontSize="10" fill={muted}>{formatNumber(Math.round(maximum - index * (maximum - minimum) / 2))}</text>
+      </g>)}
+      <path d={path} fill="none" stroke={blue} strokeWidth="3" strokeLinejoin="round" />
+      <circle cx={coords[coords.length - 1].x} cy={coords[coords.length - 1].y} r="4" fill={blue} />
+      <text x="44" y="205" fontSize="10" fill={muted}>{dateText(points[0].collectedAt).slice(0, 10)}</text>
+      <text x="645" y="205" textAnchor="end" fontSize="10" fill={muted}>{dateText(points[points.length - 1].collectedAt).slice(0, 10)}</text>
+    </svg>
+  </div>;
+}
+
+function PostsChart({ distribution }: { distribution: ChannelDetailStats['postsDistribution'] }) {
+  const points = distribution.slice(-30);
+  if (points.length === 0) return <Note>Нет сохранённых публикаций за выбранный период.</Note>;
+  const maximum = Math.max(...points.map(point => point.postsCount), 1);
+  const barWidth = 600 / points.length;
+  return <div style={{ border: `1px solid ${border}`, borderRadius: 3, padding: 12 }}>
+    <svg viewBox="0 0 690 145" width="100%" height="145" role="img" aria-label="Количество публикаций по времени">
+      <line x1="44" y1="115" x2="645" y2="115" stroke={border} />
+      {points.map((point, index) => {
+        const height = 92 * point.postsCount / maximum;
+        return <rect key={`${point.date}-${index}`} x={44 + index * barWidth + 2} y={115 - height}
+          width={Math.max(barWidth - 4, 2)} height={height} fill={blue} rx="2" />;
+      })}
+      <text x="44" y="138" fontSize="10" fill={muted}>{points[0].date}</text>
+      <text x="645" y="138" textAnchor="end" fontSize="10" fill={muted}>{points[points.length - 1].date}</text>
+    </svg>
+  </div>;
+}
+
 export function ChannelPdfTemplate({ stats, period }: ChannelPdfTemplateProps) {
   const channel = stats.channel;
+  const selected = getChannelPdfPeriodMetrics(stats, period);
+  const channelLabel = `${channel.title}${channel.username ? ` · @${channel.username}` : ''}`;
+  const delta = formatDelta(selected.delta.abs, selected.delta.percent);
+  const benchmark = stats.nicheBenchmark;
+  const formats = (stats.contentTypePerformance ?? []).filter(item => item.postsCount > 0);
+  const recentPosts = (stats.recentPosts ?? []).slice(0, 10);
+  const topPosts = getTopRecentPosts(stats, 3);
+  const statusLabel = channel.status === 'success' ? 'Данные получены' : channel.status === 'stale' ? 'Данные устарели' : 'Ошибка сбора';
+  const periodNote = selected.delta.coverageDays !== null && selected.delta.coverageDays !== undefined
+    && selected.delta.coverageDays < selected.days
+    ? `История роста покрывает ${decimalText(selected.delta.coverageDays)} из ${selected.days} дней.` : null;
 
-  // Форматирование дат периода
-  const now = new Date();
-  const days = period === '24h' ? 1 : period === '30d' ? 30 : 7;
-  const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-  const formatDateStr = (d: Date) =>
-    `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-  const dateRangeText = `${formatDateStr(startDate)} — ${formatDateStr(now)}`;
-
-  // Определение дельты
-  const delta =
-    period === '24h'
-      ? channel.delta24h
-      : period === '30d'
-      ? channel.delta30d
-      : channel.delta7d;
-
-  // Расчёт метрик
-  const members = channel.currentMembers ?? 0;
-  const membersDeltaPct = delta?.percent ?? 0;
-  const membersDeltaAbs = delta?.abs ?? 0;
-  const prevMembers = members - membersDeltaAbs;
-
-  const errVal = channel.err7d ?? channel.err24h ?? (channel.er7d ? channel.er7d * 0.75 : 8.42);
-  const vrVal = channel.vr7d ?? channel.vr24h ?? (channel.avgViews7d && members > 0 ? (channel.avgViews7d / members) * 100 : 18.5);
-  const avgViews = channel.avgViews7d ?? channel.avgViews24h ?? channel.lastPostViews ?? 1280;
-  const postsCount = period === '24h' ? channel.posts24h : period === '30d' ? channel.posts30d : channel.posts7d;
-  const adSharePct = channel.adShare7d?.percent ?? channel.adShare30d?.percent ?? 4.2;
-  const citationIdx = channel.citationIndex ?? 12.4;
-
-  // Категории контента
-  let categories: { label: string; share: number; count: number; color: string }[] = [];
-  if (stats.contentTypePerformance && stats.contentTypePerformance.length > 0) {
-    const palette = ['#2563eb', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0'];
-    categories = stats.contentTypePerformance.map((item, idx) => ({
-      label: item.label || (item.type === 'text' ? 'Текстовые посты' : item.type === 'photo' ? 'Фото и медиа' : item.type === 'video' ? 'Видео' : item.type === 'poll' ? 'Опросы' : 'Ссылки'),
-      share: Math.round(item.sharePercent) || 0,
-      count: item.postsCount,
-      color: palette[idx % palette.length],
-    }));
-  } else {
-    categories = [
-      { label: 'Текстовые публикации', share: 46, count: Math.round(postsCount * 0.46) || 12, color: '#2563eb' },
-      { label: 'Фото и графика', share: 32, count: Math.round(postsCount * 0.32) || 8, color: '#64748b' },
-      { label: 'Видео и кружки', share: 22, count: Math.round(postsCount * 0.22) || 5, color: '#94a3b8' },
-    ];
-  }
-
-  // Нормализация суммы долей до 100%
-  const totalShare = categories.reduce((acc, c) => acc + c.share, 0);
-  if (totalShare > 0 && totalShare !== 100 && categories.length > 0) {
-    categories[0].share += 100 - totalShare;
-  }
-
-  // Точки для графика динамики (Page 1)
-  const historyPoints = (stats.membersHistory && stats.membersHistory.length >= 2)
-    ? stats.membersHistory
-    : [
-        { collectedAt: new Date(now.getTime() - 6 * 86400000).toISOString(), membersCount: Math.round(members * 0.94) },
-        { collectedAt: new Date(now.getTime() - 5 * 86400000).toISOString(), membersCount: Math.round(members * 0.95) },
-        { collectedAt: new Date(now.getTime() - 4 * 86400000).toISOString(), membersCount: Math.round(members * 0.955) },
-        { collectedAt: new Date(now.getTime() - 3 * 86400000).toISOString(), membersCount: Math.round(members * 0.97) },
-        { collectedAt: new Date(now.getTime() - 2 * 86400000).toISOString(), membersCount: Math.round(members * 0.965) },
-        { collectedAt: new Date(now.getTime() - 1 * 86400000).toISOString(), membersCount: Math.round(members * 0.985) },
-        { collectedAt: now.toISOString(), membersCount: members },
-      ];
-
-  const minMembers = Math.min(...historyPoints.map((p) => p.membersCount));
-  const maxMembers = Math.max(...historyPoints.map((p) => p.membersCount));
-  const valRange = maxMembers - minMembers || 10;
-  const paddingY = valRange * 0.15;
-  const chartMin = Math.max(0, Math.floor(minMembers - paddingY));
-  const chartMax = Math.ceil(maxMembers + paddingY);
-
-  // SVG координаты графика (Page 1)
-  const chartW = 700;
-  const chartH = 170;
-  const chartPts = historyPoints.map((pt, i) => {
-    const x = (i / (historyPoints.length - 1)) * (chartW - 60) + 40;
-    const y = chartH - ((pt.membersCount - chartMin) / (chartMax - chartMin || 1)) * (chartH - 40) - 20;
-    return { x, y, val: pt.membersCount, date: new Date(pt.collectedAt) };
-  });
-
-  const linePathD = chartPts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  const areaPathD = `${linePathD} L ${chartPts[chartPts.length - 1].x.toFixed(1)} ${chartH} L ${chartPts[0].x.toFixed(1)} ${chartH} Z`;
-  const lastPt = chartPts[chartPts.length - 1];
-
-  // Сравнение по периодам (Page 2: Grouped Bar Chart)
-  const barChartData = [
-    { label: 'Период 1', prev: 35, curr: 42 },
-    { label: 'Период 2', prev: 45, curr: 57 },
-    { label: 'Период 3', prev: 47, curr: 52 },
-    { label: 'Период 4', prev: 54, curr: 71 },
-    { label: 'Период 5', prev: 60, curr: 63 },
-    { label: 'Период 6', prev: 67, curr: 84 },
-  ];
-
-  // Дуги для круговой диаграммы (Page 2 Donut Chart)
-  const donutSlices = categories.reduce<Array<(typeof categories)[0] & { d: string }>>((acc, cat, idx) => {
-    const startAngle = categories.slice(0, idx).reduce((sum, c) => sum + (c.share / 100) * 360, 0);
-    const sliceAngle = (cat.share / 100) * 360;
-    const d = describeDonutArc(90, 90, 52, 78, startAngle, startAngle + sliceAngle);
-    return [...acc, { ...cat, d }];
-  }, []);
-
-  // Ключевое наблюдение (Page 1)
-  const observationGrowth =
-    membersDeltaPct > 0
-      ? `Аудитория канала демонстрирует уверенный прирост (+${membersDeltaPct.toFixed(1)}% за период). Динамика подписок стабильная, без признаков аномального оттока.`
-      : membersDeltaPct < 0
-      ? `Зафиксирована умеренная коррекция базы подписчиков (${membersDeltaPct.toFixed(1)}%). Рекомендуется усилить публикационную активность и интерактив.`
-      : `Аудитория канала сохраняет стабильность. Прирост соответствует среднерыночным показателям ниши.`;
-
-  const topCategory = categories[0] || { label: 'Текстовый контент', share: 50 };
-  const observationContent = `Основной объем публикаций приходится на категорию «${topCategory.label}» (${topCategory.share}%), обеспечивающую ключевой охват (VR ${vrVal.toFixed(1)}%) и вовлечение аудитории (ERR ${errVal.toFixed(2)}%).`;
-
-  // Общий стиль страницы: строго A4 (794px × 1123px)
-  const pageStyle: React.CSSProperties = {
-    width: '794px',
-    height: '1123px',
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
-    padding: '48px 48px 36px 48px',
-    boxSizing: 'border-box',
-    position: 'relative',
-    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-  };
-
-  return (
-    <div style={{ background: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* ========================================================================= */}
-      {/* СТРАНИЦА 1: ОБЩИЙ ОБЗОР                                                   */}
-      {/* ========================================================================= */}
-      <div id="pdf-page-1" style={pageStyle}>
-        <div>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="14" width="4" height="7" rx="1" fill="#2563eb" />
-                <rect x="10" y="9" width="4" height="12" rx="1" fill="#2563eb" />
-                <rect x="17" y="4" width="4" height="17" rx="1" fill="#2563eb" />
-              </svg>
-              <span style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.08em', color: '#0f172a' }}>
-                TG MONITOR
-              </span>
-            </div>
-            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', color: '#64748b', textTransform: 'uppercase' }}>
-              СТАТИСТИКА КАНАЛА · TG MONITOR
-            </div>
-          </div>
-
-          {/* Subheader */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', paddingBottom: '6px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em' }}>
-              <span style={{ color: '#2563eb' }}>01 /</span>{' '}
-              <span style={{ color: '#0f172a' }}>ОБЩИЙ ОБЗОР</span>
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-              {dateRangeText}
-            </div>
-          </div>
-
-          {/* Main Title */}
-          <div style={{ marginTop: '4px', marginBottom: '24px' }}>
-            <h1 style={{ fontSize: '34px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px 0', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              Статистика за период
-            </h1>
-            <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-              Краткая сводка ключевых показателей канала {channel.title}{channel.username ? ` (@${channel.username})` : ''} за выбранный период.
-            </p>
-          </div>
-
-          {/* 3 KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
-            {/* Card 1: Подписчики */}
-            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '3px', padding: '16px 20px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                МЕТРИКА 01 · ПОДПИСЧИКИ
-              </div>
-              <div style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: '6px 0 10px 0', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                {formatNumber(members)}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: membersDeltaPct >= 0 ? '#2563eb' : '#e11d48' }}>
-                    {formatPercent(membersDeltaPct, true)}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                    к прошлому периоду
-                  </div>
-                </div>
-                {/* Sparkline */}
-                <svg width="72" height="24" viewBox="0 0 72 24" fill="none">
-                  <path d="M 2 20 L 16 16 L 30 18 L 44 10 L 58 12 L 70 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Card 2: ERR / ER */}
-            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '3px', padding: '16px 20px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                МЕТРИКА 02 · ERR КАНАЛА
-              </div>
-              <div style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: '6px 0 10px 0', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                {errVal.toFixed(2)}%
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#2563eb' }}>
-                    +2,4 п.п.
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                    к прошлому периоду
-                  </div>
-                </div>
-                {/* Sparkline */}
-                <svg width="72" height="24" viewBox="0 0 72 24" fill="none">
-                  <path d="M 2 18 L 16 22 L 30 14 L 44 16 L 58 8 L 70 6" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Card 3: Средний охват */}
-            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '3px', padding: '16px 20px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                МЕТРИКА 03 · СРЕДНИЙ ОХВАТ
-              </div>
-              <div style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: '6px 0 10px 0', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                {formatNumber(avgViews)}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#2563eb' }}>
-                    +6,3%
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                    к прошлому периоду
-                  </div>
-                </div>
-                {/* Sparkline */}
-                <svg width="72" height="24" viewBox="0 0 72 24" fill="none">
-                  <path d="M 2 22 L 16 18 L 30 20 L 44 14 L 58 16 L 70 8" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 01: Динамика показателя */}
-          <div style={{ marginBottom: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>01</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Динамика показателя</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                <div style={{ width: '16px', height: '2.5px', backgroundColor: '#2563eb' }} />
-                <span>Текущий период</span>
-              </div>
-            </div>
-
-            {/* Line / Area Chart */}
-            <div style={{ width: '100%', height: '200px', backgroundColor: '#ffffff', border: '1px solid #f1f5f9', borderRadius: '3px', position: 'relative' }}>
-              <svg width="698" height="198" viewBox="0 0 698 198" fill="none" style={{ display: 'block' }}>
-                <defs>
-                  <linearGradient id="p1-area-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563eb" stopOpacity="0.14" />
-                    <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-
-                {/* Horizontal grid lines */}
-                {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
-                  const y = 20 + pct * 135;
-                  const labelVal = Math.round(chartMax - pct * (chartMax - chartMin));
-                  return (
-                    <g key={idx}>
-                      <line x1="36" y1={y} x2="680" y2={y} stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-                      <text x="30" y={y + 3} textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="system-ui" fontWeight="500">
-                        {labelVal >= 1000 ? `${(labelVal / 1000).toFixed(0)}k` : labelVal}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* Area and Line */}
-                <path d={areaPathD} fill="url(#p1-area-grad)" />
-                <path d={linePathD} stroke="#2563eb" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-
-                {/* Final dot */}
-                {lastPt && (
-                  <circle cx={lastPt.x} cy={lastPt.y} r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
-                )}
-
-                {/* X-axis date labels */}
-                {chartPts.map((pt, idx) => (
-                  <text key={idx} x={pt.x} y="186" textAnchor="middle" fontSize="9" fill="#94a3b8" fontFamily="system-ui" fontWeight="500">
-                    {String(pt.date.getDate()).padStart(2, '0')}
-                  </text>
-                ))}
-              </svg>
-            </div>
-          </div>
-
-          {/* Bottom Section: 02 Структура + Ключевое наблюдение */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            {/* Left: Структура публикаций */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>02</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Структура</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {categories.map((cat, idx) => (
-                  <div key={idx}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{cat.label}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{cat.share}%</span>
-                    </div>
-                    <div style={{ width: '100%', height: '7px', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${cat.share}%`, height: '100%', backgroundColor: cat.color, borderRadius: '3px' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Ключевое наблюдение */}
-            <div
-              style={{
-                backgroundColor: '#f8fafc',
-                borderLeft: '4px solid #2563eb',
-                borderTop: '1px solid #e2e8f0',
-                borderRight: '1px solid #e2e8f0',
-                borderBottom: '1px solid #e2e8f0',
-                borderRadius: '0 3px 3px 0',
-                padding: '20px 22px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-              }}
-            >
-              <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-                Ключевое наблюдение
-              </div>
-              <p style={{ fontSize: '11px', color: '#475569', lineHeight: 1.55, margin: '0 0 6px 0' }}>
-                {observationGrowth}
-              </p>
-              <p style={{ fontSize: '11px', color: '#475569', lineHeight: 1.55, margin: 0 }}>
-                {observationContent}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Page 1 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '14px', borderTop: '1px solid #e2e8f0', fontSize: '10px', color: '#64748b' }}>
-          <div>TG Monitor · Аналитика Telegram-каналов · @{channel.username || channel.title}</div>
-          <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '11px' }}>01 / 03</div>
-        </div>
+  return <div style={{ background: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <PdfPage number={1} title="Обзор канала" periodLabel={selected.label} channelLabel={channelLabel}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 22 }}>
+        <Kpi label="Подписчики" value={numberText(channel.currentMembers)} detail={`Изменение: ${delta.text}${delta.percentText ? ` (${delta.percentText})` : ''}`} />
+        <Kpi label="Публикации" value={numberText(selected.postsCount)} detail={`За ${selected.label}`} />
+        <Kpi label="Средние просмотры" value={numberText(selected.avgViews)} detail={`За ${selected.label}`} />
+        <Kpi label="VR" value={percentText(selected.vr)} detail={`За ${selected.label}`} />
+        <Kpi label={selected.er.label} value={percentText(selected.er.value)} />
+        <Kpi label={channel.type === 'group' ? 'CR за 7 дней' : selected.err.label}
+          value={percentText(channel.type === 'group' ? channel.cr7d : selected.err.value)} />
       </div>
+      <SectionTitle>Паспорт и состояние</SectionTitle>
+      <table style={{ ...tableStyle, marginBottom: 20 }}><tbody>
+        {[
+          ['Тип', channel.type === 'group' ? 'Группа' : 'Канал'],
+          ['Telegram', channel.username ? `@${channel.username}` : 'Без публичного username'],
+          ['ID в TgMon', String(channel.id)],
+          ['Ниша', channel.niche || 'Не указана'],
+          ['Последний сбор', dateText(channel.lastCollectedAt)],
+          ['Состояние', statusLabel],
+          ['Последняя публикация', dateText(channel.lastPostAt)],
+        ].map(([label, value]) => <tr key={label}><td style={{ ...tdStyle, color: muted, width: '35%' }}>{label}</td><td style={tdStyle}>{value}</td></tr>)}
+      </tbody></table>
+      <Note>{periodNote || 'Показатели отражают доступные данные за выбранный период.'} Значение «н/д» означает, что метрика не рассчитана по сохранённым данным. {selected.period === '30d' && 'ER и ERR за 30 дней в API отсутствуют, поэтому показаны показатели за 7 дней с явной подписью.'}</Note>
+    </PdfPage>
 
-      {/* ========================================================================= */}
-      {/* СТРАНИЦА 2: ДИНАМИКА И СРАВНЕНИЕ                                          */}
-      {/* ========================================================================= */}
-      <div id="pdf-page-2" style={pageStyle}>
-        <div>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="14" width="4" height="7" rx="1" fill="#2563eb" />
-                <rect x="10" y="9" width="4" height="12" rx="1" fill="#2563eb" />
-                <rect x="17" y="4" width="4" height="17" rx="1" fill="#2563eb" />
-              </svg>
-              <span style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.08em', color: '#0f172a' }}>
-                TG MONITOR
-              </span>
-            </div>
-            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', color: '#64748b', textTransform: 'uppercase' }}>
-              СТАТИСТИКА КАНАЛА · TG MONITOR
-            </div>
-          </div>
-
-          {/* Subheader */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', paddingBottom: '6px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em' }}>
-              <span style={{ color: '#2563eb' }}>02 /</span>{' '}
-              <span style={{ color: '#0f172a' }}>ДИНАМИКА И СРАВНЕНИЕ</span>
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-              {dateRangeText}
-            </div>
-          </div>
-
-          {/* Main Title */}
-          <div style={{ marginTop: '4px', marginBottom: '24px' }}>
-            <h1 style={{ fontSize: '34px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px 0', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              Показатели в сравнении
-            </h1>
-            <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-              Сопоставление периодов и распределение по категориям.
-            </p>
-          </div>
-
-          {/* Section 01: Сравнение по периодам */}
-          <div style={{ marginBottom: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>01</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Сравнение по периодам</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '14px', height: '3px', backgroundColor: '#2563eb' }} />
-                  <span>Текущий</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '14px', height: '3px', backgroundColor: '#94a3b8' }} />
-                  <span>Предыдущий</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Grouped Bar Chart SVG */}
-            <div style={{ width: '100%', height: '240px', backgroundColor: '#ffffff', border: '1px solid #f1f5f9', borderRadius: '3px' }}>
-              <svg width="698" height="238" viewBox="0 0 698 238" fill="none">
-                {/* Horizontal Gridlines */}
-                {[0, 25, 50, 75, 100].map((val) => {
-                  const y = 190 - (val / 100) * 160;
-                  return (
-                    <g key={val}>
-                      <line x1="36" y1={y} x2="680" y2={y} stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-                      <text x="28" y={y + 3} textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="system-ui" fontWeight="500">
-                        {val}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* Bars */}
-                {barChartData.map((item, idx) => {
-                  const groupX = 80 + idx * 100;
-                  const prevH = (item.prev / 100) * 160;
-                  const currH = (item.curr / 100) * 160;
-                  const prevY = 190 - prevH;
-                  const currY = 190 - currH;
-
-                  return (
-                    <g key={idx}>
-                      {/* Previous Bar */}
-                      <rect x={groupX} y={prevY} width="16" height={prevH} rx="2" fill="#94a3b8" />
-                      {/* Current Bar */}
-                      <rect x={groupX + 20} y={currY} width="16" height={currH} rx="2" fill="#2563eb" />
-                      {/* Value above current bar */}
-                      <text x={groupX + 28} y={currY - 6} textAnchor="middle" fontSize="10" fontWeight="800" fill="#2563eb" fontFamily="system-ui">
-                        {item.curr}
-                      </text>
-                      {/* X label */}
-                      <text x={groupX + 18} y="210" textAnchor="middle" fontSize="10" fill="#64748b" fontFamily="system-ui" fontWeight="500">
-                        {item.label}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
-          </div>
-
-          {/* Section 02 & 03: Распределение и Структура долей */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '28px' }}>
-            {/* Left: Распределение */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>02</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Распределение</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {categories.map((cat, idx) => (
-                  <div key={idx}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{cat.label}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>{cat.share}%</span>
-                    </div>
-                    <div style={{ width: '100%', height: '7px', backgroundColor: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${cat.share}%`, height: '100%', backgroundColor: cat.color, borderRadius: '3px' }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Структура долей (Donut Chart) */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>03</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Структура долей</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {/* Donut SVG */}
-                <div style={{ width: '180px', height: '180px', position: 'relative' }}>
-                  <svg width="180" height="180" viewBox="0 0 180 180" fill="none">
-                    {donutSlices.map((slice, idx) => (
-                      <path key={idx} d={slice.d} fill={slice.color} />
-                    ))}
-                    {/* Center text */}
-                    <text x="90" y="86" textAnchor="middle" fontSize="20" fontWeight="900" fill="#0f172a" fontFamily="system-ui">
-                      100%
-                    </text>
-                    <text x="90" y="103" textAnchor="middle" fontSize="10" fontWeight="600" fill="#64748b" fontFamily="system-ui">
-                      всего
-                    </text>
-                  </svg>
-                </div>
-
-                {/* Donut Legend */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px', marginTop: '12px' }}>
-                  {categories.map((cat, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#475569', fontWeight: 600 }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: cat.color }} />
-                      <span>{cat.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Callout Box: Примечание */}
-          <div
-            style={{
-              backgroundColor: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '3px',
-              padding: '16px 20px',
-              display: 'flex',
-              gap: '16px',
-              alignItems: 'center',
-            }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
-              Примечание
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
-              Методика расчёта: Показатели вовлеченности (ERR) и охвата (VR) вычисляются на основе первых 24–72 часов после публикации. Сравнение с предыдущим периодом производится по эквивалентному временному окну. При расчёте медианных значений исключаются аномальные выбросы.
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Page 2 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '14px', borderTop: '1px solid #e2e8f0', fontSize: '10px', color: '#64748b' }}>
-          <div>TG Monitor · Аналитика Telegram-каналов · @{channel.username || channel.title}</div>
-          <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '11px' }}>02 / 03</div>
-        </div>
+    <PdfPage number={2} title="Аудитория и публикации" periodLabel={selected.label} channelLabel={channelLabel}>
+      <SectionTitle note={`${stats.membersHistory.length} снимков`}>Динамика подписчиков</SectionTitle>
+      <AudienceChart history={stats.membersHistory} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, margin: '17px 0 25px' }}>
+        {([['24 часа', channel.delta24h], ['7 дней', channel.delta7d], ['30 дней', channel.delta30d]] as const).map(([label, value]) => {
+          const formatted = formatDelta(value.abs, value.percent);
+          return <Kpi key={label} label={`Рост за ${label}`} value={formatted.text} detail={formatted.percentText || 'Процент недоступен'} />;
+        })}
       </div>
-
-      {/* ========================================================================= */}
-      {/* СТРАНИЦА 3: ПОДРОБНЫЕ ДАННЫЕ                                              */}
-      {/* ========================================================================= */}
-      <div id="pdf-page-3" style={pageStyle}>
-        <div>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="14" width="4" height="7" rx="1" fill="#2563eb" />
-                <rect x="10" y="9" width="4" height="12" rx="1" fill="#2563eb" />
-                <rect x="17" y="4" width="4" height="17" rx="1" fill="#2563eb" />
-              </svg>
-              <span style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.08em', color: '#0f172a' }}>
-                TG MONITOR
-              </span>
-            </div>
-            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.08em', color: '#64748b', textTransform: 'uppercase' }}>
-              СТАТИСТИКА КАНАЛА · TG MONITOR
-            </div>
-          </div>
-
-          {/* Subheader */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', paddingBottom: '6px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em' }}>
-              <span style={{ color: '#2563eb' }}>03 /</span>{' '}
-              <span style={{ color: '#0f172a' }}>ПОДРОБНЫЕ ДАННЫЕ</span>
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-              {dateRangeText}
-            </div>
-          </div>
-
-          {/* Main Title */}
-          <div style={{ marginTop: '4px', marginBottom: '24px' }}>
-            <h1 style={{ fontSize: '34px', fontWeight: 900, color: '#0f172a', margin: '0 0 6px 0', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              Детализация показателей
-            </h1>
-            <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-              Табличное представление с акцентом на читаемость и порядок.
-            </p>
-          </div>
-
-          {/* Section 01: Сводная таблица */}
-          <div style={{ marginBottom: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>01</span>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Сводная таблица</span>
-              </div>
-              <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.05em' }}>
-                ЕДИНИЦЫ: АБСОЛЮТНЫЕ / ОТНОСИТЕЛЬНЫЕ
-              </div>
-            </div>
-
-            {/* Table */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', borderRadius: '3px' }}>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, borderRadius: '3px 0 0 0' }}>Показатель</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'right' }}>Текущий</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'right' }}>Предыдущий</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'right' }}>Изменение</th>
-                  <th style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'right', borderRadius: '0 3px 0 0' }}>Доля</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((cat, idx) => (
-                  <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '9px 14px', fontWeight: 500, color: '#334155' }}>{cat.label}</td>
-                    <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
-                      {formatNumber(Math.round(members * (cat.share / 100)))}
-                    </td>
-                    <td style={{ padding: '9px 14px', textAlign: 'right', color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
-                      {formatNumber(Math.round(prevMembers * (cat.share / 100)))}
-                    </td>
-                    <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: membersDeltaPct >= 0 ? '#2563eb' : '#e11d48', fontVariantNumeric: 'tabular-nums' }}>
-                      {formatPercent(membersDeltaPct, true)}
-                    </td>
-                    <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: '#475569', fontVariantNumeric: 'tabular-nums' }}>
-                      {cat.share}%
-                    </td>
-                  </tr>
-                ))}
-
-                {/* Additional metrics rows */}
-                <tr style={{ backgroundColor: categories.length % 2 === 0 ? '#ffffff' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '9px 14px', fontWeight: 500, color: '#334155' }}>Средний охват (VR 24ч)</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
-                    {formatNumber(avgViews)}
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
-                    {formatNumber(Math.round(avgViews * 0.94))}
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: '#2563eb', fontVariantNumeric: 'tabular-nums' }}>
-                    +6,3%
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', color: '#94a3b8' }}>—</td>
-                </tr>
-
-                <tr style={{ backgroundColor: (categories.length + 1) % 2 === 0 ? '#ffffff' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '9px 14px', fontWeight: 500, color: '#334155' }}>Вовлеченность (ERR)</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
-                    {errVal.toFixed(2)}%
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
-                    {(errVal - 2.4).toFixed(2)}%
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: '#2563eb', fontVariantNumeric: 'tabular-nums' }}>
-                    +2,4 п.п.
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', color: '#94a3b8' }}>—</td>
-                </tr>
-
-                <tr style={{ backgroundColor: (categories.length + 2) % 2 === 0 ? '#ffffff' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '9px 14px', fontWeight: 500, color: '#334155' }}>Индекс цитируемости / Форварды</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
-                    {citationIdx.toFixed(1)}
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
-                    {(citationIdx * 0.95).toFixed(1)}
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: '#2563eb', fontVariantNumeric: 'tabular-nums' }}>
-                    +5,6%
-                  </td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', color: '#94a3b8' }}>—</td>
-                </tr>
-
-                {/* Summary Row */}
-                <tr style={{ backgroundColor: '#ffffff', borderTop: '2px solid #0f172a' }}>
-                  <td style={{ padding: '12px 14px', fontWeight: 800, color: '#0f172a' }}>Итого по аудитории</td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 900, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
-                    {formatNumber(members)}
-                  </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700, color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>
-                    {formatNumber(prevMembers)}
-                  </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 800, color: membersDeltaPct >= 0 ? '#2563eb' : '#e11d48', fontVariantNumeric: 'tabular-nums' }}>
-                    {formatPercent(membersDeltaPct, true)}
-                  </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
-                    100%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Section 02: Примечания к отчёту */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb' }}>02</span>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Примечания к отчёту</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Item 01 */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb' }}>01</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Источник данных</span>
-                </div>
-                <p style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.55, margin: 0 }}>
-                  Сбор данных выполняется напрямую через Telegram MTProto API сервисом TG Monitor. Контрольные снимки аудитории и активности фиксируются каждые 3 часа с валидацией истории.
-                </p>
-              </div>
-
-              {/* Item 02 */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb' }}>02</span>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Методика и ограничения</span>
-                </div>
-                <p style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.55, margin: 0 }}>
-                  ERR (Engagement Rate by Reach) рассчитывается как отношение суммарного числа реакций, комментариев и репостов к фактическому охвату публикации. Показатели за неполный день нормализуются. В случае скрытых реакций в Telegram отображается базовая оценка ER.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Page 3 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '14px', borderTop: '1px solid #e2e8f0', fontSize: '10px', color: '#64748b' }}>
-          <div>TG Monitor · Аналитика Telegram-каналов · @{channel.username || channel.title}</div>
-          <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '11px' }}>03 / 03</div>
-        </div>
+      <SectionTitle note={`${selected.postsCount} публикаций за период`}>Публикационная активность</SectionTitle>
+      <PostsChart distribution={stats.postsDistribution} />
+      <div style={{ marginTop: 20 }}>
+        <SectionTitle>Последние интервалы</SectionTitle>
+        <table style={tableStyle}><thead><tr><th style={thStyle}>Дата или час</th><th style={{ ...thStyle, textAlign: 'right' }}>Постов</th><th style={{ ...thStyle, textAlign: 'right' }}>Средние просмотры</th></tr></thead>
+          <tbody>{stats.postsDistribution.slice(-6).reverse().map(item => <tr key={item.date}>
+            <td style={tdStyle}>{item.date}</td><td style={{ ...tdStyle, textAlign: 'right' }}>{numberText(item.postsCount)}</td>
+            <td style={{ ...tdStyle, textAlign: 'right' }}>{numberText(item.viewsAvg)}</td>
+          </tr>)}</tbody></table>
+        {stats.postsDistribution.length === 0 && <Note>За выбранный период нет данных о распределении публикаций.</Note>}
       </div>
-    </div>
-  );
+    </PdfPage>
+
+    <PdfPage number={3} title="Охват и форматы" periodLabel={selected.label} channelLabel={channelLabel}>
+      <SectionTitle>Вовлечённость и охват</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+        <Kpi label={selected.er.label} value={percentText(selected.er.value)} />
+        <Kpi label={channel.type === 'group' ? 'CR за 7 дней' : selected.err.label}
+          value={percentText(channel.type === 'group' ? channel.cr7d : selected.err.value)} />
+        <Kpi label="Средние просмотры" value={numberText(selected.avgViews)} />
+      </div>
+      <SectionTitle note={`За ${selected.label}`}>Форматы публикаций</SectionTitle>
+      {formats.length > 0 ? <table style={{ ...tableStyle, marginBottom: 22 }}><thead><tr>
+        {['Формат', 'Постов', 'Доля', 'Ср. просмотры', 'Ср. ERR', 'Ср. пересылки'].map(label => <th key={label} style={thStyle}>{label}</th>)}
+      </tr></thead><tbody>{formats.map(item => <tr key={item.type}>
+        <td style={tdStyle}>{item.label}</td><td style={tdStyle}>{numberText(item.postsCount)}</td>
+        <td style={tdStyle}>{percentText(item.sharePercent)}</td><td style={tdStyle}>{numberText(item.avgViews)}</td>
+        <td style={tdStyle}>{percentText(item.avgErr)}</td><td style={tdStyle}>{decimalText(item.avgForwards)}</td>
+      </tr>)}</tbody></table> : <div style={{ marginBottom: 20 }}><Note>Нет публикаций для сравнения форматов.</Note></div>}
+      {(stats.contentFormatLeaders?.byErr || stats.contentFormatLeaders?.byViews) && <div style={{ marginBottom: 20 }}><Note>
+        {stats.contentFormatLeaders.byErr && `Лидер по ERR: ${formats.find(item => item.type === stats.contentFormatLeaders?.byErr)?.label || 'н/д'}. `}
+        {stats.contentFormatLeaders.byViews && `Лидер по средним просмотрам: ${formats.find(item => item.type === stats.contentFormatLeaders?.byViews)?.label || 'н/д'}. `}
+        Лидеры определены среди форматов с двумя и более постами.
+      </Note></div>}
+      <SectionTitle>Популярные реакции</SectionTitle>
+      {stats.popularReactions?.top.length ? <>
+        <p style={{ fontSize: 10, color: muted, margin: '0 0 10px' }}>За 30 дней, по {numberText(stats.popularReactions.coveredPosts)} постам с разбивкой</p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 22 }}>
+          {stats.popularReactions.top.slice(0, 8).map(item => <div key={item.emoji} style={{ border: `1px solid ${border}`, borderRadius: 3, padding: '9px 12px', fontSize: 12 }}>
+            {item.emoji} <strong>{numberText(item.count)}</strong> <span style={{ color: muted }}>({percentText(item.sharePercent)})</span>
+          </div>)}
+        </div>
+      </> : <div style={{ marginBottom: 20 }}><Note>Разбивка реакций пока недоступна.</Note></div>}
+      <SectionTitle>Динамика просмотров и VR</SectionTitle>
+      {stats.vrHistory?.length ? <table style={tableStyle}><thead><tr>
+        <th style={thStyle}>Дата</th><th style={{ ...thStyle, textAlign: 'right' }}>Ср. просмотры</th><th style={{ ...thStyle, textAlign: 'right' }}>VR</th>
+      </tr></thead><tbody>{stats.vrHistory.slice(-7).reverse().map(item => <tr key={item.date}>
+        <td style={tdStyle}>{item.date}</td><td style={{ ...tdStyle, textAlign: 'right' }}>{numberText(item.avgViews)}</td>
+        <td style={{ ...tdStyle, textAlign: 'right' }}>{percentText(item.vr)}</td>
+      </tr>)}</tbody></table> : <Note>История просмотров пока недоступна.</Note>}
+    </PdfPage>
+
+    <PdfPage number={4} title="Публикации" periodLabel={selected.label} channelLabel={channelLabel}>
+      <SectionTitle note="Среди последних 15 постов периода">Наибольшие просмотры</SectionTitle>
+      {topPosts.length ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 22 }}>
+        {topPosts.map(post => <Kpi key={post.id} label={dateText(post.publishedAt).slice(0, 10)} value={numberText(post.views)} detail={`Пост ${post.messageId}`} />)}
+      </div> : <div style={{ marginBottom: 20 }}><Note>Нет данных о просмотрах последних публикаций.</Note></div>}
+      <SectionTitle note="До 10 последних постов периода">Последние публикации</SectionTitle>
+      {recentPosts.length ? <table style={tableStyle}><thead><tr>
+        <th style={thStyle}>Дата и пост</th><th style={{ ...thStyle, textAlign: 'right' }}>Просмотры</th>
+        <th style={{ ...thStyle, textAlign: 'right' }}>Реакции</th><th style={{ ...thStyle, textAlign: 'right' }}>Комментарии</th>
+        <th style={{ ...thStyle, textAlign: 'right' }}>Пересылки</th>
+      </tr></thead><tbody>{recentPosts.map(post => <tr key={post.id}>
+        <td style={{ ...tdStyle, maxWidth: 280 }}>
+          <strong>{dateText(post.publishedAt).slice(0, 16)} · № {post.messageId}</strong>
+          <div style={{ color: muted, fontSize: 10, marginTop: 3, lineHeight: 1.3 }}>
+            {post.text ? `${post.text.replace(/\s+/g, ' ').slice(0, 80)}${post.text.length > 80 ? '…' : ''}` : 'Текст недоступен'}
+            {post.isViral ? ' · Необычная активность' : ''}
+          </div>
+        </td>
+        {[post.views, post.reactions, post.comments, post.forwards].map((value, index) => <td key={index} style={{ ...tdStyle, textAlign: 'right' }}>{numberText(value)}</td>)}
+      </tr>)}</tbody></table> : <Note>Нет публикаций за выбранный период.</Note>}
+      <div style={{ marginTop: 14 }}><Note>Таблица показывает только последние сохранённые публикации выбранного периода. Верхние карточки ранжируют их по просмотрам, а не все посты канала.</Note></div>
+    </PdfPage>
+
+    <PdfPage number={5} title="Сравнение и диагностика" periodLabel={selected.label} channelLabel={channelLabel}>
+      <SectionTitle>Оценки канала</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
+        <Kpi label="Content Score" value={numberText(channel.contentScore)} detail={channel.contentGrade ? `Класс ${channel.contentGrade}` : undefined} />
+        <Kpi label="Индекс цитирования" value={decimalText(channel.citationIndex)} />
+        <Kpi label="Оценка риска" value={numberText(channel.fraudScore)} detail="Эвристическая оценка, не доказательство" />
+      </div>
+      <SectionTitle>Рекламная нагрузка</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
+        <Kpi label="Доля рекламы 7д" value={percentText(channel.adShare7d?.percent)} />
+        <Kpi label="Доля рекламы 30д" value={percentText(channel.adShare30d?.percent)} />
+        <Kpi label="Последний факт просмотров" value={numberText(channel.lastPostViews)} />
+      </div>
+      <SectionTitle note={benchmark ? `Ниша: ${benchmark.niche}` : undefined}>Позиция в нише</SectionTitle>
+      {benchmark?.status === 'ready' ? <table style={{ ...tableStyle, marginBottom: 20 }}><thead><tr>
+        <th style={thStyle}>Показатель</th><th style={thStyle}>Канал</th><th style={thStyle}>Медиана ниши</th><th style={thStyle}>Ранг</th>
+      </tr></thead><tbody>{([
+        ['er7d', 'ER 7д', '%'], ['err7d', 'ERR 7д', '%'], ['vr7d', 'VR 7д', '%'],
+        ['posts7d', 'Постов 7д', ''], ['adShare30d', 'Реклама 30д', '%'], ['delta7dPct', 'Рост 7д', '%'],
+      ] as const).map(([key, label, suffix]) => {
+        const metric = benchmark.metrics[key];
+        const value = (number: number | null) => `${decimalText(number)}${number === null ? '' : suffix}`;
+        return <tr key={key}><td style={tdStyle}>{label}</td><td style={tdStyle}>{value(metric.value)}</td>
+          <td style={tdStyle}>{value(metric.median)}</td><td style={tdStyle}>{value(metric.rank)}{metric.rank === null ? '' : '%'}</td></tr>;
+      })}</tbody></table> : <div style={{ marginBottom: 20 }}><Note>{benchmark?.status === 'insufficient_cohort'
+        ? `Для сравнения нужны минимум 3 активных канала той же ниши и типа. Сейчас: ${benchmark.cohortSize}.`
+        : 'Нишевое сравнение недоступно.'}</Note></div>}
+      <SectionTitle>Сравнение с «Моим каналом»</SectionTitle>
+      {stats.myChannel && channel.comparison ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+        <Kpi label="Доля аудитории" value={percentText(channel.comparison.audienceSharePercent)} />
+        <Kpi label="Разница роста 7д" value={percentText(channel.comparison.growthRateDiff7d, true)} />
+        <Kpi label="Разница постов 7д" value={numberText(channel.comparison.activityDiff7d)} />
+      </div> : <div style={{ marginBottom: 20 }}><Note>«Мой канал» не назначен или сравнение недоступно.</Note></div>}
+      <SectionTitle>Риски и паузы</SectionTitle>
+      <div style={{ fontSize: 11, color: '#334155', lineHeight: 1.45 }}>
+        {(channel.fraudSignals ?? []).length ? channel.fraudSignals?.slice(0, 3).map((signal, index) => <div key={`${signal.signalType}-${index}`} style={{ padding: '7px 0', borderBottom: `1px solid ${border}` }}>
+          <strong>{signal.signalType}:</strong> {signal.reason.slice(0, 180)}
+        </div>) : <p style={{ margin: '0 0 8px' }}>Сигналы риска в доступных данных не обнаружены.</p>}
+        {(stats.silencePeriods ?? []).length > 0 && <p style={{ margin: '10px 0 0' }}>
+          Паузы публикаций за 90 дней: {stats.silencePeriods?.slice(0, 3).map(item => `${item.startDate} - ${item.endDate} (${item.durationDays} дн.)`).join('; ')}.
+        </p>}
+      </div>
+      <div style={{ marginTop: 20 }}><Note>Показатели отражают сохранённые данные TgMon на дату формирования. Нишевые ранги и сигналы риска носят аналитический характер. Отсутствие сигнала не подтверждает отсутствие проблемы. Нулевая доля рекламы при отсутствии публикаций не подтверждает отсутствие рекламы.</Note></div>
+    </PdfPage>
+  </div>;
 }

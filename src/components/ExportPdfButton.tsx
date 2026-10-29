@@ -54,15 +54,11 @@ export function ExportPdfButton({
       const html2canvas = (await import('html2canvas-pro')).default;
       const { jsPDF } = await import('jspdf');
 
-      const pageIds = ['pdf-page-1', 'pdf-page-2', 'pdf-page-3'];
+      const pages = Array.from(document.querySelectorAll<HTMLElement>('#pdf-render-root [data-pdf-page]'));
+      if (pages.length === 0) throw new Error('Печатные страницы отчёта не найдены');
       const pageCanvases: HTMLCanvasElement[] = [];
 
-      for (const pageId of pageIds) {
-        const pageEl = document.getElementById(pageId);
-        if (!pageEl) {
-          throw new Error(`Элемент печатной страницы ${pageId} не найден в DOM`);
-        }
-
+      for (const pageEl of pages) {
         const canvas = await html2canvas(pageEl, {
           backgroundColor: '#ffffff',
           scale: 2,
@@ -81,7 +77,7 @@ export function ExportPdfButton({
         pageCanvases.push(canvas);
       }
 
-      // Формируем чистый 3-страничный PDF строго формата А4 Portrait (210 x 297 мм)
+      // Формируем PDF из всех печатных страниц формата А4 Portrait (210 x 297 мм)
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
