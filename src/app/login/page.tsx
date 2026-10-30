@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { KeyRound, Loader2, LogIn, Shield } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -116,6 +117,7 @@ function LoginForm() {
             Войти
           </button>
         </form>
+        <p className="text-center text-xs text-slate-400"><Link href="/about" className="text-accent hover:underline">Узнать о TgMon</Link></p>
       </div>
     </main>
   );
