@@ -187,7 +187,7 @@ Tracing from data ingestion to UI display reveals a 5-stage architecture:
    - Update Worker description to note that it collects MTProto data, materializes daily metrics, and records fraud signals into DB.
 2. **Section 3 (Component Diagram — Web App & API):**
    - Add components:
-     ```mermaid
+     ```text
      Component(lib_fraud, "Fraud Detector", "src/lib/fraudDetector.ts", "Консолидированный аудит (runFraudAudit), расчет fraudScore (0-100), проверка low citation growth.")
      Component(lib_citation, "Citation Index", "src/lib/citationIndex.ts", "Логарифмический расчет индекса цитирования по входящим упоминаниям за 30 дней.")
      ```
@@ -195,7 +195,7 @@ Tracing from data ingestion to UI display reveals a 5-stage architecture:
    - Update `ui` relationship to show it receives `fraudScore`, `fraudSignals`, and `citationIndex` for rendering `RiskBadge` and table cells.
 3. **Section 4 (Component Diagram — MTProto Worker):**
    - Update `fraud_detector` component description:
-     ```mermaid
+     ```text
      Component(fraud_detector, "Fraud Detector", "src/lib/fraudDetector.ts", "4 эвристики: гладкость роста (CV), скачки без постов/упоминаний, ratio просмотров/подписчиков, шаблонность ERR (CV).")
      ```
    - Clarify relation: `Rel(collector, fraud_detector, "Проверяет 4 эвристики после материализации")` and `Rel(collector, db, "Запись снапшотов, постов, агрегатов и fraud_signals (create)")`.

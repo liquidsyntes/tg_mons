@@ -44,7 +44,7 @@ flowchart TD
     Daily --> PathChoice
     Snap --> PathChoice
     Posts --> PathChoice
-    PathChoice -->|Materialized / Fallback| ErErr
+    PathChoice -->|"Materialized / Fallback"| ErErr
     Posts --> Formats
     Posts --> ViralSilence
     PSnap --> AdIntel

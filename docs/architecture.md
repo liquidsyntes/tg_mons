@@ -42,14 +42,14 @@ flowchart TB
     API <--> Cache
     API -->|Prisma ORM| DB
     API -->|Генерация 9 AI-отчётов и скан событий| OR
-    API -->|POST /collect, /channels/add (Bearer)| WServer
+    API -->|"POST /collect, /channels/add (Bearer)"| WServer
 
     Cron --> Coord
     WServer --> Coord
     Coord --> Collector
     Collector -->|MTProto TCP| TG
     Collector -->|Prisma ORM + pg_try_advisory_xact_lock| DB
-    Collector -->|POST /api/internal/invalidate-cache (Bearer)| API
+    Collector -->|"POST /api/internal/invalidate-cache (Bearer)"| API
     Collector -->|Уведомления AlertRule и дайджесты| Bot
 ```
 
@@ -219,7 +219,7 @@ flowchart TB
     CookieV2 -->|Только ACTIVE после проверки БД| PersonalWorkspace
     PersonalWorkspace -->|Чтение только подключённых каналов| SharedPool
     CookieV1 -->|Полный доступ ADMIN| SharedPool
-    CookieV1 -->|Управление /settings и заявками| Sys
+    CookieV1 -->|"Управление /settings и заявками"| Sys
 ```
 
 Полная спецификация моделей PostgreSQL 15, типов полей, вторичных индексов, перечислений и каскадов приведена в документе [База данных и схема Prisma](database.md).
@@ -446,8 +446,8 @@ flowchart TD
     Start["Запуск POST /api/events/scan (кнопка в UI или EVENTS_SCAN_CRON)"] --> Fetch["Выборка до 2000 непроверенных постов за 14 дней (eventsScannedAt IS NULL)"]
     Fetch --> PreFilter["Предварительный отсев явных дайджестов и подборок (isLikelyEventDigestPost)"]
     PreFilter --> JevStage["Этап 1: OpenRouter Jev (~typesafe/jev-latest) — оценка признаков одного будущего анонса и условий участия"]
-    JevStage -->|Успех Jev| Rank["Отсев score < 0.2 и дайджестов >= 0.8; ранжирование топ-100 кандидатов"]
-    JevStage -->|Ошибка Jev| Fallback["Fallback: фильтр по ключевым словам (selectionMode = keyword_fallback)"]
+    JevStage -->|"Успех Jev"| Rank["Отсев score < 0.2 и дайджестов >= 0.8; ранжирование топ-100 кандидатов"]
+    JevStage -->|"Ошибка Jev"| Fallback["Fallback: фильтр по ключевым словам (selectionMode = keyword_fallback)"]
     Rank --> LLMStage["Этап 2: Генеративная модель (z-ai/glm-5.3-flash, timeout 120с) — извлечение title, date, timeStr, organizer, prices"]
     Fallback --> LLMStage
     LLMStage --> Dedup["Сопоставление дублей (isSameEvent) и транзакционное слияние (mergeDuplicateEventsInDb)"]

@@ -18,15 +18,15 @@ TgMon располагает неполными наблюдениями Telegra
 
 ```mermaid
 flowchart TD
-    T[Telegram] --> W[Worker: сырые данные и материализация]
-    W --> H[Четыре детектора]
-    H --> F[(FraudSignal)]
-    D[(Post и Snapshot / ChannelMetricDaily)] --> Q[Web queries]
-    F -->|сигналы за 30 дней| Q
-    Q --> A[runFraudAudit]
-    A --> B[RiskBadge: балл и причины]
-    M[(Mention и аудитория источников)] --> CI[Citation Index]
-    CI --> U[Контекст цитирования в UI]
+    T["Telegram"] --> W["Worker: сырые данные и материализация"]
+    W --> H["Четыре детектора"]
+    H --> F[("FraudSignal")]
+    D[("Post и Snapshot / ChannelMetricDaily")] --> Q["Web queries"]
+    F -->|"сигналы за 30 дней"| Q
+    Q --> A["runFraudAudit"]
+    A --> B["RiskBadge: балл и причины"]
+    M[("Mention и аудитория источников")] --> CI["Citation Index"]
+    CI --> U["Контекст цитирования в UI"]
 ```
 
 ## Пороговые значения реализации

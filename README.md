@@ -27,15 +27,15 @@ flowchart LR
         OR["OpenRouter API (LLM + Jev)"]
     end
 
-    Admin -->|HTTPS / Cookie v2, v1| Web
-    User -->|HTTPS / Cookie v2| Web
-    Web -->|Prisma ORM| DB
-    Web -->|Генерация 9 типов AI-отчётов и скан событий| OR
-    Web -->|Закрытый HTTP API :4001, Bearer| Worker
-    Worker -->|Сбор каналов, постов, демографии, охвата| TG
-    Worker -->|Запись снимков, агрегатов, сигналов| DB
-    Worker -->|POST /api/internal/invalidate-cache| Web
-    Worker -->|Уведомления правил и ежедневные дайджесты| Bot
+    Admin -->|"HTTPS / Cookie v2, v1"| Web
+    User -->|"HTTPS / Cookie v2"| Web
+    Web -->|"Prisma ORM"| DB
+    Web -->|"Генерация 9 типов AI-отчётов и скан событий"| OR
+    Web -->|"Закрытый HTTP API :4001, Bearer"| Worker
+    Worker -->|"Сбор каналов, постов, демографии, охвата"| TG
+    Worker -->|"Запись снимков, агрегатов, сигналов"| DB
+    Worker -->|"POST /api/internal/invalidate-cache"| Web
+    Worker -->|"Уведомления правил и ежедневные дайджесты"| Bot
 ```
 
 ## Возможности
