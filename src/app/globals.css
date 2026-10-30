@@ -74,3 +74,46 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+.about-hero {
+  background:
+    radial-gradient(ellipse 44% 28% at 50% 43%, rgba(56, 189, 248, 0.34), transparent 88%),
+    radial-gradient(ellipse 55% 32% at 50% 78%, rgba(2, 132, 199, 0.32), transparent 88%),
+    radial-gradient(ellipse 55% 45% at 50% 10%, rgba(24, 79, 139, 0.35), transparent 78%),
+    #090d16;
+}
+
+.about-hero::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: '';
+  opacity: 0.35;
+  background-image: radial-gradient(circle, #7dd3fc 1px, transparent 1.5px);
+  background-size: 139px 143px;
+  mask-image: linear-gradient(to bottom, transparent 5%, black 38%, transparent 95%);
+}
+
+.about-observation {
+  background:
+    radial-gradient(ellipse 45% 110% at 50% 120%, rgba(56, 189, 248, 0.2), transparent 90%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(12, 49, 77, 0.94) 55%, rgba(15, 23, 42, 0.98));
+}
+
+.about-section-glow {
+  background:
+    radial-gradient(ellipse 55% 24% at 50% 10%, rgba(56, 189, 248, 0.2), transparent 88%),
+    #0b1120;
+}
+
+.about-featured {
+  background:
+    radial-gradient(ellipse 65% 90% at 90% 100%, rgba(56, 189, 248, 0.28), transparent 80%),
+    linear-gradient(125deg, #0f172a, #101d33);
+}
+
+.about-access {
+  background:
+    radial-gradient(ellipse 65% 90% at 50% 110%, rgba(56, 189, 248, 0.3), transparent 80%),
+    linear-gradient(135deg, #0f172a, #10263d);
+}
