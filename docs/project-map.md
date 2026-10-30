@@ -8,7 +8,7 @@
 
 | Область | Ответственность и точки входа |
 | --- | --- |
-| Web | Публичная стартовая `src/app/about/page.tsx`, защищённая главная `src/app/page.tsx`, `src/app/channel/[id]/page.tsx`; страницы сравнения, постов, отчётов, событий и настроек в `src/app/`; UI в `src/components/` |
+| Web | Публичная стартовая `src/app/about/route.ts` с шаблоном `src/app/about/stitch.html`, исходными стилями `src/app/about/stitch.input.css`, конфигурацией `src/app/about/tailwind.config.cjs` и собранным `public/about/stitch.css`; защищённая главная `src/app/page.tsx`, `src/app/channel/[id]/page.tsx`; страницы сравнения, постов, отчётов, событий и настроек в `src/app/`; UI в `src/components/` |
 | HTTP и доступ | `src/app/api/`, включая Telegram OIDC в `/api/auth/telegram/`, заявки в `/api/admin/registrations`, рейтинг, закладки и дайджест; `src/middleware.ts`, `src/lib/auth.ts`, `src/lib/telegram-login.ts`, `src/lib/users.ts`, `src/lib/tags.ts`; сессии, роли и актуальный статус доступа |
 | Аналитика | `src/lib/metrics.ts` и `src/lib/metrics/`: выборки и расчёты, включая сводку реакций, рейтинг рекламодателей и динамику цитирований; `src/lib/channel-activity.ts` и `/api/stats/channel/:id/activity`: 48 часовых строк; `src/lib/materialize.ts`: дневные агрегаты; `src/lib/types.ts`: общие контракты |
 | Telegram worker | `src/worker/index.ts`: расписания; `src/worker/server.ts`: внутренний HTTP; `src/worker/auth.ts`: авторизация; сбор в `src/worker/collector.ts`, разбор реакций в `src/worker/message-reactions.ts`, ссылки на посты в `src/worker/post-mentions.ts` |

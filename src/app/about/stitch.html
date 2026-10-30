@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ru"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>TgMon — Аналитика Telegram-каналов</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link rel="stylesheet" href="/about/stitch.css"/><meta name="description" content="Аналитика Telegram-каналов в одном окне: аудитория, публикации, сравнение, сигналы риска и отчёты."/></head><body class="bg-surface-base text-on-surface font-body-md text-body-md min-h-screen selection:bg-primary-container selection:text-on-primary-container relative overflow-x-hidden"><div class="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(56,189,248,0.12),rgba(9,13,22,0))]"></div><header class="fixed top-0 left-0 right-0 z-50 bg-surface-card/80 backdrop-blur-md border-b border-border-glass"><div class="h-16 max-w-[1280px] mx-auto px-margin flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><a class="flex items-center gap-space-sm focus:outline-none focus:ring-1 focus:ring-primary-container rounded-lg" data-path="landing-page" href="/about"><img alt="TgMon Logo" class="h-8 w-auto object-contain" src="/tg_mon_logo.png"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold">TgMon</span></a><span class="hidden lg:inline-flex items-center px-space-xs py-0.5 rounded bg-surface-container border border-border-glass text-outline font-badge-label text-badge-label">v2.4 beta · commit #7f4c9a</span></div><nav class="hidden md:flex items-center gap-space-lg" data-active-classes="text-primary font-medium"><a class="transition-colors text-primary font-medium" data-path="landing-page" href="#features">Возможности</a><a class="transition-colors text-primary font-medium" data-path="landing-page" href="#roles">Кому подойдёт</a><a class="transition-colors text-primary font-medium" data-path="landing-page" href="#how-it-works">Как это работает</a><a class="transition-colors text-primary font-medium" data-path="landing-page" href="#metrics">Метрики</a><a class="transition-colors text-primary font-medium" data-path="landing-page" href="#faq">FAQ</a></nav><div class="flex items-center gap-space-sm shrink-0"><a class="hidden sm:inline-flex items-center justify-center px-3.5 py-1.5 rounded-lg border border-border-subtle bg-surface-elevated/70 text-on-surface font-body-sm text-body-sm hover:border-primary-container hover:text-primary transition-all duration-200" data-path="login" href="/login">Войти</a><a class="inline-flex items-center justify-center px-4 py-1.5 rounded-lg bg-primary-container text-surface-base font-headline-sm text-body-sm font-semibold hover:shadow-[0_0_16px_rgba(56,189,248,0.4)] transition-all duration-200" data-path="login" href="/login">Запросить доступ</a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-1"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative z-10 w-full pt-16 bg-surface-base"><div class="flex flex-col w-full">
+<!-- SECTION 1: HERO SECTION -->
+<section class="relative w-full pt-12 pb-20 overflow-hidden">
+<!-- Ambient Light Accent Glows (contained) -->
+<div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[340px] bg-primary-container/10 blur-[130px] rounded-full pointer-events-none -z-10"></div>
+<div class="absolute top-1/3 right-10 w-[380px] h-[300px] bg-accent-ai/10 blur-[120px] rounded-full pointer-events-none -z-10"></div>
+<div class="max-w-[1280px] mx-auto px-margin">
+<!-- Announcement Tag -->
+<div class="flex justify-center mb-6">
+<div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-surface-card/90 shadow-sm">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-container opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary-container"></span>
+</span>
+<span class="font-badge-label text-badge-label text-primary tracking-wide">
+            Платформа глубокого мониторинга и аудита Telegram-каналов
+          </span>
+</div>
+</div>
+<!-- Main Headline & Subtitle -->
+<div class="text-center max-w-4xl mx-auto space-y-5">
+<h1 class="font-display-hero text-display-hero text-on-surface tracking-tight">
+          Вся аналитика Telegram-каналов в одном окне
+        </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto leading-relaxed">
+          Динамика аудитории, реальная вовлечённость (ERR/VR), рекламная нагрузка Ad Load, эвристический антифрод RiskBadge и AI-отчёты без маркетинговых прикрас.
+        </p>
+<!-- CTA Buttons -->
+<div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+<a class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-lg bg-primary-container text-surface-base font-headline-sm text-body-md font-semibold shadow-lg hover:shadow-[0_0_24px_rgba(56,189,248,0.45)] transition-all duration-200" data-path="login" href="/login">
+<span class="material-symbols-outlined text-[20px] text-surface-base" style="font-variation-settings: 'FILL' 1;">send</span>
+<span>Запросить доступ через Telegram</span>
+</a>
+<a class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-surface-elevated/70 text-on-surface font-body-md text-body-md hover:text-primary transition-all duration-200" href="#features">
+<span>Смотреть возможности</span>
+<span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+</a>
+</div>
+<!-- Honest Footnote -->
+<div class="pt-2 flex items-center justify-center gap-2 text-outline font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-metric-warning">lock</span>
+<span>Доступ по персональной заявке. Одобрение администратором в течение 15 минут.</span>
+</div>
+</div>
+<!-- Interactive Anchor Mockup (Authentic Dashboard Preview) -->
+<div class="mt-14 relative mx-auto w-full max-w-[1200px]">
+<div class="rounded-xl bg-surface-card/90 shadow-2xl p-4 sm:p-6 backdrop-blur-xl">
+<!-- Mockup Top Bar -->
+<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 mb-6 bg-surface-container-low/70 -mx-4 -mt-4 p-4 rounded-t-xl sm:-mx-6 sm:-mt-6 sm:p-5">
+<div class="flex items-center gap-3 w-full lg:w-auto">
+<div class="flex items-center gap-2 bg-surface-elevated px-3 py-1.5 rounded-lg text-primary text-body-sm font-badge-label">
+<span class="w-2 h-2 rounded-full bg-metric-positive"></span>
+<span>live-telemetry</span>
+</div>
+<!-- Channel Selector Tabs -->
+<div class="flex items-center gap-1.5 overflow-x-auto py-1">
+<button class="px-3 py-1.5 rounded-md bg-surface-card text-primary font-badge-label text-badge-label shadow-sm flex items-center gap-1.5">
+<span class="text-on-surface-variant font-sans">@</span>tech_insider
+                  <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+</button>
+<button class="px-3 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface font-badge-label text-badge-label transition-colors">
+                  @crypto_pulse
+                </button>
+<button class="px-3 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface font-badge-label text-badge-label transition-colors">
+                  @daily_marketing
+                </button>
+</div>
+</div>
+<!-- Timeframe Tabs & Search -->
+<div class="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+<div class="flex items-center bg-surface-base p-1 rounded-lg">
+<button class="px-2.5 py-1 text-on-surface-variant font-badge-label text-badge-label rounded hover:text-on-surface transition-colors">24ч</button>
+<button class="px-2.5 py-1 text-surface-base bg-primary-container font-badge-label text-badge-label rounded font-semibold shadow-sm">7д</button>
+<button class="px-2.5 py-1 text-on-surface-variant font-badge-label text-badge-label rounded hover:text-on-surface transition-colors">30д</button>
+<button class="px-2.5 py-1 text-on-surface-variant font-badge-label text-badge-label rounded hover:text-on-surface transition-colors">Всё время</button>
+</div>
+<div class="hidden sm:flex items-center gap-1.5 bg-surface-elevated/70 px-3 py-1.5 rounded-lg text-on-surface-variant text-body-sm">
+<span class="material-symbols-outlined text-[16px]">search</span>
+<span class="font-body-sm text-body-sm">Поиск по каналу...</span>
+</div>
+</div>
+</div>
+<!-- KPI Cards Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<!-- KPI 1 -->
+<div class="p-4 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant mb-2">
+<span class="font-body-sm text-body-sm">Подписчики</span>
+<span class="material-symbols-outlined text-[18px] text-primary">groups</span>
+</div>
+<div class="flex items-baseline justify-between mb-2">
+<span class="font-metric-num-lg text-metric-num-lg text-on-surface">148,250</span>
+<span class="font-badge-label text-badge-label text-metric-positive flex items-center">+2.1%</span>
+</div>
+<div class="flex items-center justify-between text-outline font-body-sm text-body-sm">
+<span>Прирост 7д:</span>
+<span class="font-metric-num-md text-metric-num-md text-metric-positive text-body-sm">+1,420</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="p-4 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant mb-2">
+<span class="font-body-sm text-body-sm">Вовлечённость (ERR)</span>
+<span class="material-symbols-outlined text-[18px] text-primary">insights</span>
+</div>
+<div class="flex items-baseline justify-between mb-2">
+<span class="font-metric-num-lg text-metric-num-lg text-primary-container">8.4%</span>
+<span class="font-badge-label text-badge-label text-metric-positive bg-metric-positive/10 px-1.5 py-0.5 rounded">P75: 7.8%</span>
+</div>
+<div class="flex items-center justify-between text-outline font-body-sm text-body-sm">
+<span>Медиана ниши:</span>
+<span class="font-metric-num-md text-metric-num-md text-on-surface text-body-sm">5.2%</span>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="p-4 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant mb-2">
+<span class="font-body-sm text-body-sm">Реклама (Ad Load)</span>
+<span class="material-symbols-outlined text-[18px] text-metric-warning">campaign</span>
+</div>
+<div class="flex items-baseline justify-between mb-2">
+<span class="font-metric-num-lg text-metric-num-lg text-on-surface">14.2%</span>
+<span class="font-badge-label text-badge-label text-metric-positive bg-metric-positive/10 px-1.5 py-0.5 rounded">Норма</span>
+</div>
+<div class="flex items-center justify-between text-outline font-body-sm text-body-sm">
+<span>Частота:</span>
+<span class="font-metric-num-md text-metric-num-md text-on-surface text-body-sm">1.1 пост/день</span>
+</div>
+</div>
+<!-- KPI 4 -->
+<div class="p-4 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-on-surface-variant mb-2">
+<span class="font-body-sm text-body-sm">RiskBadge (Антифрод)</span>
+<span class="material-symbols-outlined text-[18px] text-metric-positive">verified_user</span>
+</div>
+<div class="flex items-baseline justify-between mb-2">
+<span class="font-metric-num-lg text-metric-num-lg text-metric-positive">12<span class="text-body-sm text-outline">/100</span></span>
+<span class="font-badge-label text-badge-label text-metric-positive bg-metric-positive/10 px-2 py-0.5 rounded uppercase">Чистый трафик</span>
+</div>
+<div class="flex items-center justify-between text-outline font-body-sm text-body-sm">
+<span>Эвристика:</span>
+<span class="text-metric-positive font-body-sm">Низкий риск</span>
+</div>
+</div>
+</div>
+<!-- Dual Chart & Heatmap Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
+<!-- Dual-line Chart (30-day views vs subscribers) -->
+<div class="lg:col-span-8 p-5 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Охваты публикаций и динамика базы</h4>
+<p class="font-body-sm text-body-sm text-outline">Сопоставление пиковых просмотров с суточным приростом</p>
+</div>
+<div class="flex items-center gap-4 font-badge-label text-badge-label">
+<div class="flex items-center gap-1.5 text-primary-container">
+<span class="w-2.5 h-2.5 rounded-sm bg-primary-container"></span>
+<span>VR (Просмотры)</span>
+</div>
+<div class="flex items-center gap-1.5 text-accent-ai">
+<span class="w-2.5 h-2.5 rounded-sm bg-accent-ai"></span>
+<span>Подписчики</span>
+</div>
+</div>
+</div>
+<!-- SVG Dual Line Chart -->
+<div class="w-full h-48 sm:h-56 relative flex items-end">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 700 200">
+<!-- Grid Lines -->
+<line stroke="rgba(255,255,255,0.05)" stroke-dasharray="4 4" x1="0" x2="700" y1="40" y2="40"></line>
+<line stroke="rgba(255,255,255,0.05)" stroke-dasharray="4 4" x1="0" x2="700" y1="90" y2="90"></line>
+<line stroke="rgba(255,255,255,0.05)" stroke-dasharray="4 4" x1="0" x2="700" y1="140" y2="140"></line>
+<line stroke="rgba(255,255,255,0.08)" x1="0" x2="700" y1="190" y2="190"></line>
+<!-- Area Views (Primary) -->
+<defs>
+<lineargradient id="primaryGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25"></stop>
+<stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,160 Q60,140 120,110 T240,95 T360,65 T480,110 T600,45 T700,55 L700,190 L0,190 Z" fill="url(#primaryGradient)"></path>
+<!-- Line Views -->
+<path d="M0,160 Q60,140 120,110 T240,95 T360,65 T480,110 T600,45 T700,55" fill="none" stroke="#38bdf8" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Line Subscribers (Accent AI) -->
+<path d="M0,180 Q80,170 160,160 T320,145 T480,120 T640,85 T700,75" fill="none" stroke="#8B5CF6" stroke-dasharray="4 3" stroke-linecap="round" stroke-width="2"></path>
+<!-- Metric Dots -->
+<circle class="shadow-lg" cx="360" cy="65" fill="#38bdf8" r="4.5"></circle>
+<circle cx="600" cy="45" fill="#38bdf8" r="4.5"></circle>
+</svg>
+</div>
+<div class="flex justify-between items-center pt-3 text-outline font-badge-label text-badge-label">
+<span>01 Мая</span>
+<span>08 Мая</span>
+<span>15 Мая</span>
+<span>22 Мая</span>
+<span>Сегодня</span>
+</div>
+</div>
+<!-- Heatmap Activity (Hours x Days) -->
+<div class="lg:col-span-4 p-5 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-1">
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Пики активности</h4>
+<span class="font-badge-label text-badge-label text-primary-container">MSK (UTC+3)</span>
+</div>
+<p class="font-body-sm text-body-sm text-outline mb-4">Тепловая карта читаемости по часам</p>
+</div>
+<!-- Simplified CSS Heatmap grid -->
+<div class="grid grid-cols-6 gap-1.5 my-auto">
+<div class="text-[10px] text-outline text-center py-1">08:00</div>
+<div class="text-[10px] text-outline text-center py-1">11:00</div>
+<div class="text-[10px] text-outline text-center py-1">14:00</div>
+<div class="text-[10px] text-outline text-center py-1">18:00</div>
+<div class="text-[10px] text-outline text-center py-1">21:00</div>
+<div class="text-[10px] text-outline text-center py-1">23:00</div>
+<!-- Row 1: Пн -->
+<div class="h-6 rounded bg-primary-container/20"></div>
+<div class="h-6 rounded bg-primary-container/60"></div>
+<div class="h-6 rounded bg-primary-container/40"></div>
+<div class="h-6 rounded bg-primary-container/90"></div>
+<div class="h-6 rounded bg-primary-container/50"></div>
+<div class="h-6 rounded bg-primary-container/10"></div>
+<!-- Row 2: Ср -->
+<div class="h-6 rounded bg-primary-container/30"></div>
+<div class="h-6 rounded bg-primary-container/80"></div>
+<div class="h-6 rounded bg-primary-container/50"></div>
+<div class="h-6 rounded bg-primary-container/95"></div>
+<div class="h-6 rounded bg-primary-container/70"></div>
+<div class="h-6 rounded bg-primary-container/20"></div>
+<!-- Row 3: Пт -->
+<div class="h-6 rounded bg-primary-container/15"></div>
+<div class="h-6 rounded bg-primary-container/40"></div>
+<div class="h-6 rounded bg-primary-container/30"></div>
+<div class="h-6 rounded bg-primary-container/75"></div>
+<div class="h-6 rounded bg-primary-container/40"></div>
+<div class="h-6 rounded bg-primary-container/10"></div>
+<!-- Row 4: Вс -->
+<div class="h-6 rounded bg-primary-container/10"></div>
+<div class="h-6 rounded bg-primary-container/20"></div>
+<div class="h-6 rounded bg-primary-container/25"></div>
+<div class="h-6 rounded bg-primary-container/45"></div>
+<div class="h-6 rounded bg-primary-container/30"></div>
+<div class="h-6 rounded bg-primary-container/15"></div>
+</div>
+<div class="pt-3 flex items-center justify-between text-outline font-badge-label text-badge-label">
+<span>Мин. вовлечение</span>
+<div class="flex items-center gap-1">
+<span class="w-3 h-2 rounded-xs bg-primary-container/20"></span>
+<span class="w-3 h-2 rounded-xs bg-primary-container/50"></span>
+<span class="w-3 h-2 rounded-xs bg-primary-container/90"></span>
+</div>
+<span class="text-primary-container">Пик (18:00–20:00)</span>
+</div>
+</div>
+</div>
+<!-- Channel Posts Table -->
+<div class="overflow-x-auto rounded-xl bg-surface-container-low shadow-sm">
+<table class="w-full text-left font-body-sm text-body-sm">
+<thead class="bg-surface-elevated/50 text-outline font-badge-label text-badge-label uppercase tracking-wider">
+<tr>
+<th class="py-3 px-4">Публикация</th>
+<th class="py-3 px-4">Время</th>
+<th class="py-3 px-4">Охват (VR)</th>
+<th class="py-3 px-4">ERR</th>
+<th class="py-3 px-4">Ad Mark</th>
+<th class="py-3 px-4">AI Score</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-glass font-body-sm">
+<tr class="hover:bg-surface-elevated/30 transition-colors">
+<td class="py-3 px-4 text-on-surface font-medium truncate max-w-[280px]">
+                    «Архитектура Telegram Bot API v7.2: анализ задержек...»
+                  </td>
+<td class="py-3 px-4 text-outline font-badge-label">Сегодня, 14:20</td>
+<td class="py-3 px-4 font-metric-num-md text-metric-num-md text-on-surface">34,180 (23.0%)</td>
+<td class="py-3 px-4 font-metric-num-md text-metric-num-md text-metric-positive">9.2%</td>
+<td class="py-3 px-4">
+<span class="px-2 py-0.5 rounded bg-surface-container text-outline font-badge-label text-badge-label">Органический</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1 text-accent-ai font-badge-label text-badge-label font-bold">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span> 9.4
+                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-elevated/30 transition-colors">
+<td class="py-3 px-4 text-on-surface font-medium truncate max-w-[280px]">
+                    «Спонсорский обзор инфраструктуры Edge Storage...»
+                  </td>
+<td class="py-3 px-4 text-outline font-badge-label">Вчера, 18:05</td>
+<td class="py-3 px-4 font-metric-num-md text-metric-num-md text-on-surface">28,940 (19.5%)</td>
+<td class="py-3 px-4 font-metric-num-md text-metric-num-md text-on-surface-variant">4.8%</td>
+<td class="py-3 px-4">
+<span class="px-2 py-0.5 rounded bg-metric-warning/15 text-metric-warning font-badge-label text-badge-label font-medium">Реклама (1.1x)</span>
+</td>
+<td class="py-3 px-4">
+<span class="inline-flex items-center gap-1 text-accent-ai font-badge-label text-badge-label font-bold">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span> 7.1
+                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: TARGET AUDIENCE (КОМУ ЭТО НАДО) -->
+<section class="w-full py-20 bg-surface-container-lowest" id="roles">
+<div class="max-w-[1280px] mx-auto px-margin">
+<!-- Section Header -->
+<div class="max-w-2xl mb-12">
+<span class="font-badge-label text-badge-label text-primary uppercase tracking-widest block mb-2">01 // Профили пользователей</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">Кому необходим TgMon</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-3">
+          Нейтральная аналитика без привязки к тематике — от авторских блогов до медиахолдингов.
+        </p>
+</div>
+<!-- 5 Role Cards Adaptive Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Role 1 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+<div>
+<div class="w-12 h-12 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary-container mb-5">
+<span class="material-symbols-outlined text-[26px]">edit_note</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Владельцы и авторы каналов</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Контроль чистого роста, удержание аудитории, вычисление пиковых часов публикаций и защита от ботоводных атак.
+            </p>
+</div>
+<div class="pt-6 mt-6 bg-surface-elevated/40 -mx-6 -mb-6 p-4 rounded-b-xl flex items-center justify-between text-outline font-badge-label text-badge-label">
+<span>Фокус: Удержание и пики</span>
+<span class="text-primary">→ ERR Retention</span>
+</div>
+</div>
+<!-- Role 2 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+<div>
+<div class="w-12 h-12 rounded-lg bg-metric-warning/10 flex items-center justify-center text-metric-warning mb-5">
+<span class="material-symbols-outlined text-[26px]">monetization_on</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Маркетологи и медиабайеры</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Точная оценка каналов перед закупом: расчёт реального CPM, проверка рекламной отдачи по часам и аудит накруток.
+            </p>
+</div>
+<div class="pt-6 mt-6 bg-surface-elevated/40 -mx-6 -mb-6 p-4 rounded-b-xl flex items-center justify-between text-outline font-badge-label text-badge-label">
+<span>Фокус: Экономия бюджета</span>
+<span class="text-metric-warning">→ True CPM</span>
+</div>
+</div>
+<!-- Role 3 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+<div>
+<div class="w-12 h-12 rounded-lg bg-accent-ai/10 flex items-center justify-center text-accent-ai mb-5">
+<span class="material-symbols-outlined text-[26px]">hub</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">SMM и креативные агентства</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Мониторинг десятков клиентских и конкурентных каналов в одном окне с автоматической выгрузкой отчётов.
+            </p>
+</div>
+<div class="pt-6 mt-6 bg-surface-elevated/40 -mx-6 -mb-6 p-4 rounded-b-xl flex items-center justify-between text-outline font-badge-label text-badge-label">
+<span>Фокус: Мультиканальность</span>
+<span class="text-accent-ai">→ Client Reports</span>
+</div>
+</div>
+<!-- Role 4 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+<div>
+<div class="w-12 h-12 rounded-lg bg-metric-positive/10 flex items-center justify-center text-metric-positive mb-5">
+<span class="material-symbols-outlined text-[26px]">radar</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Аналитики инфополя</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Карты цитирования, отслеживание цепочек репостов, виральные волны и детекция трендов до их появления в широком паблике.
+            </p>
+</div>
+<div class="pt-6 mt-6 bg-surface-elevated/40 -mx-6 -mb-6 p-4 rounded-b-xl flex items-center justify-between text-outline font-badge-label text-badge-label">
+<span>Фокус: Первоисточники</span>
+<span class="text-metric-positive">→ Citation Mesh</span>
+</div>
+</div>
+<!-- Role 5 (Spanning 2 columns on desktop for layout balance) -->
+<div class="md:col-span-2 lg:col-span-2 p-6 rounded-xl bg-surface-card shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+<div>
+<div class="w-12 h-12 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary-container mb-5">
+<span class="material-symbols-outlined text-[26px]">event_upcoming</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Организаторы и посетители мероприятий</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed max-w-xl">
+              Умный сканер анонсов и ивентов в каналах с моментальным экспортом в Google Calendar / iCal. Парсинг дат, мест и спикеров из произвольного текста постов.
+            </p>
+</div>
+<div class="pt-6 mt-6 bg-surface-elevated/40 -mx-6 -mb-6 p-4 rounded-b-xl flex items-center justify-between text-outline font-badge-label text-badge-label">
+<span>Интеграции: Google Calendar · iCal · ICS Sync</span>
+<span class="text-primary-container">→ Event Extraction AI</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3: KEY CAPABILITIES (ЧТО ВЫ ПОЛУЧАЕТЕ) -->
+<section class="w-full py-20 relative" id="features">
+<div class="max-w-[1280px] mx-auto px-margin">
+<!-- Section Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
+<div>
+<span class="font-badge-label text-badge-label text-primary uppercase tracking-widest block mb-2">02 // Инструментарий платформы</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">Ключевые возможности TgMon</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-md">
+          Точные математические метрики без скрытых коэффициентов и сфальсифицированной органики.
+        </p>
+</div>
+<!-- Grid 2x3 cards with rich technical widgets -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1: Динамика аудитории -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-badge-label text-badge-label text-primary uppercase">01. Аудитория</span>
+<span class="material-symbols-outlined text-primary text-[20px]">trending_up</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Динамика аудитории</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-5">
+              Прирост и отток подписчиков за 24ч / 7д / 30д, поминутная фиксация постов и тепловая карта пиков онлайна.
+            </p>
+</div>
+<!-- Mini Technical Widget -->
+<div class="p-3 rounded-lg bg-surface-container-low space-y-2 font-badge-label text-badge-label">
+<div class="flex justify-between items-center text-outline">
+<span>Срез 24 часа</span>
+<span class="text-metric-positive">+412 подп. (чистый)</span>
+</div>
+<div class="w-full bg-surface-elevated h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 78%"></div>
+</div>
+<div class="flex justify-between items-center text-[10px] text-outline">
+<span>Отток: 14 (3.2%)</span>
+<span>Прирост: 426</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Метрики вовлечённости -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-badge-label text-badge-label text-primary uppercase">02. Вовлечение</span>
+<span class="material-symbols-outlined text-primary text-[20px]">equalizer</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Метрики вовлечённости</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-5">
+              ER, ERR, VR и Content Score. Сопоставление с честными нишевыми бенчмарками (P25 / медиана / P75).
+            </p>
+</div>
+<!-- Mini Technical Widget -->
+<div class="p-3 rounded-lg bg-surface-container-low space-y-2">
+<div class="flex items-center justify-between text-body-sm">
+<span class="text-outline font-body-sm">Content Score</span>
+<span class="font-metric-num-md text-metric-num-md text-primary-container">88.5 / 100</span>
+</div>
+<div class="grid grid-cols-3 gap-1 text-center font-badge-label text-[10px]">
+<div class="p-1 rounded bg-surface-elevated text-outline">P25: 4.1%</div>
+<div class="p-1 rounded bg-surface-elevated text-on-surface">Med: 6.2%</div>
+<div class="p-1 rounded bg-primary-container/20 text-primary-container font-semibold">P75: 8.8%</div>
+</div>
+</div>
+</div>
+<!-- Card 3: Рекламная аналитика -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-badge-label text-badge-label text-metric-warning uppercase">03. Коммерция</span>
+<span class="material-symbols-outlined text-metric-warning text-[20px]">analytics</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Рекламная аналитика</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-5">
+              Ad Load (доля рекламы в ленте), почасовой охват промо-постов, расчёт расчётного CPM и шпионский режим Ad Spy.
+            </p>
+</div>
+<!-- Mini Technical Widget -->
+<div class="p-3 rounded-lg bg-surface-container-low space-y-2 font-badge-label text-badge-label">
+<div class="flex justify-between items-center text-outline">
+<span>Оценка CPM</span>
+<span class="text-on-surface font-metric-num-md">640 ₽</span>
+</div>
+<div class="flex justify-between items-center text-outline">
+<span>Доля Ad Load</span>
+<span class="text-metric-positive">14.2% (Норма &lt; 20%)</span>
+</div>
+</div>
+</div>
+<!-- Card 4: Антифрод & RiskBadge -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-badge-label text-badge-label text-metric-positive uppercase">04. Аудит чистоты</span>
+<span class="material-symbols-outlined text-metric-positive text-[20px]">security</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Антифрод &amp; RiskBadge</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">
+              Эвристические сигналы риска, детекция аномальных всплесков просмотров без комментариев и накрутки ботов.
+            </p>
+<!-- Обязательный дисклеймер плашкой -->
+<div class="p-2.5 rounded-lg bg-surface-container text-outline font-body-sm text-[12px] leading-snug mb-4">
+              ⚠️ Оценка риска — это статистическая эвристика, а не юридическое доказательство накрутки.
+            </div>
+</div>
+<!-- Mini Technical Widget -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-metric-positive"></span>
+<span class="font-badge-label text-badge-label text-on-surface">Индекс чистоты</span>
+</div>
+<span class="font-metric-num-md text-metric-num-md text-metric-positive">92 / 100</span>
+</div>
+</div>
+<!-- Card 5: AI-отчёты и Content-Gap -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-badge-label text-badge-label text-accent-ai uppercase">05. Нейросети</span>
+<span class="material-symbols-outlined text-accent-ai text-[20px]">neurology</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">AI-отчёты &amp; Content-Gap</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-5">
+              Автоматическая сводка дня, сравнение каналов тет-а-тет, поиск упущенных инфоповодов конкурентов и готовый план действий.
+            </p>
+</div>
+<!-- Mini Technical Widget -->
+<div class="p-3 rounded-lg bg-surface-container-low space-y-1.5 font-body-sm text-body-sm">
+<div class="flex items-center gap-1.5 text-accent-ai font-badge-label text-badge-label">
+<span class="material-symbols-outlined text-[14px]">tips_and_updates</span>
+<span>Content-Gap аномалия</span>
+</div>
+<p class="text-on-surface-variant text-[12px]">Тема «LLM On-Device» дала конкуренту +320% к медианному охвату.</p>
+</div>
+</div>
+<!-- Card 6: Умные уведомления -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="font-badge-label text-badge-label text-primary-container uppercase">06. Мониторинг</span>
+<span class="material-symbols-outlined text-primary-container text-[20px]">notifications_active</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Умные уведомления</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-5">
+              Гибкие пороги по охватам, алерты о вирусных постах, мониторинг ключевых слов и утренний дайджест прямо в Telegram-бот.
+            </p>
+</div>
+<!-- Mini Technical Widget -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between font-badge-label text-badge-label">
+<div class="flex items-center gap-2 text-primary-container">
+<span class="material-symbols-outlined text-[16px]">send</span>
+<span>Telegram Bot Alerts</span>
+</div>
+<span class="text-metric-positive">&lt; 30 сек задержка</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: HOW IT WORKS (КАК ЭТО РАБОТАЕТ) -->
+<section class="w-full py-20 bg-surface-container-lowest" id="how-it-works">
+<div class="max-w-[1280px] mx-auto px-margin">
+<!-- Section Header -->
+<div class="text-center max-w-3xl mx-auto mb-16">
+<span class="font-badge-label text-badge-label text-primary uppercase tracking-widest block mb-2">03 // Процесс работы</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">Как устроен TgMon</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-3">
+          Три понятных этапа от первичной заявки до непрерывного телеметрического контроля.
+        </p>
+</div>
+<!-- 3-Step Timeline -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative mb-12">
+<!-- Step 1 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between relative">
+<div>
+<div class="font-metric-num-lg text-metric-num-lg text-primary-container/40 mb-4 font-bold">01</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Заявка через Telegram Login</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Авторизуетесь через Telegram, подтверждаете профиль. Администратор одобряет доступ к системе в течение 15 минут.
+            </p>
+</div>
+<div class="mt-6 pt-4 bg-surface-elevated/40 -mx-6 -mb-6 p-4 rounded-b-xl text-outline font-badge-label text-badge-label">
+            Статус: Безопасный OAuth
+          </div>
+</div>
+<!-- Step 2 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between relative">
+<div>
+<div class="font-metric-num-lg text-metric-num-lg text-primary-container/40 mb-4 font-bold">02</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Добавление по @username</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Вводите ссылку или юзернейм любого открытого или приватного канала. Фоновый сборщик запускает индексацию публикаций.
+            </p>
+</div>
+<div class="mt-6 pt-4 bg-surface-elevated/40 -mx-6 -mb-6 p-4 rounded-b-xl text-outline font-badge-label text-badge-label">
+            Сбор: Фоновый парсер 24/7
+          </div>
+</div>
+<!-- Step 3 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between relative">
+<div>
+<div class="font-metric-num-lg text-metric-num-lg text-primary-container/40 mb-4 font-bold">03</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2">Глубокий анализ &amp; AI-отчёты</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Анализируете срезы, настраиваете триггерные уведомления по охватам и получаете утренние сводки без рутины.
+            </p>
+</div>
+<div class="mt-6 pt-4 bg-surface-elevated/40 -mx-6 -mb-6 p-4 rounded-b-xl text-outline font-badge-label text-badge-label">
+            Выдача: Дашборд + Бот
+          </div>
+</div>
+</div>
+<!-- Важная честная плашка-сноска доверия -->
+<div class="p-5 rounded-xl bg-surface-card shadow-sm flex items-start gap-4">
+<span class="material-symbols-outlined text-primary text-[24px] shrink-0 mt-0.5">info</span>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-1 font-semibold">Честная оговорка о данных</h4>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            Глубина ретроспективной истории зависит от расписания сбора. Если Telegram API не возвращает исторические данные для закрытого периода, мы не дорисовываем нули и не выдумываем графики — в отчётах отображаются только подтверждённые факты.
+          </p>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 5: METRICS UNDER THE MICROSCOPE (ИНТЕРАКТИВНЫЙ БЛОК ФОРМУЛ) -->
+<section class="w-full py-20" id="metrics">
+<div class="max-w-[1280px] mx-auto px-margin">
+<!-- Section Header -->
+<div class="max-w-3xl mb-12">
+<span class="font-badge-label text-badge-label text-primary uppercase tracking-widest block mb-2">04 // Математическая база</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">Метрики под микроскопом</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-3">
+          Никаких непрозрачных алгоритмов. Мы открыто показываем, как считается каждая цифра.
+        </p>
+</div>
+<!-- Interactive Formula Tabs Container -->
+<div class="rounded-xl bg-surface-card shadow-sm p-6">
+<!-- Tab Buttons -->
+<div class="flex flex-wrap gap-2 pb-6 border-b border-border-glass" id="formula-tabs">
+<button class="px-4 py-2 rounded-lg bg-primary-container text-surface-base font-badge-label text-badge-label font-semibold transition-all" data-tab-btn="tab-er" onclick="switchFormulaTab('tab-er')">
+            ER &amp; ERR
+          </button>
+<button class="px-4 py-2 rounded-lg bg-surface-elevated text-on-surface-variant font-badge-label text-badge-label hover:text-on-surface transition-all" data-tab-btn="tab-vr" onclick="switchFormulaTab('tab-vr')">
+            VR (View Rate)
+          </button>
+<button class="px-4 py-2 rounded-lg bg-surface-elevated text-on-surface-variant font-badge-label text-badge-label hover:text-on-surface transition-all" data-tab-btn="tab-adload" onclick="switchFormulaTab('tab-adload')">
+            Ad Load (Реклама)
+          </button>
+<button class="px-4 py-2 rounded-lg bg-surface-elevated text-on-surface-variant font-badge-label text-badge-label hover:text-on-surface transition-all" data-tab-btn="tab-risk" onclick="switchFormulaTab('tab-risk')">
+            RiskBadge Score
+          </button>
+</div>
+<!-- Tab 1: ER & ERR -->
+<div class="pt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 formula-tab-content" id="tab-er">
+<div class="lg:col-span-7 space-y-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Engagement Rate on Reach (ERR)</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Стандартный ER по отношению к базе подписчиков часто искажён «мёртвыми душами». TgMon опирается на ERR — процент реального взаимодействия среди людей, фактически открывших публикацию.
+            </p>
+<div class="p-4 rounded-lg bg-surface-container-low font-metric-num-md text-metric-num-md text-primary-container flex items-center justify-between">
+<code>ERR = (Реакции + Комментарии + Репосты) / Охват поста × 100%</code>
+</div>
+<div class="text-outline font-body-sm text-body-sm">
+<strong>Зачем аналитику:</strong> Отсекает каналы с «накрученными подписчиками», где активны только 0.5% читателей.
+            </div>
+</div>
+<div class="lg:col-span-5 p-5 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<span class="font-badge-label text-badge-label text-outline uppercase">Бенчмарк по индустрии</span>
+<div class="my-4 space-y-3 font-body-sm">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Низкая вовлечённость:</span>
+<span class="text-metric-danger font-metric-num-md">&lt; 3.0%</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Норма рынка:</span>
+<span class="text-metric-warning font-metric-num-md">4.5% — 7.5%</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Высокий отклик (P75+):</span>
+<span class="text-metric-positive font-metric-num-md">&gt; 8.0%</span>
+</div>
+</div>
+<span class="font-badge-label text-badge-label text-primary">Данные обновляются посуточно</span>
+</div>
+</div>
+<!-- Tab 2: VR -->
+<div class="pt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 formula-tab-content hidden" id="tab-vr">
+<div class="lg:col-span-7 space-y-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">View Rate (VR)</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Отношение суточных просмотров к количеству подписчиков канала. Показывает, насколько живая лента способна пробить умную сортировку Telegram и удержать фокус.
+            </p>
+<div class="p-4 rounded-lg bg-surface-container-low font-metric-num-md text-metric-num-md text-primary-container flex items-center justify-between">
+<code>VR = Суточный охват (Views 24h) / Общее число подписчиков × 100%</code>
+</div>
+<div class="text-outline font-body-sm text-body-sm">
+<strong>Зачем аналитику:</strong> Детектирует реальный вес интеграции без иллюзии огромного числа подписчиков в шапке.
+            </div>
+</div>
+<div class="lg:col-span-5 p-5 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<span class="font-badge-label text-badge-label text-outline uppercase">Интерпретация VR</span>
+<div class="my-4 space-y-3 font-body-sm">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">VR &gt; 50%:</span>
+<span class="text-metric-positive font-badge-label text-badge-label">Вирусный / Свежий канал</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">VR 15% - 30%:</span>
+<span class="text-primary font-badge-label text-badge-label">Зрелый авторский блог</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">VR &lt; 8%:</span>
+<span class="text-metric-danger font-badge-label text-badge-label">Выгорание / Брошенный</span>
+</div>
+</div>
+<span class="font-badge-label text-badge-label text-primary">Расчёт по закрытым 24 часам</span>
+</div>
+</div>
+<!-- Tab 3: Ad Load -->
+<div class="pt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 formula-tab-content hidden" id="tab-adload">
+<div class="lg:col-span-7 space-y-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Рекламная нагрузка (Ad Load)</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Процент рекламных публикаций от общего объёма контента за скользящие 30 дней. Предотвращает закуп в «перегретых» каналах, где читатели привыкли пролистывать ленту.
+            </p>
+<div class="p-4 rounded-lg bg-surface-container-low font-metric-num-md text-metric-num-md text-primary-container flex items-center justify-between">
+<code>Ad Load = Рекламные публикации / Всего постов (30d) × 100%</code>
+</div>
+<div class="text-outline font-body-sm text-body-sm">
+<strong>Зачем аналитику:</strong> Канал с Ad Load &gt; 35% теряет доверие аудитории, снижая CTR интеграции в 2-3 раза.
+            </div>
+</div>
+<div class="lg:col-span-5 p-5 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<span class="font-badge-label text-badge-label text-outline uppercase">Шкала токсичности</span>
+<div class="my-4 space-y-3 font-body-sm">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Оптимально (&lt; 15%):</span>
+<span class="text-metric-positive font-badge-label text-badge-label">Максимальный отклик</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Допустимо (15–25%):</span>
+<span class="text-metric-warning font-badge-label text-badge-label">Стандарт медиа</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Критично (&gt; 30%):</span>
+<span class="text-metric-danger font-badge-label text-badge-label">Спам-ферма</span>
+</div>
+</div>
+<span class="font-badge-label text-badge-label text-primary">Маркировка по реферальным ссылкам</span>
+</div>
+</div>
+<!-- Tab 4: RiskBadge -->
+<div class="pt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 formula-tab-content hidden" id="tab-risk">
+<div class="lg:col-span-7 space-y-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Композитный RiskBadge Score</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              Взвешенная сумма 7 эвристических факторов: ступенчатый рост просмотров в ночные часы, аномальные репосты в удалённые каналы, неестественное соотношение реакций и просмотров.
+            </p>
+<div class="p-4 rounded-lg bg-surface-container-low font-metric-num-md text-metric-num-md text-primary-container flex items-center justify-between">
+<code>Risk Index = Σ (w_i × anomaly_factor_i) ∈ [0, 100]</code>
+</div>
+<div class="text-outline font-body-sm text-body-sm">
+<strong>Честный статус:</strong> Балл указывает на аномалию, требующую ручной проверки глазами аналитика.
+            </div>
+</div>
+<div class="lg:col-span-5 p-5 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between">
+<span class="font-badge-label text-badge-label text-outline uppercase">Факторы риска</span>
+<div class="my-4 space-y-2 font-badge-label text-badge-label text-outline">
+<div>• Ночной взрывной всплеск просмотров</div>
+<div>• Просмотры без реакций и комментариев</div>
+<div>• Несоответствие динамики прироста и рекламы</div>
+<div>• Циклические всплески с интервалом 60 сек</div>
+</div>
+<span class="font-badge-label text-badge-label text-metric-positive">7 эвристических фильтров</span>
+</div>
+</div>
+</div>
+<!-- Ссылка на документацию -->
+<div class="mt-6 flex justify-end">
+<a class="inline-flex items-center gap-2 text-primary font-body-sm text-body-sm hover:underline" href="https://github.com/liquidsyntes/tg_mons/blob/main/docs/analytics-formulas.md">
+<span>Изучить все формулы, ограничения и веса в docs/analytics-formulas.md</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</section>
+<!-- SECTION 6: USE CASES (СЦЕНАРИИ ИСПОЛЬЗОВАНИЯ) -->
+<section class="w-full py-20 bg-surface-container-lowest">
+<div class="max-w-[1280px] mx-auto px-margin">
+<!-- Section Header -->
+<div class="max-w-2xl mb-12">
+<span class="font-badge-label text-badge-label text-primary uppercase tracking-widest block mb-2">05 // Практика применения</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">Сценарии использования: До и После</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-3">
+          Как переход на факты защищает время команды и рекламные бюджеты.
+        </p>
+</div>
+<!-- 3 Use-Case Cards -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Case 1 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="inline-flex p-2.5 rounded-lg bg-metric-danger/10 text-metric-danger mb-4">
+<span class="material-symbols-outlined text-[24px]">verified</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3">
+              «Перед закупом рекламы проверяю канал по Ad Load, CPM и сигналам риска»
+            </h3>
+<div class="space-y-3 font-body-sm text-body-sm my-4">
+<div class="p-3 rounded-lg bg-surface-container-low text-on-surface-variant">
+<span class="text-metric-danger font-medium block mb-1">До TgMon:</span>
+                Ориентировались на цифру подписчиков в профиле. Купили пост за 45,000 ₽ на накрученном канале с нулевой конверсией.
+              </div>
+<div class="p-3 rounded-lg bg-surface-elevated text-on-surface">
+<span class="text-metric-positive font-medium block mb-1">После TgMon:</span>
+                RiskBadge 78/100 и Ad Load 42% сразу подсветили ферму. Бюджет сохранён и направлен в чистый авторский блог с реальным ERR 9.1%.
+              </div>
+</div>
+</div>
+<div class="text-outline font-badge-label text-badge-label pt-2">
+            Результат: 0 слитых бюджетов
+          </div>
+</div>
+<!-- Case 2 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="inline-flex p-2.5 rounded-lg bg-accent-ai/10 text-accent-ai mb-4">
+<span class="material-symbols-outlined text-[24px]">trending_up</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3">
+              «Вижу, какие темы конкуренты запустили и они выстрелили, а я пропустил»
+            </h3>
+<div class="space-y-3 font-body-sm text-body-sm my-4">
+<div class="p-3 rounded-lg bg-surface-container-low text-on-surface-variant">
+<span class="text-metric-danger font-medium block mb-1">До TgMon:</span>
+                Ручной серфинг десятков каналов по вечерам. Тренды замечали спустя 3-4 дня, когда инфоповод уже остыл.
+              </div>
+<div class="p-3 rounded-lg bg-surface-elevated text-on-surface">
+<span class="text-metric-positive font-medium block mb-1">После TgMon:</span>
+                AI Content-Gap подсветил аномальный всплеск репостов в теме у конкурента в течение 2 часов. Быстро выпустили экспертный разбор.
+              </div>
+</div>
+</div>
+<div class="text-outline font-badge-label text-badge-label pt-2">
+            Результат: +240% к вирусному охвату
+          </div>
+</div>
+<!-- Case 3 -->
+<div class="p-6 rounded-xl bg-surface-card shadow-sm flex flex-col justify-between">
+<div>
+<div class="inline-flex p-2.5 rounded-lg bg-primary-container/10 text-primary-container mb-4">
+<span class="material-symbols-outlined text-[24px]">schedule</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3">
+              «Получаю утренний дайджест в Telegram вместо ручного обхода 20 каналов»
+            </h3>
+<div class="space-y-3 font-body-sm text-body-sm my-4">
+<div class="p-3 rounded-lg bg-surface-container-low text-on-surface-variant">
+<span class="text-metric-danger font-medium block mb-1">До TgMon:</span>
+                Тратили 1.5–2 часа каждое утро на копирование цифр, чтение ленты и сведение таблицы в Google Sheets.
+              </div>
+<div class="p-3 rounded-lg bg-surface-elevated text-on-surface">
+<span class="text-metric-positive font-medium block mb-1">После TgMon:</span>
+                В 09:00 бот присылает структурированную сводку с топ-постами, приростом базы и алертами по ключевым словам.
+              </div>
+</div>
+</div>
+<div class="text-outline font-badge-label text-badge-label pt-2">
+            Результат: Экономия 1.5 часов ежедневно
+          </div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 7: FAQ (ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ) -->
+<section class="w-full py-20" id="faq">
+<div class="max-w-[860px] mx-auto px-margin">
+<!-- Section Header -->
+<div class="text-center mb-14">
+<span class="font-badge-label text-badge-label text-primary uppercase tracking-widest block mb-2">06 // Вопросы и ответы</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-semibold tracking-tight">Честные ответы на частые вопросы</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-2">
+          Всё, что важно знать об ограничениях API, источниках данных и доступе.
+        </p>
+</div>
+<!-- Accordion Container -->
+<div class="space-y-3.5" id="faq-accordion">
+<!-- Question 1 -->
+<div class="rounded-xl bg-surface-card shadow-sm overflow-hidden faq-item">
+<button class="w-full p-5 text-left flex items-center justify-between gap-4 font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors" onclick="toggleFaq(this)">
+<span>Как получить доступ к платформе?</span>
+<span class="material-symbols-outlined text-[20px] transition-transform duration-200 faq-icon text-outline">expand_more</span>
+</button>
+<div class="px-5 pb-5 pt-0 font-body-md text-body-md text-on-surface-variant leading-relaxed faq-body hidden">
+            TgMon работает в режиме закрытого аналитического пула. Для входа нажмите «Запросить доступ через Telegram» и авторизуйтесь через наш бот. Администратор рассматривает профиль (обычно до 15 минут) и активирует доступ к рабочей панели.
+          </div>
+</div>
+<!-- Question 2 -->
+<div class="rounded-xl bg-surface-card shadow-sm overflow-hidden faq-item">
+<button class="w-full p-5 text-left flex items-center justify-between gap-4 font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors" onclick="toggleFaq(this)">
+<span>Можно ли мониторить приватные каналы?</span>
+<span class="material-symbols-outlined text-[20px] transition-transform duration-200 faq-icon text-outline">expand_more</span>
+</button>
+<div class="px-5 pb-5 pt-0 font-body-md text-body-md text-on-surface-variant leading-relaxed faq-body hidden">
+            Да. Если канал закрытый (по инвайт-ссылке), наш системный сборщик должен быть добавлен в него в качестве подписчика. После этого телеметрия и сбор постов ведутся в стандартном защищённом режиме без публичной огласки в общем каталоге.
+          </div>
+</div>
+<!-- Question 3 -->
+<div class="rounded-xl bg-surface-card shadow-sm overflow-hidden faq-item">
+<button class="w-full p-5 text-left flex items-center justify-between gap-4 font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors" onclick="toggleFaq(this)">
+<span>Откуда берутся данные и насколько они точны?</span>
+<span class="material-symbols-outlined text-[20px] transition-transform duration-200 faq-icon text-outline">expand_more</span>
+</button>
+<div class="px-5 pb-5 pt-0 font-body-md text-body-md text-on-surface-variant leading-relaxed faq-body hidden">
+            Мы получаем данные напрямую через официальный протокол MTProto и Telegram Bot API с поминутной дискретностью. Мы не используем приближённые догадки: если в канале 1,420 реакций — вы видите ровно 1,420 с разбивкой по типам эмодзи.
+          </div>
+</div>
+<!-- Question 4 -->
+<div class="rounded-xl bg-surface-card shadow-sm overflow-hidden faq-item">
+<button class="w-full p-5 text-left flex items-center justify-between gap-4 font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors" onclick="toggleFaq(this)">
+<span>Что означает балл риска (RiskBadge)?</span>
+<span class="material-symbols-outlined text-[20px] transition-transform duration-200 faq-icon text-outline">expand_more</span>
+</button>
+<div class="px-5 pb-5 pt-0 font-body-md text-body-md text-on-surface-variant leading-relaxed faq-body hidden">
+            RiskBadge — это сугубо математическая эвристика аномальности поведения трафика (от 0 до 100). Высокий балл означает, что профиль просмотров совпадает с известными паттернами накруточных софтов. Это не юридический вердикт, а повод для байера детально изучить историю перед сделкой.
+          </div>
+</div>
+<!-- Question 5 -->
+<div class="rounded-xl bg-surface-card shadow-sm overflow-hidden faq-item">
+<button class="w-full p-5 text-left flex items-center justify-between gap-4 font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors" onclick="toggleFaq(this)">
+<span>Сколько стоит использование системы?</span>
+<span class="material-symbols-outlined text-[20px] transition-transform duration-200 faq-icon text-outline">expand_more</span>
+</button>
+<div class="px-5 pb-5 pt-0 font-body-md text-body-md text-on-surface-variant leading-relaxed faq-body hidden">
+            Сейчас сервис находится в стадии закрытого бета-тестирования. Для одобренных специалистов базовый мониторинг до 10 каналов предоставляется бесплатно. Для агентств с пулом 50+ каналов условия обсуждаются индивидуально с администрацией.
+          </div>
+</div>
+<!-- Question 6 -->
+<div class="rounded-xl bg-surface-card shadow-sm overflow-hidden faq-item">
+<button class="w-full p-5 text-left flex items-center justify-between gap-4 font-headline-sm text-headline-sm text-on-surface hover:text-primary transition-colors" onclick="toggleFaq(this)">
+<span>Есть ли география аудитории (города и страны)?</span>
+<span class="material-symbols-outlined text-[20px] transition-transform duration-200 faq-icon text-outline">expand_more</span>
+</button>
+<div class="px-5 pb-5 pt-0 font-body-md text-body-md text-on-surface-variant leading-relaxed faq-body hidden">
+            Честный ответ: Telegram API принципиально не отдаёт персональные геоданные пользователей каналов. Любые сервисы, рисующие точные карты городов для чужих каналов, используют приблизительную интерполяцию. Мы отдаём точную языковую статистику и таймзоны реакций, но не выдумываем несуществующие факты.
+          </div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 8: FINAL CONVERSION CTA -->
+<section class="w-full py-24 relative overflow-hidden bg-surface-container-lowest">
+<!-- Ambient Glow container -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
+<div class="w-[600px] h-[280px] bg-primary-container/15 blur-[140px] rounded-full"></div>
+</div>
+<div class="max-w-[1000px] mx-auto px-margin text-center">
+<div class="rounded-xl bg-surface-card shadow-2xl p-8 sm:p-14 backdrop-blur-md">
+<span class="font-badge-label text-badge-label text-primary uppercase tracking-widest block mb-4">Начните аудит сегодня</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold tracking-tight max-w-2xl mx-auto mb-4">
+          Начните анализировать Telegram на основе подтверждённых данных
+        </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl mx-auto mb-8">
+          Подключите ваши каналы, получайте ежедневные AI-сводки и проверяйте контрагентов перед закупкой рекламы.
+        </p>
+<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+<a class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-lg bg-primary-container text-surface-base font-headline-sm text-body-md font-bold shadow-xl hover:shadow-[0_0_30px_rgba(56,189,248,0.5)] transition-all duration-200" data-path="login" href="/login">
+<span class="material-symbols-outlined text-[22px] text-surface-base" style="font-variation-settings: 'FILL' 1;">send</span>
+<span>Запросить доступ через Telegram</span>
+</a>
+</div>
+<div class="mt-5 flex items-center justify-center gap-2 text-outline font-body-sm text-body-sm">
+<span class="w-2 h-2 rounded-full bg-metric-positive"></span>
+<span>Без спама. Решение администратора в течение 15 минут.</span>
+</div>
+</div>
+</div>
+</section>
+<!-- INLINE INTERACTIVE JAVASCRIPT -->
+<script>
+    function switchFormulaTab(tabId) {
+      const contents = document.querySelectorAll('.formula-tab-content');
+      contents.forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      const selected = document.getElementById(tabId);
+      if (selected) {
+        selected.classList.remove('hidden');
+      }
+
+      const buttons = document.querySelectorAll('#formula-tabs button');
+      buttons.forEach(btn => {
+        if (btn.getAttribute('data-tab-btn') === tabId) {
+          btn.className = 'px-4 py-2 rounded-lg bg-primary-container text-surface-base font-badge-label text-badge-label font-semibold transition-all';
+        } else {
+          btn.className = 'px-4 py-2 rounded-lg bg-surface-elevated text-on-surface-variant font-badge-label text-badge-label hover:text-on-surface transition-all';
+        }
+      });
+    }
+
+    function toggleFaq(button) {
+      const parent = button.closest('.faq-item');
+      if (!parent) return;
+      const body = parent.querySelector('.faq-body');
+      const icon = parent.querySelector('.faq-icon');
+
+      const isHidden = body.classList.contains('hidden');
+
+      // Close all first for clean accordion UX
+      document.querySelectorAll('.faq-item .faq-body').forEach(b => b.classList.add('hidden'));
+      document.querySelectorAll('.faq-item .faq-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+
+      if (isHidden) {
+        body.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+      }
+    }
+  </script>
+</div></main><footer class="relative z-10 w-full bg-surface-container-lowest border-t border-border-glass py-space-xl"><div class="max-w-[1280px] mx-auto px-margin"><div class="grid grid-cols-1 md:grid-cols-12 gap-space-xl pb-space-xl border-b border-border-glass"><div class="md:col-span-5 flex flex-col gap-space-sm"><div class="flex items-center gap-space-sm"><img alt="TgMon Logo" class="h-7 w-auto object-contain" src="/tg_mon_logo.png"/><span class="font-headline-sm text-headline-sm text-on-surface font-bold">TgMon</span></div><p class="font-body-md text-body-md text-on-surface-variant max-w-sm">Прозрачная аналитика Telegram-каналов без накруток и догадок.</p></div><div class="md:col-span-7 flex flex-wrap gap-space-xl justify-start md:justify-end"><div class="flex flex-col gap-space-xs"><span class="font-badge-label text-badge-label text-outline uppercase tracking-wider">Ресурсы</span><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="https://github.com/liquidsyntes/tg_mons/blob/main/docs/analytics-formulas.md">Документация</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="https://github.com/liquidsyntes/tg_mons" rel="noreferrer" target="_blank">GitHub репозиторий</a></div><div class="flex flex-col gap-space-xs"><span class="font-badge-label text-badge-label text-outline uppercase tracking-wider">Поддержка</span><span class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-telegram-brand">send</span>@tgmon_admin</span><span class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-metric-positive"></span>Статус сервиса</span></div></div></div><div class="pt-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-sm text-outline font-badge-label text-badge-label"><div>Build commit 7f4c9a · Node 20 · tgmons.online</div><div>© 2026 TgMon. Все права защищены.</div></div></div></footer></body></html>
