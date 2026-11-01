@@ -58,4 +58,16 @@ describe('retry-policy', () => {
       expect.objectContaining({ method: 'POST' })
     );
   });
+
+  it.each([
+    ['text error', 'text error'],
+    [null, 'null'],
+    [{ message: 'Telegram error' }, 'Telegram error'],
+    [{ message: '' }, '[object Object]'],
+  ])('extracts a safe message from %s', async (error, expected) => {
+    const channel = { id: 3, title: 'Test 3', username: 'test3', tgId: null, consecutiveErrors: 0 };
+    expect(await handleChannelError(channel, error)).toBe(false);
+    expect(updateChannelErrorState).toHaveBeenCalledWith(3, expected, 1, false);
+    expect(globalFetch).not.toHaveBeenCalled();
+  });
 });

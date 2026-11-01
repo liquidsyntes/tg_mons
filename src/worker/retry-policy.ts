@@ -1,6 +1,13 @@
 import { logger } from '../lib/logger';
 import { updateChannelErrorState } from './persister';
 
+function getErrorMessage(error: unknown): string {
+  if (error !== null && typeof error === 'object' && 'message' in error && error.message) {
+    return String(error.message);
+  }
+  return String(error);
+}
+
 export async function sendTelegramRuleAlert(message: string, chatIdOverride?: string | null): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = chatIdOverride?.trim() || process.env.TELEGRAM_CHAT_ID;
@@ -40,9 +47,9 @@ export async function sendChannelDisabledAlert(channelTitle: string, identifier:
 
 export async function handleChannelError(
   channel: { id: number; title: string; username: string | null; tgId: bigint | null; consecutiveErrors: number },
-  error: any
+  error: unknown
 ): Promise<boolean> {
-  const errorMessage = error.message || String(error);
+  const errorMessage = getErrorMessage(error);
   logger.error('Channel processing failed', { title: channel.title }, new Error(errorMessage));
 
   const newErrors = channel.consecutiveErrors + 1;

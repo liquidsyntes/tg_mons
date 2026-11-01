@@ -1,7 +1,15 @@
 import { Api, TelegramClient } from 'telegram';
 import { logger } from '../lib/logger';
 
-export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+export const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+function getFloodWaitSeconds(error: unknown): number | null {
+  if (error === null || typeof error !== 'object') return null;
+  const message = 'errorMessage' in error && typeof error.errorMessage === 'string' ? error.errorMessage : null;
+  const floodMatch = message?.match(/FLOOD_WAIT_(\d+)/);
+  const seconds = 'seconds' in error && typeof error.seconds === 'number' ? error.seconds : null;
+  return seconds || (floodMatch ? Number.parseInt(floodMatch[1], 10) : null);
+}
 
 export class TelegramTimeoutError extends Error {
   code: string;
@@ -45,9 +53,8 @@ export async function withRateLimitAndRetry<T>(
     try {
       await sleep(1000 + Math.floor(Math.random() * 300));
       return await fn();
-    } catch (err: any) {
-      const floodMatch = err.errorMessage?.match(/FLOOD_WAIT_(\d+)/);
-      const floodSeconds = err.seconds || (floodMatch ? parseInt(floodMatch[1], 10) : null);
+    } catch (err: unknown) {
+      const floodSeconds = getFloodWaitSeconds(err);
 
       if (floodSeconds && attempt < maxRetries - 1) {
         const waitTime = (floodSeconds + 2) * 1000 + Math.floor(Math.random() * 1500);
@@ -90,7 +97,7 @@ export function parseChannelIdentifier(input: string): { type: 'username' | 'inv
   return { type: 'username', value: cleanUsername };
 }
 
-export async function resolveChannelEntity(client: TelegramClient, input: string) {
+export async function resolveChannelEntity(client: TelegramClient, input: string): Promise<Api.TypeEntityLike> {
   const parsed = parseChannelIdentifier(input);
 
   if (parsed.type === 'invite') {
@@ -100,8 +107,7 @@ export async function resolveChannelEntity(client: TelegramClient, input: string
     );
 
     if (inviteRes.className === 'ChatInviteAlready') {
-      const chat = (inviteRes as any).chat;
-      return chat;
+      return inviteRes.chat;
     } else if (inviteRes.className === 'ChatInvite') {
       throw new Error(
         'Аккаунт сборщика еще не вступил в этот приватный канал. Вступите в него перед добавлением.'
@@ -117,13 +123,20 @@ export async function resolveChannelEntity(client: TelegramClient, input: string
   return entity;
 }
 
-export async function fetchFullChannel(client: TelegramClient, entity: any, identifier: string) {
+export async function fetchFullChannel(
+  client: TelegramClient, entity: Api.TypeEntityLike, identifier: string,
+): Promise<Api.messages.ChatFull> {
   return withRateLimitAndRetry(() =>
     withTimeout(() => client.invoke(new Api.channels.GetFullChannel({ channel: entity })), 'GetFullChannel', identifier)
   );
 }
 
-export async function fetchChannelMessages(client: TelegramClient, entity: any, options: any, identifier: string) {
+export async function fetchChannelMessages(
+  client: TelegramClient,
+  entity: Api.TypeEntityLike,
+  options: Parameters<TelegramClient['getMessages']>[1],
+  identifier: string,
+): ReturnType<TelegramClient['getMessages']> {
   return withRateLimitAndRetry(() => 
     withTimeout(() => client.getMessages(entity, options), 'getMessages', identifier)
   );
