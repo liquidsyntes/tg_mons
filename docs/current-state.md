@@ -14,9 +14,9 @@
 
 ## Проверки текущей задачи
 
-- Падение CI в job `Lint, typecheck, tests` воспроизведено по журналу run `41340144148`: ESLint не находил плагин `react-hooks` для правил отдельного блока. После исправления в локальном контейнере `web` прошли `npx eslint src`, `npx tsc --noEmit` и `npm test -- --reporter=dot`: 847 тестов в 133 файлах.
+- Падение CI в job `Lint, typecheck, tests` воспроизведено по журналу run `41340144148`: ESLint не находил плагин `react-hooks` для правил отдельного блока. После исправления в локальном контейнере `web` прошли `npx eslint src`, `npx tsc --noEmit` и `npm test -- --reporter=dot`: 847 тестов в 133 файлах. На GitHub для коммита `e7968c6` оба job CI прошли: `Lint, typecheck, tests` и `Next.js build` (run `41341099900`).
 - Локальный образ `web` пересобран с `npm ci` и `npm run build`: оба шага успешны, сформированы 18 статических страниц. Пересоздан только `web`; `postgres` остаётся `healthy`, `worker` не перезапускался. `GET /api/health` вернул 200, `status: ok`, `lastSyncStatus: COMPLETED`, `channelsSucceeded: 26`, `channelsFailed: 0`.
 
 ## Следующий шаг
 
-После отправки коммита дождаться нового запуска CI для PR #66 и сверить оба job. Локальные проверки не заменяют результат GitHub Actions; production и слияние PR не выполнялись.
+Следующий шаг: просмотреть PR #66 перед отдельным решением о слиянии. Production и слияние PR не выполнялись.
