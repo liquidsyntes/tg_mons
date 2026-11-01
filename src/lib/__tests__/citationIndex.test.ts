@@ -266,6 +266,43 @@ describe('calculateCitationIndex', () => {
   });
 
   describe('database helpers (getCitationIndexForChannel / getCitationIndicesForChannels)', () => {
+    it('skips database access for missing identifiers and an empty batch', async () => {
+      expect(await getCitationIndexForChannel({ id: 1, username: null, tgId: null }, fixedNow)).toBe(0);
+      expect(await getCitationIndicesForChannels([], fixedNow)).toEqual(new Map());
+      expect(mockPrisma.mention.groupBy).not.toHaveBeenCalled();
+      expect(mockPrisma.mention.findMany).not.toHaveBeenCalled();
+    });
+
+    it('counts repeated inbound mentions from one source without a subscriber snapshot', async () => {
+      mockPrisma.mention.findMany.mockResolvedValue([
+        { sourceChannelId: 2, targetUsername: 'target', targetTgId: null },
+        { sourceChannelId: 2, targetUsername: '@TARGET', targetTgId: null },
+      ]);
+      mockPrisma.snapshot.findMany.mockResolvedValue([]);
+      mockPrisma.post.findMany.mockResolvedValue([{ channelId: 2, subscribersAtPublish: 1000 }]);
+
+      const result = await getCitationIndicesForChannels([{ id: 1, username: 'Target', tgId: null }], fixedNow);
+      expect(result.get(1)).toBe(6);
+      expect(mockPrisma.post.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({ channelId: { in: [2] } }),
+      }));
+    });
+
+    it('returns zero when a citing channel has no known audience or the database fails', async () => {
+      mockPrisma.mention.groupBy.mockResolvedValue([{ sourceChannelId: 2, _count: { id: 1 } }]);
+      mockPrisma.mention.findMany.mockResolvedValue([{ sourceChannelId: 2, targetUsername: 'target', targetTgId: null }]);
+      mockPrisma.snapshot.findMany.mockResolvedValue([]);
+      mockPrisma.post.findMany.mockResolvedValue([]);
+      const channel = { id: 1, username: 'target', tgId: null };
+
+      expect(await getCitationIndexForChannel(channel, fixedNow)).toBe(0);
+      expect((await getCitationIndicesForChannels([channel], fixedNow)).get(1)).toBe(0);
+      mockPrisma.mention.groupBy.mockRejectedValueOnce(new Error('Database unavailable'));
+      mockPrisma.mention.findMany.mockRejectedValueOnce(new Error('Database unavailable'));
+      expect(await getCitationIndexForChannel(channel, fixedNow)).toBe(0);
+      expect((await getCitationIndicesForChannels([channel], fixedNow)).get(1)).toBe(0);
+    });
+
     it('resolves citing subscribers from snapshots and falls back to post subscribersAtPublish', async () => {
       mockPrisma.mention.groupBy.mockResolvedValue([
         { sourceChannelId: 2, _count: { id: 2 } },
