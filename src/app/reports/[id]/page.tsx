@@ -19,6 +19,7 @@ import { ru } from 'date-fns/locale';
 import { cookies } from 'next/headers';
 import { parseSessionCookieValue, SESSION_COOKIE_NAME } from '@/lib/auth';
 import { findUserMyChannel } from '@/lib/user-channels';
+import { AI_REPORT_TITLES } from '@/lib/ai-reports';
 
 export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,19 +51,6 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
     parsedData = null;
   }
 
-  const titleMap: Record<string, string> = {
-    metrics_explainer: 'Разбор показателей канала (SMM)',
-    summary: 'Контент-анализ',
-    super_report: 'Супер Отчет (50 постов)',
-    evolution: 'Динамика изменений',
-    action_plan: 'Пошаговое руководство',
-    compare: 'Сравнение каналов',
-    trend: 'Радар Трендов (Рынок)',
-    audience: 'Анализ Целевой Аудитории',
-    'content-gap': 'Упущенные темы (Content Gap)',
-    persona: 'Психологический портрет'
-  };
-
   const channelTitle = report.channel?.title || 'Глобальный отчет (Тренды)';
 
   return (
@@ -77,7 +65,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 </Link>
                 <div>
                   <h1 className="text-xl font-bold text-white">
-                    {titleMap[report.type] || 'Отчет'}
+                    {AI_REPORT_TITLES[report.type] || 'Отчет'}
                   </h1>
                   <div className="flex items-center gap-2 mt-1 text-sm text-slate-400">
                     <span className="font-medium text-slate-300">{channelTitle}</span>

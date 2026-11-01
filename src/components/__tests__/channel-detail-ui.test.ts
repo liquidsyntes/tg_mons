@@ -123,3 +123,19 @@ it('hides the psychological persona report for regular users and shows it only t
   expect(screen.getByText('Психологический портрет')).toBeDefined();
   expect(screen.getByRole('button', { name: 'Сгенерировать портрет' })).toBeDefined();
 });
+
+it('shows comparison and content gap only when My Channel is available', () => {
+  const props = {
+    channelId: '7', channel, period: '7d' as const, isAdmin: false,
+  };
+  const { rerender } = render(React.createElement(AIReportsSection, {
+    ...props, myChannel: { ...channel, id: 2, title: 'Мой канал', isMine: true },
+  }));
+
+  expect(screen.getByText('Сравнительный AI-анализ')).toBeDefined();
+  expect(screen.getByText('Упущенные темы конкурентов (AI Content Gap)')).toBeDefined();
+
+  rerender(React.createElement(AIReportsSection, { ...props, myChannel: null }));
+  expect(screen.queryByText('Сравнительный AI-анализ')).toBeNull();
+  expect(screen.queryByText('Упущенные темы конкурентов (AI Content Gap)')).toBeNull();
+});
