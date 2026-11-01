@@ -258,7 +258,7 @@ Dashboard `avgErr`: невзвешенное среднее конечных err
 
 ## Антифрод
 
-Источники: [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [ADR](adr/0001-anti-fraud-detection-architecture.md). Пороговые значения — константы реализации; репозиторий не подтверждает их точность на размеченной выборке. Сигнал требует проверки контекста, включая рекламу, внешний трафик, пропуски истории и неполный граф упоминаний.
+Источники: [heuristics.ts](../src/lib/fraud/heuristics.ts), [audit.ts](../src/lib/fraud/audit.ts), [normalizers.ts](../src/lib/fraud/normalizers.ts), публичный фасад [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [ADR](adr/0001-anti-fraud-detection-architecture.md). Пороговые значения являются константами реализации; репозиторий не подтверждает их точность на размеченной выборке. Сигнал требует проверки контекста, включая рекламу, внешний трафик, пропуски истории и неполный граф упоминаний.
 
 ### Гладкость роста
 
