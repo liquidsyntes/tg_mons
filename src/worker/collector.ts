@@ -16,7 +16,6 @@ import {
   addChannelToDb,
   getActiveChannels,
   saveSnapshot,
-  getPreviousSnapshot,
   updateChannelState,
   createSyncJob,
   updateSyncJobProgress,
@@ -25,12 +24,10 @@ import {
   upsertPostWithReactions,
   saveMentions,
   updateChannelTitle,
-  saveFraudSignal,
   cleanupOldPostSnapshots,
   cleanupOldPostEngagementHours,
 } from './persister';
-import { prisma } from '../lib/prisma';
-import { checkViewsToSubsRatio, checkGrowthSmoothness, checkUncorrelatedSpikes, checkUniformReactionRatio } from '../lib/fraudDetector';
+import { evaluateAndSaveChannelFraudSignals } from './fraud-evaluator';
 import { detectAd } from '../lib/adDetector';
 import { detectContentType } from '../lib/contentType';
 import { readMessageContent } from './message-content';
@@ -44,6 +41,56 @@ import {
 
 export { TelegramTimeoutError };
 
+interface ResolvedTelegramChannelEntity {
+  className?: string;
+  id?: string;
+  username?: string;
+  title?: string;
+  firstName?: string;
+  megagroup?: boolean;
+  participantsCount?: number;
+}
+
+interface FullChannelResponse {
+  fullChat?: { participantsCount?: number };
+}
+
+interface FetchMessagesOptions {
+  limit: number;
+}
+
+function channelEntityFields(value: unknown): ResolvedTelegramChannelEntity {
+  if (value === null || typeof value !== 'object') return {};
+  const id = 'id' in value ? value.id : undefined;
+  return {
+    className: 'className' in value && typeof value.className === 'string' ? value.className : undefined,
+    id: id === null || id === undefined ? undefined : String(id),
+    username: 'username' in value && typeof value.username === 'string' ? value.username : undefined,
+    title: 'title' in value && typeof value.title === 'string' ? value.title : undefined,
+    firstName: 'firstName' in value && typeof value.firstName === 'string' ? value.firstName : undefined,
+    megagroup: 'megagroup' in value && typeof value.megagroup === 'boolean' ? value.megagroup : undefined,
+    participantsCount: 'participantsCount' in value && typeof value.participantsCount === 'number'
+      ? value.participantsCount : undefined,
+  };
+}
+
+function fullChannelFields(value: unknown): FullChannelResponse {
+  if (value === null || typeof value !== 'object' || !('fullChat' in value)) return {};
+  const fullChat = value.fullChat;
+  if (fullChat === null || typeof fullChat !== 'object' || !('participantsCount' in fullChat)) return {};
+  return { fullChat: {
+    participantsCount: typeof fullChat.participantsCount === 'number' ? fullChat.participantsCount : undefined,
+  } };
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message || String(error);
+  if (error !== null && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message || String(error);
+  }
+  return String(error);
+}
+
 let activeSyncJobId: number | null = null;
 
 export function getActiveSyncJobId(): number | null {
@@ -52,13 +99,13 @@ export function getActiveSyncJobId(): number | null {
 
 export async function addChannelByInput(input: string, isMine = false) {
   const client = await getTelegramClient();
-  const entity: any = await resolveChannelEntity(client, input);
+  const entity = channelEntityFields(await resolveChannelEntity(client, input));
 
-  if (!entity || (entity.className !== 'Channel' && entity.className !== 'Chat')) {
+  if ((entity.className !== 'Channel' && entity.className !== 'Chat') || !entity.id) {
     throw new Error('Указанный ресурс не является каналом или группой Telegram');
   }
 
-  const tgId = BigInt(entity.id.toString());
+  const tgId = BigInt(entity.id);
   const parsedInput = parseChannelIdentifier(input);
   const username = entity.username || (parsedInput.type === 'username' ? parsedInput.value : null);
   const title = entity.title || entity.firstName || 'Без названия';
@@ -76,22 +123,23 @@ export async function collectChannelData(
   const identifier = channel.username || (channel.tgId ? channel.tgId.toString() : null);
   if (!identifier) throw new Error(`Channel ${channel.id} has neither username nor tgId`);
 
-  const entity: any = await resolveChannelEntity(client, identifier);
+  const entity = await resolveChannelEntity(client, identifier);
+  const entityFields = channelEntityFields(entity);
 
   // 1. Collect participants count (FullChannel)
   let participantsCount: number | null = null;
   try {
-    const full: any = await fetchFullChannel(client, entity, identifier);
+    const full = fullChannelFields(await fetchFullChannel(client, entity, identifier));
     participantsCount = full.fullChat?.participantsCount ?? null;
 
-    if (entity.title && entity.title !== channel.title) {
-      await updateChannelTitle(channel.id, entity.title);
+    if (entityFields.title && entityFields.title !== channel.title) {
+      await updateChannelTitle(channel.id, entityFields.title);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof TelegramTimeoutError) throw err;
     logger.warn('Could not fetch FullChannel', { channelId: channel.id, title: channel.title }, err);
-    if (entity.participantsCount) {
-      participantsCount = entity.participantsCount;
+    if (entityFields.participantsCount) {
+      participantsCount = entityFields.participantsCount;
     }
   }
 
@@ -107,7 +155,7 @@ export async function collectChannelData(
   const thirtyDaysAgoSec = Math.floor((Date.now() - 30 * 86400 * 1000) / 1000);
 
   try {
-    const options: any = { limit: isBackfill ? 1000 : 200 };
+    const options: FetchMessagesOptions = { limit: isBackfill ? 1000 : 200 };
     const messages = await fetchChannelMessages(client, entity, options, identifier);
 
     for (const msg of messages) {
@@ -179,7 +227,7 @@ export async function collectChannelData(
 
       postsAdded++;
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof TelegramTimeoutError) throw err;
     logger.warn('Could not fetch messages', { channelId: channel.id, title: channel.title }, err);
   }
@@ -225,8 +273,8 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
     let client: TelegramClient;
     try {
       client = await getTelegramClient();
-    } catch (err: any) {
-      fatalError = err.message || String(err);
+    } catch (err: unknown) {
+      fatalError = errorMessage(err);
       throw err;
     }
 
@@ -262,97 +310,17 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
           }
         }
 
-        try {
-          const recentMetrics = await prisma.channelMetricDaily.findMany({
-            where: { channelId: channel.id },
-            orderBy: { date: 'desc' },
-            take: 30,
-          });
-
-          if (recentMetrics.length > 0) {
-            const smoothnessResult = checkGrowthSmoothness(recentMetrics);
-            await saveFraudSignal(channel.id, 'growth_smoothness', {
-              flag: smoothnessResult.flag, value: smoothnessResult.cv, reason: smoothnessResult.reason,
-            });
-
-            const sortedDesc = [...recentMetrics].sort((a, b) => b.date.getTime() - a.date.getTime());
-            const oldestMetricDate = sortedDesc[sortedDesc.length - 1].date;
-            const minDate = new Date(oldestMetricDate.getTime() - 86400000);
-
-            const postsInRange = await prisma.post.findMany({
-              where: {
-                channelId: channel.id,
-                publishedAt: { gte: minDate }
-              },
-              select: { publishedAt: true }
-            });
-
-            const mentionConditions: any[] = [];
-            if (channel.username) {
-              mentionConditions.push({ targetUsername: channel.username.toLowerCase() });
-            }
-            if (channel.tgId) {
-              mentionConditions.push({ targetTgId: channel.tgId });
-            }
-
-            let mentionsDates: Date[] = [];
-            if (mentionConditions.length > 0) {
-              const mentionsInRange = await prisma.mention.findMany({
-                where: {
-                  createdAt: { gte: minDate },
-                  OR: mentionConditions
-                },
-                select: { createdAt: true }
-              });
-              mentionsDates = mentionsInRange.map(m => m.createdAt);
-            }
-
-            const postsDates = postsInRange.map(p => p.publishedAt);
-            const spikeResult = checkUncorrelatedSpikes(recentMetrics, postsDates, mentionsDates);
-            await saveFraudSignal(channel.id, 'uncorrelated_spikes', {
-              flag: spikeResult.flag, value: spikeResult.spikesCount, reason: spikeResult.reason,
-            });
-          } else {
-            await saveFraudSignal(channel.id, 'growth_smoothness', { flag: false, value: 0, reason: '' });
-            await saveFraudSignal(channel.id, 'uncorrelated_spikes', { flag: false, value: 0, reason: '' });
-          }
-
-          const recentPosts = await prisma.post.findMany({
-            where: { channelId: channel.id },
-            orderBy: { publishedAt: 'desc' },
-            take: 30,
-            select: { views: true, reactions: true, comments: true, forwards: true, publishedAt: true }
-          });
-
-          const latestSnapshot = await getPreviousSnapshot(channel.id);
-          const currentMembers = latestSnapshot?.membersCount || 0;
-
-          if (currentMembers > 0) {
-            const ratioResult = checkViewsToSubsRatio(recentPosts, currentMembers);
-            await saveFraudSignal(channel.id, 'views_to_subs_ratio', {
-              flag: ratioResult.flag, value: ratioResult.ratio, reason: ratioResult.reason,
-            });
-          } else {
-            await saveFraudSignal(channel.id, 'views_to_subs_ratio', { flag: false, value: 0, reason: '' });
-          }
-
-          const uniformResult = checkUniformReactionRatio(recentPosts);
-          await saveFraudSignal(channel.id, 'uniform_err', {
-            flag: uniformResult.flag, value: uniformResult.cv, reason: uniformResult.reason,
-          });
-        } catch (fraudErr) {
-          logger.error('Fraud detection failed', { title: channel.title }, fraudErr);
-        }
+        await evaluateAndSaveChannelFraudSignals(channel);
 
         logger.info('Channel processed successfully', { title: channel.title, durationMs: result.durationMs, snapshotsAdded: result.snapshotsAdded, postsAdded: result.postsAdded });
-      } catch (err: any) {
+      } catch (err: unknown) {
         errorCount++;
-        channelFailures.push({ channelId: channel.id, message: err instanceof Error ? err.message : String(err) });
+        channelFailures.push({ channelId: channel.id, message: errorMessage(err) });
         if (syncJobId) {
           await updateSyncJobProgress(syncJobId, undefined, errorCount, undefined).catch((dbErr) => logger.error('SyncJob update failed', undefined, dbErr));
         }
 
-        await handleChannelError(channel, err);
+        await handleChannelError(channel, err instanceof Error ? err : new Error(errorMessage(err)));
 
         if (signal?.aborted) {
           interrupted = true;
@@ -365,17 +333,17 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
             await client.disconnect();
             client = await getTelegramClient();
             logger.info('Client reconnected successfully after timeout');
-          } catch (reconnectErr: any) {
-            fatalError = `Failed to reconnect client after timeout: ${reconnectErr.message}`;
+          } catch (reconnectErr: unknown) {
+            fatalError = `Failed to reconnect client after timeout: ${errorMessage(reconnectErr)}`;
             logger.error('Fatal reconnect error. Aborting cycle', undefined, new Error(fatalError));
             break;
           }
         }
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (signal?.aborted) interrupted = true;
-    else if (!fatalError) fatalError = err.message || String(err);
+    else if (!fatalError) fatalError = errorMessage(err);
   } finally {
     const durationMs = Date.now() - cycleStartTime;
     if (signal?.aborted && successCount + errorCount < activeChannels.length) interrupted = true;
@@ -418,7 +386,7 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
           }
         });
         logger.info('Successfully invalidated web cache');
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.warn('Failed to invalidate web cache', undefined, err);
       }
     } else {
