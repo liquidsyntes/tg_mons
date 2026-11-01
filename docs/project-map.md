@@ -10,7 +10,7 @@
 | --- | --- |
 | Web | Публичная стартовая `src/app/about/route.ts` с шаблоном `src/app/about/stitch.html`, исходными стилями `src/app/about/stitch.input.css`, конфигурацией `src/app/about/tailwind.config.cjs` и собранным `public/about/stitch.css`; защищённая главная `src/app/page.tsx`, `src/app/channel/[id]/page.tsx`; страницы сравнения, постов, отчётов, событий и настроек в `src/app/`; UI в `src/components/` |
 | HTTP и доступ | `src/app/api/`, включая Telegram OIDC в `/api/auth/telegram/`, заявки в `/api/admin/registrations`, рейтинг, закладки и дайджест; `src/middleware.ts`, `src/lib/auth.ts`, `src/lib/telegram-login.ts`, `src/lib/users.ts`, `src/lib/user-channels.ts`, `src/lib/tags.ts`; сессии, роли, пользовательские каналы и актуальный статус доступа |
-| Аналитика | `src/lib/metrics.ts` и `src/lib/metrics/`: выборки и расчёты, включая сводку реакций, рейтинг рекламодателей и динамику цитирований; `src/lib/channel-activity.ts` и `/api/stats/channel/:id/activity`: 48 часовых строк; `src/lib/materialize.ts`: дневные агрегаты; `src/lib/types.ts`: общие контракты |
+| Аналитика | `src/lib/metrics.ts`: публичные реэкспорты; `src/lib/metrics/queries.ts`: метрики канала, overview и detail; `src/lib/metrics/history.ts`: история VR, распределение постов, heatmap и рекламный охват; `src/lib/metrics/best-time.ts`: рекомендация времени; остальные расчёты в `src/lib/metrics/`; `src/lib/channel-activity.ts` и `/api/stats/channel/:id/activity`: 48 часовых строк; `src/lib/materialize.ts`: дневные агрегаты; `src/lib/types.ts`: общие контракты |
 | Антифрод | `src/lib/fraudDetector.ts`: совместимый публичный фасад; `src/lib/fraud/types.ts`: контракты, `heuristics.ts`: пять проверок, `normalizers.ts`: входные данные и приоритеты сигналов, `audit.ts`: итоговый балл |
 | Telegram worker | `src/worker/index.ts`: расписания; `src/worker/server.ts`: внутренний HTTP; `src/worker/auth.ts`: авторизация; сбор в `src/worker/collector.ts`, разбор реакций в `src/worker/message-reactions.ts`, ссылки на посты в `src/worker/post-mentions.ts` |
 | AI и события | `src/lib/openrouter.ts`, `src/lib/ai-reports.ts`, `src/lib/ai-markdown.ts`, `src/lib/events/` (включая `calendar.ts`), маршруты `src/app/api/ai/` (10 типов, включая `metrics-explainer` и `content-gap`) и `src/app/api/events/` |
@@ -20,7 +20,7 @@
 ## Основные потоки
 
 - UI -> API -> `src/lib/worker-client.ts` -> внутренний HTTP worker -> `src/worker/task-coordinator.ts` -> collector -> fetcher/client -> Telegram -> persister -> PostgreSQL. Ручной сбор и добавление канала выполняются в worker.
-- Cron запускает задания worker; основной цикл обновляет дневные агрегаты, сигналы и уведомления, затем запрашивает сброс web-кэша. API метрик читает БД через `src/lib/metrics/queries.ts`; UI отображает результат.
+- Cron запускает задания worker; основной цикл обновляет дневные агрегаты, сигналы и уведомления, затем запрашивает сброс web-кэша. API метрик читает БД через `src/lib/metrics/queries.ts`, `history.ts` и `best-time.ts`; UI отображает результат.
 - Сохранённые тексты -> AI API -> OpenRouter -> `AiReport` -> архив отчётов. Сканер событий использует Jev и генеративную модель, сохраняет события и связи с постами. Подробности и лимиты: [API](api-reference.md).
 - `src/lib/user-channels.ts` разрешает доступ к `UserChannel`, накладывает персональные поля на общий `Channel` и ищет «Мой канал». Метрики, AI-анализ и страница отчёта используют этот модуль.
 
@@ -34,6 +34,7 @@
 | Почасовая активность канала | `src/lib/channel-activity.ts`, `src/app/api/stats/channel/[id]/activity/route.ts`, `src/components/channel/ChannelActivityTimeline.tsx`, `src/worker/persister.ts` | `src/lib/__tests__/channel-activity.test.ts`, соседние API/UI тесты, `src/worker/__tests__/collector.test.ts` |
 | Экспорт PDF-отчётов каналов | `src/components/pdf/ChannelPdfTemplate.tsx`, `src/components/ExportPdfButton.tsx`, `src/lib/channel-pdf-report.ts` | `src/components/pdf/__tests__/ChannelPdfTemplate.test.ts` |
 | Формулы и агрегация | `src/lib/metrics/`, `src/lib/scoring.ts`, `src/lib/ep.ts` | `src/lib/metrics/__tests__/`, `src/lib/__tests__/scoring.test.ts`, `src/lib/ep.test.ts` |
+| История и время публикации | `src/lib/metrics/history.ts`, `src/lib/metrics/best-time.ts`, вызов из `queries.ts` | `src/lib/metrics/__tests__/history.test.ts`, `best-time.test.ts`, `queries.test.ts` |
 | Эвристики антифрода и нормализация | `src/lib/fraud/`, фасад `src/lib/fraudDetector.ts`; потребители в `src/lib/metrics/queries.ts`, `src/worker/collector.ts` и UI | `src/lib/__tests__/fraudDetector.test.ts`, `src/lib/fraud/__tests__/normalizers.test.ts`, `src/components/__tests__/RiskBadge.test.ts` |
 | Сбор, очередь, повторы | `src/worker/collector.ts`, `src/worker/persister.ts`, `src/worker/task-coordinator.ts`, `src/worker/retry-policy.ts` | `src/worker/__tests__/collector.test.ts`, `src/worker/__tests__/sync-job-lock.test.ts`, `src/worker/__tests__/retry-policy.test.ts` |
 | Статьи и медиа | `src/worker/message-content.ts`, `src/worker/post-image.ts` | `src/worker/__tests__/article-collection.test.ts`, `src/worker/__tests__/post-image.test.ts` |

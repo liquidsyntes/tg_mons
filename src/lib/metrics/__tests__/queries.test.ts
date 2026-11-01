@@ -117,4 +117,62 @@ describe('metrics query batching', () => {
     expect(db.channelFindMany).toHaveBeenCalledOnce();
     expect(metricsCache.get('overview')).not.toBeNull();
   });
+
+  it('reuses My Channel from the cached overview without another lookup or calculation', async () => {
+    const myChannel = { ...channelMetrics, id: 2, isMine: true };
+    metricsCache.set('overview', {
+      myChannel, channels: [{ ...channelMetrics, id: 1 }, myChannel],
+      totalChannels: 2, activeChannels: 2, lastGlobalUpdate: null,
+    });
+
+    const detail = await getChannelDetailStats(1);
+
+    expect(detail?.myChannel).toBe(myChannel);
+    expect(db.channelFindFirst).not.toHaveBeenCalled();
+    expect(db.channelFindUnique).toHaveBeenCalledOnce();
+    expect(db.snapshotFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {
+      channelId: 2, collectedAt: { gte: expect.any(Date) },
+    } }));
+    expect(db.postFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: {
+      channelId: 2, publishedAt: { gte: expect.any(Date) },
+    } }));
+  });
+
+  it('calculates My Channel only when the overview lacks it but a record exists', async () => {
+    metricsCache.set('overview', {
+      myChannel: null, channels: [{ ...channelMetrics, id: 1 }],
+      totalChannels: 1, activeChannels: 1, lastGlobalUpdate: null,
+    });
+    db.channelFindFirst.mockResolvedValue(channel(2));
+    db.channelFindUnique.mockImplementation(async ({ where }: { where: { id: number } }) => channel(where.id));
+
+    const detail = await getChannelDetailStats(1);
+
+    expect(detail?.myChannel?.id).toBe(2);
+    expect(db.channelFindFirst).toHaveBeenCalledWith({ where: { isMine: true } });
+    expect(db.channelFindUnique).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps My Channel absent when both overview and the record lookup have none', async () => {
+    metricsCache.set('overview', {
+      myChannel: null, channels: [{ ...channelMetrics, id: 1 }],
+      totalChannels: 1, activeChannels: 1, lastGlobalUpdate: null,
+    });
+
+    const detail = await getChannelDetailStats(1);
+
+    expect(detail?.myChannel).toBeNull();
+    expect(detail?.myHeatmapData).toBeUndefined();
+    expect(db.channelFindFirst).toHaveBeenCalledOnce();
+    expect(db.channelFindUnique).toHaveBeenCalledOnce();
+  });
+
+  it('keeps separate overview caches for different users', async () => {
+    await getChannelDetailStats(1, '7d', 7);
+    await getChannelDetailStats(1, '7d', 8);
+
+    expect(db.channelFindMany).toHaveBeenCalledTimes(2);
+    expect(metricsCache.get('overview:7')).not.toBeNull();
+    expect(metricsCache.get('overview:8')).not.toBeNull();
+  });
 });
