@@ -15,6 +15,19 @@ export type AiReportType =
   | 'content-gap'
   | 'metrics_explainer';
 
+export const AI_REPORT_TITLES: Readonly<Record<string, string>> = {
+  metrics_explainer: 'Разбор показателей канала (SMM)',
+  summary: 'Контент-анализ',
+  super_report: 'Супер Отчет (50 постов)',
+  evolution: 'Динамика изменений',
+  action_plan: 'Пошаговое руководство',
+  compare: 'Сравнение каналов',
+  trend: 'Радар Трендов (Рынок)',
+  audience: 'Анализ Целевой Аудитории',
+  'content-gap': 'Упущенные темы (Content Gap)',
+  persona: 'Психологический портрет',
+} satisfies Record<AiReportType, string>;
+
 export interface TimestampedPost {
   publishedAt: Date;
   text: string | null;

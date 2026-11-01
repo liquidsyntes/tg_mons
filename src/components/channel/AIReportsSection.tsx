@@ -8,8 +8,8 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { Sparkles, Layers, Users, Download, Bot, Brain, Loader2, Target, BarChart3 } from 'lucide-react';
-import { AILoadingStatus } from '@/components/AILoadingStatus';
+import { Sparkles, Layers, Users, Bot, Brain, Target, BarChart3 } from 'lucide-react';
+import { AIReportCardShell } from './AIReportCardShell';
 import { AISummaryReport, AISummaryData, SummaryPostStats } from '@/components/AISummaryReport';
 import { AICompareReport, AICompareData } from '@/components/AICompareReport';
 import { AIAudienceReport, AIAudienceData } from '@/components/AIAudienceReport';
@@ -199,298 +199,159 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
 
   return (
     <>
-      {/* =========================================================================
-          1. Разбор показателей канала простыми словами (SMM-переводчик метрик)
-          Первый отчет в блоке, акцентная желтая кнопка запуска.
-         ========================================================================= */}
-      <div className="bg-surface border border-amber-400/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.15)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-amber-400" />
-              Разбор показателей канала простыми словами
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Опытный SMM-специалист объяснит каждую метрику (ERR, VR, ER, CR и др.): что делают и чего не делают ваши подписчики
-            </p>
-          </div>
-          <button
-            onClick={fetchAiExplainer}
-            disabled={aiExplainerLoading}
-            className="w-[220px] justify-center py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {aiExplainerLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Разбираю метрики...
-              </>
-            ) : (
-              'Разобрать показатели'
-            )}
-          </button>
-        </div>
-        <AILoadingStatus
-          isRunning={aiExplainerLoading}
-          success={aiExplainerSuccess}
-          onSuccessClear={() => setAiExplainerSuccess(false)}
+      <AIReportCardShell
+        containerClassName="border-amber-400/30 border-l-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.15)]"
+        buttonClassName="bg-amber-400 hover:bg-amber-300 text-slate-950"
+        accentClassName="text-amber-400"
+        icon={<BarChart3 className="w-4 h-4 text-amber-400" />}
+        title="Разбор показателей канала простыми словами"
+        description="Опытный SMM-специалист объяснит каждую метрику (ERR, VR, ER, CR и др.): что делают и чего не делают ваши подписчики"
+        buttonLabel="Разобрать показатели"
+        loadingLabel="Разбираю метрики..."
+        loading={aiExplainerLoading}
+        success={aiExplainerSuccess}
+        onSuccessClear={() => setAiExplainerSuccess(false)}
+        onGenerate={fetchAiExplainer}
+        messages={[
+          'Собираем все показатели канала (ERR, VR, ER, CR, охваты)...',
+          'Сравниваем метрики с поведением аудитории...',
+          'SMM-эксперт переводит цифры на простой человеческий язык...',
+          'Почти готово...',
+        ]}
+        error={aiExplainerError}
+        result={aiExplainer ? <AIMetricsExplainerReport data={aiExplainer} /> : null}
+        onDownload={() => downloadMarkdown(
+          aiMetricsExplainerToMarkdown(aiExplainer, channel.title),
+          `metrics_explainer_${channel.username || channel.id}.md`,
+        )}
+      />
+
+      <AIReportCardShell
+        containerClassName="border-accent/30 border-l-accent shadow-[0_0_15px_rgba(56,189,248,0.15)]"
+        buttonClassName="bg-accent hover:bg-accent-hover text-slate-950"
+        accentClassName="text-accent"
+        icon={<Bot className="w-4 h-4 text-accent" />}
+        title="Экспресс-отчёт на основе контента"
+        description="Нейросеть проанализирует посты канала и сделает выжимку"
+        buttonLabel="Сгенерировать саммари"
+        loadingLabel="Формирую..."
+        loading={aiLoading}
+        success={aiSuccess}
+        onSuccessClear={() => setAiSuccess(false)}
+        onGenerate={fetchAiSummary}
+        messages={['Сбор публикаций канала...', 'Анализ тональности и контекста...', 'Нейросеть формирует саммари...', 'Почти готово...']}
+        error={aiError}
+        result={aiSummary ? <AISummaryReport data={aiSummary} recentPosts={recentPosts} /> : null}
+        onDownload={() => downloadMarkdown(aiDataToMarkdown(aiSummary), `summary_${channel.username || channel.id}.md`)}
+      />
+
+      <AIReportCardShell
+        containerClassName="border-orange-500/30 border-l-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.15)]"
+        buttonClassName="bg-orange-500 hover:bg-orange-600 text-white"
+        accentClassName="text-orange-500"
+        icon={<Sparkles className="w-4 h-4 text-orange-500" />}
+        title="Супер Отчет (50 постов)"
+        description="Глубокий анализ контента по последним 50 постам"
+        buttonLabel="Супер Отчет"
+        loadingLabel="Формирую..."
+        loading={aiSuperLoading}
+        success={aiSuperSuccess}
+        onSuccessClear={() => setAiSuperSuccess(false)}
+        onGenerate={fetchAiSuperSummary}
+        messages={['Сбор архива постов (последние 50 шт)...', 'Анализ долгосрочных трендов...', 'Нейросеть формирует глубокий отчет...', 'Структурируем выводы...', 'Почти готово...']}
+        error={aiSuperError}
+        result={aiSuperSummary ? <AISummaryReport data={aiSuperSummary} recentPosts={recentPosts} /> : null}
+        onDownload={() => downloadMarkdown(aiDataToMarkdown(aiSuperSummary), `super_summary_${channel.username || channel.id}.md`)}
+      />
+
+      {!isMine && myChannel && (
+        <AIReportCardShell
+          containerClassName="border-violet-500/30 border-l-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.15)]"
+          buttonClassName="bg-violet-500 hover:bg-violet-600 text-white"
+          accentClassName="text-violet-400"
+          icon={<Layers className="w-4 h-4 text-violet-400" />}
+          title="Сравнительный AI-анализ"
+          description={<>Сравнить контент этого канала с вашим («{myChannel.title}»)</>}
+          buttonLabel="Сравнить каналы"
+          loadingLabel="Сравниваю..."
+          loading={aiCompareLoading}
+          success={aiCompareSuccess}
+          onSuccessClear={() => setAiCompareSuccess(false)}
+          onGenerate={fetchAiCompare}
+          messages={['Сбор данных обоих каналов...', 'Сравнение стилистики и метрик...', 'Нейросеть выявляет ключевые отличия...', 'Формируем таблицу...', 'Почти готово...']}
+          error={aiCompareError}
+          result={aiCompareSummary ? <AICompareReport data={aiCompareSummary} myTitle={myChannel.title} targetTitle={channel.title} /> : null}
+          onDownload={() => downloadMarkdown(aiCompareDataToMarkdown(aiCompareSummary, myChannel.title, channel.title), `compare_${channel.username || channel.id}_vs_mine.md`)}
+        />
+      )}
+
+      {(isMine || myChannel) && (
+        <AIReportCardShell
+          containerClassName="border-cyan-500/30 border-l-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+          buttonClassName="bg-cyan-500 hover:bg-cyan-600 text-slate-950"
+          accentClassName="text-cyan-400"
+          icon={<Target className="w-4 h-4 text-cyan-400" />}
+          title="Упущенные темы конкурентов (AI Content Gap)"
+          description={<>Темы и форматы с высоким охватом у конкурентов, которые ещё не выходили в канале «{isMine ? channel.title : myChannel?.title}»</>}
+          buttonLabel="Найти упущенные темы"
+          loadingLabel="Ищу темы..."
+          loading={aiContentGapLoading}
+          success={aiContentGapSuccess}
+          onSuccessClear={() => setAiContentGapSuccess(false)}
+          onGenerate={fetchAiContentGap}
           messages={[
-            'Собираем все показатели канала (ERR, VR, ER, CR, охваты)...',
-            'Сравниваем метрики с поведением аудитории...',
-            'SMM-эксперт переводит цифры на простой человеческий язык...',
+            'Собираем топ-публикации конкурентов...',
+            'Сравниваем с темами вашего канала...',
+            'Нейросеть находит упущенные темы и быстрые победы...',
             'Почти готово...',
           ]}
+          error={aiContentGapError}
+          result={aiContentGap ? <AIContentGapReport data={aiContentGap} /> : null}
+          onDownload={() => downloadMarkdown(
+            aiContentGapToMarkdown(aiContentGap, isMine ? channel.title : myChannel?.title),
+            `content_gap_${channel.username || channel.id}.md`,
+          )}
         />
-        {aiExplainerError && (
-          <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
-            {aiExplainerError}
-          </div>
-        )}
-        {aiExplainer && (
-          <div className="space-y-4 mt-6">
-            <AIMetricsExplainerReport data={aiExplainer} />
-            <div className="flex justify-end">
-              <button
-                onClick={() =>
-                  downloadMarkdown(
-                    aiMetricsExplainerToMarkdown(aiExplainer, channel.title),
-                    `metrics_explainer_${channel.username || channel.id}.md`
-                  )
-                }
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
-                data-pdf-hide
-              >
-                <Download className="w-3.5 h-3.5 text-amber-400" /> Экспорт в MD
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* =========================================================================
-          2. Экспресс-отчет на основе контента (быстрое саммари за выбранный период)
-         ========================================================================= */}
-      <div className="bg-surface border border-accent/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-accent shadow-[0_0_15px_rgba(56,189,248,0.15)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Bot className="w-4 h-4 text-accent" />
-              Экспресс-отчёт на основе контента
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Нейросеть проанализирует посты канала и сделает выжимку</p>
-          </div>
-          <button onClick={fetchAiSummary} disabled={aiLoading}
-            className="w-[220px] justify-center py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-            {aiLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Формирую...</> : 'Сгенерировать саммари'}
-          </button>
-        </div>
-        <AILoadingStatus isRunning={aiLoading} success={aiSuccess} onSuccessClear={() => setAiSuccess(false)} messages={['Сбор публикаций канала...', 'Анализ тональности и контекста...', 'Нейросеть формирует саммари...', 'Почти готово...']} />
-        {aiError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiError}</div>}
-        {aiSummary && (
-          <div className="space-y-4 mt-6">
-            <AISummaryReport data={aiSummary} recentPosts={recentPosts} />
-            <div className="flex justify-end">
-              <button onClick={() => downloadMarkdown(aiDataToMarkdown(aiSummary), `summary_${channel.username || channel.id}.md`)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
-                <Download className="w-3.5 h-3.5 text-accent" /> Экспорт в MD
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* =========================================================================
-          3. Супер Отчет (глубокий анализ по последним 50 публикациям)
-         ========================================================================= */}
-      <div className="bg-surface border border-orange-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.15)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-orange-500" />
-              Супер Отчет (50 постов)
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Глубокий анализ контента по последним 50 постам</p>
-          </div>
-          <button onClick={fetchAiSuperSummary} disabled={aiSuperLoading}
-            className="w-[220px] justify-center py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-            {aiSuperLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Формирую...</> : 'Супер Отчет'}
-          </button>
-        </div>
-        <AILoadingStatus isRunning={aiSuperLoading} success={aiSuperSuccess} onSuccessClear={() => setAiSuperSuccess(false)} messages={['Сбор архива постов (последние 50 шт)...', 'Анализ долгосрочных трендов...', 'Нейросеть формирует глубокий отчет...', 'Структурируем выводы...', 'Почти готово...']} />
-        {aiSuperError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiSuperError}</div>}
-        {aiSuperSummary && (
-          <div className="space-y-4 mt-6">
-            <AISummaryReport data={aiSuperSummary} recentPosts={recentPosts} />
-            <div className="flex justify-end">
-              <button onClick={() => downloadMarkdown(aiDataToMarkdown(aiSuperSummary), `super_summary_${channel.username || channel.id}.md`)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
-                <Download className="w-3.5 h-3.5 text-orange-500" /> Экспорт в MD
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* =========================================================================
-          4. Сравнительный AI-анализ с каналом пользователя
-          Отображается только для каналов-конкурентов, когда назначен "Мой канал".
-         ========================================================================= */}
-      {!isMine && myChannel && (
-        <div className="bg-surface border border-violet-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-violet-400" />
-                Сравнительный AI-анализ
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Сравнить контент этого канала с вашим («{myChannel.title}»)</p>
-            </div>
-            <button onClick={fetchAiCompare} disabled={aiCompareLoading}
-              className="w-[220px] justify-center py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-              {aiCompareLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Сравниваю...</> : 'Сравнить каналы'}
-            </button>
-          </div>
-          <AILoadingStatus isRunning={aiCompareLoading} success={aiCompareSuccess} onSuccessClear={() => setAiCompareSuccess(false)} messages={['Сбор данных обоих каналов...', 'Сравнение стилистики и метрик...', 'Нейросеть выявляет ключевые отличия...', 'Формируем таблицу...', 'Почти готово...']} />
-          {aiCompareError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiCompareError}</div>}
-          {aiCompareSummary && (
-            <div className="space-y-4 mt-6">
-              <AICompareReport data={aiCompareSummary} myTitle={myChannel.title} targetTitle={channel.title} />
-              <div className="flex justify-end">
-                <button onClick={() => downloadMarkdown(aiCompareDataToMarkdown(aiCompareSummary, myChannel.title, channel.title), `compare_${channel.username || channel.id}_vs_mine.md`)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
-                  <Download className="w-3.5 h-3.5 text-violet-400" /> Экспорт в MD
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
       )}
 
-      {/* =========================================================================
-          5. Упущенные темы конкурентов (AI Content Gap)
-          Выявляет популярные форматы и темы у конкурентов, которых нет у вас.
-         ========================================================================= */}
-      {(isMine || myChannel) && (
-        <div className="bg-surface border border-cyan-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Target className="w-4 h-4 text-cyan-400" />
-                Упущенные темы конкурентов (AI Content Gap)
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Темы и форматы с высоким охватом у конкурентов, которые ещё не выходили в канале «{isMine ? channel.title : myChannel?.title}»
-              </p>
-            </div>
-            <button
-              onClick={fetchAiContentGap}
-              disabled={aiContentGapLoading}
-              className="w-[220px] justify-center py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {aiContentGapLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Ищу темы...</> : 'Найти упущенные темы'}
-            </button>
-          </div>
-          <AILoadingStatus
-            isRunning={aiContentGapLoading}
-            success={aiContentGapSuccess}
-            onSuccessClear={() => setAiContentGapSuccess(false)}
-            messages={[
-              'Собираем топ-публикации конкурентов...',
-              'Сравниваем с темами вашего канала...',
-              'Нейросеть находит упущенные темы и быстрые победы...',
-              'Почти готово...',
-            ]}
-          />
-          {aiContentGapError && (
-            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
-              {aiContentGapError}
-            </div>
-          )}
-          {aiContentGap && (
-            <div className="space-y-4 mt-6">
-              <AIContentGapReport data={aiContentGap} />
-              <div className="flex justify-end">
-                <button
-                  onClick={() =>
-                    downloadMarkdown(
-                      aiContentGapToMarkdown(aiContentGap, isMine ? channel.title : myChannel?.title),
-                      `content_gap_${channel.username || channel.id}.md`,
-                    )
-                  }
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium"
-                  data-pdf-hide
-                >
-                  <Download className="w-3.5 h-3.5 text-cyan-400" /> Экспорт в MD
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      <AIReportCardShell
+        containerClassName="border-emerald-500/30 border-l-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+        buttonClassName="bg-emerald-500 hover:bg-emerald-600 text-slate-950"
+        accentClassName="text-emerald-400"
+        icon={<Users className="w-4 h-4 text-emerald-400" />}
+        title="Анализ предполагаемой целевой аудитории"
+        description="Предполагаемая аудитория на основе контента канала"
+        buttonLabel="Сгенерировать отчет"
+        loadingLabel="Анализирую..."
+        loading={aiAudienceLoading}
+        success={aiAudienceSuccess}
+        onSuccessClear={() => setAiAudienceSuccess(false)}
+        onGenerate={fetchAiAudience}
+        messages={['Анализируем язык и стиль постов...', 'Вычисляем демографические маркеры...', 'Нейросеть составляет портрет читателя...', 'Почти готово...']}
+        error={aiAudienceError}
+        result={aiAudience ? <AIAudienceReport data={aiAudience} /> : null}
+        onDownload={() => downloadMarkdown(aiAudienceToMarkdown(aiAudience), `audience_${channel.username || channel.id}.md`)}
+      />
 
-      {/* =========================================================================
-          6. Анализ предполагаемой целевой аудитории (демография, боли, интересы)
-         ========================================================================= */}
-      <div className="bg-surface border border-emerald-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-emerald-400" />
-              Анализ предполагаемой целевой аудитории
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Предполагаемая аудитория на основе контента канала</p>
-          </div>
-          <button onClick={fetchAiAudience} disabled={aiAudienceLoading}
-            className="w-[220px] justify-center py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-            {aiAudienceLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Анализирую...</> : 'Сгенерировать отчет'}
-          </button>
-        </div>
-        <AILoadingStatus isRunning={aiAudienceLoading} success={aiAudienceSuccess} onSuccessClear={() => setAiAudienceSuccess(false)} messages={['Анализируем язык и стиль постов...', 'Вычисляем демографические маркеры...', 'Нейросеть составляет портрет читателя...', 'Почти готово...']} />
-        {aiAudienceError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiAudienceError}</div>}
-        {aiAudience && (
-          <div className="space-y-4 mt-6">
-            <AIAudienceReport data={aiAudience} />
-            <div className="flex justify-end">
-              <button onClick={() => downloadMarkdown(aiAudienceToMarkdown(aiAudience), `audience_${channel.username || channel.id}.md`)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
-                <Download className="w-3.5 h-3.5 text-emerald-400" /> Экспорт в MD
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* =========================================================================
-          7. Психологический портрет автора
-          Конфиденциальный глубокий анализ, доступный исключительно администратору.
-         ========================================================================= */}
       {resolvedIsAdmin && (
-        <div className="bg-surface border border-rose-500/30 rounded-2xl p-5 sm:p-6 space-y-4 border-l-4 border-l-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Brain className="w-4 h-4 text-rose-500" />
-                Психологический портрет
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Глубокий психологический профиль автора на основе текстов</p>
-            </div>
-            <button onClick={fetchAiPersona} disabled={aiPersonaLoading}
-              className="w-[220px] justify-center py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2">
-              {aiPersonaLoading ? <><Loader2 className="w-4 h-4 animate-spin"/> Анализирую...</> : 'Сгенерировать портрет'}
-            </button>
-          </div>
-          <AILoadingStatus isRunning={aiPersonaLoading} success={aiPersonaSuccess} onSuccessClear={() => setAiPersonaSuccess(false)} messages={['Анализируем психологические паттерны...', 'Определяем архетипы и BDSM-профиль...', 'Нейросеть составляет глубокий портрет...', 'Почти готово...']} />
-          {aiPersonaError && <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">{aiPersonaError}</div>}
-          {aiPersona && (
-            <div className="space-y-4 mt-6">
-              <AIPersonaReport data={aiPersona} />
-              <div className="flex justify-end">
-                <button onClick={() => downloadMarkdown(aiPersonaToMarkdown(aiPersona), `persona_${channel.username || channel.id}.md`)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-border hover:border-slate-600 text-xs font-medium" data-pdf-hide>
-                  <Download className="w-3.5 h-3.5 text-rose-400" /> Экспорт в MD
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <AIReportCardShell
+          containerClassName="border-rose-500/30 border-l-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.15)]"
+          buttonClassName="bg-rose-500 hover:bg-rose-600 text-white"
+          accentClassName="text-rose-400"
+          icon={<Brain className="w-4 h-4 text-rose-500" />}
+          title="Психологический портрет"
+          description="Глубокий психологический профиль автора на основе текстов"
+          buttonLabel="Сгенерировать портрет"
+          loadingLabel="Анализирую..."
+          loading={aiPersonaLoading}
+          success={aiPersonaSuccess}
+          onSuccessClear={() => setAiPersonaSuccess(false)}
+          onGenerate={fetchAiPersona}
+          messages={['Анализируем психологические паттерны...', 'Определяем архетипы и BDSM-профиль...', 'Нейросеть составляет глубокий портрет...', 'Почти готово...']}
+          error={aiPersonaError}
+          result={aiPersona ? <AIPersonaReport data={aiPersona} /> : null}
+          onDownload={() => downloadMarkdown(aiPersonaToMarkdown(aiPersona), `persona_${channel.username || channel.id}.md`)}
+        />
       )}
     </>
   );

@@ -1,6 +1,6 @@
 # Метрики и формулы
 
-Предметная сверка формул с исполняемым кодом выполнена **27 октября 2026 года**; почасовая активность сверена 28 октября 2026 года. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [materialize.ts](../src/lib/materialize.ts), [ep.ts](../src/lib/ep.ts), [scoring.ts](../src/lib/scoring.ts), [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [pricing.ts](../src/lib/pricing.ts), [channel-activity.ts](../src/lib/channel-activity.ts).
+Предметная сверка формул с исполняемым кодом выполнена **27 октября 2026 года**; почасовая активность сверена 28 октября 2026 года. Размещение запросов метрик сверено 1 ноября 2026 года. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [history.ts](../src/lib/metrics/history.ts), [best-time.ts](../src/lib/metrics/best-time.ts), [materialize.ts](../src/lib/materialize.ts), [ep.ts](../src/lib/ep.ts), [scoring.ts](../src/lib/scoring.ts), [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [pricing.ts](../src/lib/pricing.ts), [channel-activity.ts](../src/lib/channel-activity.ts).
 
 Обозначения: $V$ — просмотры, $R$ — реакции, $C$ — комментарии, $F$ — пересылки, $S$ — аудитория, $E=R+C+F$. Пропущенные взаимодействия в формулах принимаются за 0, но отсутствующий знаменатель обычно даёт null. Процентные метрики хранятся как проценты (например, 2.5 означает 2.5%).
 
@@ -245,7 +245,7 @@ Worker записывает PostSnapshot только в первые 72 час�
 
 ## Лучшее время и KPI
 
-`getBestTimeRecommendation` выбирает посты активных конкурентов за 30 дней и группирует по локальным дням недели/часам процесса. Для слота:
+`getBestTimeRecommendation` выбирает посты активных конкурентов за 30 дней и группирует по дням недели и часам в `APP_TIMEZONE` (по умолчанию `Europe/Moscow`). Для слота:
 
 - avgViews = round(сумма известных views / число всех постов слота);
 - VR = сумма views / сумма последних известных размеров аудитории, добавляемых для каждого поста с views;
@@ -258,7 +258,7 @@ Dashboard `avgErr`: невзвешенное среднее конечных err
 
 ## Антифрод
 
-Источники: [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [ADR](adr/0001-anti-fraud-detection-architecture.md). Пороговые значения — константы реализации; репозиторий не подтверждает их точность на размеченной выборке. Сигнал требует проверки контекста, включая рекламу, внешний трафик, пропуски истории и неполный граф упоминаний.
+Источники: [heuristics.ts](../src/lib/fraud/heuristics.ts), [audit.ts](../src/lib/fraud/audit.ts), [normalizers.ts](../src/lib/fraud/normalizers.ts), публичный фасад [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [ADR](adr/0001-anti-fraud-detection-architecture.md). Пороговые значения являются константами реализации; репозиторий не подтверждает их точность на размеченной выборке. Сигнал требует проверки контекста, включая рекламу, внешний трафик, пропуски истории и неполный граф упоминаний.
 
 ### Гладкость роста
 

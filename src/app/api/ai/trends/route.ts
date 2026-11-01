@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { listUserChannels } from '@/lib/user-channels';
 import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { handleAiRouteError, saveAiReport } from '@/lib/ai-reports';
@@ -12,29 +13,7 @@ export async function POST(req: NextRequest) {
     if (!authCheck.authorized) return authCheck.response;
 
     // Анализируем все активные каналы из списка пользователя.
-    let channels: Array<{ id: number; title: string; username: string | null }>;
-    if (authCheck.userId && typeof prisma.userChannel?.findMany === 'function') {
-      const subs = await prisma.userChannel.findMany({
-        where: {
-          userId: authCheck.userId,
-          isActive: true,
-          channel: { isActive: true },
-        },
-        select: {
-          channel: { select: { id: true, title: true, username: true } },
-        },
-      });
-      channels = subs.map((s) => s.channel);
-    } else {
-      channels = await prisma.channel.findMany({
-        where: { isActive: true },
-        select: {
-          id: true,
-          title: true,
-          username: true
-        }
-      });
-    }
+    const channels = await listUserChannels(authCheck.userId, { onlyActive: true });
 
     if (channels.length === 0) {
       return NextResponse.json({ error: 'Нет отслеживаемых каналов для анализа' }, { status: 404 });
