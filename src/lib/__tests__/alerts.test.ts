@@ -290,4 +290,46 @@ describe('alert rule evaluation', () => {
     expect(await checkChannelAlertRules(5, async () => metrics, send, now)).toBe(0);
     expect(send).not.toHaveBeenCalled();
   });
+  describe.each(['keyword', 'viralPostMultiplier'] as const)('%s delivery reservations', metric => {
+    beforeEach(() => {
+      mocks.ruleFindMany.mockResolvedValue([rule({ metric, threshold: 2, keywordQuery: 'срочно' })]);
+      const old = new Date(now.getTime() - 2 * ALERT_COOLDOWN_MS);
+      mocks.postFindMany.mockResolvedValue([
+        ...[1, 2, 3, 4].map(id => ({ id, messageId: BigInt(id), text: 'Базовый пост', views: 500, publishedAt: old })),
+        { id: 5, messageId: 5n, text: 'Срочно: новый пост', views: 2000, publishedAt: now },
+      ]);
+    });
+
+    it.each(['false', 'throw'] as const)('releases only its reservation on sender %s', failure => {
+      const send = failure === 'false'
+        ? vi.fn().mockResolvedValue(false)
+        : vi.fn().mockRejectedValue(new Error('Delivery failed'));
+      return checkChannelAlertRules(5, async () => metrics, send, now).then(sent => {
+        expect(sent).toBe(0);
+        expect(mocks.postFireDeleteMany).toHaveBeenCalledWith({ where: { id: 20, firedAt: now } });
+        expect(mocks.ruleUpdateMany).not.toHaveBeenCalled();
+        expect(mocks.warn).toHaveBeenCalledWith(
+          metric === 'keyword' ? 'Keyword alert was not delivered' : 'Viral post alert was not delivered',
+          { ruleId: 1, channelId: 5, postId: 5 },
+        );
+      });
+    });
+
+    it('keeps the reservation after success even if the UI timestamp update fails', async () => {
+      mocks.ruleUpdateMany.mockRejectedValueOnce(new Error('Timestamp unavailable'));
+      expect(await checkChannelAlertRules(5, async () => metrics, vi.fn().mockResolvedValue(true), now)).toBe(1);
+      expect(mocks.postFireDeleteMany).not.toHaveBeenCalled();
+    });
+
+    it('does not send after a competing post reservation', async () => {
+      mocks.postFireCreate.mockRejectedValueOnce(new Prisma.PrismaClientKnownRequestError('Conflict', {
+        code: 'P2002', clientVersion: '6.19.3',
+      }));
+      const send = vi.fn();
+      expect(await checkChannelAlertRules(5, async () => metrics, send, now)).toBe(0);
+      expect(send).not.toHaveBeenCalled();
+      expect(mocks.postFireDeleteMany).not.toHaveBeenCalled();
+    });
+  });
+
 });

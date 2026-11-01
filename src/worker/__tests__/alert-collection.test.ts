@@ -44,7 +44,7 @@ vi.mock('../retry-policy', () => ({
   sendTelegramRuleAlert: vi.fn(),
   handleChannelError: vi.fn(),
 }));
-import { runCollectCycle } from '../collector';
+import { getActiveSyncJobId, runCollectCycle } from '../collector';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -103,4 +103,11 @@ describe('collection alert integration', () => {
       expect.stringContaining('#1: Synthetic collection failure'),
     );
   });
+  it('clears the active job and continues cleanup when finalization fails', async () => {
+    mocks.finalize.mockRejectedValueOnce(new Error('Finalization unavailable'));
+    expect((await runCollectCycle()).successCount).toBe(1);
+    expect(getActiveSyncJobId()).toBeNull();
+    expect(mocks.cleanup).toHaveBeenCalled();
+  });
+
 });

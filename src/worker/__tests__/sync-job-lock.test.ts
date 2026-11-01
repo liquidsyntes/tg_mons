@@ -13,7 +13,8 @@ vi.mock('@/lib/prisma', () => ({ prisma: {
   $transaction: mocks.transaction,
   syncJob: { findUnique: mocks.findUnique, updateMany: mocks.updateMany, update: mocks.update },
 } }));
-import { CollectAlreadyRunningError, createSyncJob, finalizeSyncJob, markInterruptedSyncJob } from '../persister';
+import { CollectAlreadyRunningError, createSyncJob, finalizeSyncJob, markInterruptedSyncJob, updateSyncJobProgress } from '../persister';
+import { CollectAlreadyRunningError as SyncJobConflict } from '../sync-jobs';
 
 describe('SyncJob coordination', () => {
   beforeEach(() => {
@@ -80,4 +81,32 @@ describe('SyncJob coordination', () => {
       data: expect.objectContaining({ status: 'PARTIAL', errorSummary: 'Ошибки каналов (1): #4: Таймаут' }),
     }));
   });
+  it('preserves the error identity through the persistence facade', async () => {
+    mocks.lock.mockResolvedValue([{ acquired: false }]);
+    await expect(createSyncJob(1)).rejects.toBeInstanceOf(SyncJobConflict);
+    expect(new SyncJobConflict()).toBeInstanceOf(CollectAlreadyRunningError);
+  });
+
+  it.each(['COMPLETED', 'PARTIAL', 'FAILED'])('does not interrupt an already %s job', async status => {
+    mocks.findUnique.mockResolvedValue({ id: 42, status });
+    await markInterruptedSyncJob(42);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('restricts progress and finalization updates to RUNNING jobs', async () => {
+    mocks.updateMany.mockResolvedValue({ count: 0 });
+    expect(await updateSyncJobProgress(42, 0, undefined, 0)).toEqual({ count: 0 });
+    expect(mocks.updateMany).toHaveBeenLastCalledWith({
+      where: { id: 42, status: 'RUNNING' }, data: { channelsSucceeded: 0, postsAdded: 0 },
+    });
+    expect(await finalizeSyncJob(42, 10, 0, 0, 0, 0, null)).toEqual({ count: 0 });
+    expect(mocks.updateMany).toHaveBeenLastCalledWith(expect.objectContaining({ where: { id: 42, status: 'RUNNING' } }));
+  });
+
+  it('propagates a finalization error to the caller', async () => {
+    const failure = new Error('Database unavailable');
+    mocks.updateMany.mockRejectedValueOnce(failure);
+    await expect(finalizeSyncJob(42, 10, 1, 0, 1, 2, null)).rejects.toBe(failure);
+  });
+
 });
