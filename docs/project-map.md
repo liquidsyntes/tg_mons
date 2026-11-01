@@ -44,7 +44,7 @@
 | Telegram-вход и одобрение | `src/lib/telegram-login.ts`, `src/app/api/auth/telegram/`, `src/app/api/admin/registrations/`, `src/app/login/page.tsx`, `src/app/pending/page.tsx` | `src/lib/__tests__/telegram-login.test.ts`, соседние тесты маршрутов, `src/__tests__/middleware.test.ts` |
 | AI, радар, события | `src/app/api/ai/trends/route.ts`, `src/lib/ai-reports.ts`, `src/lib/events/` | `src/app/api/ai/trends/__tests__/route.test.ts`, `src/lib/__tests__/ai-reports.test.ts`, `src/lib/events/__tests__/` |
 | Карточки и HTML-экспорт AI-отчётов | `src/components/channel/AIReportsSection.tsx`, `AIReportCardShell.tsx`, `src/lib/ai-report-html.ts`, `src/app/api/reports/[id]/export/route.ts` | `src/components/__tests__/channel-detail-ui.test.ts`, `src/components/channel/__tests__/AIReportCardShell.test.ts`, `src/lib/__tests__/ai-report-html.test.ts`, тест экспорта маршрута |
-| Уведомления и эксплуатация | `src/lib/alerts.ts`, `src/lib/digest.ts`, `src/lib/ops.ts`, `src/worker/index.ts` | `src/lib/__tests__/alerts.test.ts`, `src/lib/__tests__/digest.test.ts`, `src/lib/__tests__/ops.test.ts` |
+| Уведомления и эксплуатация | `src/lib/alerts.ts`: совместимый фасад; `src/lib/alerts/`: типы, чистые правила, резервирования, доставка и оценка канала; `src/lib/digest.ts`, `src/lib/ops.ts`, `src/worker/index.ts` | `src/lib/__tests__/alerts.test.ts`, `src/app/api/alerts/__tests__/route.test.ts`, `src/worker/__tests__/alert-collection.test.ts`, `src/worker/__tests__/rule-alert.test.ts`, тесты digest и ops |
 | Данные и миграции | `prisma/schema.prisma`, `prisma/migrations/`, затронутые чтение и запись | Проверить SQL миграции и ближайшие тесты потребителей; порядок в [эксплуатации](deployment.md) |
 
 ## Ограничения, которые легко пропустить
