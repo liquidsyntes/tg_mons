@@ -1,8 +1,10 @@
 import next from 'eslint-config-next';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
   ...next,
   {
+    plugins: { 'react-hooks': reactHooks },
     rules: {
       '@next/next/no-img-element': 'off',
       'react-hooks/exhaustive-deps': 'warn',
