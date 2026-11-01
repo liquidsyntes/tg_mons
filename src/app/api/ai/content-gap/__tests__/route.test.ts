@@ -100,6 +100,22 @@ describe('POST /api/ai/content-gap', () => {
     expect(mocks.ai).not.toHaveBeenCalled();
   });
 
+  it('selects competitors by the personal niche', async () => {
+    mocks.subscriptions.mockResolvedValue([
+      { isMine: true, niche: 'personal', channel: { id: 1, title: 'Мой канал', niche: 'global' } },
+      { isMine: false, niche: 'personal', channel: { id: 2, title: 'Первый', niche: 'other' } },
+      { isMine: false, niche: 'personal', channel: { id: 3, title: 'Второй', niche: 'other' } },
+      { isMine: false, niche: 'global', channel: { id: 4, title: 'Третий', niche: 'global' } },
+    ]);
+    mocks.posts.mockResolvedValue([]);
+
+    await POST(makeRequest());
+
+    expect(mocks.posts).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ channelId: { in: [2, 3] } }),
+    }));
+  });
+
   it('scopes channels to active user subscriptions, ranks top competitor posts, and saves content-gap report', async () => {
     mocks.subscriptions.mockResolvedValue([
       { isMine: true, channel: { id: 1, title: 'Мой Техно Канал', username: 'mytech', niche: 'tech' } },

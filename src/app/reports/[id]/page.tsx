@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cookies } from 'next/headers';
 import { parseSessionCookieValue, SESSION_COOKIE_NAME } from '@/lib/auth';
+import { findUserMyChannel } from '@/lib/user-channels';
 
 export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,18 +41,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
     notFound();
   }
 
-  let myChannel: { title: string } | null = null;
-  if (report.type === 'compare') {
-    if (session?.userId && typeof prisma.userChannel?.findFirst === 'function') {
-      const sub = await prisma.userChannel.findFirst({
-        where: { userId: session.userId, isMine: true },
-        include: { channel: { select: { title: true } } },
-      });
-      myChannel = sub?.channel ?? null;
-    } else {
-      myChannel = await prisma.channel.findFirst({ where: { isMine: true } });
-    }
-  }
+  const myChannel = report.type === 'compare' ? await findUserMyChannel(session?.userId) : null;
 
   let parsedData = null;
   try {

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { handleAiRouteError, saveAiReport } from '@/lib/ai-reports';
+import { listUserChannels } from '@/lib/user-channels';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,43 +59,11 @@ export async function POST(req: NextRequest) {
     const rawDays = Number(body.days);
     const safeDays = Number.isFinite(rawDays) && rawDays >= 1 ? Math.min(30, Math.floor(rawDays)) : 14;
 
-    let myChannel: ChannelCandidate | null = null;
-    let competitorPool: ChannelCandidate[] = [];
-
-    if (authCheck.userId && typeof prisma.userChannel?.findMany === 'function') {
-      const subs = await prisma.userChannel.findMany({
-        where: {
-          userId: authCheck.userId,
-          isActive: true,
-          channel: { isActive: true },
-        },
-        select: {
-          isMine: true,
-          channel: {
-            select: { id: true, title: true, username: true, niche: true },
-          },
-        },
-      });
-
-      const targetSub = requestedMyChannelId
-        ? subs.find(s => s.channel.id === requestedMyChannelId)
-        : subs.find(s => s.isMine);
-
-      myChannel = targetSub?.channel ?? null;
-      competitorPool = subs
-        .map(s => s.channel)
-        .filter(ch => !myChannel || ch.id !== myChannel.id);
-    } else {
-      const allChannels = await prisma.channel.findMany({
-        where: { isActive: true },
-        select: { id: true, title: true, username: true, niche: true, isMine: true },
-      });
-
-      myChannel = requestedMyChannelId
-        ? (allChannels.find(c => c.id === requestedMyChannelId) ?? null)
-        : (allChannels.find(c => c.isMine) ?? null);
-      competitorPool = allChannels.filter(ch => !myChannel || ch.id !== myChannel.id);
-    }
+    const allChannels = await listUserChannels(authCheck.userId, { onlyActive: true });
+    const myChannel: ChannelCandidate | null = requestedMyChannelId
+      ? (allChannels.find(channel => channel.id === requestedMyChannelId) ?? null)
+      : (allChannels.find(channel => channel.isMine) ?? null);
+    const competitorPool: ChannelCandidate[] = allChannels.filter(channel => !myChannel || channel.id !== myChannel.id);
 
     if (!myChannel) {
       return NextResponse.json(

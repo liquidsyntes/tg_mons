@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
 import { callOpenRouter } from '@/lib/openrouter';
 import { formatTimestampedPosts, handleAiRouteError, saveAiReport } from '@/lib/ai-reports';
+import { findUserMyChannel } from '@/lib/user-channels';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,16 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Find "my channel"
-    let myChannel: { id: number; title: string } | null = null;
-    if (authCheck.userId && typeof prisma.userChannel?.findFirst === 'function') {
-      const sub = await prisma.userChannel.findFirst({
-        where: { userId: authCheck.userId, isMine: true },
-        include: { channel: { select: { id: true, title: true } } },
-      });
-      myChannel = sub?.channel ?? null;
-    } else {
-      myChannel = await prisma.channel.findFirst({ where: { isMine: true } });
-    }
+    const myChannel = await findUserMyChannel(authCheck.userId);
     if (!myChannel) {
       return NextResponse.json({ error: 'Сначала назначьте один из каналов "Вашим каналом" на главной странице' }, { status: 400 });
     }

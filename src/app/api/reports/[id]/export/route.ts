@@ -35,19 +35,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return new NextResponse(errorHtml, { status: 500, headers: hdrs });
     }
 
-    let myChannel: { title: string } | null = null;
-    if (report.type === 'compare') {
-      if (session.userId && typeof prisma.userChannel?.findFirst === 'function') {
-        const sub = await prisma.userChannel.findFirst({
-          where: { userId: session.userId, isMine: true },
-          include: { channel: { select: { title: true } } },
-        });
-        myChannel = sub?.channel ?? null;
-      } else {
-        myChannel = await prisma.channel.findFirst({ where: { isMine: true } });
-      }
-    }
-
     const channelTitle = report.channel?.title || 'Глобальный отчет (Тренды)';
 
 
