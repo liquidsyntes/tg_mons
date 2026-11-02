@@ -7,6 +7,22 @@ import { handleAiRouteError, saveAiReport } from '@/lib/ai-reports';
 
 export const dynamic = 'force-dynamic';
 
+function isTrendReport(value: unknown): value is {
+  trends: Array<{ topic: string; description: string; channels: string[]; quote: string }>;
+  summary: string;
+} {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !('trends' in value) ||
+      !Array.isArray(value.trends) || value.trends.length === 0 ||
+      !('summary' in value) || typeof value.summary !== 'string') return false;
+  return value.trends.every((trend: unknown) =>
+    trend !== null && typeof trend === 'object' && !Array.isArray(trend) &&
+    'topic' in trend && typeof trend.topic === 'string' &&
+    'description' in trend && typeof trend.description === 'string' &&
+    'channels' in trend && Array.isArray(trend.channels) &&
+    trend.channels.every((channel: unknown) => typeof channel === 'string') &&
+    'quote' in trend && typeof trend.quote === 'string');
+}
+
 export async function POST(req: NextRequest) {
   try {
     const authCheck = await verifyBearerToken(req);
@@ -88,13 +104,17 @@ ${contentToAnalyze}
 `;
 
     const result = await callOpenRouter(prompt);
-    await saveAiReport(null, 'trend', result, authCheck.userId);
+    let parsed: unknown;
     try {
-      const parsed = JSON.parse(result);
-      return NextResponse.json(parsed);
+      parsed = JSON.parse(result);
     } catch {
       return NextResponse.json({ error: 'ИИ вернул невалидный JSON' }, { status: 500 });
     }
+    if (!isTrendReport(parsed)) {
+      return NextResponse.json({ error: 'ИИ вернул невалидный JSON' }, { status: 500 });
+    }
+    await saveAiReport(null, 'trend', result, authCheck.userId);
+    return NextResponse.json(parsed);
   } catch (error: unknown) {
     return handleAiRouteError(error);
   }

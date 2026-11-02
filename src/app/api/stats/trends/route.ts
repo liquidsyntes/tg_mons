@@ -25,6 +25,11 @@ export async function GET() {
       logger.error('Failed to parse saved trend report', undefined, e);
       return NextResponse.json(null);
     }
+    if (!parsedContent || typeof parsedContent !== 'object' || Array.isArray(parsedContent) ||
+        !('trends' in parsedContent) || !Array.isArray(parsedContent.trends)) {
+      logger.error('Invalid saved trend report shape', { reportId: latestTrendReport.id });
+      return NextResponse.json(null);
+    }
 
     return NextResponse.json({
       createdAt: latestTrendReport.createdAt,

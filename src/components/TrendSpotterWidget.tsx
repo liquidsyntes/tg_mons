@@ -157,47 +157,47 @@ export function TrendSpotterWidget() {
 
       <div id="trend-radar-content" hidden={!expanded} aria-busy={loading || generating}>
         {loading && <p className="text-sm text-slate-400">Загрузка радара трендов…</p>}
-        {!loading && !report && !generating && !error && (
+        {!loading && (!report || !Array.isArray(report.data?.trends)) && !generating && !error && (
           <div className="text-center py-8">
             <p className="text-sm text-slate-400 mb-4">Тренды еще не генерировались. Нажмите кнопку, чтобы запустить анализ.</p>
           </div>
         )}
 
-        {report && (
+        {report && Array.isArray(report.data?.trends) && (
           <div className="space-y-[6px]">
             <div className="p-4 rounded-2xl bg-slate-800/50 border border-border text-sm text-slate-300 leading-relaxed">
-              <span className="font-semibold text-white">Сводка:</span> {report.data.summary}
+              <span className="font-semibold text-white">Сводка:</span> {typeof report.data.summary === 'string' ? report.data.summary : ''}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-[6px]">
-              {report.data.trends.map((trend, idx) => (
+              {report.data.trends.map((trend, idx) => trend && typeof trend === 'object' ? (
                 <div key={idx} className="bg-slate-900/50 rounded-2xl border border-border p-5 space-y-4 flex flex-col">
                   <div className="flex items-start justify-between gap-3">
                     <h4 className="text-base font-bold text-white flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-purple-400" />
-                      {trend.topic}
+                      {typeof trend.topic === 'string' ? trend.topic : ''}
                     </h4>
                   </div>
 
                   <p className="text-sm text-slate-300 flex-1 leading-relaxed">
-                    {trend.description}
+                    {typeof trend.description === 'string' ? trend.description : ''}
                   </p>
 
-                  {trend.quote && (
+                  {typeof trend.quote === 'string' && trend.quote && (
                     <div className="pl-3 border-l-2 border-purple-500/30 text-xs text-slate-400 italic">
                       «{trend.quote}»
                     </div>
                   )}
 
                   <div className="flex flex-wrap gap-2 pt-2 mt-auto">
-                    {trend.channels.map((ch, i) => (
+                    {Array.isArray(trend.channels) && trend.channels.filter((ch): ch is string => typeof ch === 'string').map((ch, i) => (
                       <span key={i} className="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] font-medium text-slate-300">
                         {ch}
                       </span>
                     ))}
                   </div>
                 </div>
-              ))}
+              ) : null)}
             </div>
           </div>
         )}

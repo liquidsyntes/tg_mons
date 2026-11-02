@@ -15,12 +15,15 @@ vi.mock('@/lib/ai-reports', () => ({ saveAiReport: mocks.save, handleAiRouteErro
 import { POST } from '../route';
 
 const request = () => new NextRequest('http://localhost:4000/api/ai/trends', { method: 'POST' });
+const validTrend = { topic: 'Тема', description: 'Описание', channels: ['Первый', 'Второй'], quote: 'Цитата' };
 
 describe('POST /api/ai/trends', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue({ authorized: true, userId: 1 });
-    mocks.ai.mockResolvedValue('{"trends":[],"summary":"Сводка"}');
+    mocks.subscriptions.mockResolvedValue([{ channel: { id: 1, title: 'Первый', username: null } }]);
+    mocks.posts.mockResolvedValue([{ publishedAt: new Date(), text: 'Текст публикации' }]);
+    mocks.ai.mockResolvedValue(JSON.stringify({ trends: [validTrend], summary: 'Сводка' }));
     mocks.save.mockResolvedValue(undefined);
   });
 
@@ -42,6 +45,25 @@ describe('POST /api/ai/trends', () => {
     } }));
     expect(mocks.posts).toHaveBeenCalledTimes(2);
     expect(mocks.ai.mock.calls[0][0]).toContain('Новость второго канала');
+    expect(mocks.save).toHaveBeenCalledWith(null, 'trend', JSON.stringify({ trends: [validTrend], summary: 'Сводка' }), 1);
+  });
+
+  it.each([
+    ['невалидный синтаксис', '{'],
+    ['пустой список', JSON.stringify({ trends: [], summary: 'Сводка' })],
+    ['пустые ключи', JSON.stringify({ '': { '': [''], summary: 'Сводка' } })],
+    ['неверные каналы', JSON.stringify({ trends: [{ ...validTrend, channels: 'Первый' }], summary: 'Сводка' })],
+    ['нестроковый канал', JSON.stringify({ trends: [{ ...validTrend, channels: [42] }], summary: 'Сводка' })],
+    ['отсутствующая цитата', JSON.stringify({ trends: [{ topic: 'Тема', description: 'Описание', channels: [] }], summary: 'Сводка' })],
+    ['отсутствующая сводка', JSON.stringify({ trends: [validTrend] })],
+  ])('rejects %s without saving a report', async (_case, result) => {
+    mocks.ai.mockResolvedValue(result);
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'ИИ вернул невалидный JSON' });
+    expect(mocks.save).not.toHaveBeenCalled();
   });
 
   it('does not generate a report when there are no recent text posts', async () => {
