@@ -1,75 +1,19 @@
 'use client';
 
-import React, { Suspense, useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { GitCompareArrows } from 'lucide-react';
 import { Header } from '@/components/Header';
-import {
-  ArrowLeft,
-  GitCompareArrows,
-  TrendingUp,
-  BarChart2,
-  Eye,
-  ChevronDown,
-} from 'lucide-react';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Legend,
-} from 'recharts';
-import { ChannelDetailStats, ChannelMetrics } from '@/lib/types';
-import { mergePostsDistribution, mergeSubscriberHistory } from '@/lib/compare';
-import { formatNumber } from '@/lib/utils';
+import { CompareChannelSelectors, CompareTopBar } from '@/components/compare/CompareControls';
+import { CompareSummarySection } from '@/components/compare/CompareSummarySection';
+import { CompareChartsSection } from '@/components/compare/CompareChartsSection';
+import { mergePostsDistribution, mergeSubscriberHistory, type ComparePeriod } from '@/lib/compare';
+import type { ChannelDetailStats, ChannelMetrics } from '@/lib/types';
 
 interface CompareData {
   a: ChannelDetailStats;
   b: ChannelDetailStats;
   period: string;
-}
-
-interface CompareMetricCardProps {
-  label: string;
-  valueA: number | null;
-  valueB: number | null;
-  formatFn?: (v: number | null) => string;
-  highlight?: boolean;
-}
-
-function CompareMetricCard({
-  label,
-  valueA,
-  valueB,
-  formatFn = (v) => (v !== null && v !== undefined ? String(v) : '-'),
-  highlight = false,
-}: CompareMetricCardProps) {
-  const vA = formatFn(valueA);
-  const vB = formatFn(valueB);
-  const numA = typeof valueA === 'number' ? valueA : 0;
-  const numB = typeof valueB === 'number' ? valueB : 0;
-  const aWins = numA > numB;
-  const bWins = numB > numA;
-
-  return (
-    <div className="bg-slate-900/60 rounded-xl border border-border/50 p-3">
-      <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2 text-center">{label}</div>
-      <div className="grid grid-cols-3 items-center gap-2">
-        <div className={`text-right font-mono font-semibold text-sm ${highlight && aWins ? 'text-sky-400' : 'text-slate-200'}`}>
-          {vA}
-        </div>
-        <div className="text-center text-slate-500 text-xs">vs</div>
-        <div className={`text-left font-mono font-semibold text-sm ${highlight && bWins ? 'text-amber-400' : 'text-slate-200'}`}>
-          {vB}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function ComparePage() {
@@ -78,31 +22,27 @@ function ComparePage() {
   const aId = searchParams.get('a');
   const bId = searchParams.get('b');
 
-  const [period, setPeriod] = useState<'24h' | '7d' | '30d'>('7d');
+  const [period, setPeriod] = useState<ComparePeriod>('7d');
   const [data, setData] = useState<CompareData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Channel list for selectors
   const [channels, setChannels] = useState<ChannelMetrics[]>([]);
   const [selectedA, setSelectedA] = useState<string>(aId || '');
   const [selectedB, setSelectedB] = useState<string>(bId || '');
 
-  // Fetch channel list
   useEffect(() => {
     fetch('/api/channels')
       .then((r) => r.json())
-      .then((list) => setChannels(list))
+      .then((list) => setChannels(Array.isArray(list) ? list : []))
       .catch(console.error);
   }, []);
 
-  // Sync URL params
   useEffect(() => {
     if (aId) setSelectedA(aId);
     if (bId) setSelectedB(bId);
   }, [aId, bId]);
 
-  // Fetch comparison data
   useEffect(() => {
     if (!selectedA || !selectedB || selectedA === selectedB) return;
     setLoading(true);
@@ -112,7 +52,7 @@ function ComparePage() {
         if (!r.ok) throw new Error('Ошибка загрузки данных');
         return r.json();
       })
-      .then((json) => setData(json))
+      .then((json: CompareData) => setData(json))
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Ошибка загрузки данных'))
       .finally(() => setLoading(false));
   }, [selectedA, selectedB, period]);
@@ -123,13 +63,11 @@ function ComparePage() {
     }
   };
 
-  // Merge subscriber histories for overlay chart
   const mergedSubscriberData = useMemo(
     () => (data ? mergeSubscriberHistory(data.a.membersHistory, data.b.membersHistory, period) : []),
     [data, period]
   );
 
-  // Merge posts distribution
   const mergedPostsData = useMemo(
     () => (data ? mergePostsDistribution(data.a.postsDistribution, data.b.postsDistribution, period) : []),
     [data, period]
@@ -141,95 +79,17 @@ function ComparePage() {
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col">
       <Header />
-      {/* Top Bar */}
-      <div className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
-        <div className="site-shell mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Назад</span>
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <GitCompareArrows className="w-5 h-5 text-accent" />
-            <h1 className="text-sm font-bold text-white">Сравнение каналов</h1>
-          </div>
-
-          {/* Period selector */}
-          <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-border">
-            {(['24h', '7d', '30d'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-3 py-1 text-xs font-mono font-medium rounded-lg transition-all ${
-                  period === p
-                    ? 'bg-accent text-slate-950 font-bold shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {p === '24h' ? '24ч' : p === '7d' ? '7 дней' : '30 дней'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <CompareTopBar period={period} onPeriodChange={setPeriod} />
 
       <main className="flex-1 site-shell w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col gap-[6px]">
-        {/* Channel Selectors */}
-        <div className="bg-surface border border-border rounded-2xl p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-4 items-end">
-            <div>
-              <label className="text-xs text-slate-400 block mb-1.5 font-medium">Канал A</label>
-              <div className="relative">
-                <select
-                  value={selectedA}
-                  onChange={(e) => setSelectedA(e.target.value)}
-                  className="w-full bg-slate-900 border border-border rounded-xl px-3 py-2.5 text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-accent"
-                >
-                  <option value="">Выберите канал...</option>
-                  {channels.map((ch) => (
-                    <option key={ch.id} value={ch.id}>
-                      {ch.title} {ch.isMine ? '⭐' : ''} ({formatNumber(ch.currentMembers)})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <button
-                onClick={handleCompare}
-                disabled={!selectedA || !selectedB || selectedA === selectedB}
-                className="px-5 py-2.5 rounded-xl bg-accent text-slate-950 font-bold text-sm hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
-              >
-                <GitCompareArrows className="w-4 h-4" />
-                Сравнить
-              </button>
-            </div>
-
-            <div>
-              <label className="text-xs text-slate-400 block mb-1.5 font-medium">Канал B</label>
-              <div className="relative">
-                <select
-                  value={selectedB}
-                  onChange={(e) => setSelectedB(e.target.value)}
-                  className="w-full bg-slate-900 border border-border rounded-xl px-3 py-2.5 text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-accent"
-                >
-                  <option value="">Выберите канал...</option>
-                  {channels.map((ch) => (
-                    <option key={ch.id} value={ch.id}>
-                      {ch.title} {ch.isMine ? '⭐' : ''} ({formatNumber(ch.currentMembers)})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <CompareChannelSelectors
+          channels={channels}
+          selectedA={selectedA}
+          selectedB={selectedB}
+          onSelectA={setSelectedA}
+          onSelectB={setSelectedB}
+          onCompare={handleCompare}
+        />
 
         {loading && (
           <div className="bg-surface border border-border rounded-2xl p-12 text-center">
@@ -245,257 +105,16 @@ function ComparePage() {
 
         {!loading && data && chA && chB && (
           <>
-            {/* Header: A vs B */}
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-4 items-center">
-              <div className="bg-surface border border-sky-500/30 rounded-2xl p-5 text-center">
-                <div className="text-xs text-sky-400 font-semibold uppercase tracking-wider mb-1">Канал A</div>
-                <h2 className="text-lg font-extrabold text-white truncate">{chA.title}</h2>
-                {chA.username && (
-                  <a href={`https://t.me/${chA.username}`} target="_blank" rel="noreferrer" className="text-xs text-slate-400 font-mono">
-                    @{chA.username}
-                  </a>
-                )}
-                <div className="text-2xl font-extrabold text-white font-mono mt-2">{formatNumber(chA.currentMembers)}</div>
-                <div className="text-[10px] text-slate-400">подписчиков</div>
-              </div>
-
-              <div className="flex justify-center">
-                <div className="w-12 h-12 rounded-full bg-slate-800 border-2 border-border flex items-center justify-center">
-                  <GitCompareArrows className="w-5 h-5 text-accent" />
-                </div>
-              </div>
-
-              <div className="bg-surface border border-amber-500/30 rounded-2xl p-5 text-center">
-                <div className="text-xs text-amber-400 font-semibold uppercase tracking-wider mb-1">Канал B</div>
-                <h2 className="text-lg font-extrabold text-white truncate">{chB.title}</h2>
-                {chB.username && (
-                  <a href={`https://t.me/${chB.username}`} target="_blank" rel="noreferrer" className="text-xs text-slate-400 font-mono">
-                    @{chB.username}
-                  </a>
-                )}
-                <div className="text-2xl font-extrabold text-white font-mono mt-2">{formatNumber(chB.currentMembers)}</div>
-                <div className="text-[10px] text-slate-400">подписчиков</div>
-              </div>
-            </div>
-
-            {/* KPI Comparison Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <CompareMetricCard
-                label="Δ 24ч"
-                valueA={chA.delta24h.abs}
-                valueB={chB.delta24h.abs}
-                formatFn={(v) => (v !== null ? `${v > 0 ? '+' : ''}${formatNumber(v)}` : '—')}
-                highlight
-              />
-              <CompareMetricCard
-                label="Δ 7д"
-                valueA={chA.delta7d.abs}
-                valueB={chB.delta7d.abs}
-                formatFn={(v) => (v !== null ? `${v > 0 ? '+' : ''}${formatNumber(v)}` : '—')}
-                highlight
-              />
-              <CompareMetricCard
-                label="Просм. (24ч)"
-                valueA={chA.avgViews24h}
-                valueB={chB.avgViews24h}
-                formatFn={(v) => (v !== null ? formatNumber(v) : '—')}
-                highlight
-              />
-              <CompareMetricCard
-                label="ERR (7д)"
-                valueA={chA.vr7d}
-                valueB={chB.vr7d}
-                formatFn={(v) => (v !== null ? `${v}%` : '—')}
-                highlight
-              />
-              <CompareMetricCard
-                label="Постов (7д)"
-                valueA={chA.posts7d}
-                valueB={chB.posts7d}
-                formatFn={(v) => String(v)}
-                highlight
-              />
-              <CompareMetricCard
-                label="Постов (30д)"
-                valueA={chA.posts30d}
-                valueB={chB.posts30d}
-                formatFn={(v) => String(v)}
-                highlight
-              />
-              <CompareMetricCard
-                label="Ср. постов/д"
-                valueA={chA.avgPostsPerDay}
-                valueB={chB.avgPostsPerDay}
-                formatFn={(v) => String(v)}
-                highlight
-              />
-              <CompareMetricCard
-                label="Просм. (7д)"
-                valueA={chA.avgViews7d}
-                valueB={chB.avgViews7d}
-                formatFn={(v) => (v !== null ? formatNumber(v) : '—')}
-                highlight
-              />
-            </div>
-
-            {/* Subscriber Growth Overlay Chart */}
-            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-accent" />
-                  Динамика подписчиков
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Наложение кривых роста двух каналов
-                </p>
-              </div>
-
-              <div className="h-72 w-full">
-                {mergedSubscriberData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={mergedSubscriberData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                      <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
-                      <YAxis
-                        yAxisId="left"
-                        stroke="#38bdf8"
-                        fontSize={11}
-                        tickLine={false}
-                        tickFormatter={(v) => formatNumber(v)}
-                      />
-                      <YAxis
-                        yAxisId="right"
-                        orientation="right"
-                        stroke="#fbbf24"
-                        fontSize={11}
-                        tickLine={false}
-                        tickFormatter={(v) => formatNumber(v)}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1e293b',
-                          border: '1px solid #334155',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                        }}
-                        labelStyle={{ color: '#94a3b8' }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey="membersA"
-                        name={chA.title}
-                        stroke="#38bdf8"
-                        strokeWidth={2.5}
-                        dot={false}
-                        connectNulls
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey="membersB"
-                        name={chB.title}
-                        stroke="#fbbf24"
-                        strokeWidth={2.5}
-                        dot={false}
-                        connectNulls
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-xs text-slate-500">
-                    Нет данных для отображения
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Posts Activity Comparison */}
-            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <BarChart2 className="w-4 h-4 text-accent" />
-                  Активность публикаций
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Количество постов по дням
-                </p>
-              </div>
-
-              <div className="h-64 w-full">
-                {mergedPostsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={mergedPostsData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                      <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1e293b',
-                          border: '1px solid #334155',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                        }}
-                        labelStyle={{ color: '#94a3b8' }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      <Bar dataKey="postsA" name={chA.title} fill="#38bdf8" radius={[3, 3, 0, 0]} />
-                      <Bar dataKey="postsB" name={chB.title} fill="#fbbf24" radius={[3, 3, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-xs text-slate-500">
-                    Нет данных для отображения
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Views Comparison Chart */}
-            <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-accent" />
-                  Средние просмотры
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Средние просмотры на пост по дням
-                </p>
-              </div>
-
-              <div className="h-64 w-full">
-                {mergedPostsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={mergedPostsData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                      <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} tickFormatter={(v) => formatNumber(v)} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1e293b',
-                          border: '1px solid #334155',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                        }}
-                        labelStyle={{ color: '#94a3b8' }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                      <Line type="monotone" dataKey="viewsA" name={`${chA.title} (просм.)`} stroke="#38bdf8" strokeWidth={2} dot={{ r: 3 }} />
-                      <Line type="monotone" dataKey="viewsB" name={`${chB.title} (просм.)`} stroke="#fbbf24" strokeWidth={2} dot={{ r: 3 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-xs text-slate-500">
-                    Нет данных для отображения
-                  </div>
-                )}
-              </div>
-            </div>
+            <CompareSummarySection channelA={chA} channelB={chB} />
+            <CompareChartsSection
+              titleA={chA.title}
+              titleB={chB.title}
+              mergedSubscriberData={mergedSubscriberData}
+              mergedPostsData={mergedPostsData}
+            />
           </>
         )}
 
-        {/* Empty state */}
         {!loading && !data && !error && (
           <div className="bg-surface border border-border rounded-2xl p-12 text-center space-y-3">
             <GitCompareArrows className="w-10 h-10 text-slate-600 mx-auto" />
@@ -509,7 +128,6 @@ function ComparePage() {
     </div>
   );
 }
-
 
 export default function ComparePageWrapper() {
   return (
