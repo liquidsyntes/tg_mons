@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ schedule: vi.fn(), run: vi.fn(), runDigest: vi.fn(), warn: vi.fn() }));
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+const mocks = vi.hoisted(() => ({ schedule: vi.fn(), on: vi.fn(), run: vi.fn(), runDigest: vi.fn(), shouldRecover: vi.fn(), warn: vi.fn() }));
 vi.mock('node-cron', () => ({ default: { schedule: mocks.schedule, validate: (value: string) => value !== 'invalid' } }));
 vi.mock('../collector', () => ({ runCollectCycle: vi.fn() }));
+vi.mock('../sync-jobs', () => ({ shouldRecoverSyncJobOnStartup: mocks.shouldRecover }));
 vi.mock('../demographics', () => ({ runDemographicsCycle: mocks.run }));
 vi.mock('../ad-reach', () => ({ runAdReachCycle: vi.fn() }));
 vi.mock('@/lib/digest', () => ({ runDailyDigestIfDue: mocks.runDigest }));
@@ -10,6 +11,10 @@ vi.mock('../client', () => ({ disconnectTelegramClient: vi.fn().mockResolvedValu
 vi.mock('dotenv', () => ({ default: { config: vi.fn() } }));
 vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: mocks.warn, error: vi.fn() } }));
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+beforeEach(() => {
+  mocks.schedule.mockReturnValue({ on: mocks.on });
+  mocks.shouldRecover.mockResolvedValue(false);
+});
 describe('demographics scheduling', () => {
   it.each(['', 'invalid'])('uses weekly schedule for default or invalid configuration', async configured => {
     vi.resetModules();

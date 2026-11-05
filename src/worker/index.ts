@@ -9,6 +9,7 @@ import { runAdReachCycle } from './ad-reach';
 import { runEventsScan } from './events-scan';
 import { disconnectTelegramClient } from './client';
 import { markInterruptedSyncJob } from './persister';
+import { shouldRecoverSyncJobOnStartup } from './sync-jobs';
 import { createWorkerServer, listenWorkerServer } from './server';
 import { TaskAlreadyQueuedError, TaskCoordinator, type WorkerTaskKind } from './task-coordinator';
 
@@ -59,10 +60,19 @@ async function startWorker(): Promise<void> {
   if (!cron.validate(cronSchedule)) {
     logger.error('Invalid cron schedule', { cronSchedule, fallback: '0 * * * *' });
   }
-  scheduled.push(cron.schedule(cron.validate(cronSchedule) ? cronSchedule : '0 * * * *', () => {
+  const collectTask = cron.schedule(cron.validate(cronSchedule) ? cronSchedule : '0 * * * *', () => {
     logger.info('Cron triggered');
     void execute('collect', signal => runCollectCycle(signal));
-  }));
+  });
+  let recoveringMissedCollection = false;
+  collectTask.on('execution:missed', () => {
+    if (shuttingDown || recoveringMissedCollection) return;
+    recoveringMissedCollection = true;
+    logger.warn('Scheduled collection missed; running recovery cycle');
+    void execute('collect', signal => runCollectCycle(signal))
+      .finally(() => { recoveringMissedCollection = false; });
+  });
+  scheduled.push(collectTask);
   logger.info('Worker started and waiting for schedule');
 
   if (!cron.validate(demographicsCron)) {
@@ -112,6 +122,15 @@ async function startWorker(): Promise<void> {
   if (process.env.COLLECT_ON_STARTUP === 'true') {
     logger.info('Running initial collection cycle on startup');
     await execute('collect', signal => runCollectCycle(signal));
+  } else {
+    try {
+      if (await shouldRecoverSyncJobOnStartup()) {
+        logger.warn('Stale SyncJob found on startup; running recovery cycle');
+        await execute('collect', signal => runCollectCycle(signal));
+      }
+    } catch (error) {
+      logger.warn('Could not check SyncJob freshness on startup', undefined, error);
+    }
   }
 }
 

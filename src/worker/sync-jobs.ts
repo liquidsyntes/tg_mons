@@ -10,6 +10,28 @@ export class CollectAlreadyRunningError extends Error {
 
 const COLLECT_LOCK_ID = 420241016;
 
+export async function shouldRecoverSyncJobOnStartup(now: Date = new Date()): Promise<boolean> {
+  const activeChannel = await prisma.channel.findFirst({
+    where: { isActive: true },
+    select: { id: true },
+  });
+  if (!activeChannel) return false;
+
+  const latestJob = await prisma.syncJob.findFirst({
+    orderBy: { startedAt: 'desc' },
+    select: { startedAt: true, endedAt: true },
+  });
+  if (!latestJob) return false;
+
+  const thresholdName = latestJob.endedAt ? 'HEALTH_STALE_THRESHOLD_MINUTES' : 'HEALTH_STUCK_THRESHOLD_MINUTES';
+  const defaultMinutes = latestJob.endedAt ? 720 : 120;
+  const configuredMinutes = Number.parseInt(process.env[thresholdName] || String(defaultMinutes), 10);
+  const thresholdMinutes = Number.isFinite(configuredMinutes) && configuredMinutes > 0
+    ? configuredMinutes : defaultMinutes;
+  const lastActivity = latestJob.endedAt ?? latestJob.startedAt;
+  return now.getTime() - lastActivity.getTime() > thresholdMinutes * 60_000;
+}
+
 export async function createSyncJob(totalChannels: number): Promise<SyncJob> {
   return prisma.$transaction(async tx => {
     const [lock] = await tx.$queryRaw<Array<{ acquired: boolean }>>`

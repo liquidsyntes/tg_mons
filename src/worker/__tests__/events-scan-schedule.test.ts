@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ schedule: vi.fn(), runScan: vi.fn(), collect: vi.fn(), error: vi.fn() }));
+const mocks = vi.hoisted(() => ({ schedule: vi.fn(), on: vi.fn(), runScan: vi.fn(), collect: vi.fn(), shouldRecover: vi.fn(), error: vi.fn(), warn: vi.fn() }));
 vi.mock('node-cron', () => ({ default: { schedule: mocks.schedule, validate: vi.fn(() => true) } }));
 vi.mock('../collector', () => ({ runCollectCycle: mocks.collect, getActiveSyncJobId: vi.fn(() => null) }));
+vi.mock('../sync-jobs', () => ({ shouldRecoverSyncJobOnStartup: mocks.shouldRecover }));
 vi.mock('../demographics', () => ({ runDemographicsCycle: vi.fn() }));
 vi.mock('../ad-reach', () => ({ runAdReachCycle: vi.fn() }));
 vi.mock('../events-scan', () => ({ runEventsScan: mocks.runScan }));
@@ -10,13 +11,15 @@ vi.mock('@/lib/digest', () => ({ runDailyDigestIfDue: vi.fn() }));
 vi.mock('../server', () => ({ createWorkerServer: vi.fn(() => ({ close: vi.fn() })), listenWorkerServer: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('../client', () => ({ disconnectTelegramClient: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('dotenv', () => ({ default: { config: vi.fn() } }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: mocks.error } }));
+vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: mocks.warn, error: mocks.error } }));
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
-async function start(localMode: boolean, disableCron: boolean): Promise<void> {
+async function start(localMode: boolean, disableCron: boolean, stale = false): Promise<void> {
   vi.resetModules();
   vi.clearAllMocks();
+  mocks.schedule.mockReturnValue({ on: mocks.on });
+  mocks.shouldRecover.mockResolvedValue(stale);
   vi.stubEnv('COLLECT_API_TOKEN', 'test-token');
   vi.stubEnv('COLLECT_ON_STARTUP', 'false');
   vi.stubEnv('EVENTS_SCAN_CRON', '30 */6 * * *');
@@ -48,5 +51,28 @@ describe('event scan scheduling', () => {
     await vi.waitFor(() => expect(mocks.error).toHaveBeenCalledWith('Event scan failed', undefined, expect.any(Error)));
     collectCallback();
     await vi.waitFor(() => expect(mocks.collect).toHaveBeenCalledOnce());
+  });
+
+  it('runs one recovery cycle for multiple missed collection slots', async () => {
+    await start(true, false);
+    let finish: (value: object) => void = () => {};
+    mocks.collect.mockReturnValue(new Promise<object>(resolve => { finish = resolve; }));
+    const missed = mocks.on.mock.calls.find(([event]) => event === 'execution:missed')?.[1] as (() => void) | undefined;
+    expect(missed).toBeTypeOf('function');
+
+    missed?.();
+    missed?.();
+    await vi.waitFor(() => expect(mocks.collect).toHaveBeenCalledOnce());
+    missed?.();
+    expect(mocks.collect).toHaveBeenCalledOnce();
+    expect(mocks.warn).toHaveBeenCalledWith('Scheduled collection missed; running recovery cycle');
+    finish({});
+  });
+
+  it('runs a recovery cycle on startup when the last SyncJob is stale', async () => {
+    mocks.collect.mockResolvedValue({});
+    await start(true, false, true);
+    await vi.waitFor(() => expect(mocks.collect).toHaveBeenCalledOnce());
+    expect(mocks.warn).toHaveBeenCalledWith('Stale SyncJob found on startup; running recovery cycle');
   });
 });

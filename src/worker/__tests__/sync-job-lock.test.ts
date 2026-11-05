@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
@@ -8,13 +8,18 @@ const mocks = vi.hoisted(() => ({
   updateMany: vi.fn(),
   findUnique: vi.fn(),
   update: vi.fn(),
+  latest: vi.fn(),
+  activeChannel: vi.fn(),
 }));
 vi.mock('@/lib/prisma', () => ({ prisma: {
   $transaction: mocks.transaction,
-  syncJob: { findUnique: mocks.findUnique, updateMany: mocks.updateMany, update: mocks.update },
+  syncJob: { findUnique: mocks.findUnique, findFirst: mocks.latest, updateMany: mocks.updateMany, update: mocks.update },
+  channel: { findFirst: mocks.activeChannel },
 } }));
 import { CollectAlreadyRunningError, createSyncJob, finalizeSyncJob, markInterruptedSyncJob, updateSyncJobProgress } from '../persister';
-import { CollectAlreadyRunningError as SyncJobConflict } from '../sync-jobs';
+import { CollectAlreadyRunningError as SyncJobConflict, shouldRecoverSyncJobOnStartup } from '../sync-jobs';
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe('SyncJob coordination', () => {
   beforeEach(() => {
@@ -23,6 +28,8 @@ describe('SyncJob coordination', () => {
     mocks.findFirst.mockResolvedValue(null);
     mocks.create.mockResolvedValue({ id: 42, status: 'RUNNING' });
     mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.activeChannel.mockResolvedValue({ id: 1 });
+    mocks.latest.mockResolvedValue(null);
     mocks.transaction.mockImplementation(async (callback: (tx: object) => Promise<unknown>) => callback({
       $queryRaw: mocks.lock,
       syncJob: { findFirst: mocks.findFirst, create: mocks.create, updateMany: mocks.updateMany },
@@ -107,6 +114,30 @@ describe('SyncJob coordination', () => {
     const failure = new Error('Database unavailable');
     mocks.updateMany.mockRejectedValueOnce(failure);
     await expect(finalizeSyncJob(42, 10, 1, 0, 1, 2, null)).rejects.toBe(failure);
+  });
+
+  it('recovers only when a completed job is older than the health threshold', async () => {
+    const now = new Date('2026-11-05T08:00:00.000Z');
+    vi.stubEnv('HEALTH_STALE_THRESHOLD_MINUTES', '720');
+    const endedAt = new Date(now.getTime() - 720 * 60_000);
+    mocks.latest.mockResolvedValue({ startedAt: endedAt, endedAt });
+    expect(await shouldRecoverSyncJobOnStartup(now)).toBe(false);
+    mocks.latest.mockResolvedValue({ startedAt: endedAt, endedAt: new Date(endedAt.getTime() - 1) });
+    expect(await shouldRecoverSyncJobOnStartup(now)).toBe(true);
+  });
+
+  it('recovers a stuck RUNNING job and skips empty channel lists', async () => {
+    const now = new Date('2026-11-05T08:00:00.000Z');
+    vi.stubEnv('HEALTH_STUCK_THRESHOLD_MINUTES', '120');
+    mocks.latest.mockResolvedValue({ startedAt: new Date(now.getTime() - 121 * 60_000), endedAt: null });
+    expect(await shouldRecoverSyncJobOnStartup(now)).toBe(true);
+    mocks.activeChannel.mockResolvedValue(null);
+    expect(await shouldRecoverSyncJobOnStartup(now)).toBe(false);
+    expect(mocks.latest).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not recover when no SyncJob exists', async () => {
+    expect(await shouldRecoverSyncJobOnStartup()).toBe(false);
   });
 
 });
