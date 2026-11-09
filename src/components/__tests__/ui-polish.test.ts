@@ -9,7 +9,8 @@ import { MyChannelCard } from '../MyChannelCard';
 import { WatchlistWidget } from '../WatchlistWidget';
 import { TrendSpotterWidget } from '../TrendSpotterWidget';
 import { ChannelsDesktopTable } from '../channel/ChannelsDesktopTable';
-import { MetricCell } from '../channel/cells/MetricCell';
+import { CitationIndexCell } from '../channel/cells/CitationIndexCell';
+import { MetricCell, AdShareCell, getRateMetricColorClass } from '../channel/cells/MetricCell';
 import { buildChannelsExportCsv, formatChannelTelegramUrl } from '../ChannelsTable';
 
 vi.mock('../AudienceDemographics', () => ({ AudienceDemographics: () => null }));
@@ -218,4 +219,88 @@ it('exports full Telegram channel URLs in a separate CSV column', () => {
   expect(headerLine.split(',').slice(0, 3)).toEqual(['Название', 'Username', 'Ссылка']);
   expect(row1.split(',').slice(0, 3)).toEqual(['"Lady Ista"', "'@Lady_Ista", 'https://t.me/Lady_Ista']);
   expect(row2.split(',').slice(0, 3)).toEqual(['"Kinky Events"', "'@kinky_events_ua", 'https://t.me/kinky_events_ua']);
+});
+
+describe('CitationIndexCell and metric cell helpers', () => {
+  it('renders positive citation index in emerald on desktop and mobile', () => {
+    const channelWithPositiveCi: ChannelMetrics = {
+      ...channel,
+      citationIndex: 4.2,
+      delta30d: { abs: 20, percent: 2 },
+    };
+
+    const { rerender } = render(React.createElement(CitationIndexCell, { channel: channelWithPositiveCi, variant: 'desktop' }));
+    const desktopBadge = screen.getByText('4.2');
+    expect(desktopBadge.className).toContain('text-emerald-400');
+    expect(desktopBadge.getAttribute('title')).toBe('Индекс цитирования: 4.2');
+
+    rerender(React.createElement(CitationIndexCell, { channel: channelWithPositiveCi, variant: 'mobile' }));
+    const mobileStrong = screen.getByText('4.2');
+    expect(mobileStrong.className).toContain('text-emerald-400');
+    expect(mobileStrong.parentElement?.getAttribute('title')).toBe('Индекс цитирования: 4.2');
+  });
+
+  it('handles zero and absent citation index on desktop and mobile', () => {
+    const channelWithZeroCi: ChannelMetrics = {
+      ...channel,
+      citationIndex: 0,
+      delta30d: { abs: 10, percent: 1 },
+    };
+    const channelWithoutCi: ChannelMetrics = {
+      ...channel,
+      citationIndex: null,
+    };
+
+    const { rerender, container } = render(React.createElement(CitationIndexCell, { channel: channelWithZeroCi, variant: 'desktop' }));
+    const zeroBadge = screen.getByText('0');
+    expect(zeroBadge.className).toContain('text-slate-400');
+    expect(zeroBadge.getAttribute('title')).toBe('Индекс цитирования: 0');
+
+    rerender(React.createElement(CitationIndexCell, { channel: channelWithoutCi, variant: 'desktop' }));
+    const emptyBadge = screen.getByText('-');
+    expect(emptyBadge.className).toContain('text-slate-400');
+    expect(emptyBadge.getAttribute('title')).toBeNull();
+
+    rerender(React.createElement(CitationIndexCell, { channel: channelWithoutCi, variant: 'mobile' }));
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('highlights suspicious growth with low citation index and shows fraud warning', () => {
+    const suspiciousChannel: ChannelMetrics = {
+      ...channel,
+      citationIndex: 0.2,
+      delta30d: { abs: 180, percent: 18 },
+    };
+
+    const { container, rerender } = render(
+      React.createElement(CitationIndexCell, { channel: suspiciousChannel, variant: 'desktop' })
+    );
+    const desktopBadge = screen.getByText('0.2');
+    expect(desktopBadge.className).toContain('text-rose-400');
+    expect(desktopBadge.getAttribute('title')).toContain('Подозрение на накрутку');
+    expect(container.querySelector('svg')).not.toBeNull();
+
+    rerender(React.createElement(CitationIndexCell, { channel: suspiciousChannel, variant: 'mobile' }));
+    const mobileStrong = screen.getByText('0.2');
+    expect(mobileStrong.className).toContain('text-rose-400');
+    expect(mobileStrong.parentElement?.getAttribute('title')).toContain('Подозрение на накрутку');
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
+
+  it('computes rate thresholds and adShare styling consistently', () => {
+    expect(getRateMetricColorClass('vr', 25)).toBe('text-emerald-400');
+    expect(getRateMetricColorClass('vr', 15)).toBe('text-amber-400');
+    expect(getRateMetricColorClass('vr', 5)).toBe('text-slate-400');
+    expect(getRateMetricColorClass('er', 2.5)).toBe('text-emerald-400');
+    expect(getRateMetricColorClass('err', 1.5)).toBe('text-amber-400');
+    expect(getRateMetricColorClass('err', null)).toBe('');
+
+    const { rerender } = render(
+      React.createElement(AdShareCell, { adShare: { percent: 35, level: 'high' }, variant: 'desktop' })
+    );
+    expect(screen.getByText('35%').className).toContain('text-rose-400');
+
+    rerender(React.createElement(AdShareCell, { adShare: { percent: 0, level: 'none' }, variant: 'mobile' }));
+    expect(screen.getByText('-').className).toContain('text-white');
+  });
 });

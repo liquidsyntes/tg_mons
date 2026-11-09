@@ -30,7 +30,7 @@
 
 | Задача | Где менять / читать | Ближайшая проверка |
 | --- | --- | --- |
-| Таблица и карточка канала | `src/components/channel/`, `src/components/ChannelsTable.tsx` | `src/components/__tests__/ui-polish.test.ts`, `src/components/__tests__/channel-detail-ui.test.ts` |
+| Таблица и карточка канала | `src/components/channel/` (`cells/`: ячейки метрик и ИЦ), `src/components/ChannelsTable.tsx` | `src/components/__tests__/ui-polish.test.ts`, `src/components/__tests__/channel-detail-ui.test.ts` |
 | Сравнение каналов | `src/app/compare/page.tsx`, `src/components/compare/`, `src/lib/compare.ts`, `src/app/api/stats/compare/route.ts` | `src/lib/__tests__/compare.test.ts`, `src/components/__tests__/ComparePage.test.ts` |
 | Почасовая активность канала | `src/lib/channel-activity.ts`, `src/app/api/stats/channel/[id]/activity/route.ts`, `src/components/channel/ChannelActivityTimeline.tsx`, `src/worker/persister.ts` | `src/lib/__tests__/channel-activity.test.ts`, соседние API/UI тесты, `src/worker/__tests__/collector.test.ts` |
 | Экспорт PDF-отчётов каналов | `src/components/pdf/ChannelPdfTemplate.tsx`, `src/components/ExportPdfButton.tsx`, `src/lib/channel-pdf-report.ts` | `src/components/pdf/__tests__/ChannelPdfTemplate.test.ts` |

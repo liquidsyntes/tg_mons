@@ -78,3 +78,88 @@ export function getMetricReason(
 
   return null;
 }
+
+export type RateMetricKind = 'vr' | 'er' | 'err';
+
+export function getRateMetricColorClass(
+  metric: RateMetricKind,
+  value: number | null | undefined
+): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  const highThreshold = metric === 'vr' ? 20 : 2;
+  const mediumThreshold = metric === 'vr' ? 10 : 1;
+  if (value > highThreshold) return 'text-emerald-400';
+  if (value > mediumThreshold) return 'text-amber-400';
+  return 'text-slate-400';
+}
+
+export function getAdShareColorClass(
+  adShare: ChannelMetrics['adShare7d'],
+  fallbackColorClass = 'text-slate-400'
+): string {
+  if (!adShare) return fallbackColorClass;
+  if (adShare.level === 'high') return 'text-rose-400';
+  if (adShare.level === 'medium') return 'text-amber-400';
+  if (adShare.level === 'low') return 'text-emerald-400';
+  return fallbackColorClass;
+}
+
+export interface AdShareCellProps {
+  adShare: ChannelMetrics['adShare7d'];
+  variant?: 'desktop' | 'mobile';
+}
+
+export function AdShareCell({ adShare, variant = 'desktop' }: AdShareCellProps) {
+  if (variant === 'mobile') {
+    return (
+      <div className={`text-[11px] font-mono font-semibold leading-tight ${getAdShareColorClass(adShare, 'text-white')}`}>
+        {adShare && adShare.level !== 'none' ? `${adShare.percent}%` : '-'}
+      </div>
+    );
+  }
+
+  if (!adShare) {
+    return <div className="text-slate-500 text-[13px]">-</div>;
+  }
+
+  return (
+    <div className={`font-semibold text-[13px] ${getAdShareColorClass(adShare, 'text-slate-400')}`}>
+      {adShare.level === 'none' ? '-' : `${adShare.percent}%`}
+    </div>
+  );
+}
+
+export interface RateWindowCellProps {
+  metric: RateMetricKind;
+  channel: ChannelMetrics;
+}
+
+export function RateWindowCell({ metric, channel }: RateWindowCellProps) {
+  if (metric === 'err' && channel.type === 'group') {
+    return (
+      <div title="Comments Rate: ответы / подписчики" className="flex flex-col items-center justify-center">
+        <div className="font-semibold text-slate-200 text-xs">
+          <MetricCell value={channel.cr7d} suffix="% CR" />
+        </div>
+      </div>
+    );
+  }
+
+  const value24h = metric === 'vr' ? channel.vr24h : metric === 'er' ? channel.er24h : channel.err24h;
+  const value7d = metric === 'vr' ? channel.vr7d : metric === 'er' ? channel.er7d : channel.err7d;
+  const reason24h = metric === 'vr' ? 'vr24h' : metric === 'er' ? 'er24h' : 'err24h';
+  const reason7d = metric === 'vr' ? 'vr7d' : metric === 'er' ? 'er7d' : 'err7d';
+
+  return (
+    <div>
+      <div className="font-semibold text-slate-200 text-xs">
+        <MetricCell value={value24h} suffix="%" {...getMetricReason(reason24h, channel)} />
+      </div>
+      <div className={`text-[11px] mt-0.5 ${getRateMetricColorClass(metric, value7d)}`}>
+        <MetricCell value={value7d} suffix="%" {...getMetricReason(reason7d, channel)} />
+      </div>
+    </div>
+  );
+}

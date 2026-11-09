@@ -1,20 +1,23 @@
 # Текущее состояние и передача работы
 
-Снимок: 5 ноября 2026 года (Europe/Moscow). База задачи: `1d4a927`, ветка `main`, upstream `origin/main`. До начала задачи рабочее дерево было чистым.
+Снимок: 9 ноября 2026 года (Europe/Moscow). База задачи: `13702e0`, ветка `main`, upstream `origin/main`. До начала задачи рабочее дерево было чистым. Задача: issue #73.
 
 ## Реализовано в исходниках
 
-- Worker при событии `execution:missed` от основного node-cron запускает один восстановительный сбор через TaskCoordinator. Несколько пропущенных интервалов не создают параллельные задания.
-- При холодном старте с `COLLECT_ON_STARTUP=false` worker проверяет последний SyncJob только при наличии активных каналов. Если завершённое задание старше порога health или RUNNING старше порога stuck, выполняется один восстановительный сбор. Свежий SyncJob не вызывает запуск при старте.
-- Compose передаёт `HEALTH_STALE_THRESHOLD_MINUTES` worker, как и web. Схема БД, миграции и зависимости не менялись.
+- В `src/components/channel/cells/CitationIndexCell.tsx` выделены чистая оценка индекса цитирования (`evaluateCitationIndex`) и компонент `CitationIndexCell` с поддержкой вариантов `desktop` (`CI`) и `mobile` (`ИЦ`), единым вызовом `checkLowCitationGrowth(channel)`, подсказками `title` и индикатором `AlertTriangle`.
+- В `src/components/channel/cells/MetricCell.tsx` добавлены пороговая раскраска метрик вовлечённости (`getRateMetricColorClass` для `vr`, `er`, `err`), классификация цвета рекламной нагрузки (`getAdShareColorClass`), ячейка рекламной доли `AdShareCell` (`desktop` и `mobile`) и двухоконная ячейка `RateWindowCell` (24ч / 7д и переключение `group -> CR`).
+- В `src/components/channel/ChannelsDesktopTable.tsx` 17 колонок заголовка переведены на декларативную конфигурацию `DESKTOP_TABLE_COLUMNS` с полным сохранением `scope="col"`, `aria-sort`, ширины колонок (`sticky left-0`, `w-[220px]`, `w-[72px]`, `w-[60px]`, `w-16`), подсказок `title` и сортировки `onSort`; инлайн-разметка ячеек `VR`, `ER`, `ERR`, `Ads` и `CI` заменена на вынесенные ячейки.
+- В `src/components/channel/ChannelsMobileList.tsx` дублирующиеся блоки `Ad Load` и `ИЦ` переведены на `AdShareCell` и `CitationIndexCell` с вариантом `mobile`.
+- В `src/components/__tests__/ui-polish.test.ts` добавлены 4 модульных теста для `CitationIndexCell` (положительный `CI > 0`, нулевой и отсутствующий `CI`, подозрительный рост `checkLowCitationGrowth` с предупреждением) и хелперов `getRateMetricColorClass` / `AdShareCell`. Схема БД, миграции и зависимости не менялись.
 
 ## Проверки
 
-- До изменений `GET /api/health` вернул 503 `sync job stale`. Последний завершённый SyncJob был от 2 ноября 2026 года 11:02 UTC. В логах node-cron были сообщения о пропущенных часовых запусках после паузы процесса; текущий worker имеет `COLLECT_ON_STARTUP=false`.
-- 33 профильных теста прошли. Полный `npm test`: 891 тест в 135 файлах. `npx tsc --noEmit`, `npx eslint src` и проверка Compose: успешно.
-- Docker Desktop запущен локально. Пересоздан только worker с dev Compose и bind mount; PostgreSQL и web не пересоздавались. Worker обнаружил старый SyncJob и начал восстановительный сбор. Итог: 26 успешных каналов, 0 ошибок, `GET /api/health` вернул 200, `lastSyncStatus=COMPLETED`, `channelsFailed=0`.
-- Событие `execution:missed` проверено модульным тестом с несколькими пропущенными интервалами. Реальную паузу хоста повторно не создавали. Локальный `npm run build` не запускался, поскольку изменён worker и успешны проверка типов, полный набор тестов и запуск сервиса; CI выполняет сборку после push.
+- Профильные тесты `npm test -- src/components/__tests__/ui-polish.test.ts`: 22 теста прошли успешно (18 существовавших без изменений + 4 новых).
+- Полный прогон `npm test`: 895 тестов в 135 файлах прошли успешно.
+- `npx tsc --noEmit` и `npx eslint src`: 0 ошибок.
+- `npm run build`: успешная production-сборка (18 статических страниц).
+- На момент проверки демон Docker Desktop на хосте остановлен (`open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified`), поэтому живая проверка контейнеров и визуальная проверка в браузере не выполнялись; пересборка Docker-образов для клиентских UI-компонентов в dev-режиме не требуется (используется bind mount).
 
 ## Следующий шаг
 
-Наблюдать первый восстановительный цикл после реального пропуска cron и отдельно решать вопрос production-обновления. GitHub CI после push проверяется отдельно. Production не обновлялся.
+Перейти к выполнению задачи рефакторинга публикаций (issue #74) по решению пользователя.

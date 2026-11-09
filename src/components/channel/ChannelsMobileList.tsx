@@ -1,13 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
-import { Crown, Star, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Crown, Star, ExternalLink } from 'lucide-react';
 import { ChannelMetrics } from '@/lib/types';
-import { checkLowCitationGrowth } from '@/lib/fraudDetector';
 import { DeltaBadge } from '../DeltaBadge';
 import { StatusBadge } from '../StatusBadge';
 import { RiskBadge } from '../RiskBadge';
 import { TrendCell } from './cells/TrendCell';
-import { MetricCell, getMetricReason } from './cells/MetricCell';
+import { CitationIndexCell } from './cells/CitationIndexCell';
+import { MetricCell, getMetricReason, AdShareCell } from './cells/MetricCell';
 import { ChannelTagsEditor } from './ChannelTagsEditor';
 import { formatNumber } from '@/lib/utils';
 
@@ -134,14 +134,7 @@ export function ChannelsMobileList({
               </div>
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">Ad Load</div>
-                <div className={`text-[11px] font-mono font-semibold leading-tight ${
-                  channel.adShare7d?.level === 'high' ? 'text-rose-400' :
-                  channel.adShare7d?.level === 'medium' ? 'text-amber-400' :
-                  channel.adShare7d?.level === 'low' ? 'text-emerald-400' :
-                  'text-white'
-                }`}>
-                  {channel.adShare7d && channel.adShare7d.level !== 'none' ? `${channel.adShare7d.percent}%` : '—'}
-                </div>
+                <AdShareCell adShare={channel.adShare7d} variant="mobile" />
               </div>
               <div className="bg-slate-900/60 p-1.5 rounded-lg flex flex-col justify-center">
                 <div className="text-[9px] text-slate-400 mb-0.5">ER</div>
@@ -181,30 +174,7 @@ export function ChannelsMobileList({
                 <RiskBadge score={channel.fraudScore} signals={channel.fraudSignals} />
               </div>
               <div className="flex items-center gap-2.5">
-                {channel.citationIndex !== null && channel.citationIndex !== undefined && (() => {
-                  const fraud = checkLowCitationGrowth(channel);
-                  const isFraud = fraud.flag;
-                  return (
-                    <span
-                      className="text-[11px] font-mono text-slate-400 inline-flex items-center gap-1"
-                      title={isFraud ? fraud.reason : `Индекс цитирования: ${channel.citationIndex}`}
-                    >
-                      ИЦ:{' '}
-                      <strong
-                        className={
-                          isFraud
-                            ? 'text-rose-400 font-bold'
-                            : channel.citationIndex > 0
-                            ? 'text-emerald-400 font-semibold'
-                            : 'text-slate-300'
-                        }
-                      >
-                        {channel.citationIndex}
-                      </strong>
-                      {isFraud && <AlertTriangle className="w-3 h-3 text-rose-400 inline" />}
-                    </span>
-                  );
-                })()}
+                <CitationIndexCell channel={channel} variant="mobile" />
                 <Link
                   href={`/channel/${channel.id}`}
                   className="px-2.5 py-1 rounded bg-slate-800 text-slate-200 text-[11px]"
