@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FileSearch, Megaphone, X } from 'lucide-react';
+import { FileSearch } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { formatNumber } from '@/lib/utils';
 import type { GlobalPostSearchResponse, SearchPost } from '@/lib/types';
 import { ViralBadge } from '@/components/channel/ViralBadge';
 import { ReactionBreakdownInline } from '@/components/channel/ReactionBreakdownInline';
 import { PostBookmarkButton } from '@/components/channel/PostBookmarkButton';
+import { PostReaderModal, buildTelegramPostUrl } from '@/components/channel/PostReaderModal';
 import { TopAdvertisersPanel } from '@/components/posts/TopAdvertisersPanel';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
@@ -88,13 +89,6 @@ export default function PostsPage() {
       .finally(() => { if (version === requestVersion.current) setLoading(false); });
     return () => controller.abort();
   }, [searchUrl]);
-
-  useEffect(() => {
-    if (!selectedPost) return;
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelectedPost(null); };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [selectedPost]);
 
   async function loadMore() {
     const version = requestVersion.current;
@@ -260,19 +254,21 @@ export default function PostsPage() {
         </section>
       </main>
 
-      {selectedPost && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setSelectedPost(null)}>
-        <div role="dialog" aria-modal="true" aria-label="Текст публикации"
-          className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-surface"
-          onClick={event => event.stopPropagation()}>
-          <div className="flex items-center justify-between border-b border-border p-4">
-            <p className="text-sm font-semibold text-white">{selectedPost.channel.title} · {new Date(selectedPost.publishedAt).toLocaleString('ru-RU')}</p>
-            <button type="button" onClick={() => setSelectedPost(null)} aria-label="Закрыть" className="rounded p-1.5 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
-          </div>
-          <div className="overflow-y-auto p-5 whitespace-pre-wrap text-sm leading-relaxed text-slate-200">
-            {selectedPost.text || 'Текст публикации не получен. Это может быть медиа без подписи.'}
-          </div>
-        </div>
-      </div>}
+      {selectedPost && (
+        <PostReaderModal
+          channelTitle={selectedPost.channel.title}
+          publishedAt={selectedPost.publishedAt}
+          text={selectedPost.text}
+          views={selectedPost.views}
+          highlightQuery={search}
+          telegramUrl={buildTelegramPostUrl({
+            channelUsername: selectedPost.channel.username,
+            messageId: selectedPost.messageId,
+          })}
+          emptyTextMessage="Текст публикации не получен. Это может быть медиа без подписи."
+          onClose={() => setSelectedPost(null)}
+        />
+      )}
     </div>
   );
 }
