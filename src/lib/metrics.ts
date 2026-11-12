@@ -4,6 +4,7 @@ export * from './metrics/aggregate';
 export * from './metrics/queries';
 export * from './metrics/engagement';
 export * from './metrics/post-length';
+export * from './metrics/subscriber-events';
 export * from './metrics/silence';
 export * from './metrics/viral';
 export * from './metrics/reactions';

@@ -3,6 +3,7 @@ import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
 import { calculateContentFormatBreakdown } from './engagement';
 import { calculatePostLengthAnalytics } from './post-length';
+import { buildSubscriberTimelineEvents } from './subscriber-events';
 import { calculateViralBaseline, classifyViralPost } from './viral';
 import { calculatePopularReactions, parseReactionBreakdown } from './reactions';
 import { detectSilencePeriods } from './silence';
@@ -450,6 +451,79 @@ export async function getChannelDetailStats(
     channel.currentMembers
   );
 
+  const accessibleDonorIds = Array.from(
+    new Set([
+      ...overview.channels.map((c) => c.id),
+      ...(overview.myChannel ? [overview.myChannel.id] : []),
+    ])
+  ).filter((id) => id !== channelId);
+
+  const mentionTargets: Array<{ targetUsername?: { in: string[] }; targetTgId?: bigint }> = [];
+  if (channel.username) {
+    const rawName = channel.username.replace(/^@/, '');
+    const lowerName = rawName.toLowerCase();
+    mentionTargets.push({
+      targetUsername: {
+        in: Array.from(new Set([lowerName, `@${lowerName}`, rawName, `@${rawName}`])),
+      },
+    });
+  }
+  if (channel.tgId) {
+    try {
+      mentionTargets.push({ targetTgId: BigInt(channel.tgId) });
+    } catch {
+      // Ignore invalid tgId
+    }
+  }
+
+  const inboundMentions =
+    mentionTargets.length > 0 &&
+    accessibleDonorIds.length > 0 &&
+    typeof prisma.mention?.findMany === 'function'
+      ? await prisma.mention.findMany({
+          where: {
+            OR: mentionTargets,
+            sourceChannelId: { in: accessibleDonorIds },
+            sourcePost: { publishedAt: { gte: periodStart } },
+          },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            sourcePostId: true,
+            type: true,
+            sourcePost: {
+              select: {
+                id: true,
+                messageId: true,
+                publishedAt: true,
+                views: true,
+                isAd: true,
+              },
+            },
+            sourceChannel: {
+              select: {
+                id: true,
+                title: true,
+                username: true,
+              },
+            },
+          },
+        })
+      : [];
+
+  const timelineEvents = buildSubscriberTimelineEvents({
+    posts: posts.map((p) => ({
+      id: p.id,
+      messageId: p.messageId,
+      publishedAt: p.publishedAt,
+      views: p.views,
+      text: p.text,
+      ...classifyViralPost(p, viralBaseline),
+    })),
+    inboundMentions,
+    fraudSignals: detailAudit.signals,
+    periodStart,
+  });
+
   const silencePosts = await prisma.post.findMany({
     where: {
       channelId,
@@ -478,6 +552,7 @@ export async function getChannelDetailStats(
     contentTypePerformance: contentFormatBreakdown.items,
     contentFormatLeaders: contentFormatBreakdown.leaders,
     postLengthAnalytics,
+    timelineEvents,
     silencePeriods: silenceResult.periods,
   };
 }

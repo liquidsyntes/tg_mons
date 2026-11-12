@@ -413,6 +413,28 @@ export interface PostLengthAnalytics {
   signals: PostStructureSignalItem[];
 }
 
+export type SubscriberTimelineEventType =
+  | 'viral_post'
+  | 'donor_mention'
+  | 'fraud_signal';
+
+export interface SubscriberTimelineEvent {
+  id: string;
+  type: SubscriberTimelineEventType;
+  timestamp: string;
+  title: string;
+  subtitle: string | null;
+  postId?: number;
+  messageId?: string;
+  sourceChannelId?: number;
+  sourceChannelTitle?: string;
+  sourceChannelUsername?: string | null;
+  views?: number | null;
+  viralMultiplier?: number | null;
+  isAd?: boolean;
+  signalType?: string;
+}
+
 export interface ChannelDetailStats {
   channel: ChannelMetrics;
   nicheBenchmark?: NicheBenchmarkResult;
@@ -463,6 +485,7 @@ export interface ChannelDetailStats {
   contentTypePerformance?: ContentTypePerformanceItem[];
   contentFormatLeaders?: ContentFormatLeaders;
   postLengthAnalytics?: PostLengthAnalytics;
+  timelineEvents?: SubscriberTimelineEvent[];
   silencePeriods?: {
     startDate: string;
     endDate: string;

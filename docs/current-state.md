@@ -1,21 +1,19 @@
 # Текущее состояние и передача работы
 
-Снимок: 12 ноября 2026 года (Europe/Moscow). База задачи: `eb3c433`, ветка `main`, upstream `origin/main`. До начала задачи рабочее дерево было чистым. Задача: аналитика длины и структуры постов на странице канала.
+Снимок: 12 ноября 2026 года (Europe/Moscow). База задачи: `68f3c4c`, ветка `main`, upstream `origin/main`. До начала задачи рабочее дерево было чистым. Задача: наложение событий (вирусные посты, упоминания у доноров, сигналы антифрода) на график подписчиков канала.
 
 ## Реализовано в исходниках
 
-- В `src/lib/metrics/post-length.ts` реализован детерминированный расчёт аналитики длины и структуры публикаций (`calculatePostLengthAnalytics`, `classifyPostLengthBucket`, `detectPostStructureSignals`): разбивка по объёму текста (`media_only`: 0 символов, `short`: 1-300 символов, `medium`: 301-1000 символов, `long`: > 1000 символов), расчёт средних и медианных просмотров, ER, ERR, пересылок, комментариев и средней длины текста, выбор лидеров по ERR и просмотрам среди категорий с минимум двумя постами, а также оценка структурных приёмов зачина (`question_hook`, `numbers_hook`, `structured_body`).
-- В `src/lib/types.ts`, `src/lib/metrics.ts` и `src/lib/metrics/queries.ts` расширен контракт `ChannelDetailStats` полем `postLengthAnalytics`, рассчитываемым в `getChannelDetailStats` по уже загруженным публикациям периода без дополнительных запросов к БД и без изменения схемы Prisma.
-- В `src/components/channel/PostLengthPerformance.tsx` и `src/components/channel/ChannelDetailClient.tsx` добавлен виджет «Аналитика длины и структуры постов» с графиком `BarChart` (`radius={[3, 3, 0, 0]}`), карточками категорий длины и блоком эффективности хуков/структуры.
-- Добавлены модульные и компонентные тесты в `src/lib/metrics/__tests__/post-length.test.ts`, `src/components/channel/__tests__/PostLengthPerformance.test.ts` и `src/lib/metrics/__tests__/queries.test.ts`. Обновлены `docs/project-map.md`, `docs/overview.md`, `docs/analytics-formulas.md` и `docs/api-reference.md`.
+- В `src/lib/metrics/subscriber-events.ts` реализованы сбор и нормализация событий периода (`buildSubscriberTimelineEvents`), привязка событий к ближайшему последующему снимку подписчиков с расчётом дельты (`attachEventsToSnapshots`) и выбор доминирующего типа события для маркера точки (`getDominantEventType` с приоритетом `fraud_signal` > `donor_mention` > `viral_post`).
+- В `src/lib/types.ts`, `src/lib/metrics.ts` и `src/lib/metrics/queries.ts` расширен контракт `ChannelDetailStats` полем `timelineEvents`: `getChannelDetailStats` выбирает входящие упоминания из доступных пользователю активных каналов-доноров за выбранный период, объединяет их с вирусными постами канала и сигналами антифрода.
+- В `src/components/channel/SubscriberChart.tsx` и `src/components/CustomSubscriberTooltip.tsx` добавлено отображение маркеров событий на графике (в абсолютном режиме и режиме прироста), секция событий во всплывающей подсказке, переключатель «События (N)» и фильтрация карточек событий по категориям («Вирусные посты», «Упоминания у доноров», «Сигналы антифрода») с отображением прироста/оттока подписчиков в точке снимка.
+- Добавлены модульные и компонентные тесты в `src/lib/metrics/__tests__/subscriber-events.test.ts` и `src/components/__tests__/channel-detail-ui.test.ts`. Обновлены `docs/project-map.md`, `docs/overview.md`, `docs/analytics-formulas.md` и `docs/api-reference.md`.
 
 ## Проверки
 
-- Профильные тесты `npm test -- src/lib/metrics/__tests__/post-length.test.ts src/components/channel/__tests__/PostLengthPerformance.test.ts src/lib/metrics/__tests__/queries.test.ts src/lib/metrics/__tests__/contentTypeER.test.ts src/components/channel/__tests__/ContentTypePerformance.test.ts`: 25 тестов в 5 файлах прошли успешно.
+- Профильные тесты `npm test -- src/lib/metrics/__tests__/subscriber-events.test.ts src/components/__tests__/channel-detail-ui.test.ts src/lib/metrics/__tests__/queries.test.ts`: 16 тестов в 3 файлах прошли успешно.
 - `npx tsc --noEmit` и `npx eslint src`: 0 ошибок.
-- `npm run build`: успешная production-сборка (18 статических страниц).
-- Контейнер `tgmon-web` перезапущен с `--project-directory C:\TgMon` (восстановлен bind mount `/app`), `GET http://localhost:4000/api/health` проверен.
 
 ## Следующий шаг
 
-Следующим шагом можно реализовать наложение событий (вирусные посты, упоминания у доноров и сигналы антифрода) поверх графика подписчиков канала или доработать 30-дневные ER/ERR и режим «Медиакит» в PDF-экспорте канала.
+Следующим шагом можно доработать 30-дневные ER/ERR и режим «Медиакит» в PDF-экспорте канала или добавить трекер собственных рекламных закупок.

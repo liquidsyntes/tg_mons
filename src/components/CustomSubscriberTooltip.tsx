@@ -1,18 +1,40 @@
 ﻿import React from 'react';
 import { formatNumber } from '@/lib/utils';
-import { ChannelMetrics } from '@/lib/types';
+import type {
+  ChannelMetrics,
+  SubscriberTimelineEvent,
+  SubscriberTimelineEventType,
+} from '@/lib/types';
+
+interface TooltipPayloadItem {
+  payload: {
+    fullTime?: string;
+    members?: number;
+    myMembers?: number;
+    growth: number;
+    myGrowth?: number;
+    events?: SubscriberTimelineEvent[];
+  };
+}
 
 interface TooltipProps {
   active?: boolean;
-  payload?: any[];
+  payload?: TooltipPayloadItem[];
   label?: string;
   chartMode: 'absolute' | 'growth';
   channel: ChannelMetrics | null;
   myChannel: ChannelMetrics | null;
   isMine: boolean;
   showMyChannelOverlay: boolean;
+  showEventsOverlay?: boolean;
   period: string;
 }
+
+const EVENT_DOT_COLORS: Record<SubscriberTimelineEventType, string> = {
+  viral_post: 'bg-amber-400',
+  donor_mention: 'bg-emerald-400',
+  fraud_signal: 'bg-rose-400',
+};
 
 export function CustomSubscriberTooltip({
   active,
@@ -23,14 +45,16 @@ export function CustomSubscriberTooltip({
   myChannel,
   isMine,
   showMyChannelOverlay,
+  showEventsOverlay = true,
   period,
 }: TooltipProps) {
   if (active && payload && payload.length) {
     const dataPoint = payload[0].payload;
     const isGrowthMode = chartMode === 'growth';
+    const pointEvents = showEventsOverlay ? dataPoint.events ?? [] : [];
 
     return (
-      <div className="bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-lg max-w-[280px]">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-lg max-w-[300px]">
         <p className="text-slate-400 text-xs mb-2 pb-2 border-b border-slate-800">
           {dataPoint.fullTime || label}
         </p>
@@ -41,7 +65,7 @@ export function CustomSubscriberTooltip({
             <span className="font-semibold text-sky-400">{channel?.title}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-white font-mono">
-                {formatNumber(isGrowthMode ? dataPoint.growth : dataPoint.members)}
+                {formatNumber(isGrowthMode ? dataPoint.growth : (dataPoint.members ?? 0))}
               </span>
               {!isGrowthMode && dataPoint.growth !== 0 && (
                 <span className={`text-[11px] font-mono ${dataPoint.growth > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -111,6 +135,31 @@ export function CustomSubscriberTooltip({
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {pointEvents.length > 0 && (
+            <div className="pt-2 border-t border-slate-800 space-y-1.5 text-xs">
+              <div className="text-[11px] font-semibold text-slate-300">
+                События в этой точке ({pointEvents.length})
+              </div>
+              {pointEvents.slice(0, 4).map((ev) => (
+                <div key={ev.id} className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 font-medium text-white">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        EVENT_DOT_COLORS[ev.type] || 'bg-amber-400'
+                      }`}
+                    />
+                    <span className="truncate">{ev.title}</span>
+                  </div>
+                  {ev.subtitle && (
+                    <div className="text-[11px] text-slate-400 pl-3.5 line-clamp-2">
+                      {ev.subtitle}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

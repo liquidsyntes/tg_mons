@@ -1,12 +1,20 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { channel } from '@/lib/__tests__/fixtures/channel-metrics';
 import { AIReportsSection } from '../channel/AIReportsSection';
 import { ChannelHeader } from '../channel/ChannelHeader';
 import { SubscriberChart } from '../channel/SubscriberChart';
 import CitationNetworkWidget from '../CitationNetworkWidget';
+
+beforeAll(() => {
+  global.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+});
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
@@ -51,6 +59,64 @@ it('starts with my channel comparison off and lets the user enable it', () => {
   expect(toggle.checked).toBe(false);
   fireEvent.click(toggle);
   expect(toggle.checked).toBe(true);
+});
+
+it('overlays viral posts, donor mentions and fraud signals on SubscriberChart with filtering', () => {
+  render(React.createElement(SubscriberChart, {
+    data: {
+      membersHistory: [
+        { collectedAt: '2026-11-06T09:00:00.000Z', membersCount: 1000 },
+        { collectedAt: '2026-11-06T12:00:00.000Z', membersCount: 1120 },
+      ],
+      timelineEvents: [
+        {
+          id: 'viral:10',
+          type: 'viral_post',
+          timestamp: '2026-11-06T10:00:00.000Z',
+          title: 'Вирусный пост (2.5x)',
+          subtitle: 'Главный анонс осени',
+          views: 4500,
+        },
+        {
+          id: 'mention:20',
+          type: 'donor_mention',
+          timestamp: '2026-11-06T10:30:00.000Z',
+          title: 'Рекламное упоминание в «Техно Инсайд»',
+          subtitle: '@techinside',
+          sourceChannelId: 12,
+          views: 9800,
+        },
+        {
+          id: 'fraud:30',
+          type: 'fraud_signal',
+          timestamp: '2026-11-06T11:30:00.000Z',
+          title: 'Сигнал антифрода',
+          subtitle: 'Подозрительный всплеск подписок',
+        },
+      ],
+    },
+    channel,
+    myChannel: null,
+    isMine: true,
+    period: '7d',
+  }));
+
+  expect(screen.getByText('События, повлиявшие на динамику (3)')).toBeDefined();
+  expect(screen.getByText('Вирусный пост (2.5x)')).toBeDefined();
+  expect(screen.getByText('Рекламное упоминание в «Техно Инсайд»')).toBeDefined();
+  expect(screen.getByText('Подозрительный всплеск подписок')).toBeDefined();
+  expect(screen.getAllByText('+120 подп.').length).toBeGreaterThan(0);
+
+  fireEvent.click(screen.getByRole('button', { name: /Упоминания у доноров \(1\)/ }));
+  expect(screen.getByText('События, повлиявшие на динамику (1)')).toBeDefined();
+  expect(screen.queryByText('Вирусный пост (2.5x)')).toBeNull();
+  expect(screen.getByText('Рекламное упоминание в «Техно Инсайд»')).toBeDefined();
+
+  const overlayCheckbox = screen.getByRole('checkbox', { name: /События \(3\)/ }) as HTMLInputElement;
+  expect(overlayCheckbox.checked).toBe(true);
+  fireEvent.click(overlayCheckbox);
+  expect(overlayCheckbox.checked).toBe(false);
+  expect(screen.queryByText(/События, повлиявшие на динамику/)).toBeNull();
 });
 
 it('collapses and expands the loaded channel network without refetching', async () => {
