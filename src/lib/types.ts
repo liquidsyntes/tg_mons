@@ -38,8 +38,10 @@ export interface ChannelMetrics {
   trueErr7d: number | null;
   er24h: number | null;
   er7d: number | null;
+  er30d?: number | null;
   err24h: number | null; // null if all engagements (reactions+comments+forwards) are 0 (likely hidden)
   err7d: number | null;
+  err30d?: number | null;
   cr7d: number | null;
   adShare7d?: { percent: number; level: 'none' | 'low' | 'medium' | 'high' };
   adShare30d?: { percent: number; level: 'none' | 'low' | 'medium' | 'high' };
@@ -486,11 +488,19 @@ export interface ChannelDetailStats {
   contentFormatLeaders?: ContentFormatLeaders;
   postLengthAnalytics?: PostLengthAnalytics;
   timelineEvents?: SubscriberTimelineEvent[];
+  adPrice?: AdPriceResult | null;
+  demographics?: ChannelDemographicsSummary | null;
   silencePeriods?: {
     startDate: string;
     endDate: string;
     durationDays: number;
   }[];
+}
+
+export interface ChannelDemographicsSummary {
+  capturedAt: string;
+  languages: LanguageBreakdownItem[];
+  notificationsEnabledPercent: number | null;
 }
 
 export interface BestTimeRecommendation {

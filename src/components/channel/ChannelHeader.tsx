@@ -25,7 +25,7 @@ interface ChannelHeaderProps {
 import { useEffect, useState } from 'react';
 
 export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, priceRevision = 0, stats }: ChannelHeaderProps) {
-  const [adPrice, setAdPrice] = useState<Pick<AdPriceResult, 'estimatedPricePerPost' | 'cpm' | 'confidence' | 'priceSource'> | null>(null);
+  const [adPrice, setAdPrice] = useState<AdPriceResult | null>(null);
   const [savingMine, setSavingMine] = useState(false);
   const [mineError, setMineError] = useState<string | null>(null);
 
@@ -55,12 +55,30 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
           if (data && !data.error) {
             setAdPrice(data);
           } else {
-            setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low', priceSource: 'niche_estimate' });
+            setAdPrice({
+              estimatedPricePerPost: null,
+              cpm: 0,
+              confidence: 'low',
+              averageAdReach: null,
+              averageReachCurve: [],
+              priceSource: 'niche_estimate',
+              customAdPriceUah: null,
+              customCpmUah: null,
+            });
           }
         })
         .catch(err => {
           console.error('Failed to load ad price', err);
-          setAdPrice({ estimatedPricePerPost: null, cpm: 0, confidence: 'low', priceSource: 'niche_estimate' });
+          setAdPrice({
+            estimatedPricePerPost: null,
+            cpm: 0,
+            confidence: 'low',
+            averageAdReach: null,
+            averageReachCurve: [],
+            priceSource: 'niche_estimate',
+            customAdPriceUah: null,
+            customCpmUah: null,
+          });
         });
     }
   }, [channel?.id, priceRevision]);
@@ -176,6 +194,7 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
               period={period}
               channelId={channel.id}
               stats={stats}
+              adPrice={adPrice}
             />
             <ExportMenu items={(['daily', 'snapshots', 'posts'] as const).flatMap(dataset => {
               const label = dataset === 'daily' ? 'Дневные метрики' : dataset === 'snapshots' ? 'Снимки аудитории' : 'Последние посты';

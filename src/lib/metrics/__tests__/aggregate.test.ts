@@ -150,4 +150,36 @@ describe('aggregate metrics', () => {
     expect(result.adShare7d?.percent).toBe(0);
     expect(result.adShare30d?.percent).toBe(50);
   });
+
+  it('calculates er30d and err30d across all 30-day posts independently of 7-day window', () => {
+    const dailyMetrics = [{ date: '2023-01-10T00:00:00Z', followers: 1000, postsCount: 2, avgViews: 500, err: 5 }];
+    const posts = [
+      // Post 2 days ago: ER = (500 + 25)/1000 * 100 = 52.5%, ERR = 25/500 * 100 = 5%
+      {
+        publishedAt: new Date('2023-01-08T10:00:00Z'),
+        views: 500,
+        reactions: 20,
+        comments: 3,
+        forwards: 2,
+        subscribersAtPublish: 1000,
+        text: 'recent post',
+      },
+      // Post 20 days ago: ER = (1000 + 150)/1000 * 100 = 115%, ERR = 150/1000 * 100 = 15%
+      {
+        publishedAt: new Date('2022-12-21T10:00:00Z'),
+        views: 1000,
+        reactions: 100,
+        comments: 30,
+        forwards: 20,
+        subscribersAtPublish: 1000,
+        text: 'older post in 30d window',
+      },
+    ];
+
+    const result = buildMetricsFromMaterialized(baseChannel, dailyMetrics, posts, now);
+    expect(result.er7d).toBe(52.5);
+    expect(result.err7d).toBe(5);
+    expect(result.er30d).toBe(83.75);
+    expect(result.err30d).toBe(10);
+  });
 });

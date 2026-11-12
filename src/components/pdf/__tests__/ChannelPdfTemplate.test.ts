@@ -25,7 +25,7 @@ const mockStats: ChannelDetailStats = {
     posts24h: 3, posts7d: 48, posts30d: 180,
     avgViews24h: 900, avgViews7d: 1280, avgViews30d: 1600,
     vr24h: 3.6, vr7d: 5.1, vr30d: 6.4,
-    er24h: 1.2, er7d: 2.1, err24h: 1.8, err7d: 3.4,
+    er24h: 1.2, er7d: 2.1, er30d: 2.8, err24h: 1.8, err7d: 3.4, err30d: 4.1,
     citationIndex: 12.4, contentScore: 73, contentGrade: 'B',
     adShare7d: { percent: 4.2, level: 'low' }, adShare30d: { percent: 6.3, level: 'low' },
     fraudScore: 25, fraudSignals: [{ signalType: 'growth_smoothness', value: 0.1, reason: 'Подозрительно ровный рост' }],
@@ -78,14 +78,87 @@ describe('ChannelPdfTemplate', () => {
     expect(pages[4].textContent).toContain('Для сравнения нужны минимум 3');
   });
 
-  it('uses metrics from the selected period and labels shorter metrics explicitly', () => {
+  it('uses metrics from the selected period and falls back to 7-day ER/ERR only when 30-day values are absent', () => {
     const { container, rerender } = render(React.createElement(ChannelPdfTemplate, { stats: mockStats, period: '24h' }));
     expect(container.querySelector('#pdf-page-1')?.textContent).toContain('900');
     expect(container.querySelector('#pdf-page-1')?.textContent).toContain('За 24 часа');
+
     rerender(React.createElement(ChannelPdfTemplate, { stats: mockStats, period: '30d' }));
     expect(container.querySelector('#pdf-page-1')?.textContent).toContain('1\u00A0600');
+    expect(container.querySelector('#pdf-page-1')?.textContent).toContain('ER за 30 дней');
+    expect(container.querySelector('#pdf-page-1')?.textContent).toContain('ERR за 30 дней');
+    expect(container.querySelector('#pdf-page-1')?.textContent).toContain('2.80%');
+    expect(container.querySelector('#pdf-page-1')?.textContent).toContain('4.10%');
+
+    const legacyStatsWithout30d: ChannelDetailStats = {
+      ...mockStats,
+      channel: { ...mockStats.channel, er30d: undefined, err30d: undefined },
+    };
+    rerender(React.createElement(ChannelPdfTemplate, { stats: legacyStatsWithout30d, period: '30d' }));
     expect(container.querySelector('#pdf-page-1')?.textContent).toContain('ER за 7 дней');
     expect(container.querySelector('#pdf-page-1')?.textContent).toContain('ERR за 7 дней');
+  });
+
+  it('renders a two-page advertiser Media Kit with ad pricing, reach curve and demographics', () => {
+    const mediaKitStats: ChannelDetailStats = {
+      ...mockStats,
+      adPrice: {
+        estimatedPricePerPost: 4200,
+        cpm: 300,
+        confidence: 'high',
+        averageAdReach: 14000,
+        averageReachCurve: [
+          { hoursAfterPost: 1, views: 4500 },
+          { hoursAfterPost: 12, views: 9800 },
+          { hoursAfterPost: 24, views: 12500 },
+          { hoursAfterPost: 48, views: 14000 },
+        ],
+        priceSource: 'custom_price',
+        customAdPriceUah: 4200,
+        customCpmUah: null,
+      },
+      demographics: {
+        capturedAt: '2026-11-10T10:00:00Z',
+        notificationsEnabledPercent: 34.5,
+        languages: [
+          { code: 'ru', name: 'Russian', percent: 72 },
+          { code: 'uk', name: 'Ukrainian', percent: 28 },
+        ],
+      },
+      postLengthAnalytics: {
+        totalPosts: 22,
+        textPostsCount: 20,
+        avgTextLength: 540,
+        items: [{
+          bucket: 'medium',
+          label: 'Средние (301-1000 симв.)',
+          postsCount: 20,
+          sharePercent: 90.9,
+          avgLength: 540,
+          avgViews: 1500,
+          medianViews: 1450,
+          avgEr: 2.5,
+          avgErr: 4.2,
+          avgForwards: 5,
+          avgComments: 3,
+        }],
+        leaders: { byErr: 'medium', byViews: 'medium' },
+        signals: [],
+      },
+    };
+
+    const { container } = render(
+      React.createElement(ChannelPdfTemplate, { stats: mediaKitStats, period: '30d', mode: 'mediakit' })
+    );
+    const pages = container.querySelectorAll('[data-pdf-page]');
+    expect(pages).toHaveLength(2);
+    expect(pages[0].textContent).toContain('Медиакит для рекламодателя');
+    expect(pages[0].textContent).toContain('4\u00A0200 ₴');
+    expect(pages[0].textContent).toContain('300 ₴');
+    expect(pages[0].textContent).toContain('12\u00A0500');
+    expect(pages[0].textContent).toContain('34,5%');
+    expect(pages[0].textContent).toContain('Russian: 72%');
+    expect(pages[1].textContent).toContain('Средние (301-1000 симв.)');
   });
 
   it('shows missing data without synthetic figures or growth claims', () => {
@@ -131,5 +204,23 @@ describe('ExportPdfButton', () => {
     expect(pdfMocks.canvas).toHaveBeenCalledTimes(5);
     expect(pdfMocks.addPage).toHaveBeenCalledTimes(4);
     expect(pdfMocks.addImage).toHaveBeenCalledTimes(5);
+  });
+
+  it('exports the two-page advertiser Media Kit PDF when Media Kit button is clicked', async () => {
+    pdfMocks.canvas.mockClear();
+    pdfMocks.addPage.mockClear();
+    pdfMocks.addImage.mockClear();
+    pdfMocks.save.mockClear();
+    pdfMocks.canvas.mockResolvedValue({ toDataURL: () => 'data:image/png;base64,dGVzdA==' });
+
+    render(React.createElement(ExportPdfButton, {
+      channelTitle: 'Тестовый канал', period: '30d', stats: mockStats,
+    }));
+    fireEvent.click(screen.getByRole('button', { name: /Медиакит PDF/i }));
+    await waitFor(() => expect(pdfMocks.save).toHaveBeenCalledOnce());
+    expect(pdfMocks.canvas).toHaveBeenCalledTimes(2);
+    expect(pdfMocks.addPage).toHaveBeenCalledTimes(1);
+    expect(pdfMocks.addImage).toHaveBeenCalledTimes(2);
+    expect(pdfMocks.save.mock.calls[0][0]).toMatch(/^mediakit_/);
   });
 });

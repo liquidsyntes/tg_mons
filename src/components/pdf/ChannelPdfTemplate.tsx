@@ -2,12 +2,19 @@
 
 import React from 'react';
 import type { ChannelDetailStats } from '@/lib/types';
-import { getChannelPdfPeriodMetrics, getTopRecentPosts } from '@/lib/channel-pdf-report';
+import {
+  type ChannelPdfMode,
+  extractReachCurveMilestones,
+  formatAdPriceSourceLabel,
+  getChannelPdfPeriodMetrics,
+  getTopRecentPosts,
+} from '@/lib/channel-pdf-report';
 import { formatDelta, formatNumber, formatPercent } from '@/lib/utils';
 
 export interface ChannelPdfTemplateProps {
   stats: ChannelDetailStats;
   period: '24h' | '7d' | '30d' | string;
+  mode?: ChannelPdfMode;
 }
 
 const ink = '#0f172a';
@@ -46,6 +53,11 @@ function decimalText(value: number | null | undefined): string {
   return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(value);
 }
 
+function uahText(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value) || value <= 0) return 'н/д';
+  return `${formatNumber(value)} ₴`;
+}
+
 function SectionTitle({ children, note }: { children: React.ReactNode; note?: string }) {
   return <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
     <h2 style={{ fontSize: 17, margin: 0, fontWeight: 800 }}>{children}</h2>
@@ -53,18 +65,26 @@ function SectionTitle({ children, note }: { children: React.ReactNode; note?: st
   </div>;
 }
 
-function PdfPage({ number, title, periodLabel, channelLabel, children }: {
-  number: number; title: string; periodLabel: string; channelLabel: string; children: React.ReactNode;
+function PdfPage({ number, totalPages = 5, headerBadge, title, periodLabel, channelLabel, children }: {
+  number: number;
+  totalPages?: number;
+  headerBadge?: string;
+  title: string;
+  periodLabel: string;
+  channelLabel: string;
+  children: React.ReactNode;
 }) {
+  const badgeText = headerBadge ?? `ОТЧЁТ ПО КАНАЛУ · ${periodLabel.toUpperCase()}`;
+  const pageCounter = `${String(number).padStart(2, '0')} / ${String(totalPages).padStart(2, '0')}`;
   return <div id={`pdf-page-${number}`} data-pdf-page style={pageStyle}>
     <div>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14, borderBottom: `1px solid ${border}` }}>
         <strong style={{ fontSize: 13, letterSpacing: '0.08em' }}>TG MONITOR</strong>
-        <span style={{ fontSize: 10, color: muted }}>ОТЧЁТ ПО КАНАЛУ · {periodLabel.toUpperCase()}</span>
+        <span style={{ fontSize: 10, color: muted }}>{badgeText}</span>
       </header>
       <div style={{ padding: '22px 0 20px' }}>
         <div style={{ color: blue, fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', marginBottom: 6 }}>
-          {String(number).padStart(2, '0')} / 05
+          {pageCounter}
         </div>
         <h1 style={{ fontSize: 28, lineHeight: 1.16, margin: 0 }}>{title}</h1>
         <div style={{ fontSize: 11, color: muted, marginTop: 7 }}>{channelLabel}</div>
@@ -73,7 +93,7 @@ function PdfPage({ number, title, periodLabel, channelLabel, children }: {
     </div>
     <footer style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${border}`, paddingTop: 12, fontSize: 10, color: muted }}>
       <span>TG Monitor · Сформировано {dateText(new Date().toISOString())}</span>
-      <strong style={{ color: ink }}>{String(number).padStart(2, '0')} / 05</strong>
+      <strong style={{ color: ink }}>{pageCounter}</strong>
     </footer>
   </div>;
 }
@@ -140,7 +160,96 @@ function PostsChart({ distribution }: { distribution: ChannelDetailStats['postsD
   </div>;
 }
 
-export function ChannelPdfTemplate({ stats, period }: ChannelPdfTemplateProps) {
+function MediaKitTemplate({ stats, period }: { stats: ChannelDetailStats; period: string }) {
+  const channel = stats.channel;
+  const selected = getChannelPdfPeriodMetrics(stats, period);
+  const channelLabel = `${channel.title}${channel.username ? ` · @${channel.username}` : ''}`;
+  const delta30d = formatDelta(channel.delta30d.abs, channel.delta30d.percent);
+  const adPrice = stats.adPrice ?? null;
+  const milestones = extractReachCurveMilestones(adPrice);
+  const demographics = stats.demographics ?? null;
+  const formats = (stats.contentTypePerformance ?? []).filter(item => item.postsCount > 0);
+  const lengthBuckets = stats.postLengthAnalytics?.items ?? [];
+  const topPosts = getTopRecentPosts(stats, 3);
+  const headerBadge = `МЕДИАКИТ ДЛЯ РЕКЛАМОДАТЕЛЯ · ${selected.label.toUpperCase()}`;
+
+  return <div style={{ background: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <PdfPage number={1} totalPages={2} headerBadge={headerBadge} title="Медиакит для рекламодателя" periodLabel={selected.label} channelLabel={channelLabel}>
+      <SectionTitle note={formatAdPriceSourceLabel(adPrice?.priceSource)}>Аудитория и условия размещения</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
+        <Kpi label="Подписчики" value={numberText(channel.currentMembers)} detail={`За 30 дней: ${delta30d.text}${delta30d.percentText ? ` (${delta30d.percentText})` : ''}`} />
+        <Kpi label="Стоимость поста" value={uahText(adPrice?.estimatedPricePerPost)} detail={formatAdPriceSourceLabel(adPrice?.priceSource)} />
+        <Kpi label="Ставка CPM" value={uahText(adPrice?.cpm)} detail={adPrice?.confidence === 'high' ? 'Высокая достоверность выборки' : 'Расчётная ставка'} />
+        <Kpi label="Средний рекламный охват" value={numberText(adPrice?.averageAdReach ?? selected.avgViews)} detail={`VR за ${selected.label}: ${percentText(selected.vr)}`} />
+        <Kpi label={selected.er.label} value={percentText(selected.er.value)} detail={`Постов за 30д: ${numberText(channel.posts30d)}`} />
+        <Kpi label={channel.type === 'group' ? 'CR за 7 дней' : selected.err.label}
+          value={percentText(channel.type === 'group' ? channel.cr7d : selected.err.value)}
+          detail={`Индекс цитирования: ${decimalText(channel.citationIndex)}`} />
+      </div>
+
+      <SectionTitle note="Средний набор просмотров рекламного поста">Кривая рекламного охвата (1 / 12 / 24 / 48 часов)</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
+        <Kpi label="Через 1 час" value={numberText(milestones.hour1)} />
+        <Kpi label="Через 12 часов" value={numberText(milestones.hour12)} />
+        <Kpi label="Через 24 часа" value={numberText(milestones.hour24)} />
+        <Kpi label="Через 48 часов" value={numberText(milestones.hour48)} />
+      </div>
+
+      <SectionTitle>Паспорт рекламной площадки и аудитория</SectionTitle>
+      <table style={{ ...tableStyle, marginBottom: 16 }}><tbody>
+        {[
+          ['Канал / ниша', `${channel.username ? `@${channel.username}` : channel.title} · ${channel.niche || 'general'}`],
+          ['Частота публикаций', `${decimalText(channel.avgPostsPerDay)} постов/день (${numberText(channel.posts30d)} за 30 дней)`],
+          ['Рекламная нагрузка (Ad Load)', `7 дней: ${percentText(channel.adShare7d?.percent)} · 30 дней: ${percentText(channel.adShare30d?.percent)}`],
+          ['Качество контента (Content Score)', `${numberText(channel.contentScore)}${channel.contentGrade ? ` (класс ${channel.contentGrade})` : ''}`],
+          ['Включённые уведомления подписчиков', demographics?.notificationsEnabledPercent !== null && demographics?.notificationsEnabledPercent !== undefined
+            ? `${decimalText(demographics.notificationsEnabledPercent)}%` : 'н/д'],
+          ['Языковой состав аудитории', demographics?.languages?.length
+            ? demographics.languages.slice(0, 4).map(l => `${l.name}: ${decimalText(l.percent)}%`).join(', ')
+            : 'н/д'],
+        ].map(([label, value]) => <tr key={label}><td style={{ ...tdStyle, color: muted, width: '38%' }}>{label}</td><td style={tdStyle}>{value}</td></tr>)}
+      </tbody></table>
+      <Note>Медиакит сформирован по верифицированным данным TgMon. Оценка стоимости и CPM указана в гривнах (₴).</Note>
+    </PdfPage>
+
+    <PdfPage number={2} totalPages={2} headerBadge={headerBadge} title="Контент, форматы и лучшие посты" periodLabel={selected.label} channelLabel={channelLabel}>
+      <SectionTitle note={`За ${selected.label}`}>Эффективность форматов публикаций</SectionTitle>
+      {formats.length > 0 ? <table style={{ ...tableStyle, marginBottom: 18 }}><thead><tr>
+        {['Формат', 'Постов', 'Доля', 'Ср. просмотры', 'Ср. ERR', 'Ср. пересылки'].map(label => <th key={label} style={thStyle}>{label}</th>)}
+      </tr></thead><tbody>{formats.map(item => <tr key={item.type}>
+        <td style={tdStyle}>{item.label}</td><td style={tdStyle}>{numberText(item.postsCount)}</td>
+        <td style={tdStyle}>{percentText(item.sharePercent)}</td><td style={tdStyle}>{numberText(item.avgViews)}</td>
+        <td style={tdStyle}>{percentText(item.avgErr)}</td><td style={tdStyle}>{decimalText(item.avgForwards)}</td>
+      </tr>)}</tbody></table> : <div style={{ marginBottom: 16 }}><Note>Нет публикаций за период для сравнения форматов.</Note></div>}
+
+      <SectionTitle note={stats.postLengthAnalytics?.avgTextLength ? `Ср. длина: ${numberText(stats.postLengthAnalytics.avgTextLength)} симв.` : undefined}>
+        Структура и объём текстов
+      </SectionTitle>
+      {lengthBuckets.length > 0 ? <table style={{ ...tableStyle, marginBottom: 18 }}><thead><tr>
+        {['Категория длины', 'Постов', 'Доля', 'Ср. просмотры', 'Ср. ERR', 'Ср. ER'].map(label => <th key={label} style={thStyle}>{label}</th>)}
+      </tr></thead><tbody>{lengthBuckets.map(item => <tr key={item.bucket}>
+        <td style={tdStyle}>{item.label}</td><td style={tdStyle}>{numberText(item.postsCount)}</td>
+        <td style={tdStyle}>{percentText(item.sharePercent)}</td><td style={tdStyle}>{numberText(item.avgViews)}</td>
+        <td style={tdStyle}>{percentText(item.avgErr)}</td><td style={tdStyle}>{percentText(item.avgEr)}</td>
+      </tr>)}</tbody></table> : <div style={{ marginBottom: 16 }}><Note>Данные о длине публикаций за выбранный период отсутствуют.</Note></div>}
+
+      <SectionTitle note="Топ публикаций периода по охвату">Примеры наиболее охватных публикаций</SectionTitle>
+      {topPosts.length > 0 ? <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18 }}>
+        {topPosts.map(post => <Kpi key={post.id} label={dateText(post.publishedAt).slice(0, 10)} value={numberText(post.views)}
+          detail={post.text ? `${post.text.replace(/\s+/g, ' ').slice(0, 55)}…` : `Пост № ${post.messageId}`} />)}
+      </div> : <div style={{ marginBottom: 16 }}><Note>Нет данных о просмотрах публикаций.</Note></div>}
+
+      <SectionTitle>Динамика подписчиков</SectionTitle>
+      <AudienceChart history={stats.membersHistory} />
+    </PdfPage>
+  </div>;
+}
+
+export function ChannelPdfTemplate({ stats, period, mode = 'report' }: ChannelPdfTemplateProps) {
+  if (mode === 'mediakit') {
+    return <MediaKitTemplate stats={stats} period={period} />;
+  }
+
   const channel = stats.channel;
   const selected = getChannelPdfPeriodMetrics(stats, period);
   const channelLabel = `${channel.title}${channel.username ? ` · @${channel.username}` : ''}`;
@@ -177,7 +286,10 @@ export function ChannelPdfTemplate({ stats, period }: ChannelPdfTemplateProps) {
           ['Последняя публикация', dateText(channel.lastPostAt)],
         ].map(([label, value]) => <tr key={label}><td style={{ ...tdStyle, color: muted, width: '35%' }}>{label}</td><td style={tdStyle}>{value}</td></tr>)}
       </tbody></table>
-      <Note>{periodNote || 'Показатели отражают доступные данные за выбранный период.'} Значение «н/д» означает, что метрика не рассчитана по сохранённым данным. {selected.period === '30d' && 'ER и ERR за 30 дней в API отсутствуют, поэтому показаны показатели за 7 дней с явной подписью.'}</Note>
+      <Note>
+        {periodNote || 'Показатели отражают доступные данные за выбранный период.'} Значение «н/д» означает, что метрика не рассчитана по сохранённым данным.
+        {selected.period === '30d' && selected.er.isFallback7d && ' ER и ERR за 30 дней в переданном снимке отсутствуют, поэтому показаны показатели за 7 дней с явной подписью.'}
+      </Note>
     </PdfPage>
 
     <PdfPage number={2} title="Аудитория и публикации" periodLabel={selected.label} channelLabel={channelLabel}>

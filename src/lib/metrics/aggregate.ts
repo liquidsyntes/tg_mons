@@ -75,26 +75,34 @@ function computeEngagementMetrics(
   posts: ReadonlyArray<MetricPostInput>,
   currentMembers: number | null,
   t24hMs: number,
-  t7dMs: number
+  t7dMs: number,
+  t30dMs: number
 ): {
   er24h: number | null;
   er7d: number | null;
+  er30d: number | null;
   err24h: number | null;
   err7d: number | null;
+  err30d: number | null;
   cr7d: number | null;
 } {
   const posts24hList = posts.filter((p) => p.publishedAt.getTime() >= t24hMs);
   const posts7dList = posts.filter((p) => p.publishedAt.getTime() >= t7dMs);
+  const posts30dList = posts.filter((p) => p.publishedAt.getTime() >= t30dMs);
 
   const rawEr24h = aggregateChannelER(posts24hList);
   const rawEr7d = aggregateChannelER(posts7dList);
+  const rawEr30d = aggregateChannelER(posts30dList);
   const rawErr24h = aggregateChannelERR(posts24hList);
   const rawErr7d = aggregateChannelERR(posts7dList);
+  const rawErr30d = aggregateChannelERR(posts30dList);
 
   const er24h = rawEr24h !== null ? Number(rawEr24h.toFixed(2)) : null;
   const er7d = rawEr7d !== null ? Number(rawEr7d.toFixed(2)) : null;
+  const er30d = rawEr30d !== null ? Number(rawEr30d.toFixed(2)) : null;
   const err24h = rawErr24h !== null ? Number(rawErr24h.toFixed(2)) : null;
   const err7d = rawErr7d !== null ? Number(rawErr7d.toFixed(2)) : null;
+  const err30d = rawErr30d !== null ? Number(rawErr30d.toFixed(2)) : null;
 
   let cr7d: number | null = null;
   if (currentMembers && currentMembers > 0 && posts7dList.length > 0) {
@@ -106,7 +114,7 @@ function computeEngagementMetrics(
     cr7d = Number(((avgComments / currentMembers) * 100).toFixed(2));
   }
 
-  return { er24h, er7d, err24h, err7d, cr7d };
+  return { er24h, er7d, er30d, err24h, err7d, err30d, cr7d };
 }
 
 interface ComputedChannelMetricsCore {
@@ -131,6 +139,7 @@ function assembleChannelMetrics(
 ): ChannelMetrics {
   const t24hMs = now.getTime() - MS_24H;
   const t7dMs = now.getTime() - MS_7D;
+  const t30dMs = now.getTime() - MS_30D;
 
   const avgPostsPerDay = Number((core.posts30d / 30).toFixed(1));
   const avgViews24h = computeAvgViews24h([...posts], now);
@@ -147,11 +156,12 @@ function assembleChannelMetrics(
     posts.filter((p) => p.text)
   );
 
-  const { er24h, er7d, err24h, err7d, cr7d } = computeEngagementMetrics(
+  const { er24h, er7d, er30d, err24h, err7d, err30d, cr7d } = computeEngagementMetrics(
     posts,
     core.currentMembers,
     t24hMs,
-    t7dMs
+    t7dMs,
+    t30dMs
   );
 
   const adShare7d = calculateAdShare([...posts], 7, now);
@@ -192,8 +202,10 @@ function assembleChannelMetrics(
     trueErr7d: core.trueErr7d,
     er24h,
     er7d,
+    er30d,
     err24h,
     err7d,
+    err30d,
     cr7d,
     adShare7d,
     adShare30d,

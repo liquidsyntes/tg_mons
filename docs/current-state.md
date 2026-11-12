@@ -1,19 +1,19 @@
 # Текущее состояние и передача работы
 
-Снимок: 12 ноября 2026 года (Europe/Moscow). База задачи: `68f3c4c`, ветка `main`, upstream `origin/main`. До начала задачи рабочее дерево было чистым. Задача: наложение событий (вирусные посты, упоминания у доноров, сигналы антифрода) на график подписчиков канала.
+Снимок: 12 ноября 2026 года (Europe/Moscow). База задачи: `4533a47`, ветка `main`, upstream `origin/main`. До начала задачи рабочее дерево было чистым. Задача: расчёт 30-дневных `er30d`/`err30d` и режим «Медиакит PDF» для рекламодателя.
 
 ## Реализовано в исходниках
 
-- В `src/lib/metrics/subscriber-events.ts` реализованы сбор и нормализация событий периода (`buildSubscriberTimelineEvents`), привязка событий к ближайшему последующему снимку подписчиков с расчётом дельты (`attachEventsToSnapshots`) и выбор доминирующего типа события для маркера точки (`getDominantEventType` с приоритетом `fraud_signal` > `donor_mention` > `viral_post`).
-- В `src/lib/types.ts`, `src/lib/metrics.ts` и `src/lib/metrics/queries.ts` расширен контракт `ChannelDetailStats` полем `timelineEvents`: `getChannelDetailStats` выбирает входящие упоминания из доступных пользователю активных каналов-доноров за выбранный период, объединяет их с вирусными постами канала и сигналами антифрода.
-- В `src/components/channel/SubscriberChart.tsx` и `src/components/CustomSubscriberTooltip.tsx` добавлено отображение маркеров событий на графике (в абсолютном режиме и режиме прироста), секция событий во всплывающей подсказке, переключатель «События (N)» и фильтрация карточек событий по категориям («Вирусные посты», «Упоминания у доноров», «Сигналы антифрода») с отображением прироста/оттока подписчиков в точке снимка.
-- Добавлены модульные и компонентные тесты в `src/lib/metrics/__tests__/subscriber-events.test.ts` и `src/components/__tests__/channel-detail-ui.test.ts`. Обновлены `docs/project-map.md`, `docs/overview.md`, `docs/analytics-formulas.md` и `docs/api-reference.md`.
+- В `src/lib/types.ts` и `src/lib/metrics/aggregate.ts` добавлены 30-дневные показатели вовлечённости `er30d` и `err30d` (`computeEngagementMetrics`), рассчитываемые по массиву 30-дневных публикаций канала как для материализованного, так и для резервного пути.
+- В `src/lib/channel-pdf-report.ts` обновлён `getChannelPdfPeriodMetrics`: для периода `30d` используются честные `er30d` («ER за 30 дней») и `err30d` («ERR за 30 дней») с сохранением резервного отката на 7-дневные значения только при отсутствии полей в старом снимке. Добавлены `formatAdPriceSourceLabel` и `extractReachCurveMilestones` (контрольные точки рекламного охвата 1/12/24/48 часов).
+- В `src/components/pdf/ChannelPdfTemplate.tsx`, `src/components/ExportPdfButton.tsx` и `src/components/channel/ChannelHeader.tsx` добавлен режим `mode="mediakit"` и кнопка «Медиакит PDF», формирующая двухстраничный медиакит для рекламодателя (`mediakit_*.pdf`): стоимость поста и CPM в гривнах (`₴`), кривая набора рекламного охвата за 1/12/24/48 часов, рекламная нагрузка, доля подписчиков с включёнными уведомлениями, языковой состав аудитории, эффективность форматов и структуры длины текстов, примеры топ-публикаций и график аудитории.
+- Дополнены модульные и компонентные тесты в `src/lib/metrics/__tests__/aggregate.test.ts` и `src/components/pdf/__tests__/ChannelPdfTemplate.test.ts`. Обновлены `docs/overview.md` и `docs/analytics-formulas.md`.
 
 ## Проверки
 
-- Профильные тесты `npm test -- src/lib/metrics/__tests__/subscriber-events.test.ts src/components/__tests__/channel-detail-ui.test.ts src/lib/metrics/__tests__/queries.test.ts`: 16 тестов в 3 файлах прошли успешно.
+- Профильные тесты `npm test -- src/components/pdf/__tests__/ChannelPdfTemplate.test.ts src/lib/metrics/__tests__/aggregate.test.ts src/components/__tests__/channel-detail-ui.test.ts`: 21 тест в 3 файлах прошёл успешно.
 - `npx tsc --noEmit` и `npx eslint src`: 0 ошибок.
 
 ## Следующий шаг
 
-Следующим шагом можно доработать 30-дневные ER/ERR и режим «Медиакит» в PDF-экспорте канала или добавить трекер собственных рекламных закупок.
+Все три приоритетные задачи (аналитика длины и структуры постов, наложение событий на график подписчиков и 30-дневные ER/ERR с режимом «Медиакит PDF») выполнены и проверены. Дальнейшие задачи определяются пользователем.
