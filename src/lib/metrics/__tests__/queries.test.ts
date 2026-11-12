@@ -71,6 +71,8 @@ describe('zoned publication time', () => {
 
     expect(utcDetail?.heatmapData.find(cell => cell.day === 0 && cell.hour === 1)?.count).toBe(1);
     expect(utcDetail?.postsDistribution.find(bucket => bucket.date === '01:00')?.postsCount).toBe(1);
+    expect(utcDetail?.postLengthAnalytics?.totalPosts).toBe(1);
+    expect(utcDetail?.postLengthAnalytics?.items[0]?.bucket).toBe('short');
     expect(pacificDetail?.heatmapData).toEqual(utcDetail?.heatmapData);
     expect(pacificDetail?.postsDistribution).toEqual(utcDetail?.postsDistribution);
     expect(utcBestTime?.heatmap.find(cell => cell.day === 0 && cell.hour === 1)?.postCount).toBe(1);

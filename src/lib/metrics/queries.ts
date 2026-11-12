@@ -2,6 +2,7 @@ import { prisma } from '../prisma';
 import { ChannelMetrics, OverviewStats, ChannelDetailStats } from '../types';
 import { buildMetricsFromMaterialized, calculateChannelMetricsFromData } from './aggregate';
 import { calculateContentFormatBreakdown } from './engagement';
+import { calculatePostLengthAnalytics } from './post-length';
 import { calculateViralBaseline, classifyViralPost } from './viral';
 import { calculatePopularReactions, parseReactionBreakdown } from './reactions';
 import { detectSilencePeriods } from './silence';
@@ -444,6 +445,10 @@ export async function getChannelDetailStats(
     posts,
     channel.currentMembers
   );
+  const postLengthAnalytics = calculatePostLengthAnalytics(
+    posts,
+    channel.currentMembers
+  );
 
   const silencePosts = await prisma.post.findMany({
     where: {
@@ -472,6 +477,7 @@ export async function getChannelDetailStats(
     popularReactions,
     contentTypePerformance: contentFormatBreakdown.items,
     contentFormatLeaders: contentFormatBreakdown.leaders,
+    postLengthAnalytics,
     silencePeriods: silenceResult.periods,
   };
 }

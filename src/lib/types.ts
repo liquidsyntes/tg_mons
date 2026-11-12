@@ -370,6 +370,49 @@ export interface ContentFormatLeaders {
   byViews: ContentType | null;
 }
 
+export type PostLengthBucket = 'media_only' | 'short' | 'medium' | 'long';
+
+export interface PostLengthPerformanceItem {
+  bucket: PostLengthBucket;
+  label: string;
+  postsCount: number;
+  sharePercent: number;
+  avgLength: number;
+  avgViews: number | null;
+  medianViews: number | null;
+  avgEr: number | null;
+  avgErr: number | null;
+  avgForwards: number;
+  avgComments: number;
+}
+
+export interface PostLengthLeaders {
+  byErr: PostLengthBucket | null;
+  byViews: PostLengthBucket | null;
+}
+
+export type PostStructureSignal = 'question_hook' | 'numbers_hook' | 'structured_body';
+
+export interface PostStructureSignalItem {
+  signal: PostStructureSignal;
+  label: string;
+  postsCount: number;
+  sharePercent: number;
+  avgViews: number | null;
+  avgEr: number | null;
+  avgErr: number | null;
+  avgForwards: number;
+}
+
+export interface PostLengthAnalytics {
+  totalPosts: number;
+  textPostsCount: number;
+  avgTextLength: number | null;
+  items: PostLengthPerformanceItem[];
+  leaders: PostLengthLeaders;
+  signals: PostStructureSignalItem[];
+}
+
 export interface ChannelDetailStats {
   channel: ChannelMetrics;
   nicheBenchmark?: NicheBenchmarkResult;
@@ -419,6 +462,7 @@ export interface ChannelDetailStats {
   popularReactions?: ChannelReactionSummary;
   contentTypePerformance?: ContentTypePerformanceItem[];
   contentFormatLeaders?: ContentFormatLeaders;
+  postLengthAnalytics?: PostLengthAnalytics;
   silencePeriods?: {
     startDate: string;
     endDate: string;

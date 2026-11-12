@@ -9,6 +9,7 @@ import { ScoreGauge } from '@/components/channel/ScoreGauge';
 import { SubscriberChart } from '@/components/channel/SubscriberChart';
 import { PostsActivity } from '@/components/channel/PostsActivity';
 import { ContentTypePerformance } from '@/components/channel/ContentTypePerformance';
+import { PostLengthPerformance } from '@/components/channel/PostLengthPerformance';
 import { PopularReactionsWidget } from '@/components/channel/PopularReactionsWidget';
 import { ErrChart } from '@/components/channel/ErrChart';
 import { ChannelHeatmap } from '@/components/channel/ChannelHeatmap';
@@ -99,6 +100,7 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
               <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
               <ChannelActivityTimeline channelId={channel.id} username={channel.username} tgId={channel.tgId} />
               <ContentTypePerformance data={data!.contentTypePerformance || []} leaders={data!.contentFormatLeaders} period={period} />
+              <PostLengthPerformance analytics={data!.postLengthAnalytics} period={period} />
               <PopularReactionsWidget summary={data!.popularReactions} />
               <ErrChart vrHistory={data!.vrHistory || []} period={period} />
               <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />

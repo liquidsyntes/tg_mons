@@ -30,11 +30,11 @@
 
 | Задача | Где менять / читать | Ближайшая проверка |
 | --- | --- | --- |
-| Таблица и карточка канала | `src/components/channel/` (`cells/`: ячейки метрик и ИЦ), `src/components/ChannelsTable.tsx` | `src/components/__tests__/ui-polish.test.ts`, `src/components/__tests__/channel-detail-ui.test.ts` |
+| Таблица и карточка канала | `src/components/channel/` (`cells/`: ячейки метрик и ИЦ, `ContentTypePerformance.tsx`, `PostLengthPerformance.tsx`), `src/components/ChannelsTable.tsx` | `src/components/__tests__/ui-polish.test.ts`, `src/components/__tests__/channel-detail-ui.test.ts`, `src/components/channel/__tests__/PostLengthPerformance.test.ts` |
 | Сравнение каналов | `src/app/compare/page.tsx`, `src/components/compare/`, `src/lib/compare.ts`, `src/app/api/stats/compare/route.ts` | `src/lib/__tests__/compare.test.ts`, `src/components/__tests__/ComparePage.test.ts` |
 | Почасовая активность канала | `src/lib/channel-activity.ts`, `src/app/api/stats/channel/[id]/activity/route.ts`, `src/components/channel/ChannelActivityTimeline.tsx`, `src/worker/persister.ts` | `src/lib/__tests__/channel-activity.test.ts`, соседние API/UI тесты, `src/worker/__tests__/collector.test.ts` |
 | Экспорт PDF-отчётов каналов | `src/components/pdf/ChannelPdfTemplate.tsx`, `src/components/ExportPdfButton.tsx`, `src/lib/channel-pdf-report.ts` | `src/components/pdf/__tests__/ChannelPdfTemplate.test.ts` |
-| Формулы и агрегация | `src/lib/metrics/`, `src/lib/scoring.ts`, `src/lib/ep.ts` | `src/lib/metrics/__tests__/`, `src/lib/__tests__/scoring.test.ts`, `src/lib/ep.test.ts` |
+| Формулы и агрегация | `src/lib/metrics/` (включая `post-length.ts`), `src/lib/scoring.ts`, `src/lib/ep.ts` | `src/lib/metrics/__tests__/`, `src/lib/__tests__/scoring.test.ts`, `src/lib/ep.test.ts` |
 | История и время публикации | `src/lib/metrics/history.ts`, `src/lib/metrics/best-time.ts`, вызов из `queries.ts` | `src/lib/metrics/__tests__/history.test.ts`, `best-time.test.ts`, `queries.test.ts` |
 | Эвристики антифрода и нормализация | `src/lib/fraud/`, фасад `src/lib/fraudDetector.ts`; потребители в `src/lib/metrics/queries.ts`, `src/worker/fraud-evaluator.ts` и UI | `src/lib/__tests__/fraudDetector.test.ts`, `src/lib/fraud/__tests__/normalizers.test.ts`, `src/worker/__tests__/fraud-evaluator.test.ts`, `src/components/__tests__/RiskBadge.test.ts` |
 | Индекс цитирования | `src/lib/citationIndex.ts`, `src/lib/citations/`, потребители в `src/lib/metrics/` и `src/lib/citationNetwork.ts` | `src/lib/__tests__/citationIndex.test.ts`, `src/lib/__tests__/citationNetwork.test.ts`, `src/lib/metrics/__tests__/queries.test.ts` |
