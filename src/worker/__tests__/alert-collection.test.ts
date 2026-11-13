@@ -8,7 +8,10 @@ const mocks = vi.hoisted(() => ({
   materialize: vi.fn(), calculateMetrics: vi.fn(), checkAlerts: vi.fn(),
   dailyFindMany: vi.fn(), postFindMany: vi.fn(),
 }));
-vi.mock('../client', () => ({ getTelegramClient: mocks.client }));
+vi.mock('../client', () => ({
+  getTelegramClient: mocks.client,
+  disconnectTelegramClient: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('../fetcher', () => ({
   resolveChannelEntity: mocks.resolveEntity,
   fetchFullChannel: mocks.fullChannel,
@@ -43,6 +46,7 @@ vi.mock('@/lib/prisma', () => ({ prisma: {
 vi.mock('../retry-policy', () => ({
   sendTelegramRuleAlert: vi.fn(),
   handleChannelError: vi.fn(),
+  isTelegramSessionAuthError: vi.fn(() => false),
 }));
 import { getActiveSyncJobId, runCollectCycle } from '../collector';
 

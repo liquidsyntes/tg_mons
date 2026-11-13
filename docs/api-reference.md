@@ -44,7 +44,10 @@ Middleware больше не добавляет Bearer к запросам бр�
 | `GET /api/channels/:id/network` | ID | Совместимый плоский ответ `{ "outbound": [...], "inbound": [...] }`, ограниченный доступными каналами пользователя | Да |
 | `GET /api/channels/:id/ad-price` | ID | `{estimatedPricePerPost,cpm,confidence,averageAdReach,averageReachCurve,priceSource,customAdPriceUah,customCpmUah,canEdit}`; 404 если канал недоступен | Да |
 | `PATCH /api/channels/:id/ad-price` | `{customAdPriceUah?,customCpmUah?}` | `{success,customAdPriceUah,customCpmUah,priceSource}`; 400 при неверных значениях, 403 для мастер-сессии, 404 при отсутствии личной подписки | Да |
-| `GET /api/channels/:id/ad-attribution` | ID, `days=7|30|90` (по умолчанию 30) | `{periodDays,inbound,outbound}` с приростом подписчиков +24/+48 ч и оценочными ценой/CPF | Да |
+| `GET /api/channels/:id/ad-attribution` | ID, `days=7|30|90` (по умолчанию 30) | `{periodDays,inbound,outbound,manualPlacements,summary,accessibleChannels}` с приростом +24/+48 ч, привязанными сделками `AdPlacement` и сводкой фактических CPM/CPF | Да |
+| `GET /api/channels/:id/ad-placements` | ID | `{placements}` – список сохранённых рекламных закупок (`AdPlacement`) текущего пользователя для канала `:id` | Да |
+| `POST /api/channels/:id/ad-placements` | `{id?, targetChannelId?, donorChannelId, postId?, priceAmount, currency?, format?, status?, scheduledAt?, inviteLink?, actualJoins?, notes?}` | Создание (`201`) или обновление (`200`, по `id` или связке с `postId`) фактической сделки; проверяет доступ пользователя к обоим каналам и валидирует поля (`400`, `404`) | Да |
+| `DELETE /api/channels/:id/ad-placements` | `?id=<dealId>` или `{id}` в теле | `{success:true,id}` – удаление записи `AdPlacement` текущего пользователя; `404` при отсутствии или чужой сделке | Да |
 
 `input` принимает username, Telegram-ссылку или invite-ссылку уже доступного аккаунту чата. Неверный/пустой input даёт 400. Неудачный backfill сохраняет `lastError`, но не обязательно отменяет 201. Добавление, PATCH и DELETE очищают `metricsCache`/`bestTimeCache`.
 

@@ -35,6 +35,8 @@ model Channel {
   fraudSignals         FraudSignal[]
   userChannels         UserChannel[]
   postEngagementHours  PostEngagementHour[]
+  adPlacementsTarget   AdPlacement[]          @relation("AdPlacementTarget")
+  adPlacementsDonor    AdPlacement[]          @relation("AdPlacementDonor")
 
   @@map("channels")
 }
@@ -63,6 +65,7 @@ model User {
   savedPosts      UserSavedPost[]
   createdInvites  InviteCode[]         @relation("InviteCreator")
   usedInvite      InviteCode?          @relation("InviteConsumer")
+  adPlacements    AdPlacement[]
 
   @@map("users")
 }
@@ -193,6 +196,7 @@ model Post {
   alertRulePostFires   AlertRulePostFire[]
   savedByUsers         UserSavedPost[]
   engagementHours      PostEngagementHour[]
+  adPlacements         AdPlacement[]
 
   @@unique([channelId, messageId])
   @@index([channelId, groupedId])
@@ -435,4 +439,34 @@ model PostViewSnapshot {
   @@unique([postId, hoursAfterPost])
   @@index([postId])
   @@map("post_view_snapshots")
+}
+
+model AdPlacement {
+  id              Int       @id @default(autoincrement())
+  userId          Int?      @map("user_id")
+  targetChannelId Int       @map("target_channel_id")
+  donorChannelId  Int       @map("donor_channel_id")
+  postId          Int?      @map("post_id")
+  priceAmount     Int       @map("price_amount")
+  currency        String    @default("UAH")
+  format          String    @default("1/24")
+  status          String    @default("planned")
+  scheduledAt     DateTime? @map("scheduled_at")
+  inviteLink      String?   @map("invite_link")
+  actualJoins     Int?      @map("actual_joins")
+  notes           String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user          User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetChannel Channel @relation("AdPlacementTarget", fields: [targetChannelId], references: [id], onDelete: Cascade)
+  donorChannel  Channel @relation("AdPlacementDonor", fields: [donorChannelId], references: [id], onDelete: Cascade)
+  post          Post?   @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([userId, targetChannelId])
+  @@index([userId, donorChannelId])
+  @@index([targetChannelId])
+  @@index([donorChannelId])
+  @@index([postId])
+  @@map("ad_placements")
 }

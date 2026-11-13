@@ -242,6 +242,49 @@ export interface AdPriceResult {
   customCpmUah: number | null;
 }
 
+export type AdPlacementFormat = '1/24' | '2/48' | '3/72' | 'native' | 'eternal';
+export type AdPlacementStatus = 'planned' | 'published' | 'completed' | 'cancelled';
+
+export interface AdPlacementDeal {
+  id: number;
+  targetChannelId: number;
+  donorChannelId: number;
+  targetChannel?: { id: number; title: string; username: string | null };
+  donorChannel?: { id: number; title: string; username: string | null };
+  postId: number | null;
+  priceAmount: number;
+  currency: string;
+  format: AdPlacementFormat;
+  status: AdPlacementStatus;
+  scheduledAt: string | null;
+  inviteLink: string | null;
+  actualJoins: number | null;
+  notes: string | null;
+  effectiveGain: number | null;
+  factualCpm: number | null;
+  factualCpf: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdCampaignSummary {
+  dealsCount: number;
+  activeDealsCount: number;
+  totalSpent: number;
+  currency: string;
+  totalGainedSubscribers: number;
+  avgCpf: number | null;
+  avgCpm: number | null;
+  bestDonor: {
+    channelId: number;
+    title: string;
+    username: string | null;
+    cpf: number;
+    gainedSubscribers: number;
+    spent: number;
+  } | null;
+}
+
 export interface AdAttributionPlacement {
   postId: number;
   messageId: string;
@@ -257,12 +300,16 @@ export interface AdAttributionPlacement {
   estimatedCpf: number | null;
   conversionPercent: number | null;
   overlappingCampaigns: boolean;
+  deal?: AdPlacementDeal | null;
 }
 
 export interface ChannelAdAttribution {
   periodDays: number;
   inbound: AdAttributionPlacement[];
   outbound: AdAttributionPlacement[];
+  manualPlacements?: AdPlacementDeal[];
+  summary?: AdCampaignSummary;
+  accessibleChannels?: Array<{ id: number; title: string; username: string | null }>;
 }
 
 export interface CitationNetworkNode {
