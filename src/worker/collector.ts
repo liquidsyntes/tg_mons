@@ -1,5 +1,5 @@
 import { TelegramClient } from 'telegram';
-import { getTelegramClient } from './client';
+import { disconnectTelegramClient, getTelegramClient } from './client';
 import { materializeDailyMetrics } from '../lib/materialize';
 import { calculateChannelMetrics } from '../lib/metrics';
 import { checkChannelAlertRules } from '../lib/alerts';
@@ -37,6 +37,7 @@ import { savePostImage } from './post-image';
 import {
   sendTelegramRuleAlert,
   handleChannelError,
+  isTelegramSessionAuthError,
 } from './retry-policy';
 
 export { TelegramTimeoutError };
@@ -314,6 +315,16 @@ export async function runCollectCycle(signal?: AbortSignal): Promise<{
 
         logger.info('Channel processed successfully', { title: channel.title, durationMs: result.durationMs, snapshotsAdded: result.snapshotsAdded, postsAdded: result.postsAdded });
       } catch (err: unknown) {
+        if (isTelegramSessionAuthError(err)) {
+          fatalError = `Telegram session authorization failed: ${errorMessage(err)}`;
+          logger.error('Fatal Telegram session auth error; aborting collection cycle without penalizing channels', {
+            channelId: channel.id,
+            title: channel.title,
+          }, new Error(fatalError));
+          await disconnectTelegramClient().catch(() => {});
+          break;
+        }
+
         errorCount++;
         channelFailures.push({ channelId: channel.id, message: errorMessage(err) });
         if (syncJobId) {

@@ -8,6 +8,26 @@ function getErrorMessage(error: unknown): string {
   return String(error);
 }
 
+const SESSION_AUTH_ERROR_PATTERNS = [
+  'AUTH_KEY_UNREGISTERED',
+  'AUTH_KEY_DUPLICATED',
+  'AUTH_KEY_INVALID',
+  'SESSION_REVOKED',
+  'SESSION_EXPIRED',
+  'USER_DEACTIVATED',
+  'authorization key is not registered in the system',
+  'temporary key has expired',
+];
+
+export function isTelegramSessionAuthError(error: unknown): boolean {
+  const message = getErrorMessage(error);
+  const code = error !== null && typeof error === 'object' && 'errorMessage' in error && typeof error.errorMessage === 'string'
+    ? error.errorMessage
+    : '';
+  const haystack = `${code} ${message}`.toUpperCase();
+  return SESSION_AUTH_ERROR_PATTERNS.some((pattern) => haystack.includes(pattern.toUpperCase()));
+}
+
 export async function sendTelegramRuleAlert(message: string, chatIdOverride?: string | null): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = chatIdOverride?.trim() || process.env.TELEGRAM_CHAT_ID;
@@ -50,6 +70,13 @@ export async function handleChannelError(
   error: unknown
 ): Promise<boolean> {
   const errorMessage = getErrorMessage(error);
+  if (isTelegramSessionAuthError(error)) {
+    logger.error('Telegram session authorization error encountered during channel processing; skipping channel penalty', {
+      channelId: channel.id,
+      title: channel.title,
+    }, new Error(errorMessage));
+    return false;
+  }
   logger.error('Channel processing failed', { title: channel.title }, new Error(errorMessage));
 
   const newErrors = channel.consecutiveErrors + 1;

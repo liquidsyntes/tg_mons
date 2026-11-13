@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleChannelError } from '../retry-policy';
+import { handleChannelError, isTelegramSessionAuthError } from '../retry-policy';
 import { updateChannelErrorState } from '../persister';
 import { logger } from '../../lib/logger';
 
@@ -68,6 +68,22 @@ describe('retry-policy', () => {
     const channel = { id: 3, title: 'Test 3', username: 'test3', tgId: null, consecutiveErrors: 0 };
     expect(await handleChannelError(channel, error)).toBe(false);
     expect(updateChannelErrorState).toHaveBeenCalledWith(3, expected, 1, false);
+    expect(globalFetch).not.toHaveBeenCalled();
+  });
+
+  it('recognizes Telegram session auth errors and does not increment channel consecutiveErrors or disable channel', async () => {
+    const channel = { id: 4, title: 'Test 4', username: 'test4', tgId: null, consecutiveErrors: 9 };
+    const authError = new Error(
+      'The specified authorization key is not registered in the system (for example, a PFS temporary key has expired). (caused by contacts.ResolveUsername)'
+    );
+
+    expect(isTelegramSessionAuthError(authError)).toBe(true);
+    expect(isTelegramSessionAuthError({ errorMessage: 'AUTH_KEY_UNREGISTERED', message: 'RPC error' })).toBe(true);
+    expect(isTelegramSessionAuthError(new Error('CHANNEL_PRIVATE'))).toBe(false);
+
+    const shouldDisable = await handleChannelError(channel, authError);
+    expect(shouldDisable).toBe(false);
+    expect(updateChannelErrorState).not.toHaveBeenCalled();
     expect(globalFetch).not.toHaveBeenCalled();
   });
 });
