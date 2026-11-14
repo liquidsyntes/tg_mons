@@ -16,7 +16,7 @@
 - Профильные тесты (`src/lib/metrics/__tests__/ad-creatives.test.ts`, `src/components/posts/__tests__/AdCreativesPanel.test.ts`, `src/lib/__tests__/posts-search.test.ts`, `src/app/api/posts/search/__tests__/route.test.ts`, `src/app/posts/__tests__/page.test.ts`): 61 тест в 5 файлах прошёл успешно.
 - Полный набор `npm test`: 143 файла, 935 тестов прошли успешно.
 - `npx tsc --noEmit`, `npx eslint src` и `npm run build`: завершены с кодом 0 без ошибок. Схема базы данных и миграции не менялись.
-- Не выполнено: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build web` и проверка `http://localhost:4000/api/health` (демон Docker Desktop недоступен: pipe `//./pipe/dockerDesktopLinuxEngine` не найден, `Docker Desktop.exe` не стартует в неинтерактивной сессии). Остаточный риск: после запуска Docker Desktop нужно выполнить пересборку/перезапуск `web`.
+- Docker (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build web`): образ `tgmon-web` пересобран, контейнеры `tgmon-postgres` (healthy), `tgmon-worker` и `tgmon-web` запущены; `GET http://localhost:4000/api/health` вернул `200 OK` (`status: "ok"`, `lastSyncStatus: "COMPLETED"`, `channelsSucceeded: 26`, `channelsFailed: 0`).
 
 ## Следующий шаг
 
