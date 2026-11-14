@@ -104,11 +104,16 @@ jobs:
     needs: [web, worker]
     permissions:
       packages: write
+    continue-on-error: true
     steps:
       - name: Set GHCR packages public
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GHCR_PAT }}
         run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::Секрет GHCR_PAT не задан — пропускаю смену видимости. Пакет останется приватным; добавь секрет или сделай публичным вручную."
+            exit 0
+          fi
           for pkg in tg_mons-web tg_mons-worker; do
             gh api --method PATCH \
               -H "Accept: application/vnd.github+json" \
