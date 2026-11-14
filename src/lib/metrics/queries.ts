@@ -15,6 +15,7 @@ import { computeNicheStats, calculateEP, type ChannelSnapshot } from '../ep';
 import { getAppTimezone } from '../timezone';
 import { calculateNicheBenchmarks } from '../nicheBenchmarks';
 import { findUserMyChannel, listUserChannels, resolveUserChannel } from '../user-channels';
+import { classifyAdRetentionFormat, resolveLastCapturedViews } from '../adReach';
 import { buildPostsDistribution, buildHeatmapData, getVrHistory } from './history';
 
 
@@ -391,9 +392,14 @@ export async function getChannelDetailStats(
       comments: p.comments,
       forwards: p.forwards,
       text: p.text,
+      isAd: Boolean(p.isAd),
       isSaved: Boolean(saved),
       savedNote: saved?.note ?? null,
       savedAt: saved ? saved.createdAt.toISOString() : null,
+      deletedAt: p.deletedAt ? new Date(p.deletedAt).toISOString() : null,
+      deletedAfterHours: p.deletedAfterHours ?? null,
+      retentionFormat: p.isAd ? classifyAdRetentionFormat(p, now) : undefined,
+      lastCapturedViews: p.isAd ? resolveLastCapturedViews(p) : undefined,
       ...classifyViralPost(p, viralBaseline),
     };
   });

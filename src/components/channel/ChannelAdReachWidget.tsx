@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AdReachChart, AdReachDataPoint } from '@/components/AdReachChart';
+import type { AdRetentionSummary } from '@/lib/types';
 
 interface ChannelAdReachWidgetProps {
   channelId: number;
@@ -9,6 +10,7 @@ interface ChannelAdReachWidgetProps {
 
 export function ChannelAdReachWidget({ channelId }: ChannelAdReachWidgetProps) {
   const [data, setData] = useState<AdReachDataPoint[]>([]);
+  const [retentionSummary, setRetentionSummary] = useState<AdRetentionSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,15 +18,17 @@ export function ChannelAdReachWidget({ channelId }: ChannelAdReachWidgetProps) {
     fetch(`/api/channels/${channelId}/ad-price`)
       .then(res => res.json())
       .then(json => {
-        if (json && json.averageReachCurve) {
+        if (json && Array.isArray(json.averageReachCurve)) {
           setData(json.averageReachCurve);
         } else {
           setData([]);
         }
+        setRetentionSummary(json?.retentionSummary ?? null);
       })
       .catch(err => {
         console.error('Failed to load ad reach curve', err);
         setData([]);
+        setRetentionSummary(null);
       })
       .finally(() => {
         setLoading(false);
@@ -39,11 +43,11 @@ export function ChannelAdReachWidget({ channelId }: ChannelAdReachWidgetProps) {
     );
   }
 
-  if (data.length === 0) {
+  if (data.length === 0 && (!retentionSummary || retentionSummary.totalAds === 0)) {
     return null;
   }
 
   return (
-    <AdReachChart data={data} />
+    <AdReachChart data={data} retentionSummary={retentionSummary} />
   );
 }

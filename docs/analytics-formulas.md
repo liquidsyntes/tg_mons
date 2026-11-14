@@ -217,7 +217,16 @@ $$EP=clamp_{[0,100]}\left(\frac{100}{1+e^{-x}}\,confidence\right)$$
 
 ### Контрольные точки и цена
 
-[ad-reach.ts](../src/worker/ad-reach.ts) читает рекламные посты возрастом до 50 часов на 15-й минуте каждого часа. Точки 1, 12, 24, 48 часов записываются при age ≥ checkpoint −5 минут, если точки ещё нет. При пропуске расписания несколько точек получают один текущий счётчик; учитывать capturedAt обязательно.
+[ad-reach.ts](../src/worker/ad-reach.ts) читает активные рекламные посты (`deletedAt: null`) возрастом до 56 часов на 15-й минуте каждого часа. Точки 1, 12, 24, 48 часов (`AD_REACH_CHECKPOINTS`) записываются при age ≥ checkpoint −5 минут, если точки ещё нет. При пропуске расписания несколько точек получают один текущий счётчик; учитывать `capturedAt` обязательно. При получении актуального ответа канала без искомого сообщения или с `Api.MessageEmpty` пост идемпотентно помечается полями `deletedAt`, `deletedAfterHours` и `lastCheckedAt`. Сетевые ошибки, `TelegramTimeoutError` и `FLOOD_WAIT` изолируются и никогда не трактуются как удаление поста.
+
+[adReach.ts](../src/lib/adReach.ts) классифицирует фактическое удержание рекламного поста (`classifyAdRetentionFormat`):
+- `early_delete`: удаление до 20 часов от публикации (если нет снимка в окне `[20, 36)` ч);
+- `24h`: удаление в диапазоне `[20, 36)` часов (или `deletedAfterHours === 24` без точного `deletedAt`);
+- `48h`: удаление в диапазоне `[36, 60]` часов (или `deletedAfterHours === 48`, либо удаление `< 20` ч при наличии 24ч-снимка);
+- `retained`: удаление позже 60 часов либо пост остаётся в ленте при возрасте `>= 48` ч или наличии снимка `>= 48` ч;
+- `active`: не удалённый пост младше 48 часов без 48ч-снимка.
+
+`resolveLastCapturedViews` возвращает максимальное неотрицательное значение среди `Post.views` и всех `PostViewSnapshot.viewsCount` (сохранённый охват даже после удаления поста), а `summarizeChannelAdRetention` рассчитывает доли форматов `24h`, `48h`, `retained` и `early_delete` от числа уже оценённых постов (`evaluatedAds = totalAds - activeAds`) и флаг `hasEarlyDeletions`. `pricing.ts` возвращает `retentionSummary` по выбранным рекламным постам канала.
 
 [pricing.ts](../src/lib/pricing.ts) выбирает до 30 последних isAd-постов. Охват поста: точка 48ч, иначе 24ч, иначе последняя доступная; без кривой — ненулевой Post.views. Итог:
 
@@ -254,7 +263,9 @@ $$\Delta_{24}=followers_{24}-followers_{base},\qquad \Delta_{48}=followers_{48}-
 - `factualCpm = round(1000 * priceAmount / Post.views, 2)` при `Post.views > 0` (иначе `null`);
 - `factualCpf = round(priceAmount / effectiveGain, 2)` при `effectiveGain > 0` (иначе `null`).
 
-Сопоставление сделки с автоматически найденным упоминанием выполняет `matchPlacementDeal`: сначала по точному совпадению `postId`, иначе по паре `donorChannelId + targetChannelId` для незакрытых сделок без `postId` в окне `±24 ч` от `scheduledAt`. Сводка `summarizeAdCampaigns` суммирует бюджет активных и завершённых закупок (исключая `status = "cancelled"`), а средние `avgCpf` / `avgCpm` и выбор лучшего донора по минимальному `CPF` считают только по сделкам с измеримым положительным приростом или охватом, чтобы запланированные размещения без результатов не искажали среднюю экономику.
+Сопоставление сделки с автоматически найденным упоминанием выполняет `matchPlacementDeal`: сначала по точному совпанию `postId`, иначе по паре `donorChannelId + targetChannelId` для незакрытых сделок без `postId` в окне `±24 ч` от `scheduledAt`. Сводка `summarizeAdCampaigns` суммирует бюджет активных и завершённых закупок (исключая `status = "cancelled"`), а средние `avgCpf` / `avgCpm` и выбор лучшего донора по минимальному `CPF` считают только по сделкам с измеримым положительным приростом или охватом, чтобы запланированные размещения без результатов не искажали среднюю экономику.
+
+Для каждого размещения в `adAttribution.ts` также вычисляются `retentionFormat`, `deletedAt`, `deletedAfterHours` и сохранённый охват `lastCapturedViews` (через `resolveLastCapturedViews` по `Post.views` и `PostViewSnapshot`), который подставляется в `views`, если пост удалён после фиксации просмотров.
 
 ### Content LTV
 

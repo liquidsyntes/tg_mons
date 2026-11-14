@@ -19,6 +19,8 @@ import type {
   AdPriceSource,
   ChannelAdAttribution,
 } from '@/lib/types';
+import { isDeletedRetentionFormat } from '@/lib/adReach';
+import { AdRetentionBadge } from '@/components/AdRetentionBadge';
 import { AdPriceSettings } from './AdPriceSettings';
 
 /** Направление атрибуции: inbound — закупки (входящие упоминания), outbound — отдача рекламы */
@@ -452,6 +454,9 @@ function PlacementCard({
   const [editing, setEditing] = useState(false);
   const otherChannel = direction === 'inbound' ? placement.sourceChannel : placement.targetChannel;
   const deal = placement.deal ?? null;
+  const retentionFormat = placement.retentionFormat;
+  const isDeleted = Boolean(placement.deletedAt) || isDeletedRetentionFormat(retentionFormat);
+  const displayedViews = placement.lastCapturedViews ?? placement.views;
 
   return (
     <article className="rounded-xl border border-border bg-slate-900/40 p-4 space-y-3">
@@ -466,6 +471,7 @@ function PlacementCard({
         <span className={`rounded px-2 py-0.5 ${placement.isAd ? 'bg-orange-500/15 text-orange-300' : 'bg-slate-800 text-slate-400'}`}>
           {placement.isAd ? 'Реклама' : 'Упоминание'}
         </span>
+        <AdRetentionBadge format={retentionFormat} deletedAt={placement.deletedAt} variant="detailed" />
         {placement.overlappingCampaigns && (
           <span className="rounded bg-amber-500/15 px-2 py-0.5 text-amber-300" title="В этот же период выходили другие размещения">
             Пересечение размещений
@@ -494,7 +500,10 @@ function PlacementCard({
       </div>
 
       <div className="grid gap-2 text-xs text-slate-300 sm:grid-cols-2 lg:grid-cols-3">
-        <span>Текущий охват: {placement.views === null ? 'н/д' : numberFormat.format(placement.views)}</span>
+        <span>
+          {isDeleted ? 'Сохранённый охват' : 'Текущий охват'}:{' '}
+          {displayedViews === null ? 'н/д' : numberFormat.format(displayedViews)}
+        </span>
         <span>Подписчики +24 ч: {formatDelta(placement.deltaSubscribers24h)}</span>
         <span>Подписчики +48 ч: {formatDelta(placement.deltaSubscribers48h)}</span>
         {deal ? (

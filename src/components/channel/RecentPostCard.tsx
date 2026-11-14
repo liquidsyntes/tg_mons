@@ -4,7 +4,9 @@ import React from 'react';
 import { FileText, Eye, Megaphone, Handshake, Search, Filter } from 'lucide-react';
 import type { detectAd } from '@/lib/adDetector';
 import { formatNumber } from '@/lib/utils';
+import { isDeletedRetentionFormat } from '@/lib/adReach';
 import type { ChannelDetailStats } from '@/lib/types';
+import { AdRetentionBadge } from '@/components/AdRetentionBadge';
 import { ViralBadge } from './ViralBadge';
 import { ReactionBreakdownInline } from './ReactionBreakdownInline';
 import { PostBookmarkButton } from './PostBookmarkButton';
@@ -243,11 +245,19 @@ export function RecentPostCard({
               Партнёр
             </span>
           )}
+          <AdRetentionBadge format={post.retentionFormat} deletedAt={post.deletedAt} variant="compact" />
         </div>
-        {post.views !== null && (
-          <span className="flex items-center gap-1 font-mono text-slate-400">
+        {(post.lastCapturedViews ?? post.views) !== null && (
+          <span
+            className="flex items-center gap-1 font-mono text-slate-400"
+            title={
+              Boolean(post.deletedAt) || isDeletedRetentionFormat(post.retentionFormat)
+                ? 'Сохранённый охват до удаления'
+                : undefined
+            }
+          >
             <Eye className="w-3 h-3" />
-            {formatNumber(post.views)}
+            {formatNumber((post.lastCapturedViews ?? post.views)!)}
           </span>
         )}
       </div>

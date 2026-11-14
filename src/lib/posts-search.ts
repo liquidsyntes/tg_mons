@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { detectAd } from '@/lib/adDetector';
+import { classifyAdRetentionFormat, resolveLastCapturedViews } from '@/lib/adReach';
 import { clusterAdCreatives } from '@/lib/metrics/ad-creatives';
 import { calculatePostER, calculatePostERR } from '@/lib/metrics/engagement';
 import { calculateViralBaseline, classifyViralPost, type ViralBaseline } from '@/lib/metrics/viral';
@@ -295,6 +296,7 @@ function postSearchInclude(userId: number | null) {
     image: { select: { postId: true } },
     mentions: { where: { type: 'mention', targetUsername: { not: null } }, select: { targetUsername: true } },
     savedByUsers: { where: { userId: userId ?? -1 }, select: { note: true, createdAt: true } },
+    viewSnapshots: { select: { hoursAfterPost: true, viewsCount: true }, orderBy: { hoursAfterPost: 'asc' } },
   } satisfies Prisma.PostInclude;
 }
 
@@ -304,8 +306,10 @@ function enrichSearchedPost(
   post: SearchedPostRecord,
   userId: number | null,
   baseline: ViralBaseline | null,
+  now: Date,
 ) {
   const savedEntry = Array.isArray(post.savedByUsers) ? post.savedByUsers[0] : undefined;
+  const lastCapturedViews = post.isAd ? resolveLastCapturedViews(post) : undefined;
   return {
     ...post,
     messageId: post.messageId.toString(),
@@ -324,8 +328,13 @@ function enrichSearchedPost(
     isSaved: Boolean(savedEntry),
     savedNote: savedEntry?.note ?? null,
     savedAt: savedEntry?.createdAt ? new Date(savedEntry.createdAt).toISOString() : null,
+    deletedAt: post.deletedAt ? new Date(post.deletedAt).toISOString() : null,
+    deletedAfterHours: post.deletedAfterHours ?? null,
+    retentionFormat: post.isAd ? classifyAdRetentionFormat(post, now) : undefined,
+    lastCapturedViews,
     image: undefined,
     savedByUsers: undefined,
+    viewSnapshots: undefined,
   };
 }
 
@@ -357,6 +366,10 @@ function toCreativePostItem(post: EnrichedPost): AdCreativePostItem {
     isSaved: post.isSaved,
     savedNote: post.savedNote,
     savedAt: post.savedAt,
+    deletedAt: post.deletedAt,
+    deletedAfterHours: post.deletedAfterHours,
+    retentionFormat: post.retentionFormat,
+    lastCapturedViews: post.lastCapturedViews,
     mentions: post.mentions,
   };
 }
@@ -409,7 +422,7 @@ export async function searchPosts(params: PostSearchParams, userId: number | nul
   viralBaselines ??= await loadViralBaselines([...new Set(posts.map(post => post.channelId))], now);
 
   const enriched = posts.map(post =>
-    enrichSearchedPost(post, userId, viralBaselines?.get(post.channelId) ?? null));
+    enrichSearchedPost(post, userId, viralBaselines?.get(post.channelId) ?? null, now));
 
   const shouldBuildCreatives = Boolean(params.onlyAds || params.type === 'ads' || params.includeCreatives);
   let creativeClusters: AdCreativeCluster[] | undefined;
@@ -445,7 +458,7 @@ export async function searchPosts(params: PostSearchParams, userId: number | nul
       }
 
       creativesSource = sampleRaw.map(post =>
-        enrichSearchedPost(post, userId, viralBaselines?.get(post.channelId) ?? null),
+        enrichSearchedPost(post, userId, viralBaselines?.get(post.channelId) ?? null, now),
       );
     } else if (!where.isAd) {
       creativesSource = enriched.filter(post => post.isAd);

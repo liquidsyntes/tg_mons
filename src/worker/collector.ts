@@ -41,6 +41,7 @@ import {
 } from './retry-policy';
 
 export { TelegramTimeoutError };
+export { runAdReachCycle, isDeletedTelegramMessage, AD_REACH_CHECKPOINTS } from './ad-reach';
 
 interface ResolvedTelegramChannelEntity {
   className?: string;

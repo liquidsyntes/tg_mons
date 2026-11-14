@@ -13,6 +13,8 @@ import { PostBookmarkButton } from '@/components/channel/PostBookmarkButton';
 import { PostReaderModal, buildTelegramPostUrl } from '@/components/channel/PostReaderModal';
 import { TopAdvertisersPanel } from '@/components/posts/TopAdvertisersPanel';
 import { AdCreativesPanel } from '@/components/posts/AdCreativesPanel';
+import { AdRetentionBadge } from '@/components/AdRetentionBadge';
+import { isDeletedRetentionFormat } from '@/lib/adReach';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
 
@@ -43,6 +45,10 @@ function toSearchPost(item: AdCreativePostItem): SearchPost {
     isSaved: item.isSaved,
     savedNote: item.savedNote ?? null,
     savedAt: item.savedAt ?? null,
+    deletedAt: item.deletedAt ?? null,
+    deletedAfterHours: item.deletedAfterHours ?? null,
+    retentionFormat: item.retentionFormat,
+    lastCapturedViews: item.lastCapturedViews ?? null,
     channel: {
       id: item.channel.id,
       title: item.channel.title,
@@ -296,14 +302,20 @@ export default function PostsPage() {
                     <Link href={`/channel/${post.channel.id}`} className="text-sm font-semibold text-white hover:text-accent">
                       {post.channel.title}
                     </Link>
-                    {post.isAd && <span className="shrink-0 rounded bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold text-orange-300">Реклама</span>}
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+                      {post.isAd && <span className="rounded bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold text-orange-300">Реклама</span>}
+                      <AdRetentionBadge format={post.retentionFormat} deletedAt={post.deletedAt} variant="compact" />
+                    </div>
                   </div>
                   <ViralBadge result={post} />
                   <p className="text-xs text-slate-500">{post.channel.niche} · {new Date(post.publishedAt).toLocaleString('ru-RU')}</p>
                   <p className="line-clamp-4 whitespace-pre-wrap text-sm text-slate-300 flex-1">{post.text || 'Текст публикации недоступен'}</p>
                   {post.mentions.length > 0 && <p className="text-xs text-slate-400 break-words">Упомянуты: {post.mentions.map(value => `@${value}`).join(', ')}</p>}
                   <div className="grid grid-cols-3 gap-2 text-xs text-slate-400">
-                    <span>Просмотры: {post.views === null ? 'н/д' : formatNumber(post.views)}</span>
+                    <span>
+                      {Boolean(post.deletedAt) || isDeletedRetentionFormat(post.retentionFormat) ? 'Сохран. охват' : 'Просмотры'}:{' '}
+                      {(post.lastCapturedViews ?? post.views) === null ? 'н/д' : formatNumber((post.lastCapturedViews ?? post.views)!)}
+                    </span>
                     <span>ER: {formatPercent(post.er)}</span><span>ERR: {formatPercent(post.err)}</span>
                     <ReactionBreakdownInline total={post.reactions} breakdown={post.reactionBreakdown} /><span>Комментарии: {post.comments ?? 'н/д'}</span>
                     <span>Пересылки: {post.forwards ?? 'н/д'}</span>

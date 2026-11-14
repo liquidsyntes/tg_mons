@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { getAdReachCurve } from './metrics/queries';
+import { summarizeChannelAdRetention, type AdRetentionPostInput } from './adReach';
 import type { AdPriceResult, AdPriceSource } from './types';
 
 const CPM_BENCHMARKS: Record<string, number> = {
@@ -74,23 +75,38 @@ export async function estimateAdPrice(channelId: number, userId: number | null =
     where: { channelId, isAd: true },
     orderBy: { publishedAt: 'desc' },
     take: 30,
-    select: { id: true, views: true }
+    select: { id: true, views: true, publishedAt: true, deletedAt: true, deletedAfterHours: true }
   });
 
   const confidence = adPosts.length >= 3 ? 'high' : 'low';
 
   if (adPosts.length === 0) {
-    return { estimatedPricePerPost: fixedPrice,
-      cpm, confidence, averageAdReach: null, averageReachCurve: [], ...settings };
+    return {
+      estimatedPricePerPost: fixedPrice,
+      cpm,
+      confidence,
+      averageAdReach: null,
+      averageReachCurve: [],
+      retentionSummary: summarizeChannelAdRetention([]),
+      ...settings,
+    };
   }
 
   let totalReach = 0;
   let validPostsCount = 0;
   const allCurves: { hoursAfterPost: number; views: number }[][] = [];
+  const retentionInputs: AdRetentionPostInput[] = [];
 
   for (const post of adPosts) {
     const curve = await getAdReachCurve(post.id);
-    
+    retentionInputs.push({
+      publishedAt: post.publishedAt,
+      deletedAt: post.deletedAt,
+      deletedAfterHours: post.deletedAfterHours,
+      views: post.views,
+      viewSnapshots: curve,
+    });
+
     if (curve.length === 0) {
       if (post.views) {
         totalReach += post.views;
@@ -101,8 +117,8 @@ export async function estimateAdPrice(channelId: number, userId: number | null =
 
     allCurves.push(curve);
 
-    const pt48 = curve.find((c: any) => c.hoursAfterPost === 48);
-    const pt24 = curve.find((c: any) => c.hoursAfterPost === 24);
+    const pt48 = curve.find((c) => c.hoursAfterPost === 48);
+    const pt24 = curve.find((c) => c.hoursAfterPost === 24);
     const ptMax = curve[curve.length - 1];
 
     const views = pt48 ? pt48.views : (pt24 ? pt24.views : ptMax.views);
@@ -110,9 +126,18 @@ export async function estimateAdPrice(channelId: number, userId: number | null =
     validPostsCount++;
   }
 
+  const retentionSummary = summarizeChannelAdRetention(retentionInputs);
+
   if (validPostsCount === 0) {
-    return { estimatedPricePerPost: fixedPrice,
-      cpm, confidence, averageAdReach: null, averageReachCurve: [], ...settings };
+    return {
+      estimatedPricePerPost: fixedPrice,
+      cpm,
+      confidence,
+      averageAdReach: null,
+      averageReachCurve: [],
+      retentionSummary,
+      ...settings,
+    };
   }
 
   const averageCurveMap = new Map<number, { sum: number; count: number }>();
@@ -148,6 +173,7 @@ export async function estimateAdPrice(channelId: number, userId: number | null =
     confidence,
     averageAdReach: Math.round(averageAdReach),
     averageReachCurve,
+    retentionSummary,
     ...settings,
   };
 }

@@ -39,6 +39,10 @@ describe('AdAttributionWidget', () => {
           estimatedCpf: 40,
           conversionPercent: null,
           overlappingCampaigns: false,
+          deletedAt: '2026-11-10T22:00:00.000Z',
+          deletedAfterHours: 12,
+          retentionFormat: 'early_delete',
+          lastCapturedViews: 2950,
           deal: {
             id: 10,
             targetChannelId: 2,
@@ -123,6 +127,8 @@ describe('AdAttributionWidget', () => {
     expect(screen.getByText(/2\s?300 ₴/)).toBeDefined();
     expect(screen.getByText(/CPM 600 ₴/)).toBeDefined();
     expect(screen.getByText(/CPF 50 ₴/)).toBeDefined();
+    expect(screen.getByText('Внимание: удалён раньше 24ч')).toBeDefined();
+    expect(screen.getByText(/Сохранённый охват:\s*2\s?950/)).toBeDefined();
     expect(screen.getByText('Отличная отдача по инвайту')).toBeDefined();
     expect(screen.getByText(/Запланированные и ручные закупки \(1\)/)).toBeDefined();
     expect(screen.getByText('Бронь на пятницу')).toBeDefined();

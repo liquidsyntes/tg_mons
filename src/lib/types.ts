@@ -191,6 +191,10 @@ export interface SearchPost extends ViralClassification {
   isSaved?: boolean;
   savedNote?: string | null;
   savedAt?: string | null;
+  deletedAt?: string | null;
+  deletedAfterHours?: number | null;
+  retentionFormat?: AdRetentionFormat;
+  lastCapturedViews?: number | null;
   channel: { id: number; title: string; username: string | null; niche: string };
 }
 
@@ -223,6 +227,10 @@ export interface AdCreativePostItem {
   isSaved?: boolean;
   savedNote?: string | null;
   savedAt?: string | null;
+  deletedAt?: string | null;
+  deletedAfterHours?: number | null;
+  retentionFormat?: AdRetentionFormat;
+  lastCapturedViews?: number | null;
   mentions: string[];
 }
 
@@ -282,6 +290,31 @@ export interface TopAdvertisersResponse {
 
 export type AdPriceSource = 'custom_price' | 'custom_cpm' | 'niche_estimate';
 
+export type AdRetentionFormat = 'early_delete' | '24h' | '48h' | 'retained' | 'active';
+
+export interface AdRetentionBucketStat {
+  format: AdRetentionFormat;
+  label: string;
+  count: number;
+  sharePercent: number;
+}
+
+export interface AdRetentionSummary {
+  totalAds: number;
+  evaluatedAds: number;
+  activeAds: number;
+  earlyDeleteCount: number;
+  format24hCount: number;
+  format48hCount: number;
+  retainedCount: number;
+  earlyDeletePercent: number;
+  format24hPercent: number;
+  format48hPercent: number;
+  retainedPercent: number;
+  hasEarlyDeletions: boolean;
+  buckets: AdRetentionBucketStat[];
+}
+
 export interface AdPriceResult {
   estimatedPricePerPost: number | null;
   cpm: number;
@@ -291,6 +324,7 @@ export interface AdPriceResult {
   priceSource: AdPriceSource;
   customAdPriceUah: number | null;
   customCpmUah: number | null;
+  retentionSummary?: AdRetentionSummary;
 }
 
 export type AdPlacementFormat = '1/24' | '2/48' | '3/72' | 'native' | 'eternal';
@@ -352,6 +386,10 @@ export interface AdAttributionPlacement {
   conversionPercent: number | null;
   overlappingCampaigns: boolean;
   deal?: AdPlacementDeal | null;
+  deletedAt?: string | null;
+  deletedAfterHours?: number | null;
+  retentionFormat?: AdRetentionFormat;
+  lastCapturedViews?: number | null;
 }
 
 export interface ChannelAdAttribution {
@@ -577,9 +615,14 @@ export interface ChannelDetailStats {
     comments: number | null;
     forwards: number | null;
     text: string | null;
+    isAd?: boolean;
     isSaved?: boolean;
     savedNote?: string | null;
     savedAt?: string | null;
+    deletedAt?: string | null;
+    deletedAfterHours?: number | null;
+    retentionFormat?: AdRetentionFormat;
+    lastCapturedViews?: number | null;
   } & ViralClassification>;
   popularReactions?: ChannelReactionSummary;
   contentTypePerformance?: ContentTypePerformanceItem[];

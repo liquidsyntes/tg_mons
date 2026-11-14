@@ -313,6 +313,9 @@ erDiagram
 | `isAd` | `Boolean` | `is_ad` | Нет | `false` | Флаг рекламной публикации (помечается эвристиками) |
 | `contentType` | `String` | `content_type` | Нет | `'text'` | Тип контента публикации (`text`, `photo`, `video`, `poll`, `link`) |
 | `eventsScannedAt` | `DateTime` | `events_scanned_at` | Да | нет | Время успешной проверки поста сканером событий |
+| `deletedAt` | `DateTime` | `deleted_at` | Да | нет | Время фиксации удаления поста из канала (если Telegram API не возвращает сообщение) |
+| `deletedAfterHours` | `Int` | `deleted_after_hours` | Да | нет | Контрольная точка (`1`, `12`, `24`, `48`) или число часов от публикации до обнаружения удаления |
+| `lastCheckedAt` | `DateTime` | `last_checked_at` | Да | нет | Время последней проверки существования рекламного поста воркером |
 
 - **Индексы и ограничения:**
   - `@@unique([channelId, messageId])`

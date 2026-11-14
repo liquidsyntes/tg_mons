@@ -187,6 +187,9 @@ model Post {
   isAd                 Boolean            @default(false) @map("is_ad")
   contentType          String             @default("text") @map("content_type")
   eventsScannedAt      DateTime?          @map("events_scanned_at")
+  deletedAt            DateTime?          @map("deleted_at")
+  deletedAfterHours    Int?               @map("deleted_after_hours")
+  lastCheckedAt        DateTime?          @map("last_checked_at")
   channel              Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
   mentions             Mention[]
   snapshots            PostSnapshot[]

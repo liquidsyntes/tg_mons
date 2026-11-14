@@ -1,6 +1,7 @@
 import type { Channel, Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { calculatePlacementPrice, estimateAdPrice } from './pricing';
+import { classifyAdRetentionFormat, resolveLastCapturedViews } from './adReach';
 import type {
   AdAttributionPlacement,
   AdCampaignSummary,
@@ -39,7 +40,16 @@ interface MentionRecord {
   sourceChannelId: number;
   targetUsername: string | null;
   targetTgId: bigint | null;
-  sourcePost: { id: number; messageId: bigint; publishedAt: Date; views: number | null; isAd: boolean };
+  sourcePost: {
+    id: number;
+    messageId: bigint;
+    publishedAt: Date;
+    views: number | null;
+    isAd: boolean;
+    deletedAt?: Date | null;
+    deletedAfterHours?: number | null;
+    viewSnapshots?: Array<{ hoursAfterPost: number; viewsCount: number }>;
+  };
   sourceChannel: { id: number; title: string; username: string | null };
 }
 
@@ -98,7 +108,21 @@ const mentionSelect = {
   sourceChannelId: true,
   targetUsername: true,
   targetTgId: true,
-  sourcePost: { select: { id: true, messageId: true, publishedAt: true, views: true, isAd: true } },
+  sourcePost: {
+    select: {
+      id: true,
+      messageId: true,
+      publishedAt: true,
+      views: true,
+      isAd: true,
+      deletedAt: true,
+      deletedAfterHours: true,
+      viewSnapshots: {
+        select: { hoursAfterPost: true, viewsCount: true },
+        orderBy: { hoursAfterPost: 'asc' },
+      },
+    },
+  },
   sourceChannel: { select: { id: true, title: true, username: true } },
 } satisfies Prisma.MentionSelect;
 
@@ -464,7 +488,11 @@ export async function getChannelAdAttribution(
     const channelSnapshots = snapshotsByChannel.get(target.id) ?? [];
     const deltaSubscribers24h = subscriberDeltaAt(channelSnapshots, publishedAt, 24, now);
     const deltaSubscribers48h = subscriberDeltaAt(channelSnapshots, publishedAt, 48, now);
-    const views = mention.sourcePost.views;
+    const lastCapturedViews = resolveLastCapturedViews(mention.sourcePost);
+    const views = lastCapturedViews ?? mention.sourcePost.views;
+    const retentionFormat = mention.sourcePost.isAd
+      ? classifyAdRetentionFormat(mention.sourcePost, now)
+      : undefined;
     const priceData = mention.sourcePost.isAd ? prices.get(mention.sourceChannelId) ?? null : null;
     const resolvedPrice = priceData ? calculatePlacementPrice(views, priceData.cpm, priceData,
       priceData.priceSource === 'niche_estimate' ? priceData.estimatedPricePerPost : undefined) : null;
@@ -521,6 +549,10 @@ export async function getChannelAdAttribution(
         mention.sourcePostId, publishedAt, campaignsByTarget.get(target.id) ?? [],
       ),
       deal,
+      deletedAt: mention.sourcePost.deletedAt ? mention.sourcePost.deletedAt.toISOString() : null,
+      deletedAfterHours: mention.sourcePost.deletedAfterHours ?? null,
+      retentionFormat,
+      lastCapturedViews,
     };
   };
 
