@@ -1,43 +1,42 @@
 # Текущее состояние проекта
 
 Дата среза: `2026-11-14`
-Ветка: `main`, базовая ревизия до коммита Issue #77: `3150394`
+Ветка: `main`, базовая ревизия до коммита Issue #78: `e7f8843`
 
-## Реализовано в рамках текущей итерации (Issue #77)
+## Реализовано в рамках текущей итерации (Issue #78)
 
-Реализован детектор удаления рекламных постов (форматы `1/24`, `2/48` и раннее удаление), сохранение последнего зафиксированного охвата и отображение форматов удержания в аналитике и UI:
+Реализован контент-план (доска идей) на базе персональных закладок `UserSavedPost` с рекомендациями лучших слотов публикации и оптимального формата для «Моего канала»:
 
-1. **База данных и миграция**:
-   - В `prisma/schema.prisma` (`model Post`) добавлены nullable-поля `deletedAt` (`deleted_at`), `deletedAfterHours` (`deleted_after_hours`) и `lastCheckedAt` (`last_checked_at`).
-   - Добавлена и применена миграция `prisma/migrations/20261114042500_add_post_deletion_tracking/migration.sql`.
-2. **Доменная логика и типы (`src/lib/adReach.ts`, `src/lib/types.ts`)**:
-   - Добавлены типы `AdRetentionFormat`, `AdRetentionBucketStat`, `AdRetentionSummary` и поля удержания/удаления в `AdPriceResult`, `AdAttributionPlacement`, `SearchPost`, `AdCreativePostItem` и `ChannelDetailStats['recentPosts']`.
-   - Реализованы функции `classifyAdRetentionFormat`, `resolveLastCapturedViews`, `summarizeChannelAdRetention` и `isDeletedRetentionFormat`.
-3. **Воркер сбора (`src/worker/ad-reach.ts`, `src/worker/collector.ts`)**:
-   - Цикл `runAdReachCycle` опрашивает активные рекламные посты (`deletedAt: null`) возрастом до 56 часов на чекпоинтах `1`, `12`, `24`, `48` ч и обновляет `lastCheckedAt`.
-   - При отсутствии поста в живом ответе канала на `getMessages` или возврате `Api.MessageEmpty` пост идемпотентно помечается `deletedAt` и `deletedAfterHours` без падения цикла; сетевые ошибки, `TelegramTimeoutError` и `FLOOD_WAIT` изолируются и не приводят к ложному срабатыванию.
-   - В `src/worker/collector.ts` добавлены реэкспорты `runAdReachCycle`, `isDeletedTelegramMessage`, `AD_REACH_CHECKPOINTS`.
-4. **Интеграция в аналитику и API (`src/lib/pricing.ts`, `src/lib/adAttribution.ts`, `src/lib/metrics/queries.ts`, `src/lib/posts-search.ts`)**:
-   - В `estimateAdPrice` (`GET /api/channels/:id/ad-price`) рассчитывается и возвращается `retentionSummary`.
-   - В `getChannelAdAttribution` (`GET /api/channels/:id/ad-attribution`), `getChannelDetailStats` и `searchPosts` (`GET /api/posts/search`) добавлены `retentionFormat`, `deletedAt`, `deletedAfterHours` и сохранённый охват `lastCapturedViews`.
-5. **Интерфейс (`src/components/`)**:
-   - Создан `AdRetentionBadge.tsx`; обновлены `AdReachChart.tsx`, `ChannelAdReachWidget.tsx`, `AdAttributionWidget.tsx`, `RecentPostCard.tsx` и `src/app/posts/page.tsx` для отображения распределения форматов удержания, предупреждения о раннем удалении до 24ч и подписи «Сохранённый охват» для удалённых публикаций.
-6. **Документация**:
-   - Обновлены `docs/analytics-formulas.md`, `docs/database.md`, `docs/api-reference.md`, `docs/architecture.md`, `docs/project-map.md` и текущий документ.
+1. **База данных и миграция (`prisma/schema.prisma`)**:
+   - В `model UserSavedPost` добавлены поля `status` (`@default("idea")`), `plannedFor` (`planned_for`), `draftText` (`draft_text`), `updatedAt` (`updated_at`) и индекс `@@index([userId, status])`.
+   - Создана и применена миграция `prisma/migrations/20261114063600_add_content_plan_to_saved_posts/migration.sql`.
+2. **Доменная логика и типы (`src/lib/metrics/content-plan.ts`, `src/lib/types.ts`)**:
+   - Добавлены типы `ContentPlanStatus`, `SuggestedPublishSlot`, `ContentPlanFormatGuidance`, `ContentPlanRecommendations`, `SavedPostItem`, а также поля `savedStatus`, `savedPlannedFor`, `savedDraftText` в `SearchPost` и `AdCreativePostItem`.
+   - Реализованы функции `suggestNextPublishSlots` (подбор ближайших свободных окон публикации на 7 дней вперёд по тепловой карте `best-time.ts` с исключением занятых слотов), `buildContentPlanFormatGuidance` (на базе `post-length.ts`: рекомендуемый диапазон длины, медиа/ссылки, структурные приёмы и 2 лучших окна), `isValidContentPlanStatus`, `groupSavedPostsByStatus` и `formatPlannedSlotDateTime`.
+3. **API и поиск (`src/app/api/posts/saved/route.ts`, `src/lib/posts-search.ts`)**:
+   - В `POST` и `PATCH /api/posts/saved` поддержаны частичное обновление и валидация `status` (`idea | in_progress | ready | published`), `plannedFor` (ISO-дата или `null`), `draftText` (до 4000 символов) и `note` (до 500 символов) при сохранении обратной совместимости одноразового добавления в закладки.
+   - `GET /api/posts/saved` возвращает расширенные `savedPosts` и блок `recommendations` (`slots`, `formatGuidance`) для «Моего канала» пользователя.
+   - В `src/lib/posts-search.ts` поля `savedStatus`, `savedPlannedFor`, `savedDraftText` прокинуты в выдачу поиска и Ad Spy.
+4. **Интерфейс (`src/components/posts/ContentPlanBoard.tsx`, `src/app/posts/page.tsx`)**:
+   - Создана 4-колоночная Канбан-доска `ContentPlanBoard` (`Идеи`, `В работе`, `Готово к публикации`, `Опубликовано`) с верхней плашкой-ориентиром для «Моего канала», редактором черновика `draftText`, сменой статуса, сбросом/быстрым назначением ближайшего лучшего слота и удалением из закладок.
+   - На `/posts` добавлен переключатель **«Список закладок»** / **«Контент-план (Доска)»** при активном фильтре «В закладках» (включая инициализацию через `?saved=1` и `?view=board`).
+5. **Документация**:
+   - Обновлены `docs/api-reference.md`, `docs/database.md`, `docs/project-map.md` и текущий документ.
 
 ## Фактически выполненные проверки
 
-- `npx prisma migrate deploy && npx prisma generate` - успешно, миграция `20261114042500_add_post_deletion_tracking` применена, Prisma Client v6.19.3 сгенерирован.
+- `npx prisma migrate deploy && npx prisma generate` - успешно, миграция `20261114063600_add_content_plan_to_saved_posts` применена к PostgreSQL, Prisma Client v6.19.3 сгенерирован.
+- Профильные тесты (`content-plan.test.ts`, `ContentPlanBoard.test.ts`, `api/posts/saved/__tests__/route.test.ts`, `app/posts/__tests__/page.test.ts`, `api/posts/search/__tests__/route.test.ts`) - 5 файлов, 40 тестов пройдены.
 - `npx tsc --noEmit && npx eslint src` - успешно, код возврата `0`.
-- `npm test` - успешно: `146` тестовых файлов, `950` тестов пройдены (включая новые `src/lib/__tests__/adReach.test.ts`, `src/worker/__tests__/collector-deletion.test.ts`, `src/components/__tests__/AdReachChart.test.ts` и обновлённые тесты `AdAttributionWidget.test.ts`, `article-collection.test.ts`).
-- `npm run build` - успешно (`prisma generate && next build`, статические и динамические маршруты собраны).
-- `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --renew-anon-volumes web worker` - контейнеры `tgmon-web` и `tgmon-worker` пересобраны и запущены; `GET http://localhost:4000/api/health` вернул `status: "ok"`, `lastSyncStatus: "COMPLETED"`, `channelsSucceeded: 26`, `channelsFailed: 0`; журнал `tgmon-worker` подтвердил планировщик `Ad Reach cron scheduled (hourly at minute 15)`.
+- `npm test` - пройдены все `148` тестовых файлов (`959` тестов).
+- `npm run build` - успешно (`prisma generate && next build`, 18/18 статических страниц).
+- `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --renew-anon-volumes web worker` - контейнеры пересобраны и запущены; `GET http://localhost:4000/api/health` вернул `status: "ok"`, `lastSyncStatus: "COMPLETED"`, `channelsSucceeded: 26`, `channelsFailed: 0`.
 
 ## Незавершённое и известные ограничения
 
-- Фактическая разметка удалений (`deletedAt`, `deletedAfterHours`) в боевой локальной БД будет накапливаться по мере работы почасового cron-задания `15 * * * *` на рекламных постах младше 56 часов.
-- Специальный документ `docs/worker-telegram.md`, упомянутый в описании задачи, в репозитории отсутствует; документация воркера поддерживается в `docs/architecture.md` и `docs/project-map.md`.
+- При режиме «Контент-план (Доска)» выборка карточек на `/posts` следует активным фильтрам поиска (период `days`, канал/ниша и т.д.), а рекомендации `formatGuidance` формируются персонально только после отметки одного из каналов как «Мой канал».
+- Существующая генерация адаптированного черновика ориентирована на ручное редактирование `draftText`; отдельная AI-кнопка генерации черновика по желанию может быть добавлена позднее поверх существующего поля `draftText`.
 
 ## Следующий шаг
 
-Перейти к **Issue #78** (`feat(posts): добавь контент-план и доску идей на базе закладок UserSavedPost`; далее в очереди `#79`–`#82`).
+Перейти к **Issue #79** (`feat(compare): добавь мульти-сравнение каналов и сравнение с папкой или нишей`; далее в очереди `#80`–`#82`).

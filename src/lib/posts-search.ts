@@ -4,6 +4,7 @@ import { detectAd } from '@/lib/adDetector';
 import { classifyAdRetentionFormat, resolveLastCapturedViews } from '@/lib/adReach';
 import { clusterAdCreatives } from '@/lib/metrics/ad-creatives';
 import { calculatePostER, calculatePostERR } from '@/lib/metrics/engagement';
+import { normalizeContentPlanStatus } from '@/lib/metrics/content-plan';
 import { calculateViralBaseline, classifyViralPost, type ViralBaseline } from '@/lib/metrics/viral';
 import { parseReactionBreakdown } from '@/lib/metrics/reactions';
 import type { AdCreativeCluster, AdCreativePostItem, AdCreativeSortBy } from '@/lib/types';
@@ -295,7 +296,10 @@ function postSearchInclude(userId: number | null) {
       userChannels: { where: { userId: userId ?? -1 }, select: { niche: true } } } },
     image: { select: { postId: true } },
     mentions: { where: { type: 'mention', targetUsername: { not: null } }, select: { targetUsername: true } },
-    savedByUsers: { where: { userId: userId ?? -1 }, select: { note: true, createdAt: true } },
+    savedByUsers: {
+      where: { userId: userId ?? -1 },
+      select: { note: true, status: true, plannedFor: true, draftText: true, createdAt: true },
+    },
     viewSnapshots: { select: { hoursAfterPost: true, viewsCount: true }, orderBy: { hoursAfterPost: 'asc' } },
   } satisfies Prisma.PostInclude;
 }
@@ -328,6 +332,9 @@ function enrichSearchedPost(
     isSaved: Boolean(savedEntry),
     savedNote: savedEntry?.note ?? null,
     savedAt: savedEntry?.createdAt ? new Date(savedEntry.createdAt).toISOString() : null,
+    savedStatus: savedEntry ? normalizeContentPlanStatus(savedEntry.status) : undefined,
+    savedPlannedFor: savedEntry?.plannedFor ? new Date(savedEntry.plannedFor).toISOString() : null,
+    savedDraftText: savedEntry?.draftText ?? null,
     deletedAt: post.deletedAt ? new Date(post.deletedAt).toISOString() : null,
     deletedAfterHours: post.deletedAfterHours ?? null,
     retentionFormat: post.isAd ? classifyAdRetentionFormat(post, now) : undefined,
@@ -366,6 +373,9 @@ function toCreativePostItem(post: EnrichedPost): AdCreativePostItem {
     isSaved: post.isSaved,
     savedNote: post.savedNote,
     savedAt: post.savedAt,
+    savedStatus: post.savedStatus,
+    savedPlannedFor: post.savedPlannedFor,
+    savedDraftText: post.savedDraftText,
     deletedAt: post.deletedAt,
     deletedAfterHours: post.deletedAfterHours,
     retentionFormat: post.retentionFormat,

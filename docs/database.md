@@ -146,7 +146,7 @@ erDiagram
 | `InviteCode` | `invite_codes` | `id` (Int, autoincrement) | `@unique code`<br>`@unique usedById`<br>`@@index([createdById])` | `createdBy` -> `User` (`Cascade`)<br>`usedBy` -> `User?` (`SetNull`) | Исторические инвайты сохранены; новая регистрация их не использует |
 | `UserChannel` | `user_channels` | `id` (Int, autoincrement) | `@@unique([userId, channelId])`<br>`@@index([userId])`<br>`@@index([channelId])` | `user` -> `User` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Персональная подписка пользователя на канал из общего пула (`isMine`, `isFavorite`, `niche`, `isActive`), необязательные `customAdPriceUah` и `customCpmUah` в гривнах |
 | `UserDismissedEvent` | `user_dismissed_events` | `id` (Int, autoincrement) | `@@unique([userId, eventId])`<br>`@@index([userId])`<br>`@@index([eventId])` | `user` -> `User` (`Cascade`)<br>`event` -> `Event` (`Cascade`) | Индивидуальное скрытие мероприятий из «Афиши» для конкретного пользователя |
-| `UserSavedPost` | `user_saved_posts` | `id` (Int, autoincrement) | `@@unique([userId, postId])`<br>`@@index([userId, createdAt])` | `user` -> `User` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Личные закладки публикаций и заметки пользователя |
+| `UserSavedPost` | `user_saved_posts` | `id` (Int, autoincrement) | `@@unique([userId, postId])`<br>`@@index([userId, createdAt])`<br>`@@index([userId, status])` | `user` -> `User` (`Cascade`)<br>`post` -> `Post` (`Cascade`) | Личные закладки, заметки и карточки контент-плана пользователя |
 | `Channel` | `channels` | `id` (Int, autoincrement) | `@unique username`<br>`@unique tgId` | Связи 1:N со всеми дочерними сущностями (`onDelete: Cascade`) | Telegram-каналы и группы, отслеживаемые системой, флаги и метаданные |
 | `Snapshot` | `snapshots` | `id` (Int, autoincrement) | `@@index([channelId, collectedAt])` | `channel` -> `Channel` (`Cascade`) | Временные снимки численности аудитории (подписчиков) канала |
 | `Post` | `posts` | `id` (Int, autoincrement) | `@@unique([channelId, messageId])`<br>`@@index([channelId, groupedId])`<br>`@@index([channelId, publishedAt])`<br>`@@index([text], type: Gin)` | `channel` -> `Channel` (`Cascade`)<br>Дочерние: `mentions`, `snapshots`, `viewSnapshots`, `eventMentions`, `image`, `alertRulePostFires` (`Cascade`) | Собранные публикации Telegram: просмотры, реакции, репосты, текст |
@@ -228,15 +228,19 @@ erDiagram
 Персональное скрытие карточек мероприятий на странице `/events` (`@@unique([userId, eventId])`). При удалении `User` или `Event` записи удаляются каскадно.
 
 #### `UserSavedPost` (`user_saved_posts`)
-Персональные закладки и рабочие заметки к публикациям (`@@unique([userId, postId])`, `@@index([userId, createdAt])`).
+Персональные закладки, рабочие заметки и карточки контент-плана к публикациям (`@@unique([userId, postId])`, `@@index([userId, createdAt])`, `@@index([userId, status])`).
 
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `userId` | `Int` | `user_id` | Нет | — | Внешний ключ на `User.id` (`onDelete: Cascade`) |
-| `postId` | `Int` | `post_id` | Нет | — | Внешний ключ на `Post.id` (`onDelete: Cascade`) |
-| `note` | `String` | `note` | Да | — | Персональная заметка пользователя к посту (до 500 символов) |
+| `userId` | `Int` | `user_id` | Нет | - | Внешний ключ на `User.id` (`onDelete: Cascade`) |
+| `postId` | `Int` | `post_id` | Нет | - | Внешний ключ на `Post.id` (`onDelete: Cascade`) |
+| `note` | `String` | `note` | Да | - | Персональная заметка пользователя к посту (до 500 символов) |
+| `status` | `String` | `status` | Нет | `"idea"` | Статус в контент-плане: `idea`, `in_progress`, `ready`, `published` |
+| `plannedFor` | `DateTime` | `planned_for` | Да | - | Плановая дата и время публикации в «Моём канале» |
+| `draftText` | `String` | `draft_text` | Да | - | Черновик адаптированного поста или тезисы |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время сохранения поста в закладки |
+| `updatedAt` | `DateTime` | `updated_at` | Нет | `now()` / `@updatedAt` | Время последнего обновления карточки контент-плана |
 
 ---
 

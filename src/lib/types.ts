@@ -191,6 +191,9 @@ export interface SearchPost extends ViralClassification {
   isSaved?: boolean;
   savedNote?: string | null;
   savedAt?: string | null;
+  savedStatus?: ContentPlanStatus;
+  savedPlannedFor?: string | null;
+  savedDraftText?: string | null;
   deletedAt?: string | null;
   deletedAfterHours?: number | null;
   retentionFormat?: AdRetentionFormat;
@@ -227,6 +230,9 @@ export interface AdCreativePostItem {
   isSaved?: boolean;
   savedNote?: string | null;
   savedAt?: string | null;
+  savedStatus?: ContentPlanStatus;
+  savedPlannedFor?: string | null;
+  savedDraftText?: string | null;
   deletedAt?: string | null;
   deletedAfterHours?: number | null;
   retentionFormat?: AdRetentionFormat;
@@ -666,4 +672,45 @@ export interface LanguageBreakdownItem {
   code: string;   // "ru", "en", "de"
   name: string;   // "Russian", "English", "German"
   percent: number; // 45.2
+}
+
+export type ContentPlanStatus = 'idea' | 'in_progress' | 'ready' | 'published';
+
+export interface SuggestedPublishSlot {
+  dateTime: string;
+  dateKey: string;
+  dayOfWeek: number;
+  hour: number;
+  label: string;
+  score: number;
+  avgViews: number;
+}
+
+export interface ContentPlanFormatGuidance {
+  channelId: number;
+  channelTitle: string;
+  bestLengthBucket: PostLengthBucket | null;
+  bestLengthLabel: string | null;
+  recommendedRangeLabel: string;
+  bestStructureSignal: PostStructureSignal | null;
+  bestStructureLabel: string | null;
+  withMediaRecommended: boolean;
+  withLinksRecommended?: boolean;
+  summaryText: string;
+}
+
+export interface ContentPlanRecommendations {
+  slots: SuggestedPublishSlot[];
+  formatGuidance: ContentPlanFormatGuidance | null;
+}
+
+export interface SavedPostItem {
+  id: number;
+  postId: number;
+  note: string | null;
+  status: ContentPlanStatus;
+  plannedFor: string | null;
+  draftText: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

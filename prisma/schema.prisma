@@ -130,17 +130,22 @@ model UserDismissedEvent {
 }
 
 model UserSavedPost {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  postId    Int      @map("post_id")
-  note      String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  postId     Int       @map("post_id")
+  note       String?
+  status     String    @default("idea")
+  plannedFor DateTime? @map("planned_for")
+  draftText  String?   @map("draft_text")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@index([userId, createdAt])
+  @@index([userId, status])
   @@map("user_saved_posts")
 }
 

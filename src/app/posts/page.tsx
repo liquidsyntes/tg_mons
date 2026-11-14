@@ -6,13 +6,21 @@ import Link from 'next/link';
 import { FileSearch } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { formatNumber } from '@/lib/utils';
-import type { AdCreativeCluster, AdCreativePostItem, GlobalPostSearchResponse, SearchPost } from '@/lib/types';
+import type {
+  AdCreativeCluster,
+  AdCreativePostItem,
+  ContentPlanRecommendations,
+  GlobalPostSearchResponse,
+  SavedPostItem,
+  SearchPost,
+} from '@/lib/types';
 import { ViralBadge } from '@/components/channel/ViralBadge';
 import { ReactionBreakdownInline } from '@/components/channel/ReactionBreakdownInline';
 import { PostBookmarkButton } from '@/components/channel/PostBookmarkButton';
 import { PostReaderModal, buildTelegramPostUrl } from '@/components/channel/PostReaderModal';
 import { TopAdvertisersPanel } from '@/components/posts/TopAdvertisersPanel';
 import { AdCreativesPanel } from '@/components/posts/AdCreativesPanel';
+import { ContentPlanBoard, type ContentPlanPatchPayload } from '@/components/posts/ContentPlanBoard';
 import { AdRetentionBadge } from '@/components/AdRetentionBadge';
 import { isDeletedRetentionFormat } from '@/lib/adReach';
 
@@ -45,6 +53,9 @@ function toSearchPost(item: AdCreativePostItem): SearchPost {
     isSaved: item.isSaved,
     savedNote: item.savedNote ?? null,
     savedAt: item.savedAt ?? null,
+    savedStatus: item.savedStatus,
+    savedPlannedFor: item.savedPlannedFor ?? null,
+    savedDraftText: item.savedDraftText ?? null,
     deletedAt: item.deletedAt ?? null,
     deletedAfterHours: item.deletedAfterHours ?? null,
     retentionFormat: item.retentionFormat,
@@ -66,6 +77,9 @@ export default function PostsPage() {
   const [advertiserDays, setAdvertiserDays] = useState<7 | 30>(30);
   const [onlyViral, setOnlyViral] = useState(false);
   const [onlySaved, setOnlySaved] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
+  const [recommendations, setRecommendations] = useState<ContentPlanRecommendations | null>(null);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [niche, setNiche] = useState('');
   const [tag, setTag] = useState('');
   const [channelId, setChannelId] = useState('');
@@ -88,6 +102,17 @@ export default function PostsPage() {
     const timer = setTimeout(() => setSearch(q.trim()), 300);
     return () => clearTimeout(timer);
   }, [q]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('saved') === '1' || params.get('onlySaved') === 'true') {
+      setOnlySaved(true);
+    }
+    if (params.get('view') === 'board') {
+      setViewMode('board');
+    }
+  }, []);
 
   const searchUrl = useCallback((offset: number): string => {
     const params = new URLSearchParams({
@@ -149,6 +174,98 @@ export default function PostsPage() {
 
   const displayedTotal = activeCluster ? displayedPosts.length : total;
 
+  const loadPlanData = useCallback(async () => {
+    setRecommendationsLoading(true);
+    try {
+      const response = await fetch('/api/posts/saved');
+      if (!response.ok) return;
+      const data = (await response.json()) as {
+        savedPosts?: SavedPostItem[];
+        recommendations?: ContentPlanRecommendations;
+      };
+      if (data.recommendations) {
+        setRecommendations(data.recommendations);
+      }
+      if (Array.isArray(data.savedPosts) && data.savedPosts.length > 0) {
+        const byPostId = new Map(data.savedPosts.map((item) => [item.postId, item]));
+        setPosts((current) =>
+          current.map((post) => {
+            const meta = byPostId.get(post.id);
+            if (!meta) return post;
+            return {
+              ...post,
+              isSaved: true,
+              savedNote: meta.note,
+              savedStatus: meta.status,
+              savedPlannedFor: meta.plannedFor,
+              savedDraftText: meta.draftText,
+            };
+          }),
+        );
+      }
+    } catch {
+      // Опциональные рекомендации не блокируют просмотр закладок
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (onlySaved && viewMode === 'board' && !loading) {
+      void loadPlanData();
+    }
+  }, [onlySaved, viewMode, loading, loadPlanData]);
+
+  const handleUpdateContentPlan = useCallback(
+    async (postId: number, patch: ContentPlanPatchPayload) => {
+      const response = await fetch('/api/posts/saved', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId, ...patch }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+        savedPost?: SavedPostItem;
+      } | null;
+      if (!response.ok || !data?.savedPost) {
+        throw new Error(data?.error || 'Не удалось обновить карточку');
+      }
+      const updated = data.savedPost;
+      setPosts((current) =>
+        current.map((item) =>
+          item.id === postId
+            ? {
+                ...item,
+                isSaved: true,
+                savedNote: updated.note,
+                savedStatus: updated.status,
+                savedPlannedFor: updated.plannedFor,
+                savedDraftText: updated.draftText,
+              }
+            : item,
+        ),
+      );
+      await loadPlanData();
+    },
+    [loadPlanData],
+  );
+
+  const handleRemoveFromPlan = useCallback(
+    async (postId: number) => {
+      const response = await fetch(`/api/posts/saved?postId=${postId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error || 'Не удалось удалить пост из закладок');
+      }
+      setPosts((current) => current.filter((item) => item.id !== postId));
+      setTotal((current) => Math.max(0, current - 1));
+      await loadPlanData();
+    },
+    [loadPlanData],
+  );
+
   async function loadMore() {
     const version = requestVersion.current;
     setLoadingMore(true);
@@ -198,7 +315,13 @@ export default function PostsPage() {
               className={`rounded-xl border px-3 py-2 text-sm ${onlyViral ? 'border-rose-400 bg-rose-500/15 text-rose-300' : 'border-border text-slate-300'}`}>
               Только вирусные
             </button>
-            <button type="button" onClick={() => setOnlySaved(value => !value)} aria-pressed={onlySaved}
+            <button type="button" onClick={() => {
+              setOnlySaved(value => {
+                const next = !value;
+                if (!next) setViewMode('list');
+                return next;
+              });
+            }} aria-pressed={onlySaved}
               className={`rounded-xl border px-3 py-2 text-sm ${onlySaved ? 'border-amber-400 bg-amber-500/15 text-amber-300' : 'border-border text-slate-300'}`}>
               В закладках
             </button>
@@ -287,11 +410,42 @@ export default function PostsPage() {
         )}
 
         <section aria-label="Результаты поиска" className="space-y-4">
-          <p className="text-sm text-slate-400">Найдено публикаций: {formatNumber(displayedTotal)}</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-slate-400">Найдено публикаций: {formatNumber(displayedTotal)}</p>
+            {onlySaved && (
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Режим отображения закладок">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  aria-pressed={viewMode === 'list'}
+                  className={`rounded-xl border px-3 py-1.5 text-xs font-medium ${viewMode === 'list' ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}
+                >
+                  Список закладок
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('board')}
+                  aria-pressed={viewMode === 'board'}
+                  className={`rounded-xl border px-3 py-1.5 text-xs font-medium ${viewMode === 'board' ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}
+                >
+                  Контент-план (Доска)
+                </button>
+              </div>
+            )}
+          </div>
           {error && <p role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-400">{error}</p>}
           {loading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Загрузка публикаций">
             {[1, 2, 3].map(value => <div key={value} className="h-64 animate-pulse rounded-xl border border-border bg-surface" />)}
-          </div> : displayedPosts.length === 0 ?
+          </div> : onlySaved && viewMode === 'board' ? (
+            <ContentPlanBoard
+              posts={displayedPosts}
+              recommendations={recommendations}
+              recommendationsLoading={recommendationsLoading}
+              onUpdatePlan={handleUpdateContentPlan}
+              onRemoveSaved={handleRemoveFromPlan}
+              onOpenPost={setSelectedPost}
+            />
+          ) : displayedPosts.length === 0 ?
             <p className="rounded-xl border border-border bg-surface p-8 text-center text-sm text-slate-400">Публикации не найдены. Измените фильтры или период.</p> :
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {displayedPosts.map(post => <article key={post.id} className="overflow-hidden rounded-xl border border-border bg-surface flex flex-col">
