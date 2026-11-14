@@ -55,4 +55,72 @@ describe('global post filters', () => {
     await waitFor(() => expect(fetchMock.mock.calls.some(([url]) =>
       String(url).includes('/api/posts/search?') && String(url).includes('advertiser=brand') && String(url).includes('days=7'))).toBe(true));
   });
+
+  it('displays creative clusters in Ad Spy mode and filters feed by selected creative', async () => {
+    const postInFeed = {
+      id: 501,
+      messageId: '100',
+      publishedAt: '2026-11-10T10:00:00.000Z',
+      text: 'Скидка 40% на облачную БД для стартапов',
+      isAd: true,
+      views: 3000,
+      reactions: 40,
+      reactionBreakdown: null,
+      comments: 10,
+      forwards: 10,
+      er: 15,
+      err: 2,
+      hasImage: false,
+      mentions: ['db_cloud'],
+      isViral: false,
+      viralReasons: [],
+      viralPrimaryReason: null,
+      viralMultiplier: null,
+      channel: { id: 7, title: 'Dev Channel', username: 'devchan', niche: 'tech' },
+    };
+    const otherPostInFeed = {
+      ...postInFeed,
+      id: 502,
+      text: 'Совсем другое рекламное предложение без кластера',
+    };
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => ({
+      ok: true,
+      json: async () => url.includes('/api/posts/advertisers')
+        ? { days: 30, niche: null, advertisers: [] }
+        : {
+          posts: [postInFeed, otherPostInFeed],
+          total: 2,
+          niches: ['tech'],
+          channels: [{ id: 7, title: 'Dev Channel', username: 'devchan', niche: 'tech' }],
+          creativeClusters: [{
+            clusterId: 'cr_cloud',
+            sampleText: 'Скидка 40% на облачную БД для стартапов',
+            normalizedPreview: 'скидка 40 на облачную бд для стартапов',
+            advertisers: ['@db_cloud'],
+            placementsCount: 1,
+            uniqueChannelsCount: 1,
+            totalViews: 3000,
+            avgViews: 3000,
+            avgEr: 15,
+            avgErr: 2,
+            maxErr: 2,
+            firstSeenAt: '2026-11-10T10:00:00.000Z',
+            lastSeenAt: '2026-11-10T10:00:00.000Z',
+            bestPlacement: postInFeed,
+            posts: [postInFeed],
+          }],
+        },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(PostsPage));
+    fireEvent.click(screen.getByRole('button', { name: 'Только реклама (Ad Spy)' }));
+
+    await waitFor(() => expect(screen.getByText('Аналитика креативов (Ad Spy)')).toBeDefined());
+    expect(screen.getByText(otherPostInFeed.text)).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Показать посты креатива' }));
+    await waitFor(() => expect(screen.getByText('Показаны размещения выбранного креатива (1)')).toBeDefined());
+    expect(screen.queryByText(otherPostInFeed.text)).toBeNull();
+  });
 });

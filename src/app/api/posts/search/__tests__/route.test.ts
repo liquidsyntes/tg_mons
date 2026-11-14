@@ -71,6 +71,55 @@ describe('GET /api/posts/search', () => {
       channel: { id: 7, niche: 'tech' } });
     expect(body.niches).toEqual(['tech']);
     expect(body.channels).toHaveLength(1);
+    expect(body.creativeClusters).toHaveLength(1);
+    expect(body.creativeClusters[0]).toMatchObject({
+      placementsCount: 1,
+      uniqueChannelsCount: 1,
+      totalViews: 1000,
+      avgErr: 2,
+      maxErr: 2,
+      advertisers: ['@brand'],
+    });
+  });
+
+  it('clusters similar ad copy across channels when includeCreatives=true', async () => {
+    const ad1 = {
+      ...post,
+      id: 11,
+      channelId: 7,
+      text: 'Курс по TypeScript для backend-разработчиков. Скидка 25% https://ts.example.com?utm_source=ch1 @ts_course',
+      views: 2000,
+      reactions: 30,
+      comments: 5,
+      forwards: 15,
+    };
+    const ad2 = {
+      ...post,
+      id: 12,
+      channelId: 8,
+      channel: { id: 8, title: 'Dev Digest', username: 'devdigest', niche: 'tech', userChannels: [{ niche: 'tech' }] },
+      publishedAt: new Date('2026-10-24T12:00:00Z'),
+      text: 'Курс по TypeScript для backend-разработчиков! Скидка 25% https://ts.example.com?utm_source=ch2 @ts_course',
+      views: 4000,
+      reactions: 100,
+      comments: 20,
+      forwards: 40,
+    };
+    mocks.count.mockResolvedValue(2);
+    mocks.findMany.mockResolvedValueOnce([ad1, ad2]);
+
+    const response = await GET(request('?days=30&onlyAds=true&includeCreatives=true'));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.creativeClusters).toHaveLength(1);
+    expect(body.creativeClusters[0]).toMatchObject({
+      placementsCount: 2,
+      uniqueChannelsCount: 2,
+      totalViews: 6000,
+      avgViews: 3000,
+      avgErr: 3.25,
+      maxErr: 4,
+    });
   });
 
   it('filters global results by personal userChannel tag and returns available tags', async () => {

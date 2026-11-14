@@ -1,22 +1,55 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FileSearch } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { formatNumber } from '@/lib/utils';
-import type { GlobalPostSearchResponse, SearchPost } from '@/lib/types';
+import type { AdCreativeCluster, AdCreativePostItem, GlobalPostSearchResponse, SearchPost } from '@/lib/types';
 import { ViralBadge } from '@/components/channel/ViralBadge';
 import { ReactionBreakdownInline } from '@/components/channel/ReactionBreakdownInline';
 import { PostBookmarkButton } from '@/components/channel/PostBookmarkButton';
 import { PostReaderModal, buildTelegramPostUrl } from '@/components/channel/PostReaderModal';
 import { TopAdvertisersPanel } from '@/components/posts/TopAdvertisersPanel';
+import { AdCreativesPanel } from '@/components/posts/AdCreativesPanel';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
 
 function formatPercent(value: number | null): string {
   return value === null ? 'н/д' : `${value.toFixed(1)}%`;
+}
+
+function toSearchPost(item: AdCreativePostItem): SearchPost {
+  return {
+    id: item.id,
+    messageId: item.messageId ?? String(item.id),
+    publishedAt: item.publishedAt,
+    text: item.text,
+    isAd: item.isAd ?? true,
+    views: item.views,
+    reactions: item.reactions,
+    reactionBreakdown: item.reactionBreakdown ?? null,
+    comments: item.comments,
+    forwards: item.forwards,
+    er: item.er,
+    err: item.err,
+    hasImage: item.hasImage ?? false,
+    mentions: item.mentions,
+    isViral: item.isViral ?? false,
+    viralReasons: item.viralReasons ?? [],
+    viralPrimaryReason: item.viralPrimaryReason ?? null,
+    viralMultiplier: item.viralMultiplier ?? null,
+    isSaved: item.isSaved,
+    savedNote: item.savedNote ?? null,
+    savedAt: item.savedAt ?? null,
+    channel: {
+      id: item.channel.id,
+      title: item.channel.title,
+      username: item.channel.username,
+      niche: item.channel.niche ?? 'general',
+    },
+  };
 }
 
 export default function PostsPage() {
@@ -34,6 +67,8 @@ export default function PostsPage() {
   const [sortBy, setSortBy] = useState<SortBy>('publishedAt');
   const [posts, setPosts] = useState<SearchPost[]>([]);
   const [total, setTotal] = useState(0);
+  const [creativeClusters, setCreativeClusters] = useState<AdCreativeCluster[]>([]);
+  const [activeClusterId, setActiveClusterId] = useState<string | null>(null);
   const [niches, setNiches] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [channels, setChannels] = useState<GlobalPostSearchResponse['channels']>([]);
@@ -52,6 +87,7 @@ export default function PostsPage() {
     const params = new URLSearchParams({
       days: String(days), sortBy, onlyAds: String(onlyAds), onlyViral: String(onlyViral), limit: '20', offset: String(offset),
     });
+    if (onlyAds) params.set('includeCreatives', 'true');
     if (onlySaved) params.set('onlySaved', 'true');
     if (search) params.set('q', search);
     if (niche) params.set('niche', niche);
@@ -67,6 +103,8 @@ export default function PostsPage() {
     setLoading(true);
     setPosts([]);
     setTotal(0);
+    setCreativeClusters([]);
+    setActiveClusterId(null);
     setError(null);
     fetch(searchUrl(0), { signal: controller.signal })
       .then(async response => {
@@ -77,6 +115,7 @@ export default function PostsPage() {
         if (version !== requestVersion.current) return;
         setPosts(data.posts);
         setTotal(data.total);
+        setCreativeClusters(data.creativeClusters ?? []);
         setNiches(data.niches);
         setTags(data.tags ?? []);
         setChannels(data.channels);
@@ -89,6 +128,20 @@ export default function PostsPage() {
       .finally(() => { if (version === requestVersion.current) setLoading(false); });
     return () => controller.abort();
   }, [searchUrl]);
+
+  const activeCluster = useMemo(
+    () => (onlyAds && activeClusterId
+      ? creativeClusters.find(cluster => cluster.clusterId === activeClusterId) ?? null
+      : null),
+    [onlyAds, activeClusterId, creativeClusters],
+  );
+
+  const displayedPosts = useMemo(
+    () => (activeCluster ? activeCluster.posts.map(toSearchPost) : posts),
+    [activeCluster, posts],
+  );
+
+  const displayedTotal = activeCluster ? displayedPosts.length : total;
 
   async function loadMore() {
     const version = requestVersion.current;
@@ -125,7 +178,7 @@ export default function PostsPage() {
               className="w-full rounded-xl border border-border bg-slate-900 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-accent/50" />
           </label>
           <div className="flex gap-2" role="group" aria-label="Режим поиска">
-            <button type="button" onClick={() => { setOnlyAds(false); setAdvertiserUsername(''); }} aria-pressed={!onlyAds}
+            <button type="button" onClick={() => { setOnlyAds(false); setAdvertiserUsername(''); setActiveClusterId(null); }} aria-pressed={!onlyAds}
               className={`rounded-xl border px-3 py-2 text-sm ${!onlyAds ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}>
               Все посты
             </button>
@@ -188,6 +241,23 @@ export default function PostsPage() {
           onDaysChange={value => { setAdvertiserDays(value); if (advertiserUsername) setDays(value); }}
           onSelect={username => { setAdvertiserUsername(username); setDays(advertiserDays); }} />}
 
+        {onlyAds && (
+          <AdCreativesPanel
+            clusters={creativeClusters}
+            loading={loading}
+            activeClusterId={activeClusterId}
+            onSelectCluster={cluster => setActiveClusterId(cluster?.clusterId ?? null)}
+            onAdvertiserClick={adv => {
+              setActiveClusterId(null);
+              if (adv.startsWith('@')) {
+                setAdvertiserUsername(adv.slice(1));
+              } else {
+                setQ(adv);
+              }
+            }}
+          />
+        )}
+
         {advertiserUsername && <div className="flex items-center gap-2 text-sm text-slate-300">
           Публикации @{advertiserUsername}
           <button type="button" onClick={() => setAdvertiserUsername('')} className="rounded-lg border border-border px-2 py-1 text-xs text-white hover:bg-slate-800">
@@ -195,15 +265,30 @@ export default function PostsPage() {
           </button>
         </div>}
 
+        {activeCluster && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm text-slate-200">
+            <span>
+              Показаны размещения выбранного креатива ({activeCluster.placementsCount})
+            </span>
+            <button
+              type="button"
+              onClick={() => setActiveClusterId(null)}
+              className="rounded-lg border border-border bg-slate-900 px-2.5 py-1 text-xs text-white hover:bg-slate-800"
+            >
+              Сбросить фильтр креатива
+            </button>
+          </div>
+        )}
+
         <section aria-label="Результаты поиска" className="space-y-4">
-          <p className="text-sm text-slate-400">Найдено публикаций: {formatNumber(total)}</p>
+          <p className="text-sm text-slate-400">Найдено публикаций: {formatNumber(displayedTotal)}</p>
           {error && <p role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-400">{error}</p>}
           {loading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Загрузка публикаций">
             {[1, 2, 3].map(value => <div key={value} className="h-64 animate-pulse rounded-xl border border-border bg-surface" />)}
-          </div> : posts.length === 0 ?
+          </div> : displayedPosts.length === 0 ?
             <p className="rounded-xl border border-border bg-surface p-8 text-center text-sm text-slate-400">Публикации не найдены. Измените фильтры или период.</p> :
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map(post => <article key={post.id} className="overflow-hidden rounded-xl border border-border bg-surface flex flex-col">
+              {displayedPosts.map(post => <article key={post.id} className="overflow-hidden rounded-xl border border-border bg-surface flex flex-col">
                 {post.hasImage && <Image src={`/api/posts/${post.id}/image`} alt="Изображение публикации" width={640} height={360} unoptimized
                   className="h-40 w-full object-cover" />}
                 <div className="p-4 space-y-3 flex-1 flex flex-col">
@@ -237,6 +322,14 @@ export default function PostsPage() {
                           ? current.filter(item => item.id !== id)
                           : current.map(item => item.id === id ? { ...item, isSaved, savedNote } : item)
                       );
+                      setCreativeClusters(current =>
+                        current.map(cluster => ({
+                          ...cluster,
+                          posts: cluster.posts.map(item =>
+                            item.id === id ? { ...item, isSaved, savedNote } : item
+                          ),
+                        }))
+                      );
                       if (onlySaved && !isSaved) {
                         setTotal(current => Math.max(0, current - 1));
                       }
@@ -245,7 +338,7 @@ export default function PostsPage() {
                 </div>
               </article>)}
             </div>}
-          {!loading && posts.length < total && <div className="text-center">
+          {!loading && !activeCluster && posts.length < total && <div className="text-center">
             <button type="button" disabled={loadingMore} onClick={() => void loadMore()}
               className="rounded-xl border border-border bg-surface px-5 py-2.5 text-sm text-white hover:bg-slate-800 disabled:opacity-50">
               {loadingMore ? 'Загрузка...' : 'Показать ещё'}

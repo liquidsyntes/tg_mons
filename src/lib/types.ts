@@ -194,12 +194,63 @@ export interface SearchPost extends ViralClassification {
   channel: { id: number; title: string; username: string | null; niche: string };
 }
 
+export type AdCreativeSortBy = 'placementsCount' | 'totalViews' | 'avgErr';
+
+export interface AdCreativePostItem {
+  id: number;
+  messageId?: string;
+  channel: {
+    id: number;
+    title: string;
+    username: string | null;
+    niche: string | null;
+  };
+  publishedAt: string;
+  text: string | null;
+  isAd?: boolean;
+  views: number | null;
+  er: number | null;
+  err: number | null;
+  reactions: number | null;
+  reactionBreakdown?: ReactionBreakdownItem[] | null;
+  comments: number | null;
+  forwards: number | null;
+  hasImage?: boolean;
+  isViral?: boolean;
+  viralReasons?: ViralReason[];
+  viralPrimaryReason?: ViralReason | null;
+  viralMultiplier?: number | null;
+  isSaved?: boolean;
+  savedNote?: string | null;
+  savedAt?: string | null;
+  mentions: string[];
+}
+
+export interface AdCreativeCluster {
+  clusterId: string;
+  sampleText: string;
+  normalizedPreview: string;
+  advertisers: string[];
+  placementsCount: number;
+  uniqueChannelsCount: number;
+  totalViews: number;
+  avgViews: number;
+  avgEr: number;
+  avgErr: number;
+  maxErr: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  bestPlacement: AdCreativePostItem | null;
+  posts: AdCreativePostItem[];
+}
+
 export interface GlobalPostSearchResponse {
   posts: SearchPost[];
   total: number;
   niches: string[];
   tags?: string[];
   channels: Array<{ id: number; title: string; username: string | null; niche: string; tags?: string[] }>;
+  creativeClusters?: AdCreativeCluster[];
 }
 
 export interface AdvertiserDonorChannel {

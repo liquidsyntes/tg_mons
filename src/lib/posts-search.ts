@@ -1,9 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { detectAd } from '@/lib/adDetector';
+import { clusterAdCreatives } from '@/lib/metrics/ad-creatives';
 import { calculatePostER, calculatePostERR } from '@/lib/metrics/engagement';
 import { calculateViralBaseline, classifyViralPost, type ViralBaseline } from '@/lib/metrics/viral';
 import { parseReactionBreakdown } from '@/lib/metrics/reactions';
+import type { AdCreativeCluster, AdCreativePostItem, AdCreativeSortBy } from '@/lib/types';
 
 type SortBy = 'publishedAt' | 'views' | 'views_asc' | 'er' | 'err' | 'forwards';
 type LegacyType = 'all' | 'ads' | 'partners';
@@ -27,6 +29,8 @@ export interface PostSearchParams {
   minViews: number | null;
   maxViews: number | null;
   type: LegacyType;
+  includeCreatives?: boolean;
+  creativesSortBy?: AdCreativeSortBy;
 }
 
 interface ChannelOption {
@@ -57,6 +61,14 @@ function isBooleanFlag(value: string | null): boolean {
   return value === null || value === 'true' || value === 'false';
 }
 
+function isExtendedBooleanFlag(value: string | null): boolean {
+  return value === null || value === 'true' || value === 'false' || value === '1' || value === '0';
+}
+
+function isCreativesSortBy(value: string): value is AdCreativeSortBy {
+  return ['placementsCount', 'totalViews', 'avgErr'].includes(value);
+}
+
 function isSortBy(value: string): value is SortBy {
   return ['publishedAt', 'views', 'views_asc', 'er', 'err', 'forwards'].includes(value);
 }
@@ -77,6 +89,8 @@ export function parsePostSearchParams(query: URLSearchParams): PostSearchParams 
   const onlyAds = query.get('onlyAds');
   const onlyViral = query.get('onlyViral');
   const onlySaved = query.get('onlySaved');
+  const includeCreatives = query.get('includeCreatives');
+  const creativesSortBy = query.get('creativesSortBy') ?? 'placementsCount';
   const advertiser = query.get('advertiser')?.trim().replace(/^@/, '').toLowerCase() || null;
   const rawDays = query.get('days');
   const days = legacy ? null : readInteger(rawDays, 30, 7, 90);
@@ -93,7 +107,7 @@ export function parsePostSearchParams(query: URLSearchParams): PostSearchParams 
     : rawSort;
   const validChannel = rawChannelId === null || channelId !== null;
   const validText = q.length <= 200 && (niche === null || niche.length <= 64) && (tag === null || tag.length <= 30);
-  const validFlags = [onlyAds, onlyViral, onlySaved].every(isBooleanFlag);
+  const validFlags = [onlyAds, onlyViral, onlySaved].every(isBooleanFlag) && isExtendedBooleanFlag(includeCreatives);
   const validAdvertiser = !query.has('advertiser') ||
     (advertiser !== null && /^[a-z0-9_]{4,32}$/.test(advertiser));
   const validDays = days !== null || legacy;
@@ -110,10 +124,12 @@ export function parsePostSearchParams(query: URLSearchParams): PostSearchParams 
 
   if (!validChannel || !validText || !validFlags || !validAdvertiser) return null;
   if (!validDays || !allowedDays || !validPagination || !validDates || !validViews || !compatibleMode) return null;
-  if (!isSortBy(sortBy) || !isLegacyType(type)) return null;
+  if (!isSortBy(sortBy) || !isLegacyType(type) || !isCreativesSortBy(creativesSortBy)) return null;
   return {
     legacy, channelId, q, niche, tag, onlyAds: onlyAds === 'true', onlyViral: onlyViral === 'true', onlySaved: onlySaved === 'true', advertiser, days, sortBy,
     limit, offset, dateFrom, dateTo, minViews, maxViews, type,
+    includeCreatives: includeCreatives === 'true' || includeCreatives === '1',
+    creativesSortBy,
   };
 }
 
@@ -315,9 +331,39 @@ function enrichSearchedPost(
 
 type EnrichedPost = ReturnType<typeof enrichSearchedPost>;
 
+function toCreativePostItem(post: EnrichedPost): AdCreativePostItem {
+  return {
+    id: post.id,
+    messageId: post.messageId,
+    channel: post.channel,
+    publishedAt:
+      post.publishedAt instanceof Date
+        ? post.publishedAt.toISOString()
+        : new Date(post.publishedAt).toISOString(),
+    text: post.text,
+    isAd: post.isAd,
+    views: post.views,
+    er: post.er,
+    err: post.err,
+    reactions: post.reactions,
+    reactionBreakdown: post.reactionBreakdown,
+    comments: post.comments,
+    forwards: post.forwards,
+    hasImage: post.hasImage,
+    isViral: post.isViral,
+    viralReasons: post.viralReasons,
+    viralPrimaryReason: post.viralPrimaryReason,
+    viralMultiplier: post.viralMultiplier,
+    isSaved: post.isSaved,
+    savedNote: post.savedNote,
+    savedAt: post.savedAt,
+    mentions: post.mentions,
+  };
+}
+
 export type PostSearchResult =
-  | { posts: EnrichedPost[]; total: number; absoluteTotal: number | null }
-  | { posts: EnrichedPost[]; total: number; channels: ChannelOption[]; niches: string[]; tags: string[] };
+  | { posts: EnrichedPost[]; total: number; absoluteTotal: number | null; creativeClusters?: AdCreativeCluster[] }
+  | { posts: EnrichedPost[]; total: number; channels: ChannelOption[]; niches: string[]; tags: string[]; creativeClusters?: AdCreativeCluster[] };
 
 export async function searchPosts(params: PostSearchParams, userId: number | null): Promise<PostSearchResult> {
   const now = new Date();
@@ -332,6 +378,7 @@ export async function searchPosts(params: PostSearchParams, userId: number | nul
   ]);
   let total = baseTotal;
   let viralBaselines: Map<number, ViralBaseline | null> | null = null;
+  let viralIdsForCreatives: number[] | null = null;
   const posts = params.onlyViral
     ? await (async () => {
       const candidates = await prisma.post.findMany({ where, select: viralSelect });
@@ -339,6 +386,9 @@ export async function searchPosts(params: PostSearchParams, userId: number | nul
       const viral = sortViralCandidates(candidates.filter(post =>
         classifyViralPost(post, viralBaselines?.get(post.channelId) ?? null).isViral), params.sortBy);
       total = viral.length;
+      if (params.includeCreatives && (total > params.limit || params.offset > 0)) {
+        viralIdsForCreatives = viral.slice(0, 250).map(post => post.id);
+      }
       const ids = viral.slice(params.offset, params.offset + params.limit).map(post => post.id);
       if (ids.length === 0) return [];
       const fetched = await prisma.post.findMany({ where: { AND: [where, { id: { in: ids } }] }, include });
@@ -360,9 +410,64 @@ export async function searchPosts(params: PostSearchParams, userId: number | nul
 
   const enriched = posts.map(post =>
     enrichSearchedPost(post, userId, viralBaselines?.get(post.channelId) ?? null));
-  if (params.legacy) return { posts: enriched, total, absoluteTotal };
+
+  const shouldBuildCreatives = Boolean(params.onlyAds || params.type === 'ads' || params.includeCreatives);
+  let creativeClusters: AdCreativeCluster[] | undefined;
+
+  if (shouldBuildCreatives) {
+    let creativesSource = enriched;
+    const needsFullAdSample =
+      Boolean(params.includeCreatives) &&
+      (total > enriched.length || params.offset > 0 || !where.isAd);
+
+    if (needsFullAdSample) {
+      const sampleWhere: Prisma.PostWhereInput = viralIdsForCreatives
+        ? { AND: [where, { isAd: true }, { id: { in: viralIdsForCreatives } }] }
+        : where.isAd
+          ? where
+          : { ...where, isAd: true };
+
+      const sampleRaw = await prisma.post.findMany({
+        where: sampleWhere,
+        include,
+        orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
+        take: 250,
+      });
+
+      const missingChannelIds = [...new Set(sampleRaw.map(post => post.channelId))].filter(
+        channelId => !viralBaselines?.has(channelId),
+      );
+      if (missingChannelIds.length > 0) {
+        const extraBaselines = await loadViralBaselines(missingChannelIds, now);
+        for (const [channelId, baseline] of extraBaselines.entries()) {
+          viralBaselines.set(channelId, baseline);
+        }
+      }
+
+      creativesSource = sampleRaw.map(post =>
+        enrichSearchedPost(post, userId, viralBaselines?.get(post.channelId) ?? null),
+      );
+    } else if (!where.isAd) {
+      creativesSource = enriched.filter(post => post.isAd);
+    }
+
+    creativeClusters = clusterAdCreatives(creativesSource.map(toCreativePostItem), {
+      sortBy: params.creativesSortBy,
+    });
+  }
+
+  if (params.legacy) {
+    return shouldBuildCreatives
+      ? { posts: enriched, total, absoluteTotal, creativeClusters }
+      : { posts: enriched, total, absoluteTotal };
+  }
   const allTags = [...new Set(channelOptions.flatMap(channel => channel.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ru'));
-  return { posts: enriched, total, channels: channelOptions,
+  return {
+    posts: enriched,
+    total,
+    channels: channelOptions,
     niches: [...new Set(channelOptions.map(channel => channel.niche))].sort(),
-    tags: allTags };
+    tags: allTags,
+    ...(shouldBuildCreatives ? { creativeClusters } : {}),
+  };
 }

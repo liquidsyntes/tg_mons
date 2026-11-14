@@ -31,10 +31,20 @@ describe('parsePostSearchParams', () => {
     });
   });
 
+  it('parses includeCreatives and creativesSortBy flags', () => {
+    expect(parse('onlyAds=true&includeCreatives=true&creativesSortBy=avgErr')).toMatchObject({
+      onlyAds: true, includeCreatives: true, creativesSortBy: 'avgErr',
+    });
+    expect(parse('onlyAds=true&includeCreatives=1&creativesSortBy=totalViews')).toMatchObject({
+      onlyAds: true, includeCreatives: true, creativesSortBy: 'totalViews',
+    });
+  });
+
   it.each([
     'channelId=0', 'channelId=1.5', 'channelId=9007199254740992',
     `q=${'x'.repeat(201)}`, `niche=${'x'.repeat(65)}`, `tag=${'x'.repeat(31)}`,
     'onlyAds=yes', 'onlyViral=1', 'onlySaved=TRUE', 'advertiser=abc', 'advertiser=%40bad!',
+    'includeCreatives=yes', 'creativesSortBy=invalid',
     'days=3', 'limit=0', 'limit=51', 'offset=-1', 'offset=100001',
     'channelId=7&dateFrom=2026-02-30', 'channelId=7&dateFrom=2026-11-02&dateTo=2026-11-01',
     'channelId=7&minViews=-1', 'channelId=7&minViews=10&maxViews=9',
