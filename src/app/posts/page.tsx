@@ -103,16 +103,47 @@ export default function PostsPage() {
     return () => clearTimeout(timer);
   }, [q]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('saved') === '1' || params.get('onlySaved') === 'true') {
-      setOnlySaved(true);
-    }
-    if (params.get('view') === 'board') {
-      setViewMode('board');
+  const syncFiltersFromSearch = useCallback((searchString: string) => {
+    const params = new URLSearchParams(searchString);
+    const adsParam = params.get('onlyAds');
+    const savedParam = params.get('saved') ?? params.get('onlySaved');
+    const viewParam = params.get('view');
+
+    const nextOnlyAds = adsParam === 'true' || adsParam === '1';
+    const nextViewMode: 'list' | 'board' = viewParam === 'board' ? 'board' : 'list';
+    const nextOnlySaved = savedParam === '1' || savedParam === 'true' || nextViewMode === 'board';
+
+    setOnlyAds(nextOnlyAds);
+    setOnlySaved(nextOnlySaved);
+    setViewMode(nextViewMode);
+    if (!nextOnlyAds) {
+      setAdvertiserUsername('');
+      setActiveClusterId(null);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    syncFiltersFromSearch(window.location.search);
+
+    const handlePopState = () => {
+      syncFiltersFromSearch(window.location.search);
+    };
+    const handlePostsNavigate = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      if (typeof detail === 'string') {
+        const parsed = new URL(detail, window.location.origin);
+        syncFiltersFromSearch(parsed.search);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('tgmon:posts-navigate', handlePostsNavigate);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('tgmon:posts-navigate', handlePostsNavigate);
+    };
+  }, [syncFiltersFromSearch]);
 
   const searchUrl = useCallback((offset: number): string => {
     const params = new URLSearchParams({
@@ -300,14 +331,58 @@ export default function PostsPage() {
             <input value={q} onChange={event => setQ(event.target.value)} maxLength={200} placeholder="Тема, бренд или ключевое слово"
               className="w-full rounded-xl border border-border bg-slate-900 px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-accent/50" />
           </label>
-          <div className="flex gap-2" role="group" aria-label="Режим поиска">
-            <button type="button" onClick={() => { setOnlyAds(false); setAdvertiserUsername(''); setActiveClusterId(null); }} aria-pressed={!onlyAds}
-              className={`rounded-xl border px-3 py-2 text-sm ${!onlyAds ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Режим поиска">
+            <button
+              type="button"
+              onClick={() => {
+                setOnlyAds(false);
+                setOnlySaved(false);
+                setViewMode('list');
+                setAdvertiserUsername('');
+                setActiveClusterId(null);
+              }}
+              aria-pressed={!onlyAds && !(onlySaved && viewMode === 'board')}
+              className={`rounded-xl border px-3 py-2 text-sm ${
+                !onlyAds && !(onlySaved && viewMode === 'board')
+                  ? 'border-accent bg-accent/10 text-accent'
+                  : 'border-border text-slate-300'
+              }`}
+            >
               Все посты
             </button>
-            <button type="button" onClick={() => setOnlyAds(true)} aria-pressed={onlyAds}
-              className={`rounded-xl border px-3 py-2 text-sm ${onlyAds ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}>
+            <button
+              type="button"
+              onClick={() => {
+                setOnlyAds(true);
+                if (viewMode === 'board') {
+                  setOnlySaved(false);
+                  setViewMode('list');
+                }
+              }}
+              aria-pressed={onlyAds}
+              className={`rounded-xl border px-3 py-2 text-sm ${
+                onlyAds ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'
+              }`}
+            >
               Только реклама (Ad Spy)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOnlyAds(false);
+                setOnlySaved(true);
+                setViewMode('board');
+                setAdvertiserUsername('');
+                setActiveClusterId(null);
+              }}
+              aria-pressed={onlySaved && viewMode === 'board'}
+              className={`rounded-xl border px-3 py-2 text-sm ${
+                onlySaved && viewMode === 'board'
+                  ? 'border-accent bg-accent/10 text-accent'
+                  : 'border-border text-slate-300'
+              }`}
+            >
+              Контент-план (Доска)
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -428,7 +503,7 @@ export default function PostsPage() {
                   aria-pressed={viewMode === 'board'}
                   className={`rounded-xl border px-3 py-1.5 text-xs font-medium ${viewMode === 'board' ? 'border-accent bg-accent/10 text-accent' : 'border-border text-slate-300'}`}
                 >
-                  Контент-план (Доска)
+                  Доска идей
                 </button>
               </div>
             )}

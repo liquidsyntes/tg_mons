@@ -252,4 +252,83 @@ describe('global post filters', () => {
       ).toBe(true),
     );
   });
+
+  it('activates ContentPlanBoard directly from the top mode button Контент-план (Доска)', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      if (url === '/api/posts/saved') {
+        return {
+          ok: true,
+          json: async () => ({
+            savedPosts: [],
+            recommendations: { slots: [], formatGuidance: null },
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          posts: [],
+          total: 0,
+          niches: [],
+          channels: [],
+        }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(PostsPage));
+    const boardBtn = screen.getByRole('button', { name: 'Контент-план (Доска)' });
+    fireEvent.click(boardBtn);
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) => String(url).includes('/api/posts/search') && String(url).includes('onlySaved=true'),
+        ),
+      ).toBe(true),
+    );
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Доска контент-плана' })).toBeDefined());
+  });
+
+  it('syncs filters when receiving tgmon:posts-navigate events between /posts query modes', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      if (url === '/api/posts/saved') {
+        return {
+          ok: true,
+          json: async () => ({
+            savedPosts: [],
+            recommendations: { slots: [], formatGuidance: null },
+          }),
+        };
+      }
+      if (String(url).includes('/api/posts/advertisers')) {
+        return {
+          ok: true,
+          json: async () => ({ days: 30, niche: null, advertisers: [] }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          posts: [],
+          total: 0,
+          niches: [],
+          channels: [],
+        }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(PostsPage));
+
+    window.dispatchEvent(new CustomEvent('tgmon:posts-navigate', { detail: '/posts?onlyAds=true' }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).includes('/api/posts/search') && String(url).includes('onlyAds=true')),
+      ).toBe(true),
+    );
+
+    window.dispatchEvent(new CustomEvent('tgmon:posts-navigate', { detail: '/posts?saved=1&view=board' }));
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Доска контент-плана' })).toBeDefined());
+  });
 });

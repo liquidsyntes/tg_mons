@@ -1,42 +1,37 @@
 # Текущее состояние проекта
 
 Дата среза: `2026-11-14`
-Ветка: `main`, базовая ревизия до коммита Issue #78: `e7f8843`
+Ветка: `main`, базовая ревизия: `28d9134`
 
-## Реализовано в рамках текущей итерации (Issue #78)
+## Реализовано в рамках текущей итерации (навигация и шапка UI)
 
-Реализован контент-план (доска идей) на базе персональных закладок `UserSavedPost` с рекомендациями лучших слотов публикации и оптимального формата для «Моего канала»:
+После внедрения контент-плана (Issue #78) переработана верхняя шапка приложения и упрощён прямой переход на доску контент-плана:
 
-1. **База данных и миграция (`prisma/schema.prisma`)**:
-   - В `model UserSavedPost` добавлены поля `status` (`@default("idea")`), `plannedFor` (`planned_for`), `draftText` (`draft_text`), `updatedAt` (`updated_at`) и индекс `@@index([userId, status])`.
-   - Создана и применена миграция `prisma/migrations/20261114063600_add_content_plan_to_saved_posts/migration.sql`.
-2. **Доменная логика и типы (`src/lib/metrics/content-plan.ts`, `src/lib/types.ts`)**:
-   - Добавлены типы `ContentPlanStatus`, `SuggestedPublishSlot`, `ContentPlanFormatGuidance`, `ContentPlanRecommendations`, `SavedPostItem`, а также поля `savedStatus`, `savedPlannedFor`, `savedDraftText` в `SearchPost` и `AdCreativePostItem`.
-   - Реализованы функции `suggestNextPublishSlots` (подбор ближайших свободных окон публикации на 7 дней вперёд по тепловой карте `best-time.ts` с исключением занятых слотов), `buildContentPlanFormatGuidance` (на базе `post-length.ts`: рекомендуемый диапазон длины, медиа/ссылки, структурные приёмы и 2 лучших окна), `isValidContentPlanStatus`, `groupSavedPostsByStatus` и `formatPlannedSlotDateTime`.
-3. **API и поиск (`src/app/api/posts/saved/route.ts`, `src/lib/posts-search.ts`)**:
-   - В `POST` и `PATCH /api/posts/saved` поддержаны частичное обновление и валидация `status` (`idea | in_progress | ready | published`), `plannedFor` (ISO-дата или `null`), `draftText` (до 4000 символов) и `note` (до 500 символов) при сохранении обратной совместимости одноразового добавления в закладки.
-   - `GET /api/posts/saved` возвращает расширенные `savedPosts` и блок `recommendations` (`slots`, `formatGuidance`) для «Моего канала» пользователя.
-   - В `src/lib/posts-search.ts` поля `savedStatus`, `savedPlannedFor`, `savedDraftText` прокинуты в выдачу поиска и Ad Spy.
-4. **Интерфейс (`src/components/posts/ContentPlanBoard.tsx`, `src/app/posts/page.tsx`)**:
-   - Создана 4-колоночная Канбан-доска `ContentPlanBoard` (`Идеи`, `В работе`, `Готово к публикации`, `Опубликовано`) с верхней плашкой-ориентиром для «Моего канала», редактором черновика `draftText`, сменой статуса, сбросом/быстрым назначением ближайшего лучшего слота и удалением из закладок.
-   - На `/posts` добавлен переключатель **«Список закладок»** / **«Контент-план (Доска)»** при активном фильтре «В закладках» (включая инициализацию через `?saved=1` и `?view=board`).
-5. **Документация**:
-   - Обновлены `docs/api-reference.md`, `docs/database.md`, `docs/project-map.md` и текущий документ.
+1. **Обновление шапки (`src/components/Header.tsx`)**:
+   - Навигация и второстепенные действия сгруппированы в компактные выпадающие меню с закрытием по клику вне меню и по клавише `Escape`:
+     - **«Публикации»**: `Поиск постов` (`/posts`), `Контент-план (Доска)` (`/posts?saved=1&view=board`), `Закладки (Список)` (`/posts?saved=1`), `Реклама и креативы (Ad Spy)` (`/posts?onlyAds=true`).
+     - **«Аналитика»**: `AI Отчёты` (`/reports`), `Афиша событий` (`/events`), `Сравнение каналов` (`/compare`).
+     - **«Управление»**: сводка активных каналов и времени обновления, `Собрать сейчас`, `Настройки` (`/settings`), `Выйти`, а на экранах `< md` также мобильные ссылки навигации.
+   - В правой части оставлены компактный статус-бейдж `{active}/{total} активны`, кнопка `Добавить канал` и меню `Управление`.
+2. **Прямой доступ к контент-плану (`src/app/posts/page.tsx`, `src/components/channel/RecentPostCard.tsx`)**:
+   - На `/posts` кнопка **«Контент-план (Доска)»** вынесена в верхнюю группу режимов поиска рядом с «Все посты» и «Только реклама (Ad Spy)», а переключатель внутри раздела закладок использует «Список закладок» / «Доска идей».
+   - Добавлена синхронизация фильтров по URL-параметрам (`?onlyAds=true`, `?saved=1`, `?view=board`), включая `popstate` и переходы между режимами `/posts` из шапки (`tgmon:posts-navigate`).
+   - В панель фильтров ленты канала (`RecentPostsFilterBar`) добавлена кнопка-ссылка **«Контент-план»** (`/posts?saved=1&view=board`).
+3. **Тесты**:
+   - Расширены `src/components/__tests__/Header-version.test.ts`, `src/app/posts/__tests__/page.test.ts` и `src/components/channel/__tests__/RecentPosts.test.ts`.
 
 ## Фактически выполненные проверки
 
-- `npx prisma migrate deploy && npx prisma generate` - успешно, миграция `20261114063600_add_content_plan_to_saved_posts` применена к PostgreSQL, Prisma Client v6.19.3 сгенерирован.
-- Профильные тесты (`content-plan.test.ts`, `ContentPlanBoard.test.ts`, `api/posts/saved/__tests__/route.test.ts`, `app/posts/__tests__/page.test.ts`, `api/posts/search/__tests__/route.test.ts`) - 5 файлов, 40 тестов пройдены.
-- `npx tsc --noEmit && npx eslint src` - успешно, код возврата `0`.
-- `npm test` - пройдены все `148` тестовых файлов (`959` тестов).
+- Профильные тесты (`Header-version.test.ts`, `app/posts/__tests__/page.test.ts`, `RecentPosts.test.ts`) - 3 файла, пройдены до финального добавления теста `tgmon:posts-navigate`, затем выполнен полный прогон `npm test`.
+- `npx tsc --noEmit` и `npx eslint src` - успешно, код возврата `0`.
+- `npm test` - пройдены все `148` тестовых файлов (`962` теста).
 - `npm run build` - успешно (`prisma generate && next build`, 18/18 статических страниц).
-- `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --renew-anon-volumes web worker` - контейнеры пересобраны и запущены; `GET http://localhost:4000/api/health` вернул `status: "ok"`, `lastSyncStatus: "COMPLETED"`, `channelsSucceeded: 26`, `channelsFailed: 0`.
 
 ## Незавершённое и известные ограничения
 
-- При режиме «Контент-план (Доска)» выборка карточек на `/posts` следует активным фильтрам поиска (период `days`, канал/ниша и т.д.), а рекомендации `formatGuidance` формируются персонально только после отметки одного из каналов как «Мой канал».
-- Существующая генерация адаптированного черновика ориентирована на ручное редактирование `draftText`; отдельная AI-кнопка генерации черновика по желанию может быть добавлена позднее поверх существующего поля `draftText`.
+- В БД Docker (`tgmon-postgres`) применены все 33 миграции Prisma (включая `20261114042500_add_post_deletion_tracking` и `20261114063600_add_content_plan_to_saved_posts` через `docker exec tgmon-web npx prisma migrate deploy`).
+- В разработке Docker-стек запущен через `docker-compose.dev.yml` (`npm run dev` с volume-монтированием `.:/app`); пересборка production-образа `web` потребуется только при обновлении зависимостей или при деплое без dev-override.
 
 ## Следующий шаг
 
-Перейти к **Issue #79** (`feat(compare): добавь мульти-сравнение каналов и сравнение с папкой или нишей`; далее в очереди `#80`–`#82`).
+Перейти к **Issue #79** (`feat(compare): добавь мульти-сравнение каналов и сравнение с папкой или нишей`; далее в очереди `#80`-`#82`).

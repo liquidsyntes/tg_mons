@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { FileText, Eye, Megaphone, Handshake, Search, Filter } from 'lucide-react';
+import Link from 'next/link';
+import { FileText, Eye, Megaphone, Handshake, Search, Filter, ListTodo } from 'lucide-react';
 import type { detectAd } from '@/lib/adDetector';
 import { formatNumber } from '@/lib/utils';
 import { isDeletedRetentionFormat } from '@/lib/adReach';
@@ -92,6 +93,14 @@ export function RecentPostsFilterBar({
           >
             Только вирусные
           </button>
+          <Link
+            href="/posts?saved=1&view=board"
+            title="Открыть доску контент-плана"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-200 hover:border-accent/60 hover:text-white transition-colors"
+          >
+            <ListTodo className="w-3.5 h-3.5 text-accent" />
+            <span>Контент-план</span>
+          </Link>
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input

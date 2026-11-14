@@ -87,6 +87,7 @@ describe('RecentPosts and PostReaderModal', () => {
     );
 
     expect(screen.queryByRole('dialog', { name: 'Текст публикации' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Контент-план' }).getAttribute('href')).toBe('/posts?saved=1&view=board');
 
     fireEvent.click(screen.getByText(/Разбор \[тест\]/));
 
