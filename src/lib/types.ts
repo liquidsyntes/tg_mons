@@ -714,3 +714,107 @@ export interface SavedPostItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export type CompareKpiMetricKey =
+  | 'subscribers'
+  | 'growth7d'
+  | 'growth30d'
+  | 'avgViews30d'
+  | 'er30d'
+  | 'err30d'
+  | 'postsPerDay'
+  | 'adSharePercent'
+  | 'trustScore';
+
+export interface CompareMentionRecord {
+  sourceChannelId: number;
+  targetUsername: string | null;
+  targetChannelId?: number | null;
+  targetTgId?: string | null;
+  type: string;
+  isAd?: boolean;
+}
+
+export interface CompareParticipantChannel extends ChannelMetrics {
+  isBenchmark?: boolean;
+  benchmarkTag?: string | null;
+  cohortSize?: number | null;
+}
+
+export interface CompareParticipantStats {
+  channel: CompareParticipantChannel;
+  membersHistory: ReadonlyArray<{
+    collectedAt: string;
+    membersCount: number;
+    myMembersCount?: number | null;
+  }>;
+  postsDistribution: ReadonlyArray<{
+    date: string;
+    postsCount: number;
+    viewsAvg?: number | null;
+  }>;
+  mentions?: ReadonlyArray<CompareMentionRecord>;
+  isBenchmark?: boolean;
+  benchmarkTag?: string | null;
+  cohortSize?: number | null;
+}
+
+export interface MultiSubscriberPoint {
+  timestamp: string;
+  time: string;
+  fullTime: string;
+  membersByChannel: Record<number, number | null>;
+  growthPctByChannel: Record<number, number | null>;
+}
+
+export interface MultiPostsPoint {
+  rawDate: string;
+  date: string;
+  postsByChannel: Record<number, number>;
+  viewsByChannel: Record<number, number>;
+}
+
+export interface CompareKpiRow {
+  key: CompareKpiMetricKey;
+  label: string;
+  unit: 'count' | 'percent' | 'rate' | 'score';
+  neutral?: boolean;
+  values: Record<number, number | null>;
+  leaderChannelId: number | null;
+}
+
+export interface SharedAdvertiserItem {
+  username: string;
+  channelsCount: number;
+  totalPlacements: number;
+  channelIds: number[];
+  placementsByChannel: Record<number, number>;
+}
+
+export interface CitationMatrixRow {
+  sourceChannelId: number;
+  sourceTitle: string;
+  countsByTargetId: Record<number, number>;
+  totalOutbound: number;
+}
+
+export interface MultiChannelComparisonResult {
+  subscriberSeries: MultiSubscriberPoint[];
+  postsSeries: MultiPostsPoint[];
+  kpiRows: CompareKpiRow[];
+  sharedAdvertisers: SharedAdvertiserItem[];
+  citationMatrix: CitationMatrixRow[];
+}
+
+export interface TagBenchmarkStat {
+  median: number | null;
+  average: number | null;
+  sampleSize: number;
+}
+
+export interface TagBenchmarkProfileResult {
+  tag: string;
+  cohortSize: number;
+  participant: CompareParticipantStats;
+  metrics: Record<CompareKpiMetricKey, TagBenchmarkStat>;
+}

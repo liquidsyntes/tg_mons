@@ -33,6 +33,7 @@ Middleware больше не добавляет Bearer к запросам бр�
 | Метод и путь | Вход | Ответ / поведение | Гард в обработчике |
 | --- | --- | --- | --- |
 | `GET /api/channels` | — | Массив `ChannelMetrics` из overview, включая отключённые каналы | Нет |
+| `GET /api/channels/compare` | Алиас `GET /api/stats/compare`: `ids` (2-4 ID через запятую) или legacy `a`, `b`, опционально `benchmarkTag`, `period=24h\|7d\|30d` | `{a,b,period,participants,comparison,benchmarkProfile}`; коды 400, 403, 404 | Да |
 | `GET /api/channels/list-transfer` | — | Подписанный JSON-файл всех каналов из списка администратора; доступен только `ADMIN` | Да |
 | `POST /api/channels/list-transfer` | JSON-файл экспорта, до 1 МБ и 5000 каналов | `{added,alreadyPresent}`; добавляет существующие каналы в личный список без `isMine`, дубли пропускает; 400 при неверном файле или подписи, 409 при отсутствующем канале | Да |
 | `POST /api/channels` | `{ "input": "@example_channel", "isMine": false, "tags"?: string[] }` | 201, метрики добавленного/повторно активированного канала; worker выполняет resolve и попытку backfill до ответа; при недоступном worker 503 | Да |
@@ -71,7 +72,7 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `GET /api/stats/dashboard` | Нет тела | KPI, `avgErr`, `avgScore`, topGainers/topLosers, postsTimeline/subscribersTimeline только по активным каналам |
 | `GET /api/stats/channel/:id` | `period=24h`, `7d` или `30d`, default `7d` | `{channel,myChannel,period,scoreBreakdown,membersHistory,postsDistribution,vrHistory,heatmapData,myHeatmapData,recentPosts,popularReactions,contentTypePerformance,contentFormatLeaders,postLengthAnalytics,timelineEvents,silencePeriods}` |
 | `GET /api/stats/channel/:id/activity` | Положительный ID канала | `{timeZone,rows}`: 48 часовых строк с `hourStart`, `sampledAt`, `membersCount`, `membersDelta`, `posts[]`, `reactionsAdded`, `forwardsAdded`; 400 при неверном ID, 404 без доступа к каналу |
-| `GET /api/stats/compare` | Обязательные `a`, `b` — ID каналов; `period` как выше | `{ "a": ChannelDetailStats, "b": ChannelDetailStats, "period": "7d" }`; 400 без ID, 404 если канал не найден |
+| `GET /api/stats/compare` | `ids` (2-4 ID через запятую) либо `a`, `b`; опционально `benchmarkTag` и `period` (`24h`, `7d`, `30d`) | `{a,b,period,participants,comparison,benchmarkProfile}`; 400 при неверных параметрах, 403 без доступа к существующему каналу, 404 если канал или каналы тега не найдены |
 | `GET /api/stats/best-time` | Нет параметров | `{timeZone,bestDay,bestHour,score,avgViews,avgVr,postCount,heatmap}` или `null`, если нет активных конкурентов |
 | `GET /api/stats/trends` | — | Последний сохранённый trend: `{createdAt,data}`; `null` при отсутствии/невалидном JSON, новую генерацию не запускает |
 | `GET /api/stats/demographics/:id` | Положительный Int ID | Последний языковой снимок; контракт ниже |

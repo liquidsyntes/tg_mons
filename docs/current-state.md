@@ -1,37 +1,28 @@
 # Текущее состояние проекта
 
-Дата среза: `2026-11-14`
-Ветка: `main`, базовая ревизия: `28d9134`
+Дата обновления: 2026-11-15  
+Ветка: `main` (базовая ревизия `6984e89`)
 
-## Реализовано в рамках текущей итерации (навигация и шапка UI)
+## Реализовано в текущем цикле
 
-После внедрения контент-плана (Issue #78) переработана верхняя шапка приложения и упрощён прямой переход на доску контент-плана:
+- Выполнен **Issue #79** (`feat(compare): добавь мульти-сравнение каналов и сравнение с папкой или нишей`):
+  - **Доменная логика и типы** (`src/lib/compare.ts`, `src/lib/types.ts`, `src/lib/metrics/queries.ts`): сохранена обратная совместимость `mergeSubscriberHistory` и `mergePostsDistribution`; добавлены `buildMultiChannelComparison` (выровненные ряды подписчиков с абсолютными значениями и относительным ростом в процентах от первой положительной точки периода, ряды постов/просмотров, матрица KPI-лидеров с нейтральной метрикой `adSharePercent`, матрица взаимных упоминаний `citationMatrix` `N x N`, список `sharedAdvertisers` для пересечений от двух каналов) и `buildTagBenchmarkProfile` (медиана и среднее по активным каналам тега `UserChannel.tags`). В `getChannelDetailStats` добавлен проброс `fraudScore` и `fraudSignals` на объект `channel`.
+  - **API** (`src/app/api/stats/compare/route.ts`, `src/app/api/channels/compare/route.ts`): поддержаны `ids` (2-4 ID), legacy `a` и `b`, `benchmarkTag` (при одном ID или с несколькими) и `period` (`24h`, `7d`, `30d`), доступ ограничен каналами пользователя (`400`, `403`, `404`), ответ расширен полями `participants`, `comparison`, `benchmarkProfile`.
+  - **UI** (`src/app/compare/page.tsx`, `src/components/compare/*`): поддержаны выбор 2-4 каналов, переключатель режима сравнения с папкой/нишей (`role="switch"` + выбор тега), переключение масштаба графика подписчиков (абсолютные значения / рост в `%`), таблица KPI-лидеров со столбцом медианы папки, блоки общих рекламодателей и матрицы взаимных упоминаний; соблюдено скругление `3px`.
+  - **Документация**: обновлены `docs/analytics-formulas.md`, `docs/api-reference.md`, `docs/project-map.md` и `docs/current-state.md`.
 
-1. **Обновление шапки (`src/components/Header.tsx`)**:
-   - Навигация и второстепенные действия сгруппированы в компактные выпадающие меню с закрытием по клику вне меню и по клавише `Escape`:
-     - **«Публикации»**: `Поиск постов` (`/posts`), `Контент-план (Доска)` (`/posts?saved=1&view=board`), `Закладки (Список)` (`/posts?saved=1`), `Реклама и креативы (Ad Spy)` (`/posts?onlyAds=true`).
-     - **«Аналитика»**: `AI Отчёты` (`/reports`), `Афиша событий` (`/events`), `Сравнение каналов` (`/compare`).
-     - **«Управление»**: сводка активных каналов и времени обновления, `Собрать сейчас`, `Настройки` (`/settings`), `Выйти`, а на экранах `< md` также мобильные ссылки навигации.
-   - В правой части оставлены компактный статус-бейдж `{active}/{total} активны`, кнопка `Добавить канал` и меню `Управление`.
-2. **Прямой доступ к контент-плану (`src/app/posts/page.tsx`, `src/components/channel/RecentPostCard.tsx`)**:
-   - На `/posts` кнопка **«Контент-план (Доска)»** вынесена в верхнюю группу режимов поиска рядом с «Все посты» и «Только реклама (Ad Spy)», а переключатель внутри раздела закладок использует «Список закладок» / «Доска идей».
-   - Добавлена синхронизация фильтров по URL-параметрам (`?onlyAds=true`, `?saved=1`, `?view=board`), включая `popstate` и переходы между режимами `/posts` из шапки (`tgmon:posts-navigate`).
-   - В панель фильтров ленты канала (`RecentPostsFilterBar`) добавлена кнопка-ссылка **«Контент-план»** (`/posts?saved=1&view=board`).
-3. **Тесты**:
-   - Расширены `src/components/__tests__/Header-version.test.ts`, `src/app/posts/__tests__/page.test.ts` и `src/components/channel/__tests__/RecentPosts.test.ts`.
+## Выполненные проверки
 
-## Фактически выполненные проверки
+- `npm test -- src/lib/__tests__/compare.test.ts src/components/compare/__tests__/multi-compare.test.ts src/components/__tests__/ComparePage.test.ts src/app/api/stats/compare/__tests__/route.test.ts`: 4 файла, 15 тестов пройдены.
+- `npx tsc --noEmit`: 0 ошибок.
+- `npx eslint src`: 0 ошибок.
+- `npm test`: 150 тестовых файлов, 972 теста пройдены.
+- `npm run build`: `prisma generate && next build` завершены успешно (19 статических маршрутов).
 
-- Профильные тесты (`Header-version.test.ts`, `app/posts/__tests__/page.test.ts`, `RecentPosts.test.ts`) - 3 файла, пройдены до финального добавления теста `tgmon:posts-navigate`, затем выполнен полный прогон `npm test`.
-- `npx tsc --noEmit` и `npx eslint src` - успешно, код возврата `0`.
-- `npm test` - пройдены все `148` тестовых файлов (`962` теста).
-- `npm run build` - успешно (`prisma generate && next build`, 18/18 статических страниц).
+## Ожидающие работы и блокеры
 
-## Незавершённое и известные ограничения
-
-- В БД Docker (`tgmon-postgres`) применены все 33 миграции Prisma (включая `20261114042500_add_post_deletion_tracking` и `20261114063600_add_content_plan_to_saved_posts` через `docker exec tgmon-web npx prisma migrate deploy`).
-- В разработке Docker-стек запущен через `docker-compose.dev.yml` (`npm run dev` с volume-монтированием `.:/app`); пересборка production-образа `web` потребуется только при обновлении зависимостей или при деплое без dev-override.
+- Блокеров нет; изменений схемы БД и новых миграций Prisma не требовалось.
 
 ## Следующий шаг
 
-Перейти к **Issue #79** (`feat(compare): добавь мульти-сравнение каналов и сравнение с папкой или нишей`; далее в очереди `#80`-`#82`).
+- Перейти к планированию и реализации **Issue #80** (`feat(analytics): добавь мониторинг скорости реакции на инфоповоды (Newsjacking Speed)`).

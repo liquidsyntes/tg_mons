@@ -280,6 +280,8 @@ export async function getChannelDetailStats(
   if (overviewChannel) {
     channel.ep = overviewChannel.ep;
     channel.epBreakdown = overviewChannel.epBreakdown;
+    channel.fraudScore = overviewChannel.fraudScore;
+    channel.fraudSignals = overviewChannel.fraudSignals;
   }
 
   const myChannelRecord = overview.myChannel ?? await findUserMyChannel(userId);
