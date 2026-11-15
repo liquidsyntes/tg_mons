@@ -1,6 +1,6 @@
 # Архитектура TgMon
 
-Состояние реализации сверено **27 октября 2026 года**. Источники: [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
+Состояние реализации сверено **15 ноября 2026 года** (`v1.56`). Источники: [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
 
 ## 1. Контекст и контейнерная архитектура
 
@@ -15,42 +15,46 @@ flowchart TB
         subgraph WebContainer["Контейнер Web App и REST API (:4000)"]
             MW["Middleware (Cookie v2/v1, Origin CSRF, Bearer)"]
             UI["Next.js 15 App Router UI (React 19, Recharts)"]
-            API["Route Handlers (/api/channels, /stats, /posts, /ai, /events, /alerts, /settings, /ops)"]
+            API["Route Handlers (/api/channels, /stats, /posts, /analytics, /ai, /events, /alerts, /settings, /ops)"]
             Cache["In-memory Cache (metricsCache 5м, bestTimeCache 30м, AI config 30с)"]
         end
 
         subgraph WorkerContainer["Контейнер MTProto Worker (:4001)"]
             WServer["Внутренний HTTP-сервер (:4001, Bearer)"]
             Cron["Планировщики node-cron (Collect, Demographics, Ad Reach, Digest, Events Scan)"]
+            Poller["BotPoller (long-polling getUpdates)"]
             Coord["TaskCoordinator (последовательная очередь задач)"]
             Collector["Сборщик teleproto (collector, fetcher, persister, retry-policy)"]
         end
 
-        DB[("PostgreSQL 15 + pg_trgm (22 таблицы, Advisory Lock)")]
+        DB[("PostgreSQL 15 + pg_trgm (25 таблиц, Advisory Lock)")]
     end
 
     subgraph External["Внешние системы"]
         TG["Telegram MTProto API (TG_SESSION на сервере / TG_SESSION_LOCAL локально)"]
-        Bot["Telegram Bot API (Алерты и дайджесты)"]
+        Bot["Telegram Bot API (Алерты, дайджесты и команды)"]
         OR["OpenRouter API (LLM z-ai/glm-5.3-flash + Jev ~typesafe/jev-latest)"]
     end
 
-    Admin -->|HTTPS| MW
-    RegularUser -->|HTTPS| MW
+    Admin -->|"HTTPS"| MW
+    RegularUser -->|"HTTPS"| MW
     MW --> UI
     MW --> API
     API <--> Cache
-    API -->|Prisma ORM| DB
-    API -->|Генерация 9 AI-отчётов и скан событий| OR
+    API -->|"Prisma ORM"| DB
+    API -->|"Генерация 10 AI-отчётов и скан событий"| OR
     API -->|"POST /collect, /channels/add (Bearer)"| WServer
 
     Cron --> Coord
     WServer --> Coord
+    Poller -->|"Постановка /add через очередь"| Coord
     Coord --> Collector
-    Collector -->|MTProto TCP| TG
-    Collector -->|Prisma ORM + pg_try_advisory_xact_lock| DB
+    Collector -->|"MTProto TCP"| TG
+    Collector -->|"Prisma ORM + pg_try_advisory_xact_lock"| DB
+    Poller -->|"Prisma ORM + вызовы Bot API"| DB
     Collector -->|"POST /api/internal/invalidate-cache (Bearer)"| API
-    Collector -->|Уведомления AlertRule и дайджесты| Bot
+    Collector -->|"Уведомления AlertRule и дайджесты"| Bot
+    Poller <-->|"Команды /start, /status, /digest, /channel, /add, /events, /event, /dismiss"| Bot
 ```
 
 Web и worker работают отдельными Node.js-процессами. Web передаёт добавление канала и ручной сбор в закрытый HTTP API worker на порту 4001 с Bearer-токеном; порт не публикуется из Compose. Только worker использует MTProto-сессию:
@@ -63,14 +67,14 @@ Web и worker работают отдельными Node.js-процессами
 
 | Слой | Модули и ответственность |
 | --- | --- |
-| UI | `src/app/`, `src/components/`: страницы, интерактивные таблицы, графики, отчёты; главная и детализация загружают метрики через API |
-| API | `src/app/api/`: чтение и управление каналами, статистика, AI (9 маршрутов), события, сохранённые изображения постов, удаление отчётов, настройки, алерты, дайджест, health и экспорт |
-| Метрики | `src/lib/metrics/queries.ts`, `aggregate.ts`, `calculate.ts`, `engagement.ts`, `adShare.ts`; публичные реэкспорты в `src/lib/metrics.ts` |
-| Производные оценки | `ep.ts`, `scoring.ts`, `fraudDetector.ts`, `citationIndex.ts`, `adAttribution.ts`, `pricing.ts`, `silenceDetector.ts`, `viralPosts.ts` |
+| UI | `src/app/`, `src/components/`: страницы, интерактивные таблицы, графики, отчёты, медиакит PDF (`ChannelPdfTemplate.tsx`), канбан контент-плана (`ContentPlanBoard.tsx`), креативы Ad Spy (`AdCreativesPanel.tsx`) и инфоповоды (`NewsjackingWidget.tsx`); главная и детализация загружают метрики через API |
+| API | `src/app/api/`: чтение и управление каналами, мульти-сравнение, сделки `ad-placements`, статистика, инфоповоды (`/api/analytics/newsjacking`), AI (10 маршрутов), события, закладки/контент-план (`/api/posts/saved`), сохранённые изображения постов, удаление отчётов, настройки, алерты, дайджест, health и экспорт |
+| Метрики и аналитика | `src/lib/metrics/queries.ts`, `aggregate.ts`, `calculate.ts`, `engagement.ts`, `adShare.ts`, `post-length.ts`, `subscriber-events.ts`, `ad-creatives.ts`, `content-plan.ts`, `newsjacking.ts`; публичные реэкспорты в `src/lib/metrics.ts`, `src/lib/compare.ts`, `src/lib/channel-pdf-report.ts` |
+| Производные оценки | `ep.ts`, `scoring.ts`, `fraudDetector.ts` + `src/lib/fraud/*`, `citationIndex.ts` + `src/lib/citations/*`, `adAttribution.ts`, `adReach.ts`, `pricing.ts`, `silenceDetector.ts`, `viralPosts.ts` |
 | События и календарь | `src/lib/events/jev.ts`, `digest.ts`, `matching.ts`, `calendar.ts` (`.ics` и Google Calendar) |
-| Уведомления и дайджест | `src/lib/alerts.ts`, `src/lib/digest.ts`, `src/lib/telegram.ts` |
-| Сбор | `client.ts` → `fetcher.ts` → `collector.ts` → `persister.ts`; текст в `message-content.ts`, реакции в `message-reactions.ts`, упоминания в `post-mentions.ts`, изображения в `post-image.ts`, ошибки в `retry-policy.ts` |
-| Дополнительные задания | `worker/demographics.ts`, `worker/ad-reach.ts` |
+| Уведомления, дайджест и бот | `src/lib/alerts.ts` + `src/lib/alerts/*`, `src/lib/digest.ts`, `src/lib/telegram.ts`, `src/lib/telegram-bot-commands.ts` |
+| Сбор | `client.ts` -> `fetcher.ts` -> `collector.ts` -> `persister.ts`; текст в `message-content.ts`, реакции в `message-reactions.ts`, упоминания в `post-mentions.ts`, изображения в `post-image.ts`, сигналы в `fraud-evaluator.ts`, жизненный цикл SyncJob в `sync-jobs.ts`, ошибки в `retry-policy.ts` |
+| Дополнительные задания и поллинг | `worker/demographics.ts`, `worker/ad-reach.ts`, `worker/bot-poller.ts` |
 | Хранение и кэш | `prisma.ts`, `materialize.ts`, `cache.ts` |
 
 ### Компонентная архитектура Web & API
@@ -79,33 +83,33 @@ Web и worker работают отдельными Node.js-процессами
 flowchart TB
     subgraph Presentation["Слой представления (src/app, src/components)"]
         Pages["Страницы App Router (/, /channel/:id, /posts, /compare, /reports, /events, /settings, /login)"]
-        Widgets["Виджеты и графики (ChannelsTable, MyChannelCard, CitationNetworkWidget, AIReportsSection, EventCard)"]
+        Widgets["Виджеты и графики (ChannelsTable, MyChannelCard, CitationNetworkWidget, AIReportsSection, ContentPlanBoard, AdCreativesPanel, NewsjackingWidget, EventCard)"]
     end
 
     subgraph Security["Контур безопасности и ролей"]
         Middleware["src/middleware.ts + src/lib/auth.ts (Проверка сессий v2/v1, роли ADMIN/USER, Origin CSRF)"]
-        Scope["src/lib/users.ts (Фильтрация по UserChannel, изоляция данных пользователя)"]
+        Scope["src/lib/users.ts + src/lib/user-channels.ts (Фильтрация по UserChannel, изоляция данных пользователя)"]
     end
 
     subgraph Routes["Маршруты API (src/app/api)"]
-        StatsAPI["/api/stats/* и /api/channels/*"]
-        PostsAPI["/api/posts/search и /api/posts/advertisers"]
-        AiAPI["/api/ai/* (9 генераторов отчётов)"]
+        StatsAPI["/api/stats/*, /api/channels/* и /api/analytics/newsjacking"]
+        PostsAPI["/api/posts/search, /api/posts/saved и /api/posts/advertisers"]
+        AiAPI["/api/ai/* (10 генераторов отчётов)"]
         EventsAPI["/api/events/* (Список, скан, скрытие)"]
         AdminOpsAPI["/api/settings, /api/admin/registrations, /api/ops/status, /api/alerts"]
     end
 
     subgraph Domain["Доменное ядро и аналитика (src/lib)"]
-        MetricsEngine["metrics/queries.ts, aggregate.ts, calculate.ts, engagement.ts"]
+        MetricsEngine["metrics/* (queries, aggregate, calculate, post-length, ad-creatives, content-plan, newsjacking), compare.ts"]
         ScoringEngine["ep.ts, scoring.ts, silenceDetector.ts, viralPosts.ts"]
-        FraudCitation["fraudDetector.ts (runFraudAudit), citationIndex.ts, adAttribution.ts, pricing.ts"]
+        FraudCitation["fraud/* (6 эвристик + checkLowCitationGrowth), citations/*, adAttribution.ts, adReach.ts, pricing.ts"]
         EventsEngine["events/jev.ts, digest.ts, matching.ts, calendar.ts"]
         OpenRouterClient["openrouter.ts + ai-reports.ts + ai-markdown.ts"]
         InMemCache["cache.ts (metricsCache, bestTimeCache)"]
     end
 
     Pages --> Widgets
-    Widgets -->|fetch JSON| Middleware
+    Widgets -->|"fetch JSON"| Middleware
     Middleware --> StatsAPI
     Middleware --> PostsAPI
     Middleware --> AiAPI
@@ -122,6 +126,7 @@ flowchart TB
     MetricsEngine --> ScoringEngine
     MetricsEngine --> FraudCitation
     PostsAPI --> FraudCitation
+    PostsAPI --> MetricsEngine
     AiAPI --> OpenRouterClient
     EventsAPI --> EventsEngine
     EventsEngine --> OpenRouterClient
@@ -138,6 +143,7 @@ flowchart LR
         CronAd["Cron: Ad Reach (15 * * * *)"]
         CronDigest["Cron: Digest (*/5 * * * *)"]
         CronEvents["Cron: EVENTS_SCAN_CRON (опционально)"]
+        BotPoll["BotPoller (long-polling getUpdates)"]
     end
 
     subgraph Queue["Координация (src/worker/task-coordinator.ts)"]
@@ -152,12 +158,15 @@ flowchart LR
         AdJob["collectAdReachSnapshots (ad-reach.ts)"]
         DigestJob["sendDailyDigestIfDue + sendUserDigestsIfDue (digest.ts)"]
         EventsJob["POST /api/events/scan (через защищённый Web API)"]
+        BotCommands["handleTelegramBotCommand (telegram-bot-commands.ts)"]
     end
 
-    HTTP -->|409 если main-collect уже идёт| TC
-    CronCollect --> TC
+    HTTP -->|"409 если main-collect уже идёт"| TC
+    CronCollect -->|"в т.ч. execution:missed"| TC
     CronDemo --> TC
     CronAd --> TC
+    BotPoll -->|"/add @username"| TC
+    BotPoll -->|"Остальные команды БД/Bot API"| BotCommands
 
     TC --> MainCollect
     TC --> Backfill
@@ -165,11 +174,11 @@ flowchart LR
     TC --> AdJob
 
     MainCollect --> Lock
-    CronDigest -->|Прямой вызов БД + Bot API| DigestJob
-    CronEvents -->|HTTP Bearer к Web| EventsJob
+    CronDigest -->|"Прямой вызов БД + Bot API"| DigestJob
+    CronEvents -->|"HTTP Bearer к Web"| EventsJob
 ```
 
-`src/worker/task-coordinator.ts` ставит основной сбор, демографию, рекламный охват и первичный backfill в одну последовательную очередь. Повторный запрос основного сбора получает 409. Создание `SyncJob` сериализовано транзакционным advisory lock PostgreSQL; активный `RUNNING` блокирует второй цикл между процессами. `RUNNING` старше порога `HEALTH_STUCK_THRESHOLD_MINUTES` (по умолчанию 120 минут) помечается `FAILED` перед новым запуском. При `SIGINT`/`SIGTERM` worker прекращает приём задач, ждёт активное задание до 30 секунд и останавливает основной сбор между каналами, завершает `SyncJob` как `PARTIAL`/`FAILED` при прерывании и отключает `TelegramClient`.
+`src/worker/task-coordinator.ts` ставит основной сбор, демографию, рекламный охват и первичный backfill (как из web, так и из команды `/add` Telegram-бота) в одну последовательную очередь. Повторный запрос основного сбора получает 409. Создание `SyncJob` сериализовано транзакционным advisory lock PostgreSQL; активный `RUNNING` блокирует второй цикл между процессами. `RUNNING` старше порога `HEALTH_STUCK_THRESHOLD_MINUTES` (по умолчанию 120 минут) помечается `FAILED` перед новым запуском; при холодном старте с устаревшим последним `SyncJob` и пропущенных интервалах cron (`execution:missed`) запускается восстановительный цикл сбора. При `SIGINT`/`SIGTERM` worker прекращает приём задач, останавливает `BotPoller`, ждёт активное задание до 30 секунд и останавливает основной сбор между каналами, завершает `SyncJob` как `PARTIAL`/`FAILED` при прерывании и отключает `TelegramClient`.
 
 Очередь действует в одном процессе worker. Для одновременного запуска нескольких worker демография и рекламный охват потребуют отдельной межпроцессной координации; штатный Compose запускает один worker.
 
@@ -195,16 +204,18 @@ flowchart TB
     AdminDecision["ADMIN: одобрить, удалить заявку или заблокировать"]
 
     subgraph PersonalWorkspace["Персональное пространство пользователя (изоляция по userId)"]
-        UC["UserChannel (список каналов, isMine, isFavorite, niche, customAdPriceUah, customCpmUah)"]
+        UC["UserChannel (список каналов, isMine, isFavorite, niche, tags, customAdPriceUah, customCpmUah)"]
+        USP["UserSavedPost (закладки, заметки и канбан контент-плана)"]
+        ADP["AdPlacement (рекламные закупки, бюджет и фактические вступления)"]
         AIR["AiReport (личная история отчётов; persona скрыт от USER)"]
         AR["AlertRule + AlertRuleFire + AlertRulePostFire (личные правила уведомлений)"]
         UDE["UserDismissedEvent (персонально скрытые карточки Афиши)"]
-        UDigest["User.telegramChatId + digestEnabled + digestHour (личный дайджест)"]
+        UDigest["User.telegramChatId + digestEnabled + digestHour (личный дайджест и бот)"]
     end
 
     subgraph SharedPool["Общий пул данных системы (собирается один раз для всех)"]
         Ch["Channel, Snapshot, ChannelMetricDaily, AudienceDemographics, FraudSignal"]
-        Posts["Post, PostImage, PostSnapshot, PostViewSnapshot, Mention"]
+        Posts["Post, PostImage, PostSnapshot, PostEngagementHour, PostViewSnapshot, Mention"]
         Ev["Event, EventMention"]
         Sys["SystemSetting (общий ключ и модель OpenRouter, глобальный дайджест)"]
     end
@@ -216,48 +227,52 @@ flowchart TB
     MasterKey --> CookieV1
     MasterKey --> Bearer
 
-    CookieV2 -->|Только ACTIVE после проверки БД| PersonalWorkspace
-    PersonalWorkspace -->|Чтение только подключённых каналов| SharedPool
-    CookieV1 -->|Полный доступ ADMIN| SharedPool
+    CookieV2 -->|"Только ACTIVE после проверки БД"| PersonalWorkspace
+    PersonalWorkspace -->|"Чтение только подключённых каналов"| SharedPool
+    CookieV1 -->|"Полный доступ ADMIN"| SharedPool
     CookieV1 -->|"Управление /settings и заявками"| Sys
 ```
 
 Полная спецификация моделей PostgreSQL 15, типов полей, вторичных индексов, перечислений и каскадов приведена в документе [База данных и схема Prisma](database.md).
 
-Схема `prisma/schema.prisma` включает **24 модели** и два перечисления: `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок. Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
+Схема `prisma/schema.prisma` включает **25 моделей** и два перечисления: `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок. Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
 
 | Prisma-модель | Таблица | Назначение |
 | --- | --- | --- |
 | `User` | `users` | Учётные записи (`username`, необязательный `passwordHash`, `telegramSub`, `accessStatus`, `role`, настройки дайджеста) |
 | `InviteCode` | `invite_codes` | Исторические коды; новая регистрация их не использует |
-| `UserChannel` | `user_channels` | Персональные подписки пользователя на каналы (`isMine`, `isFavorite`, `niche`, `customAdPriceUah`, `customCpmUah`, `isActive`); unique `(userId, channelId)` |
+| `UserChannel` | `user_channels` | Персональные подписки пользователя на каналы (`isMine`, `isFavorite`, `niche`, `tags`, `customAdPriceUah`, `customCpmUah`, `isActive`); unique `(userId, channelId)` |
 | `UserDismissedEvent` | `user_dismissed_events` | Персонально скрытые пользователем карточки событий; unique `(userId, eventId)` |
+| `UserSavedPost` | `user_saved_posts` | Персональные закладки, заметки и карточки контент-плана (`status`, `plannedFor`, `draftText`); unique `(userId, postId)` |
 | `Channel` | `channels` | Общий пул Telegram-каналов: идентификаторы, тип, ниша, статус и ошибки сбора |
 | `Snapshot` | `snapshots` | История численности аудитории |
-| `Post` | `posts` | Текущие счётчики, разбивка реакций (`reactionBreakdown`), формат (`contentType`) и текст публикации; unique `(channelId, messageId)` |
+| `Post` | `posts` | Текущие счётчики, разбивка реакций (`reactionBreakdown`), формат (`contentType`), удаление рекламы (`deletedAt`, `deletedAfterHours`) и текст; unique `(channelId, messageId)` |
 | `PostImage` | `post_images` | Одно изображение поста до 1 МБ; байты и MIME-тип хранятся отдельно от строки Post |
 | `PostSnapshot` | `post_snapshots` | Нерегулярная история просмотров свежих постов для LTV |
+| `PostEngagementHour` | `post_engagement_hours` | Почасовые приросты реакций и пересылок постов (для активности 48ч и ночного антифрода); unique `(postId, hourStart)` |
 | `PostViewSnapshot` | `post_view_snapshots` | Рекламные контрольные точки (1, 12, 24, 48 часов); unique `(postId, hoursAfterPost)` |
 | `Mention` | `mentions` | Ссылка из собранного поста на `username`/`tgId`/`targetMessageId`; target не является внешним ключом на Channel |
 | `SyncJob` | `sync_jobs` | Начало/конец цикла, статус (`SyncStatus`), счётчики и краткая ошибка |
 | `ChannelMetricDaily` | `channel_metrics_daily` | Дневные агрегаты UTC; unique `(channelId, date)` |
 | `AudienceDemographics` | `audience_demographics` | Языковые доли, доля включённых уведомлений (`notificationsEnabledPercent`), дата снимка, nullable JSONB `countryBreakdown` |
-| `AiReport` | `ai_reports` | Тип (9 видов отчётов) и строковый JSON-ответ LLM, необязательный `channelId` и `userId` владельца отчёта |
+| `AiReport` | `ai_reports` | Тип (10 видов отчётов) и строковый JSON-ответ LLM, необязательный `channelId` и `userId` владельца отчёта |
 | `Event` | `events` | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | Связи M:N событий с исходными постами; unique `(eventId, postId)` |
 | `SystemSetting` | `system_settings` | Запись `global` с общими настройками AI (`aiToken`, `aiModel`) и полями глобального дайджеста |
 | `AlertRule` | `alert_rules` | Глобальные и канальные правила Telegram-уведомлений (метрики, `keyword`, `viralPostMultiplier`) с привязкой `userId` |
 | `AlertRuleFire` | `alert_rule_fires` | Время последней отправки и значение для пары «правило и канал» (24ч cooldown) |
 | `AlertRulePostFire` | `alert_rule_post_fires` | Фиксация отправленных постовых алертов (`keyword` и `viralPostMultiplier`) для пары «правило и пост» |
-| `FraudSignal` | `fraud_signals` | Тип, значение, причина и время срабатывания эвристики |
+| `FraudSignal` | `fraud_signals` | Тип (6 эвристик), значение, причина и время срабатывания эвристики |
+| `AdPlacement` | `ad_placements` | Зафиксированные рекламные сделки пользователя (бюджет, формат, статус, `inviteLink`, `actualJoins`, связка с постом/донором) |
 
-Миграции находятся в `prisma/migrations/` (**26 миграций**). Последние миграции в репозитории:
-- `20261026210800_add_user_personal_digest` — поля персонального Telegram-дайджеста в таблице `users`;
-- `20261026201200_add_keyword_alert_rules` — колонка `alert_rules.keyword_query` и таблица `alert_rule_post_fires`;
-- `20261026162020_add_user_channel_ad_pricing` — персональные цены рекламы `custom_ad_price_uah` и `custom_cpm_uah` в `user_channels`;
-- `20261026153255_add_mention_target_message_id` — `mentions.target_message_id` для цепочек цитирования;
-- `20261026132043_add_post_reaction_breakdown` — `posts.reaction_breakdown` (JSONB);
-- `20261024195714_add_events_scanned_at` — `posts.events_scanned_at`.
+Миграции находятся в `prisma/migrations/` (**33 миграции**). Последние миграции в репозитории:
+- `20261114063600_add_content_plan_to_saved_posts` – поля контент-плана (`status`, `planned_for`, `draft_text`) в таблице `user_saved_posts`;
+- `20261114042500_add_post_deletion_tracking` – поля фиксации удаления рекламных постов (`deleted_at`, `deleted_after_hours`, `last_checked_at`) в таблице `posts`;
+- `20261113053607_add_ad_placements` – таблица `ad_placements` для трекера рекламных закупок и расчёта фактического ROI/CPF;
+- `20261028192148_add_telegram_registration` – статусы доступа и поля профиля Telegram OIDC в таблице `users`;
+- `20261028155134_add_post_engagement_hour` – таблица почасовых приростов реакций и пересылок `post_engagement_hours`;
+- `20261027092200_add_user_saved_posts` – таблица личных закладок `user_saved_posts`;
+- `20261027081700_add_user_channel_tags` – массив персональных тегов `user_channels.tags`.
 
 Схема включает `pg_trgm` и GIN-индекс текста постов. Отключение канала меняет `isActive`; физическое удаление использует каскады связей Prisma. `isMine` переносится транзакцией, но уникального ограничения в БД нет. `SystemSetting.aiToken` хранится в БД; API возвращает только признак наличия и маскированное превью.
 
@@ -299,7 +314,7 @@ sequenceDiagram
         opt Найдены сработавшие правила и настроен Bot API
             C->>B: Отправка уведомлений (в личный или системный chatId)
         end
-        C->>D: Запуск 4 эвристик антифрода и синхронизация FraudSignal
+        C->>D: Запуск 6 эвристик антифрода (fraud-evaluator.ts) и синхронизация FraudSignal
     end
     C->>D: Очистка старых PostSnapshot (>30 дней) и завершение SyncJob (COMPLETED / PARTIAL)
     C->>W: POST /api/internal/invalidate-cache (Bearer)
@@ -329,7 +344,7 @@ sequenceDiagram
 
 ### Ошибки основного цикла
 
-`retry-policy.ts` увеличивает `consecutiveErrors` и отключает канал при достижении `CHANNEL_MAX_CONSECUTIVE_ERRORS` (по умолчанию 10). Успех сбрасывает счётчик. При `TelegramTimeoutError` цикл пытается переподключить клиент; неудачный reconnect завершает цикл с fatal error. Некоторые ошибки чтения сообщений внутри `collectChannelData` только логируются, поэтому успешный статус не гарантирует полноту постов.
+`retry-policy.ts` увеличивает `consecutiveErrors` и отключает канал при достижении `CHANNEL_MAX_CONSECUTIVE_ERRORS` (по умолчанию 10). Ошибки авторизации самой MTProto-сессии (`isSessionAuthError`: `AUTH_KEY_UNREGISTERED`, `AUTH_KEY_DUPLICATED`, `SESSION_REVOKED`, `USER_DEACTIVATED`) изолируются и не увеличивают `consecutiveErrors`, предотвращая массовое ложное отключение каналов. Успех сбрасывает счётчик. При `TelegramTimeoutError` цикл пытается переподключить клиент; неудачный reconnect завершает цикл с fatal error. Некоторые ошибки чтения сообщений внутри `collectChannelData` только логируются, поэтому успешный статус не гарантирует полноту постов.
 
 ---
 
@@ -384,6 +399,7 @@ Worker анализирует до 30 дневных строк и до 30 по�
 - **Ежедневные Telegram-дайджесты**: вне локального режима worker каждые 5 минут (`*/5 * * * *`) вызывает:
   1. `sendDailyDigestIfDue()` — глобальный дайджест из `SystemSetting` (отправляется на системный `TELEGRAM_CHAT_ID` в выбранный час UTC по всем активным каналам);
   2. `sendUserDigestsIfDue()` — персональные дайджесты для всех пользователей с `User.digestEnabled = true` и непустым `User.telegramChatId` в их `User.digestHour` UTC строго по их активным `UserChannel`. Повторная отправка в те же UTC-сутки блокируется через `lastDigestAt`.
+- **Интерактивный поллинг команд бота** (`src/worker/bot-poller.ts` + `src/lib/telegram-bot-commands.ts`): при наличии `TELEGRAM_BOT_TOKEN` и `TELEGRAM_BOT_POLLING_ENABLED !== "false"` worker запускает фоновый long-polling `getUpdates`, авторизует чаты по `User.telegramChatId` (`ACTIVE`) или системному `TELEGRAM_CHAT_ID` и обрабатывает `/start`, `/help`, `/status`, `/digest`, `/channel`, `/add`, `/events` (`/afisha`), `/event <id>` и `/dismiss <id>` (`/hide <id>`). Ошибки сети и `409 Conflict` логируются с маскированием токена и не влияют на сбор MTProto.
 - Дополнительные задания не запускаются автоматически при старте: `COLLECT_ON_STARTUP` относится только к основному циклу.
 
 Тепловые карты канала, почасовое распределение и рекомендация времени публикации используют `APP_TIMEZONE` (по умолчанию `Europe/Moscow`) независимо от часового пояса процесса. Cron по-прежнему использует часовой пояс Node.js-процесса; материализация использует UTC.
@@ -403,8 +419,8 @@ flowchart LR
         RepPage["Архив отчётов (/reports)"]
     end
 
-    subgraph AIRoutes["9 маршрутов /api/ai/*"]
-        R1["summary, super-report, audience, action-plan"]
+    subgraph AIRoutes["10 маршрутов /api/ai/*"]
+        R1["metrics-explainer, summary, super-report, audience, action-plan"]
         R2["compare, compare-reports"]
         R3["trends (все активные каналы за 48ч)"]
         R4["content-gap (Мой канал vs топ-60 постов конкурентов)"]
@@ -437,7 +453,7 @@ flowchart LR
     Save --> Export
 ```
 
-AI-обработчики формируют промпты из сохранённых данных, вызывают `callOpenRouter` и сохраняют ответ через `saveAiReport`. Девять типов отчётов описаны в [API](api-reference.md). Отчёт `persona` («Психологический портрет») защищён проверкой роли: он виден в UI и доступен на сервере только администратору (`role = 'ADMIN'`). Для анализа рыночных трендов (`/api/ai/trends`) берутся все активные каналы из списка пользователя за последние 48 часов, до 10 текстовых постов на канал. Для анализа упущенных тем конкурентов (`/api/ai/content-gap`) сопоставляются до 40 последних текстовых постов «Моего канала» и топ-60 наиболее эффективных постов активных конкурентов за выбранный период (по умолчанию 14 дней).
+AI-обработчики формируют промпты из сохранённых данных, вызывают `callOpenRouter` и сохраняют ответ через `saveAiReport`. Десять типов отчётов описаны в [API](api-reference.md). Отчёт `persona` («Психологический портрет») защищён проверкой роли: он виден в UI и доступен на сервере только администратору (`role = 'ADMIN'`). Для анализа рыночных трендов (`/api/ai/trends`) берутся все активные каналы из списка пользователя за последние 48 часов, до 10 текстовых постов на канал. Для анализа упущенных тем конкурентов (`/api/ai/content-gap`) сопоставляются до 40 последних текстовых постов «Моего канала» и топ-60 наиболее эффективных постов активных конкурентов за выбранный период (по умолчанию 14 дней).
 
 ### Двухэтапный пайплайн сканера событий и «Афиши»
 

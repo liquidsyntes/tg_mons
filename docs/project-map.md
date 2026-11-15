@@ -15,7 +15,7 @@
 | Telegram worker | `src/worker/index.ts`: расписания и запуск поллера; `src/worker/bot-poller.ts`: интерактивный long-polling `getUpdates` с изоляцией ошибок и маскированием токена; `src/worker/server.ts`: внутренний HTTP; `src/worker/auth.ts`: авторизация; сбор в `src/worker/collector.ts`, оценка сигналов после сбора в `src/worker/fraud-evaluator.ts`, разбор реакций в `src/worker/message-reactions.ts`, ссылки на посты в `src/worker/post-mentions.ts` |
 | AI и события | `src/lib/openrouter.ts`, `src/lib/ai-reports.ts` (названия сохранённых отчётов), `src/lib/ai-report-html.ts` (безопасный HTML-экспорт), `src/lib/ai-markdown.ts`, `src/lib/events/` (включая `calendar.ts`), маршруты `src/app/api/ai/` (10 типов, включая `metrics-explainer` и `content-gap`) и `src/app/api/events/` |
 | Хранилище | `prisma/schema.prisma`, `prisma/migrations/`, `src/lib/prisma.ts`; процессный кэш в `src/lib/cache.ts` |
-| Эксплуатация | `docker-compose.yml` с dev/prod/local overrides, `Dockerfile.web`, `Dockerfile.worker`, `dev-web.sh`, `update.sh`; проверки в `.github/workflows/ci.yml` |
+| Эксплуатация | `docker-compose.yml` с dev/prod/local overrides, `Dockerfile.web`, `Dockerfile.worker`, `dev-web.sh`, `update.sh`; проверки и публикация образов в `.github/workflows/ci.yml` и `.github/workflows/docker-publish.yml` |
 
 ## Основные потоки
 

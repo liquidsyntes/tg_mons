@@ -1,8 +1,8 @@
 # Метрики и формулы
 
-Предметная сверка формул с исполняемым кодом выполнена **27 октября 2026 года**; почасовая активность сверена 28 октября 2026 года. Размещение запросов метрик сверено 1 ноября 2026 года, модулей индекса цитирования 2 ноября 2026 года. Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [history.ts](../src/lib/metrics/history.ts), [best-time.ts](../src/lib/metrics/best-time.ts), [materialize.ts](../src/lib/materialize.ts), [ep.ts](../src/lib/ep.ts), [scoring.ts](../src/lib/scoring.ts), [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [нормализация индекса](../src/lib/citations/normalization.ts), [расчёт индекса](../src/lib/citations/calculate.ts), [запросы индекса](../src/lib/citations/queries.ts), [pricing.ts](../src/lib/pricing.ts), [channel-activity.ts](../src/lib/channel-activity.ts).
+Предметная сверка формул с исполняемым кодом выполнена **15 ноября 2026 года** (`v1.56`). Основные источники: [aggregate.ts](../src/lib/metrics/aggregate.ts), [calculate.ts](../src/lib/metrics/calculate.ts), [engagement.ts](../src/lib/metrics/engagement.ts), [queries.ts](../src/lib/metrics/queries.ts), [history.ts](../src/lib/metrics/history.ts), [best-time.ts](../src/lib/metrics/best-time.ts), [post-length.ts](../src/lib/metrics/post-length.ts), [subscriber-events.ts](../src/lib/metrics/subscriber-events.ts), [ad-creatives.ts](../src/lib/metrics/ad-creatives.ts), [content-plan.ts](../src/lib/metrics/content-plan.ts), [newsjacking.ts](../src/lib/metrics/newsjacking.ts), [compare.ts](../src/lib/compare.ts), [materialize.ts](../src/lib/materialize.ts), [ep.ts](../src/lib/ep.ts), [scoring.ts](../src/lib/scoring.ts), [fraudDetector.ts](../src/lib/fraudDetector.ts), [citationIndex.ts](../src/lib/citationIndex.ts), [нормализация индекса](../src/lib/citations/normalization.ts), [расчёт индекса](../src/lib/citations/calculate.ts), [запросы индекса](../src/lib/citations/queries.ts), [adAttribution.ts](../src/lib/adAttribution.ts), [adReach.ts](../src/lib/adReach.ts), [pricing.ts](../src/lib/pricing.ts), [channel-activity.ts](../src/lib/channel-activity.ts).
 
-Обозначения: $V$ — просмотры, $R$ — реакции, $C$ — комментарии, $F$ — пересылки, $S$ — аудитория, $E=R+C+F$. Пропущенные взаимодействия в формулах принимаются за 0, но отсутствующий знаменатель обычно даёт null. Процентные метрики хранятся как проценты (например, 2.5 означает 2.5%).
+Обозначения: $V$ – просмотры, $R$ – реакции, $C$ – комментарии, $F$ – пересылки, $S$ – аудитория, $E=R+C+F$. Пропущенные взаимодействия в формулах принимаются за 0, но отсутствующий знаменатель обычно даёт null. Процентные метрики хранятся как проценты (например, 2.5 означает 2.5%).
 
 ## Общая схема расчёта аналитических показателей
 
@@ -10,9 +10,9 @@
 flowchart TD
     subgraph RawData["Сырые данные PostgreSQL (собираются Worker)"]
         Snap["Snapshot (подписчики S)"]
-        Posts["Post (V, R, C, F, reactionBreakdown, contentType, isAd, subscribersAtPublish)"]
-        PSnap["PostSnapshot (LTV 1..72ч) и PostViewSnapshot (Реклама 1, 12, 24, 48ч)"]
-        Ment["Mention (sourceChannelId, targetUsername, targetMessageId)"]
+        Posts["Post (V, R, C, F, reactionBreakdown, contentType, isAd, deletedAt, subscribersAtPublish)"]
+        PSnap["PostSnapshot (LTV 1..72ч), PostEngagementHour (почасовой отклик) и PostViewSnapshot (Реклама 1, 12, 24, 48ч)"]
+        Ment["Mention (sourceChannelId, targetUsername, targetMessageId) и AdPlacement (сделки)"]
         FSignals["FraudSignal (сохранённые сигналы за 30д)"]
     end
 
@@ -22,19 +22,19 @@ flowchart TD
 
     subgraph BaseMetrics["Базовые метрики канала и постов (metrics/*)"]
         PathChoice{"Есть строки ChannelMetricDaily за 30д?"}
-        ErErr["ER, ERR (24ч/7д), trueErr7d, VR, CR групп, Дельты (24ч/7д/30д)"]
-        Formats["Форматы контента (text, photo, video, poll, link) и Топ-5 реакций"]
-        ViralSilence["Вирусные посты (медианы 30д: views >=2x, forwards >=3x, ERR >=2x) и Детектор тишины"]
+        ErErr["ER, ERR (24ч/7д/30д), trueErr7d, VR, CR групп, Дельты (24ч/7д/30д)"]
+        Formats["Форматы, Длина/структура постов (PostLength), Популярные реакции"]
+        ViralSilence["Вирусные посты, События графика (timelineEvents), Детектор тишины и Newsjacking Speed"]
     end
 
     subgraph CompositeScores["Интегральные рейтинги и бенчмарки"]
         EP["Effective Point (EP) и CEI (Z-нормализация внутри ниши + сигмоида)"]
         CS["Content Score (0..100, грейды A+..D по 5 компонентам)"]
-        Bench["Позиция в нише (перцентили P25, P50, P75 и ранг по 6 метрикам)"]
+        Bench["Позиция в нише (перцентили P25, P50, P75), Мульти-сравнение и Бенчмарк папки"]
     end
 
     subgraph AdAndNetwork["Реклама, цитирование и антифрод"]
-        AdIntel["Ad Load, Оценка цены поста (₴: фикс -> личный CPM -> ниша), Топ рекламодателей, Атрибуция (+24/48ч и CPF)"]
+        AdIntel["Ad Load, Цена/CPM (₴), Кластеры креативов, Удержание (1/24, 2/48), ROI/CPF сделок"]
         Citation["Индекс цитирования (CI = sum count * log10(subs)), Роль в инфополе и Цепочки распространения"]
         Fraud["runFraudAudit: 6 эвристик -> fraudScore (0..100) + checkLowCitationGrowth"]
     end
@@ -56,6 +56,7 @@ flowchart TD
     ErErr --> Bench
     Daily --> Fraud
     Posts --> Fraud
+    PSnap --> Fraud
     FSignals --> Fraud
     Citation --> Fraud
 ```

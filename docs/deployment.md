@@ -1,6 +1,6 @@
 # Запуск и эксплуатация
 
-Сверено **27 октября 2026 года** с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker) и [CI](../.github/workflows/ci.yml).
+Сверено **15 ноября 2026 года** (`v1.56`) с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker), [CI](../.github/workflows/ci.yml) и [GHCR Publish](../.github/workflows/docker-publish.yml).
 
 ## Среды проекта и изоляция Telegram-авторизации (`AuthKeyDuplicated`)
 
@@ -36,6 +36,7 @@ flowchart TB
 
     subgraph GitHubCI["3. GitHub (liquidsyntes/tg_mons, origin/main)"]
         CI["GitHub Actions CI (prisma generate, tsc, eslint, vitest, next build)"]
+        GHCR["GHCR Publish (docker-publish.yml: образы web и worker на main и v*)"]
     end
 
     TGCloud["Серверы Telegram MTProto"]
@@ -50,9 +51,9 @@ flowchart TB
 
 | Среда | Где находится | Как запускается | Какая MTProto-сессия используется | Как отображается в Telegram («Устройства») |
 | --- | --- | --- | --- | --- |
-| **1. Локальная разработка** | Windows (`C:\TgMon`) / WSL (`/mnt/c/TgMon`) | В Docker с Hot Reload: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d` (или `bash dev-web.sh`) — контейнеры `tgmon-postgres` + `tgmon-web` + `tgmon-worker` | Только **`TG_SESSION_LOCAL`** (`WORKER_LOCAL_MODE=true`) | `TgMon Local Dev` |
+| **1. Локальная разработка** | Windows (`C:\TgMon`) / WSL (`/mnt/c/TgMon`) | В Docker с Hot Reload: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d` (или `bash dev-web.sh`) – контейнеры `tgmon-postgres` + `tgmon-web` + `tgmon-worker` | Только **`TG_SESSION_LOCAL`** (`WORKER_LOCAL_MODE=true`) | `TgMon Local Dev` |
 | **2. Боевой сервер (Production)** | VPS OVH (`ovh-vps`, `/opt/tgmon`, домен `tgmons.online`) | Полный Docker-стек (`postgres` + `web` + `worker`) + Nginx + HTTPS, деплой через `bash update.sh` | Только **`TG_SESSION`** (`docker-compose.prod.yml`) | `TgMon Server Worker` |
-| **3. GitHub** | `origin/main` (`liquidsyntes/tg_mons`, публичный репозиторий) | CI (`tsc`, `eslint`, `vitest`, `build`) | Секреты и строки сессий в git **никогда не хранятся** | — |
+| **3. GitHub** | `origin/main` (`liquidsyntes/tg_mons`, публичный репозиторий) | CI (`ci.yml`: `tsc`, `eslint`, `vitest`, `build`) и публикация образов в GHCR (`docker-publish.yml`) | Секреты и строки сессий в git **никогда не хранятся** | – |
 
 ### Почему разделены `TG_SESSION` и `TG_SESSION_LOCAL`
 
@@ -228,10 +229,12 @@ curl -i http://localhost:4000/api/health
 - `npm run seed` удаляет посты, снимки и каналы, затем создаёт демонстрационные данные. Только для отдельной тестовой базы!
 - Для Windows `EPERM` при `prisma generate` проверьте запущенные Node-процессы этого проекта, которые могут удерживать Prisma Query Engine, и остановите их перед генерацией.
 
-Актуальные миграции включают:
-- `20261020150000_add_multiuser_support` — таблицы многопользовательского режима (`users`, `invite_codes`, `user_channels`, `user_dismissed_events`) и привязка `user_id` в `ai_reports` и `alert_rules`.
-- `20261016000000_add_post_images` — таблица `post_images` для хранения сжатых изображений постов.
-- `20261013212052_add_event_dismissed_at` — колонка `events.dismissed_at`.
+Последние миграции включают (всего 33 миграции в `prisma/migrations/`):
+- `20261114063600_add_content_plan_to_saved_posts` – поля контент-плана (`status`, `planned_for`, `draft_text`) в таблице `user_saved_posts`;
+- `20261114042500_add_post_deletion_tracking` – поля отслеживания удалений рекламных постов (`deleted_at`, `deleted_after_hours`, `last_checked_at`) в `posts`;
+- `20261113053607_add_ad_placements` – таблица рекламных сделок `ad_placements`;
+- `20261028192148_add_telegram_registration` – статусы и профиль Telegram OIDC в `users`;
+- `20261028155134_add_post_engagement_hour` – почасовые приросты реакций и пересылок `post_engagement_hours`.
 
 ## Telegram Login, заявки и доступ к Web UI
 
@@ -361,4 +364,4 @@ curl -i http://localhost:4000/api/health
 
 Используйте `npm ci` с зафиксированным lockfile. package.json содержит overrides: next → postcss 8.5.26 и sharp 0.35.4; @prisma/config → deepmerge-ts 8.0.2. Пересматривайте их при обновлении родительских пакетов; наличие override само по себе не подтверждает отсутствие уязвимостей.
 
-CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npx eslint src`, `npm test`, затем `npm run build`. Скрипт `npm run lint` вызывает работающий в Next.js 15, но устаревающий `next lint`; CI использует прямой вызов ESLint. При ограничениях запуска тестовых процессов можно проверить `npm test -- --maxWorkers=2`; это не меняет набор тестов. Workflow срабатывает на push main/VPS_Ready, PR в main и вручную. Автоматического деплоя в нём нет. Совместимость cron и Prisma config проверяется отдельными unit-тестами; результаты нужно получать текущим запуском, а не брать из старых отчётов.
+CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npx eslint src`, `npm test`, затем `npm run build`. Скрипт `npm run lint` вызывает работающий в Next.js 15, но устаревающий `next lint`; CI использует прямой вызов ESLint. При ограничениях запуска тестовых процессов можно проверить `npm test -- --maxWorkers=2`; это не меняет набор тестов. Workflow `ci.yml` срабатывает на push `main`/`VPS_Ready`, PR в `main` и вручную; отдельный workflow `.github/workflows/docker-publish.yml` на push `main`, тегах `v*` и ручном запуске собирает и публикует Docker-образы `ghcr.io/liquidsyntes/tg_mons-web` и `ghcr.io/liquidsyntes/tg_mons-worker` в GHCR (без автоматического деплоя на OVH). Совместимость cron и Prisma config проверяется отдельными unit-тестами; результаты нужно получать текущим запуском, а не брать из старых отчётов.
