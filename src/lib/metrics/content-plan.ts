@@ -1,3 +1,4 @@
+import { describeSample } from '../data-evidence';
 import { getAppTimezone, getZonedDateParts } from '../timezone';
 import type {
   BestTimeRecommendation,
@@ -152,6 +153,8 @@ export function suggestNextPublishSlots(
     }
   }
 
+  if (recommendation?.isFallback) hasMeasuredTraffic = false;
+
   const occupiedKeys = new Set<string>();
   for (const item of existingPlannedDates) {
     if (!item) continue;
@@ -185,6 +188,8 @@ export function suggestNextPublishSlots(
       : (FALLBACK_HOURS_SCORES[hour] ?? hour * 0.01);
 
     candidates.push({
+      isFallback: !hasMeasuredTraffic || !hasActivity,
+      evidence: recommendation?.evidence,
       dateTime: candidateDate.toISOString(),
       dateKey,
       dayOfWeek,
@@ -208,6 +213,8 @@ export function suggestNextPublishSlots(
   });
 
   return candidates.slice(0, count).map((candidate) => ({
+    isFallback: candidate.isFallback,
+    evidence: candidate.evidence,
     dateTime: candidate.dateTime,
     dateKey: candidate.dateKey,
     dayOfWeek: candidate.dayOfWeek,
@@ -219,10 +226,12 @@ export function suggestNextPublishSlots(
 }
 
 export interface ContentPlanChannelPostInput extends PostForLengthAnalytics {
+  publishedAt?: Date | string;
   contentType?: string | null;
 }
 
 export interface ContentPlanChannelInput {
+  lastCollectedAt?: Date | null;
   id: number;
   title: string;
   posts: readonly ContentPlanChannelPostInput[];
@@ -244,6 +253,8 @@ export function buildContentPlanFormatGuidance(
 
   let bestLengthBucket: PostLengthBucket | null =
     analytics.leaders.byErr ?? analytics.leaders.byViews;
+
+  const hasMeasuredFormat = bestLengthBucket !== null;
 
   if (!bestLengthBucket && analytics.items.length > 0) {
     const textual = analytics.items.filter((item) => item.bucket !== 'media_only');
@@ -289,7 +300,7 @@ export function buildContentPlanFormatGuidance(
 
   const topSlotsText = slots
     .slice(0, 2)
-    .map((slot) => slot.label)
+    .map((slot) => `${slot.label}${slot.isFallback ? ' (резервный ориентир)' : ''}`)
     .join(', ');
 
   const addons: string[] = [];
@@ -297,10 +308,12 @@ export function buildContentPlanFormatGuidance(
   if (withLinksRecommended) addons.push('ссылками');
   const addonsSuffix = addons.length > 0 ? ` с ${addons.join(' и ')}` : '';
 
-  const formatPart = `Оптимальный формат для вашего канала: ${recommendedRangeLabel}${addonsSuffix}`;
+  const formatPart = `Ориентир формата для вашего канала: ${recommendedRangeLabel}${addonsSuffix}`;
   const windowsPart = topSlotsText ? ` · Лучшие окна: ${topSlotsText}` : '';
 
   return {
+    evidence: { ...describeSample('Мой канал', channel.posts.map(p => p.publishedAt), 10), updatedAt: channel.lastCollectedAt?.toISOString() ?? null },
+    isFallback: !hasMeasuredFormat,
     channelId: channel.id,
     channelTitle: channel.title,
     bestLengthBucket,

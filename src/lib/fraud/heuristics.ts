@@ -53,13 +53,13 @@ export function checkViewsToSubsRatio(
 ): FraudSignalResult {
   // Edge case: канал с 0 подписчиков (или отрицательным числом, что маловероятно)
   if (currentMembers <= 0) {
-    return { flag: false, ratio: 0, reason: "Недостаточно подписчиков для анализа" };
+    return { insufficientData: true, flag: false, ratio: 0, reason: "Недостаточно подписчиков для анализа" };
   }
 
   // Edge case: нет публикаций или у публикаций нет данных о просмотрах
   const validPosts = posts.filter(p => p.views !== null && p.views > 0);
   if (validPosts.length === 0) {
-    return { flag: false, ratio: 0, reason: "Нет постов с просмотрами для анализа" };
+    return { insufficientData: true, flag: false, ratio: 0, reason: "Нет постов с просмотрами для анализа" };
   }
 
   // Считаем среднее количество просмотров по валидным постам
@@ -70,7 +70,7 @@ export function checkViewsToSubsRatio(
 
   // Если мало постов, то статистика может быть недостоверной
   if (validPosts.length < 5) {
-    return { flag: false, ratio, reason: "Недостаточно постов для достоверного анализа" };
+    return { insufficientData: true, flag: false, ratio, reason: "Недостаточно постов для достоверного анализа" };
   }
 
   // Порог для накрученных подписчиков: < 5% (0.05)
@@ -114,7 +114,7 @@ export function checkGrowthSmoothness(
   metrics: Array<{ date: Date; followers: number }>
 ): GrowthSmoothnessResult {
   if (metrics.length < 14) {
-    return { flag: false, cv: 0, reason: "Недостаточно данных для анализа (менее 14 дней)" };
+    return { insufficientData: true, flag: false, cv: 0, reason: "Недостаточно данных для анализа (менее 14 дней)" };
   }
 
   // Обязательно отсортировать метрики по дате по возрастанию
@@ -184,7 +184,7 @@ export function checkUncorrelatedSpikes(
   mentionsDates: Date[]
 ): UncorrelatedSpikesResult {
   if (metrics.length < 2) {
-    return { flag: false, spikesCount: 0, dates: [], reason: "Недостаточно данных для анализа" };
+    return { insufficientData: true, flag: false, spikesCount: 0, dates: [], reason: "Недостаточно данных для анализа" };
   }
 
   const sortedMetrics = [...metrics].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -424,6 +424,7 @@ export function checkUniformReactionRatio(channel: UniformReactionRatioInput): U
   // Менее 10 постов - недостаточно данных
   if (recentErrs.length < 10) {
     return {
+      insufficientData: true,
       flag: false,
       cv: 0,
       reason: "Недостаточно данных для анализа (менее 10 постов)",

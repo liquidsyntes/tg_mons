@@ -54,6 +54,7 @@ export interface ChannelMetrics {
   ep?: number;
   epBreakdown?: any;
   citationIndex?: number | null;
+  fraudCoverage?: import('./fraud/types').FraudCoverage;
   fraudScore?: number | null;
   fraudSignals?: FraudSignal[];
   activityStatus?: ChannelSilenceStatus;
@@ -651,6 +652,8 @@ export interface ChannelDemographicsSummary {
 }
 
 export interface BestTimeRecommendation {
+  evidence?: import('./data-evidence').DataEvidence;
+  isFallback?: boolean;
   timeZone?: string;
   bestDay: number;
   bestHour: number;
@@ -677,6 +680,8 @@ export interface LanguageBreakdownItem {
 export type ContentPlanStatus = 'idea' | 'in_progress' | 'ready' | 'published';
 
 export interface SuggestedPublishSlot {
+  evidence?: import('./data-evidence').DataEvidence;
+  isFallback?: boolean;
   dateTime: string;
   dateKey: string;
   dayOfWeek: number;
@@ -687,6 +692,8 @@ export interface SuggestedPublishSlot {
 }
 
 export interface ContentPlanFormatGuidance {
+  evidence?: import('./data-evidence').DataEvidence;
+  isFallback?: boolean;
   channelId: number;
   channelTitle: string;
   bestLengthBucket: PostLengthBucket | null;
@@ -799,6 +806,7 @@ export interface CitationMatrixRow {
 }
 
 export interface MultiChannelComparisonResult {
+  coverageWarnings?: string[];
   subscriberSeries: MultiSubscriberPoint[];
   postsSeries: MultiPostsPoint[];
   kpiRows: CompareKpiRow[];

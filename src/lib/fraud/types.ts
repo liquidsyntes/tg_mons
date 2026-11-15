@@ -8,6 +8,7 @@ import type { CitationMention } from '../citationIndex';
  * @property reason - Human-readable diagnostic description of the result in Russian.
  */
 export interface FraudSignalResult {
+  insufficientData?: boolean;
   flag: boolean;
   ratio: number;
   reason: string;
@@ -21,6 +22,7 @@ export interface FraudSignalResult {
  * @property reason - Human-readable diagnostic description of the result in Russian.
  */
 export interface GrowthSmoothnessResult {
+  insufficientData?: boolean;
   flag: boolean;
   cv: number; // Coefficient of Variation
   reason: string;
@@ -35,6 +37,7 @@ export interface GrowthSmoothnessResult {
  * @property reason - Human-readable diagnostic description of the result in Russian.
  */
 export interface UncorrelatedSpikesResult {
+  insufficientData?: boolean;
   flag: boolean;
   spikesCount: number;
   dates: string[]; // dates in YYYY-MM-DD format
@@ -87,6 +90,7 @@ export interface LowCitationChannelInput {
  * @property signal - Optional structured `FraudSignal` record created when flagged.
  */
 export interface UniformReactionRatioResult {
+  insufficientData?: boolean;
   flag: boolean;
   cv: number; // Coefficient of Variation
   reason: string;
@@ -187,6 +191,7 @@ export interface FraudSignal {
  * @property details - Detailed breakdown of constituent check results.
  */
 export interface FraudAuditResult {
+  coverage?: FraudCoverage;
   fraudScore: number; // 0 to 100 (each flag contributes 25 points, capped at 100)
   signals: FraudSignal[];
   details: {
@@ -302,3 +307,12 @@ export type UniformReactionRatioInput =
   | Record<string, unknown>
   | null
   | undefined;
+
+export interface FraudCoverage {
+  status: 'sufficient' | 'partial' | 'insufficient';
+  sampleSize?: number;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  evaluatedChecks: number;
+  checks: Array<{ name: string; evaluated: boolean; reason: string }>;
+}

@@ -144,7 +144,7 @@ describe('content-plan metrics and slot recommendations', () => {
     expect(guidance.withMediaRecommended).toBe(true);
     expect(guidance.withLinksRecommended).toBe(true);
     expect(guidance.bestStructureSignal).toBe('question_hook');
-    expect(guidance.summaryText).toContain('Оптимальный формат для вашего канала: 300-1000 зн. с медиа и ссылками');
+    expect(guidance.summaryText).toContain('Ориентир формата для вашего канала: 300-1000 зн. с медиа и ссылками');
     expect(guidance.summaryText).toContain('Лучшие окна: Вт, 19:00, Чт, 14:00');
     expect(guidance.summaryText).not.toContain('\u2014');
 
@@ -153,4 +153,13 @@ describe('content-plan metrics and slot recommendations', () => {
     expect(formatPlannedSlotDateTime(null)).toBeNull();
     void now;
   });
+});
+
+it('labels empty-history slots as fallback and reports absent format evidence', () => {
+  const slots = suggestNextPublishSlots(null, [], new Date('2026-11-16T12:00:00Z'), 2);
+  expect(slots).toHaveLength(2);
+  expect(slots.every(slot => slot.isFallback)).toBe(true);
+  const guidance = buildContentPlanFormatGuidance({ id: 1, title: 'Test', posts: [] }, slots);
+  expect(guidance.isFallback).toBe(true);
+  expect(guidance.evidence?.status).toBe('insufficient');
 });

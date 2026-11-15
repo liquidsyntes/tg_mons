@@ -5,8 +5,11 @@ import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { FraudSignal } from '@/lib/fraudDetector';
 
 export interface RiskBadgeProps {
+  coverage?: import('@/lib/fraud/types').FraudCoverage;
   score?: number | null;
   signals?: FraudSignal[] | Array<{ signalType: string; reason: string }>;
+  lastCollectedAt?: string | null;
+  collectionStatus?: string;
   className?: string;
 }
 
@@ -36,7 +39,7 @@ const HOURLY_SIGNAL_TYPES = new Set([
   'night_bot_activity',
 ]);
 
-export function RiskBadge({ score, signals = [], className = '' }: RiskBadgeProps) {
+export function RiskBadge({ score, coverage, lastCollectedAt, collectionStatus, signals = [], className = '' }: RiskBadgeProps) {
   const parsedScore =
     typeof score === 'number'
       ? score
@@ -49,7 +52,9 @@ export function RiskBadge({ score, signals = [], className = '' }: RiskBadgeProp
   const isHighRisk = safeScore >= 50;
   const isMediumRisk = safeScore > 0 && safeScore < 50;
 
-  const colorStyles = isHighRisk
+  const colorStyles = coverage?.status === 'insufficient' && safeScore === 0
+    ? 'bg-slate-500/15 text-slate-400 border-slate-500/30'
+    : isHighRisk
     ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     : isMediumRisk
     ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
@@ -69,9 +74,10 @@ export function RiskBadge({ score, signals = [], className = '' }: RiskBadgeProp
             return `• ${s.signalType || 'Подозрительная активность'}`;
           })
           .join('\n')
-      : `Risk of Artificial Traffic: ${safeScore}% (Низкий риск накрутки)`;
+      : `Risk of Artificial Traffic: ${safeScore}% (Сигналы не обнаружены в доступных проверках)`;
 
   return (
+    <details className="inline-block"><summary className="cursor-pointer list-none">
     <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-semibold border transition-colors ${colorStyles} ${className}`}
       title={tooltip}
@@ -82,8 +88,16 @@ export function RiskBadge({ score, signals = [], className = '' }: RiskBadgeProp
       ) : (
         <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
       )}
-      <span>Risk of Artificial Traffic: {safeScore}%</span>
+      <span>{coverage?.status === 'insufficient' && safeScore === 0 ? 'Недостаточно данных' : `Risk of Artificial Traffic: ${safeScore}%`}{coverage ? ` · Проверки: ${coverage.evaluatedChecks}/6` : ''}</span>
     </span>
+    </summary>
+    <div className="p-2 text-xs text-slate-300 max-w-sm">
+      <p>Баллы отражают эвристические сигналы, а не вероятность накрутки. Сохранённые сигналы могут относиться к предыдущим циклам.</p>
+      <p>Сбор: {collectionStatus ?? 'статус неизвестен'}. Обновление: {lastCollectedAt ?? 'неизвестно'}</p>
+      <p>Публикации: {coverage?.sampleSize ?? 'неизвестно'}. Период: {coverage?.periodStart ?? 'неизвестно'} - {coverage?.periodEnd ?? 'неизвестно'}</p>
+      {coverage ? coverage.checks.map(c => <p key={c.name}>{c.name}: {c.reason}</p>) : <p>Полнота проверки неизвестна</p>}
+    </div>
+    </details>
   );
 }
 

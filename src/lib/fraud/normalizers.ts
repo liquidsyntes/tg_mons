@@ -198,7 +198,7 @@ function findActiveFraudSignal(
   return undefined;
 }
 
-function normalizeMetricEntries(channel: Record<string, unknown>): Array<{ date: Date; followers: number }> {
+export function normalizeMetricEntries(channel: Record<string, unknown>): Array<{ date: Date; followers: number }> {
   const rawList = Array.isArray(channel.metrics)
     ? channel.metrics
     : Array.isArray(channel.channelMetricDailies)

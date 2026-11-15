@@ -206,6 +206,7 @@ export async function getOverviewStats(userId?: number | null): Promise<Overview
       currentMembers: metrics.currentMembers,
       fraudSignals: chFraudSignals,
     });
+    metrics.fraudCoverage = audit.coverage;
     metrics.fraudScore = audit.fraudScore;
     metrics.fraudSignals = audit.signals;
   }
@@ -447,6 +448,7 @@ export async function getChannelDetailStats(
     currentMembers: channel.currentMembers,
     fraudSignals: dbFraudSignals,
   });
+  channel.fraudCoverage = detailAudit.coverage;
   channel.fraudScore = detailAudit.fraudScore;
   channel.fraudSignals = detailAudit.signals;
 

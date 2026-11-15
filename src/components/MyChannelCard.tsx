@@ -95,7 +95,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
               activityStatus={channel.activityStatus}
               lastPostAt={channel.lastPostAt}
             />
-            <RiskBadge score={fraudScore} signals={fraudSignals} />
+            <RiskBadge lastCollectedAt={channel?.lastCollectedAt} collectionStatus={channel?.status} coverage={channel.fraudCoverage} score={fraudScore} signals={fraudSignals} />
           </div>
 
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">

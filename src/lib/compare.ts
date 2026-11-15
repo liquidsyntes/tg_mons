@@ -133,6 +133,7 @@ const KPI_DEFINITIONS: ReadonlyArray<KpiMetricDefinition> = [
     unit: 'score',
     roundDecimals: 0,
     extract: (ch) => {
+      if (ch.fraudCoverage?.status !== 'sufficient') return null;
       if (typeof ch.fraudScore === 'number' && Number.isFinite(ch.fraudScore)) {
         return Math.max(0, Math.min(100, Math.round(100 - ch.fraudScore)));
       }
@@ -521,6 +522,7 @@ export function buildMultiChannelComparison(
   }
 
   return {
+    coverageWarnings: getComparisonCoverageWarnings(channelsData),
     subscriberSeries: buildMultiSubscriberSeries(channelsData, period),
     postsSeries: buildMultiPostsSeries(channelsData, period),
     kpiRows: buildKpiRows(channelsData),
@@ -691,4 +693,20 @@ export function buildTagBenchmarkProfile(
     },
     metrics,
   };
+}
+
+/** Compare like-for-like growth windows; unknown coverage is never assumed complete. */
+export function getComparisonCoverageWarnings(participants: ReadonlyArray<CompareChannelData>): string[] {
+  const warnings: string[] = [];
+  for (const [key, days] of [['delta7d', 7], ['delta30d', 30]] as const) {
+    const coverages = participants.filter(p => !p.isBenchmark).map(p => p.channel[key]?.coverageDays ?? null);
+    if (coverages.some(c => c === null)) warnings.push(`Рост за ${days} дней: покрытие части каналов неизвестно`);
+    const known = coverages.filter((c): c is number => c !== null);
+    if (known.length > 1 && Math.max(...known) - Math.min(...known) > 1) warnings.push(`Рост за ${days} дней: покрытие отличается более чем на сутки; значения могут быть несопоставимы`);
+  }
+  if (participants.some(p => p.isBenchmark || p.channel.isBenchmark)) warnings.push('Бенчмарк папки объединяет каналы с разным покрытием; полнота общей истории не подтверждена');
+  for (const p of participants.filter(p => !p.isBenchmark && !p.channel.isBenchmark)) {
+    if (p.channel.status !== 'success') warnings.push(`${p.channel.title}: проверьте свежесть сбора (${p.channel.lastCollectedAt ?? 'время неизвестно'})`);
+  }
+  return warnings;
 }

@@ -1,4 +1,5 @@
 'use client';
+import { DataEvidenceDetails } from '@/components/DataEvidenceDetails';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -119,10 +120,10 @@ export function ContentPlanBoard({
             {recommendationsLoading ? (
               <p className="text-sm text-slate-300">Подбираю лучшие окна и формат для вашего канала...</p>
             ) : guidance ? (
-              <p className="text-sm font-medium text-white">{guidance.summaryText}</p>
+              <><p className="text-sm font-medium text-white">{guidance.summaryText}</p><DataEvidenceDetails evidence={guidance.evidence} fallback={guidance.isFallback} /></>
             ) : recommendations && recommendations.slots.length > 0 ? (
               <p className="text-sm text-slate-200">
-                Лучшие окна: {recommendations.slots.slice(0, 3).map((slot) => slot.label).join(', ')}
+                Лучшие окна: {recommendations.slots.slice(0, 3).map((slot) => `${slot.label}${slot.isFallback ? ' (резервный ориентир)' : ''}`).join(', ')}
                 {' · '}
                 Отметьте «Мой канал» в настройках канала для персональной рекомендации формата.
               </p>

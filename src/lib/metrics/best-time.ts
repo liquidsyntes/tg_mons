@@ -1,3 +1,4 @@
+import { describeSample } from '../data-evidence';
 import { prisma } from '../prisma';
 import type { BestTimeRecommendation } from '../types';
 import { getAppTimezone, getZonedDateParts } from '../timezone';
@@ -105,6 +106,11 @@ export async function getBestTimeRecommendation(userId?: number | null): Promise
   }
 
   return {
+    evidence: {
+      ...describeSample('Активные каналы конкурентов', posts.filter(p => p.views !== null).map(p => p.publishedAt), 10),
+      updatedAt: competitorChannels.map(c => c.lastCollectedAt?.toISOString()).filter((d): d is string => Boolean(d)).sort()[0] ?? null,
+    },
+    isFallback: posts.every(p => p.views === null),
     timeZone,
     bestDay: bestSlot.day,
     bestHour: bestSlot.hour,

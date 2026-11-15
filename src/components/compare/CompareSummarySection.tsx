@@ -113,6 +113,7 @@ export function CompareSummarySection({
 
   return (
     <>
+      {!!comparison?.coverageWarnings?.length && <details className="text-xs text-amber-300 border border-amber-500/30 rounded p-3"><summary>Ограничения сравнения</summary>{comparison.coverageWarnings.map(w => <p key={w}>{w}</p>)}</details>}
       <div className={`grid grid-cols-1 ${gridColsClass} gap-3`}>
         {participants.map((participant, index) => {
           const ch = participant.channel;

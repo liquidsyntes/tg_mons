@@ -146,7 +146,7 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
                 activityStatus={channel.activityStatus}
                 lastPostAt={channel.lastPostAt}
               />
-              <RiskBadge score={fraudScore} signals={fraudSignals} />
+              <RiskBadge lastCollectedAt={channel?.lastCollectedAt} collectionStatus={channel?.status} coverage={channel?.fraudCoverage} score={fraudScore} signals={fraudSignals} />
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">

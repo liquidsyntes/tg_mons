@@ -18,7 +18,7 @@ describe('RiskBadge UI Component', () => {
     expect(badge.textContent).toContain('Risk of Artificial Traffic: 0%');
     expect(badge.className).toContain('text-emerald-400');
     expect(badge.className).toContain('bg-emerald-500/15');
-    expect(badge.getAttribute('title')).toContain('Низкий риск накрутки');
+    expect(badge.getAttribute('title')).toContain('Сигналы не обнаружены в доступных проверках');
   });
 
   it('renders medium risk state (score 25%) with AlertTriangle icon and amber styling', () => {
@@ -121,4 +121,16 @@ describe('RiskBadge UI Component', () => {
     expect(title).toContain('Аномалия почасового профиля просмотров');
     expect(title).toContain('Ночная ботовая активность (02:00-05:59)');
   });
+});
+
+it('explains missing audit data and keeps saved signals visible', () => {
+  const coverage = { status: 'insufficient' as const, evaluatedChecks: 0, checks: [{ name: 'Профиль просмотров', evaluated: false, reason: 'Нет снимков' }] };
+  const { unmount } = render(React.createElement(RiskBadge, { score: 0, coverage }));
+  expect(screen.getByTestId('risk-badge').textContent).toContain('Недостаточно данных');
+  expect(screen.getByText('Профиль просмотров: Нет снимков')).toBeDefined();
+  unmount();
+  render(React.createElement(RiskBadge, { score: 25, coverage, signals: [{ signalType: 'night_bot_activity', reason: 'Сохранённая аномалия' }] }));
+  expect(screen.getByTestId('risk-badge').textContent).toContain('25%');
+  expect(screen.getByTestId('risk-badge').getAttribute('title')).toContain('Сохранённая аномалия');
+  cleanup();
 });

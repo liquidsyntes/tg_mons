@@ -171,7 +171,7 @@ export function ChannelsMobileList({
                   activityStatus={channel.activityStatus}
                   lastPostAt={channel.lastPostAt}
                 />
-                <RiskBadge score={channel.fraudScore} signals={channel.fraudSignals} />
+                <RiskBadge lastCollectedAt={channel?.lastCollectedAt} collectionStatus={channel?.status} coverage={channel?.fraudCoverage} score={channel.fraudScore} signals={channel.fraudSignals} />
               </div>
               <div className="flex items-center gap-2.5">
                 <CitationIndexCell channel={channel} variant="mobile" />

@@ -1,3 +1,4 @@
+import { DataEvidenceDetails } from './DataEvidenceDetails';
 import React, { useEffect, useState } from 'react';
 import { BestTimeRecommendation } from '@/lib/types';
 import { Sparkles, TrendingUp } from 'lucide-react';
@@ -103,6 +104,7 @@ export function BestTimeWidget() {
         <h3 className="text-base font-bold text-white">Лучшее время для поста</h3>
       </div>
       
+      <DataEvidenceDetails evidence={data.evidence} fallback={data.isFallback} />
       <div className="flex flex-col md:flex-row gap-[6px]">
         <div className="flex-1 bg-slate-900 border border-emerald-500/20 rounded-xl p-4 flex flex-col justify-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/50"></div>

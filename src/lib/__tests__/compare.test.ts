@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChannelMetrics } from '@/lib/types';
 import {
+  getComparisonCoverageWarnings,
   buildMultiChannelComparison,
   buildTagBenchmarkProfile,
   mergePostsDistribution,
@@ -55,6 +56,7 @@ function makeChannel(
     status: 'success',
     sparkline7d: [],
     contentScore: overrides.contentScore ?? 75,
+    fraudCoverage: { status: 'sufficient', evaluatedChecks: 6, checks: [] },
     fraudScore: overrides.fraudScore ?? 10,
   };
 }
@@ -372,4 +374,20 @@ describe('buildTagBenchmarkProfile', () => {
     expect(res!.metrics.err30d).toEqual({ median: null, average: null, sampleSize: 0 });
     expect(res!.metrics.postsPerDay).toEqual({ median: 0, average: 0, sampleSize: 1 });
   });
+});
+
+it('warns about unknown and unequal comparison coverage without hiding values', () => {
+  const a = makeChannel({id: 1, title: 'A', delta7d: {abs: 0, percent: 0, coverageDays: 7}});
+  const b = makeChannel({id: 2, title: 'B', delta7d: {abs: null, percent: null, coverageDays: 2}});
+  const participants = [a, b].map(channel => ({channel, membersHistory: [], postsDistribution: []}));
+  const warnings = getComparisonCoverageWarnings(participants);
+  expect(warnings.some(w => w.includes('более чем на сутки'))).toBe(true);
+  expect(warnings.some(w => w.includes('неизвестно'))).toBe(true);
+});
+
+it('does not convert an incomplete audit into a trust score', () => {
+  const channel = makeChannel({id: 1, title: 'A'});
+  channel.fraudCoverage = {status: 'partial', evaluatedChecks: 1, checks: []};
+  const result = buildMultiChannelComparison([{channel, membersHistory: [], postsDistribution: []}]);
+  expect(result.kpiRows.find(r => r.key === 'trustScore')?.values[1]).toBeNull();
 });

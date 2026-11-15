@@ -81,6 +81,7 @@ async function loadContentPlanRecommendations(
           orderBy: { publishedAt: 'desc' },
           take: 200,
           select: {
+            publishedAt: true,
             text: true,
             views: true,
             reactions: true,
@@ -103,6 +104,7 @@ async function loadContentPlanRecommendations(
         {
           id: myChannel.id,
           title: myChannel.title,
+          lastCollectedAt: myChannel.lastCollectedAt,
           posts: myPosts,
           subscribersCount: latestSnapshot?.membersCount ?? null,
         },

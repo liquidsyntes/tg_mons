@@ -1,3 +1,4 @@
+import { describeSample } from '../data-evidence';
 import type { FraudAuditResult, FraudSignal, UniformReactionRatioInput } from './types';
 import {
   checkViewsToSubsRatio,
@@ -9,6 +10,7 @@ import {
 } from './heuristics';
 import {
   isRecord,
+  normalizeMetricEntries,
   extractChannelId,
   resolveViewsToSubsCheck,
   resolveGrowthSmoothnessCheck,
@@ -79,6 +81,30 @@ export function runFraudAudit(channel: UniformReactionRatioInput): FraudAuditRes
   const hourlyViewResult = resolveHourlyViewProfileCheck(channelRecord, channel, checkHourlyViewProfile);
   const nightActivityResult = resolveNightBotActivityCheck(channelRecord, channel, checkNightBotActivity);
 
+  // Evaluate coverage from current inputs, independently of persisted signal overrides.
+  const rawPosts = Array.isArray(channel) ? channel : channelRecord.posts ?? channelRecord.recentPosts;
+  const posts: unknown[] = Array.isArray(rawPosts) ? rawPosts : [];
+  const metrics = Array.from(new Map(normalizeMetricEntries(channelRecord).filter(m => Number.isFinite(m.date.getTime()) && Number.isFinite(m.followers)).map(m => [m.date.toISOString().slice(0, 10), m])).values());
+  const rawChecks = [
+    { name: 'Охват к аудитории', result: checkViewsToSubsRatio(posts.map(p => ({ views: isRecord(p) && typeof p.views === 'number' ? p.views : null })), typeof channelRecord.currentMembers === 'number' ? channelRecord.currentMembers : 0) },
+    { name: 'Гладкость роста', result: checkGrowthSmoothness(metrics) },
+    { name: 'Скачки подписчиков', result: checkUncorrelatedSpikes(metrics, [], []) },
+    { name: 'Равномерность ERR', result: checkUniformReactionRatio(channel) },
+    { name: 'Профиль просмотров', result: checkHourlyViewProfile(channel) },
+    { name: 'Ночная активность', result: checkNightBotActivity(channel) },
+  ];
+  const checks = rawChecks.map(({ name, result }) => ({ name, evaluated: !result.insufficientData, reason: result.insufficientData ? result.reason : 'Данных достаточно для проверки' }));
+  const evaluatedChecks = checks.filter(c => c.evaluated).length;
+  const sample = describeSample('Текущие публикации аудита', posts.map(p => isRecord(p) && (p.publishedAt instanceof Date || typeof p.publishedAt === 'string') ? p.publishedAt : null), 1);
+  const coverage: NonNullable<FraudAuditResult['coverage']> = {
+    status: evaluatedChecks === 6 ? 'sufficient' : evaluatedChecks ? 'partial' : 'insufficient',
+    sampleSize: posts.length,
+    periodStart: sample.periodStart,
+    periodEnd: sample.periodEnd,
+    evaluatedChecks,
+    checks,
+  };
+
   // Агрегируем сигналы и вычисляем fraudScore
   const signals: FraudSignal[] = [];
   const resolvedChannelId = extractChannelId(channelRecord);
@@ -139,6 +165,7 @@ export function runFraudAudit(channel: UniformReactionRatioInput): FraudAuditRes
   }
 
   return {
+    coverage,
     fraudScore: Math.min(100, signals.length * 25),
     signals,
     details: {
