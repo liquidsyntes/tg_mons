@@ -122,7 +122,8 @@ cp .env.example .env
 | WORKER_INTERNAL_HOST, WORKER_INTERNAL_PORT | worker | По умолчанию `127.0.0.1:4001`; Compose привязывает `0.0.0.0:4001` только внутри своей сети |
 | TELEGRAM_REQUEST_TIMEOUT_MS | fetcher в worker и CLI-утилитах | 30000 мс |
 | CHANNEL_MAX_CONSECUTIVE_ERRORS | retry-policy | 10; отключение при достижении порога |
-| TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID | worker | Отправка пользовательских AlertRule и уведомлений об автоотключении; без обоих значений правила сохраняются, но не отправляются |
+| TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID | worker | Отправка пользовательских AlertRule, уведомлений об автоотключении и работа интерактивного бота команд |
+| TELEGRAM_BOT_POLLING_ENABLED | worker | При значении `false` отключает фоновый `getUpdates` поллинг команд бота в worker (по умолчанию `true` при наличии `TELEGRAM_BOT_TOKEN`) |
 | TELEGRAM_LOGIN_CLIENT_ID, TELEGRAM_LOGIN_CLIENT_SECRET | web | OIDC Client ID и Secret из BotFather > Login Widget; это отдельные значения, не токен бота |
 | TELEGRAM_LOGIN_REDIRECT_URI | web | Точный HTTPS callback, зарегистрированный в BotFather, например `https://tgmons.online/api/auth/telegram/callback` |
 | OPENROUTER_API_KEY | web AI/scanner | Общий резервный ключ для генеративных отчётов и сканера событий (включая Jev); также задаётся администратором через `/settings` |
@@ -251,6 +252,19 @@ curl -i http://localhost:4000/api/health
 - Только администратор управляет заявками в `/settings` через `/api/admin/registrations`. Telegram-вход не выдаёт роль `ADMIN`. Резервный мастер-ключ и парольный вход существующих аккаунтов сохраняются. `POST /api/auth/register` разрешает только первичное создание администратора при пустой базе администраторов и верном мастер-ключе.
 - Общие `Channel`, `Post` и метрики не копируются при регистрации. Новый пользователь после одобрения получает пустой личный список `UserChannel` и может импортировать подписанный список каналов администратора.
 - Nginx должен передавать внешний `Host` и `X-Forwarded-Proto=https`, чтобы cookie получала `Secure`, а проверка `Origin` сопоставляла адрес сайта. Перед запуском версии с новой схемой примените `prisma migrate deploy`.
+
+## Интерактивные команды Telegram-бота
+
+При наличии `TELEGRAM_BOT_TOKEN` и `TELEGRAM_BOT_POLLING_ENABLED !== "false"` worker в фоновом режиме (`src/worker/bot-poller.ts`) запускает неблокирующий long-polling (`getUpdates`) для обработки интерактивных команд без открытия входящих портов для webhook.
+
+- **Авторизация по Chat ID**: доступ предоставляется активным пользователям (`User.accessStatus = ACTIVE`), у которых в `/settings` указан соответствующий `Telegram Chat ID`, либо чату из переменной `TELEGRAM_CHAT_ID`. Неизвестным чатам бот возвращает только их числовой `Chat ID` и инструкцию по привязке без раскрытия данных системы.
+- **Поддерживаемые команды** (`src/lib/telegram-bot-commands.ts`):
+  - `/start`, `/help` – справка по командам и статус привязки чата;
+  - `/status` – статус последнего цикла сбора `SyncJob`, число активных каналов и сводка по «Моему каналу»;
+  - `/digest` – внеочередной дайджест за последние 24 часа, включая лучший пост по ERR и счётчик антифрод-сигналов;
+  - `/channel @username` (а также пересланный пост из публичного канала или сообщение со ссылкой `t.me/...`) – экспресс-карточка метрик (подписчики, динамика 7д/30д, ER, ERR, доля рекламы, Trust Score) со ссылкой в веб-интерфейс;
+  - `/add @username` – постановка нового канала на мониторинг через очередь `TaskCoordinator` worker и привязка к `UserChannel`.
+- **Изоляция и безопасность**: `TELEGRAM_BOT_TOKEN` никогда не записывается в логи (`bot[REDACTED]`), конфликт `409 Conflict` и сетевые сбои обрабатываются с паузой и не останавливают основной цикл сбора MTProto. Чтобы временно отключить поллинг команд (например, при запуске дублирующего инстанса), задайте `TELEGRAM_BOT_POLLING_ENABLED=false`.
 
 ## Проверка после запуска
 
