@@ -4,6 +4,8 @@ import {
   checkGrowthSmoothness,
   checkUncorrelatedSpikes,
   checkUniformReactionRatio,
+  checkHourlyViewProfile,
+  checkNightBotActivity,
 } from './heuristics';
 import {
   isRecord,
@@ -12,32 +14,24 @@ import {
   resolveGrowthSmoothnessCheck,
   resolveUncorrelatedSpikesCheck,
   resolveUniformErrCheck,
+  resolveHourlyViewProfileCheck,
+  resolveNightBotActivityCheck,
 } from './normalizers';
 
 /**
- * Консолидированный аудит накруток: агрегирует 4 основные проверки (`runFraudAudit`)
- * (views/subs ratio, smooth growth, uncorrelated spikes, uniform ERR).
+ * Консолидированный аудит накруток: агрегирует 6 эвристических проверок (`runFraudAudit`)
+ * (views/subs ratio, smooth growth, uncorrelated spikes, uniform ERR, hourly view profile, night bot activity).
  *
- * Consolidates four foundational fraud detection heuristics into an interpretable metric:
+ * Consolidates anti-fraud detection heuristics into a unified risk score:
  * 1. `views_to_subs_ratio` (Соотношение просмотров к подписчикам): Ratio < 0.05 or > 1.50 (+25 pts).
  * 2. `growth_smoothness` (Гладкость роста): Daily subscriber delta CV < 0.1 over >= 14 days (+25 pts).
  * 3. `uncorrelated_spikes` (Нескоррелированные скачки): >= 1 subscriber spike without post or mention (+25 pts).
  * 4. `uniform_err` (Равномерность ERR): Post-to-post ERR CV < 0.1 over 10-20 posts (+25 pts).
+ * 5. `unnatural_view_decay` (Профиль набора просмотров): Late post-24h surge or linear step drip-feed without mentions (+25 pts).
+ * 6. `night_bot_activity` (Ночная активность ботов): High share of view increments in 02:00-05:59 with zero reactions/forwards (+25 pts).
  *
  * Mathematical Formula:
- * `fraudScore = sum(flag_j * 25) = 25 * K` where `K in {0, 1, 2, 3, 4}`.
- *
- * Discretized Risk Tiers:
- * - `0`: Чистый канал / Низкий риск (Clean, 0 аномалий).
- * - `25`: Низкий риск (Low Risk, 1 аномалия).
- * - `50`: Умеренный риск (Moderate Risk, 2 аномалии).
- * - `75`: Высокий риск (High Risk, 3 аномалии).
- * - `100`: Критический риск (Critical Risk, все 4 аномалии).
- *
- * Flexibility & Overrides:
- * - Accepts raw channel data (with posts, metrics, mentions) to run live calculations.
- * - Accepts precomputed `fraudSignals` arrays from database persistence.
- * - Accepts boolean flags/overrides or `triggers` sets for synthetic simulation and testing.
+ * `fraudScore = min(100, sum(flag_j * 25))` where `fraudScore in {0, 25, 50, 75, 100}`.
  *
  * @param channel Данные канала, симулированные флаги или объект канала из БД с relations
  * @returns {FraudAuditResult} Итоговый результат аудита с комбинированным fraudScore (0-100), сигналами и детализацией проверок
@@ -52,6 +46,26 @@ export function runFraudAudit(channel: UniformReactionRatioInput): FraudAuditRes
         growthSmoothness: { flag: false, cv: 0, reason: "Нет данных канала" },
         uncorrelatedSpikes: { flag: false, spikesCount: 0, dates: [], reason: "Нет данных канала" },
         uniformReactionRatio: { flag: false, cv: 0, reason: "Нет данных канала" },
+        unnaturalViewDecay: {
+          flag: false,
+          insufficientData: true,
+          evaluatedPostsCount: 0,
+          anomalousPostsCount: 0,
+          lateViewsShare: 0,
+          stepUniformityCv: 0,
+          value: 0,
+          reason: "Нет данных канала",
+        },
+        nightBotActivity: {
+          flag: false,
+          insufficientData: true,
+          evaluatedPostsCount: 0,
+          nightIntervalsCount: 0,
+          nightViewsShare: 0,
+          zeroEngagementRatio: 0,
+          value: 0,
+          reason: "Нет данных канала",
+        },
       },
     };
   }
@@ -62,6 +76,8 @@ export function runFraudAudit(channel: UniformReactionRatioInput): FraudAuditRes
   const smoothnessResult = resolveGrowthSmoothnessCheck(channelRecord, checkGrowthSmoothness);
   const spikeResult = resolveUncorrelatedSpikesCheck(channelRecord, checkUncorrelatedSpikes);
   const uniformResult = resolveUniformErrCheck(channelRecord, channel, checkUniformReactionRatio);
+  const hourlyViewResult = resolveHourlyViewProfileCheck(channelRecord, channel, checkHourlyViewProfile);
+  const nightActivityResult = resolveNightBotActivityCheck(channelRecord, channel, checkNightBotActivity);
 
   // Агрегируем сигналы и вычисляем fraudScore
   const signals: FraudSignal[] = [];
@@ -97,6 +113,18 @@ export function runFraudAudit(channel: UniformReactionRatioInput): FraudAuditRes
       value: uniformResult.cv,
       reason: uniformResult.reason,
     },
+    {
+      flag: hourlyViewResult.flag,
+      signalType: 'unnatural_view_decay',
+      value: hourlyViewResult.value ?? hourlyViewResult.lateViewsShare,
+      reason: hourlyViewResult.reason,
+    },
+    {
+      flag: nightActivityResult.flag,
+      signalType: 'night_bot_activity',
+      value: nightActivityResult.value ?? nightActivityResult.nightViewsShare,
+      reason: nightActivityResult.reason,
+    },
   ];
 
   for (const check of checksToAggregate) {
@@ -111,13 +139,15 @@ export function runFraudAudit(channel: UniformReactionRatioInput): FraudAuditRes
   }
 
   return {
-    fraudScore: signals.length * 25,
+    fraudScore: Math.min(100, signals.length * 25),
     signals,
     details: {
       viewsToSubsRatio: ratioResult,
       growthSmoothness: smoothnessResult,
       uncorrelatedSpikes: spikeResult,
       uniformReactionRatio: uniformResult,
+      unnaturalViewDecay: hourlyViewResult,
+      nightBotActivity: nightActivityResult,
     },
   };
 }

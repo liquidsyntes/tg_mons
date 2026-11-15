@@ -5,6 +5,12 @@ export type {
   LowCitationGrowthResult,
   LowCitationChannelInput,
   UniformReactionRatioResult,
+  HourlyViewProfileOptions,
+  NightBotActivityOptions,
+  HourlyViewProfileResult,
+  NightBotActivityResult,
+  FraudPostSnapshotInput,
+  FraudEngagementHourInput,
   FraudSignal,
   FraudAuditResult,
   FraudPostInput,
@@ -21,7 +27,9 @@ export {
   checkGrowthSmoothness,
   checkUncorrelatedSpikes,
   checkLowCitationGrowth,
-  checkUniformReactionRatio
+  checkUniformReactionRatio,
+  checkHourlyViewProfile,
+  checkNightBotActivity
 } from './fraud/heuristics';
 
 export { runFraudAudit } from './fraud/audit';

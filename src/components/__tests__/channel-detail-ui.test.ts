@@ -205,3 +205,35 @@ it('shows comparison and content gap only when My Channel is available', () => {
   expect(screen.queryByText('Сравнительный AI-анализ')).toBeNull();
   expect(screen.queryByText('Упущенные темы конкурентов (AI Content Gap)')).toBeNull();
 });
+
+it('displays hourly fraud signal explanations inside ChannelHeader when triggered', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    json: async () => ({ estimatedPricePerPost: 375, cpm: 0, confidence: 'high' }),
+  }));
+
+  render(React.createElement(ChannelHeader, {
+    channel: {
+      ...channel,
+      fraudScore: 50,
+      fraudSignals: [
+        {
+          signalType: 'unnatural_view_decay',
+          value: 0.71,
+          reason: 'Аномальный профиль набора просмотров: 71% просмотров после 24ч без внешних упоминаний (4 из 5 постов)',
+        },
+        {
+          signalType: 'night_bot_activity',
+          value: 0.52,
+          reason: 'Аномальная ночная активность (02:00-05:59 Europe/Moscow): 52% прироста просмотров при 0 реакций и репостов',
+        },
+      ],
+    },
+    period: '7d',
+    onPeriodChange: vi.fn(),
+    onMineChanged: vi.fn(),
+  }));
+
+  const block = await screen.findByTestId('channel-fraud-signals');
+  expect(block.textContent).toContain('71% просмотров после 24ч');
+  expect(block.textContent).toContain('Аномальная ночная активность');
+});

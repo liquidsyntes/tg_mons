@@ -5,6 +5,8 @@ import {
   checkUncorrelatedSpikes,
   checkLowCitationGrowth,
   checkUniformReactionRatio,
+  checkHourlyViewProfile,
+  checkNightBotActivity,
   runFraudAudit,
 } from '../fraudDetector';
 
@@ -990,6 +992,286 @@ describe('Fraud Detector', () => {
       const res = runFraudAudit(syntheticErrs);
       expect(res.fraudScore).toBe(25);
       expect(res.details.uniformReactionRatio.flag).toBe(true);
+    });
+  });
+
+  describe('checkHourlyViewProfile', () => {
+    it('returns insufficientData when fewer than 5 posts have >= 3 snapshots', () => {
+      const base = new Date('2026-10-10T10:00:00Z').getTime();
+      const posts = Array(4).fill(null).map((_, idx) => ({
+        id: idx + 1,
+        publishedAt: new Date(base - idx * 86400000),
+        snapshots: [
+          { collectedAt: new Date(base - idx * 86400000 + 3600_000), views: 100 },
+          { collectedAt: new Date(base - idx * 86400000 + 24 * 3600_000), views: 300 },
+          { collectedAt: new Date(base - idx * 86400000 + 48 * 3600_000), views: 2500 },
+        ],
+      }));
+
+      const res = checkHourlyViewProfile({ id: 10, posts });
+      expect(res.flag).toBe(false);
+      expect(res.insufficientData).toBe(true);
+      expect(res.evaluatedPostsCount).toBe(4);
+      expect(res.reason).toContain('Недостаточно данных');
+
+      const audit = runFraudAudit({ id: 10, posts });
+      expect(audit.fraudScore).toBe(0);
+      expect(audit.details.unnaturalViewDecay.insufficientData).toBe(true);
+    });
+
+    it('clears organic exponential decay across 24-48h snapshots', () => {
+      const base = new Date('2026-10-10T10:00:00Z').getTime();
+      const posts = Array(6).fill(null).map((_, idx) => {
+        const pub = base - idx * 86400000;
+        return {
+          id: idx + 1,
+          publishedAt: new Date(pub),
+          forwards: 2,
+          snapshots: [
+            { collectedAt: new Date(pub + 2 * 3600_000), views: 850 },
+            { collectedAt: new Date(pub + 6 * 3600_000), views: 1450 },
+            { collectedAt: new Date(pub + 12 * 3600_000), views: 1750 },
+            { collectedAt: new Date(pub + 24 * 3600_000), views: 1920 },
+            { collectedAt: new Date(pub + 36 * 3600_000), views: 1980 },
+            { collectedAt: new Date(pub + 48 * 3600_000), views: 2010 },
+          ],
+        };
+      });
+
+      const res = checkHourlyViewProfile({ id: 11, posts });
+      expect(res.flag).toBe(false);
+      expect(res.insufficientData).toBe(false);
+      expect(res.evaluatedPostsCount).toBe(6);
+      expect(res.lateViewsShare).toBeLessThan(0.1);
+    });
+
+    it('flags late post-24h view surge without incoming mentions or viral forwards', () => {
+      const base = new Date('2026-10-10T10:00:00Z').getTime();
+      const posts = Array(5).fill(null).map((_, idx) => {
+        const pub = base - idx * 86400000;
+        return {
+          id: idx + 1,
+          publishedAt: new Date(pub),
+          forwards: 1,
+          snapshots: [
+            { collectedAt: new Date(pub + 2 * 3600_000), views: 250 },
+            { collectedAt: new Date(pub + 12 * 3600_000), views: 420 },
+            { collectedAt: new Date(pub + 24 * 3600_000), views: 500 },
+            { collectedAt: new Date(pub + 36 * 3600_000), views: 1800 },
+            { collectedAt: new Date(pub + 48 * 3600_000), views: 2400 },
+          ],
+        };
+      });
+
+      const res = checkHourlyViewProfile({ id: 12, posts, mentions: [] });
+      expect(res.flag).toBe(true);
+      expect(res.insufficientData).toBe(false);
+      expect(res.anomalousPostsCount).toBe(5);
+      expect(res.lateViewsShare).toBeGreaterThan(0.7);
+      expect(res.signal?.signalType).toBe('unnatural_view_decay');
+      expect(res.signal?.channelId).toBe(12);
+    });
+
+    it('flags uniform linear drip-feed steps after publication', () => {
+      const base = new Date('2026-10-10T10:00:00Z').getTime();
+      const posts = Array(5).fill(null).map((_, idx) => {
+        const pub = base - idx * 86400000;
+        return {
+          id: idx + 1,
+          publishedAt: new Date(pub),
+          forwards: 0,
+          snapshots: [
+            { collectedAt: new Date(pub + 1 * 3600_000), views: 100 },
+            { collectedAt: new Date(pub + 5 * 3600_000), views: 300 },
+            { collectedAt: new Date(pub + 6 * 3600_000), views: 500 },
+            { collectedAt: new Date(pub + 7 * 3600_000), views: 700 },
+            { collectedAt: new Date(pub + 8 * 3600_000), views: 900 },
+            { collectedAt: new Date(pub + 9 * 3600_000), views: 1100 },
+          ],
+        };
+      });
+
+      const res = checkHourlyViewProfile({ id: 13, posts });
+      expect(res.flag).toBe(true);
+      expect(res.stepUniformityCv).toBeLessThan(0.15);
+      expect(res.signal?.signalType).toBe('unnatural_view_decay');
+    });
+
+    it('does not flag late view growth when explained by incoming external mentions or viral forwards', () => {
+      const base = new Date('2026-10-10T10:00:00Z').getTime();
+      const posts = Array(5).fill(null).map((_, idx) => {
+        const pub = base - idx * 86400000;
+        return {
+          id: idx + 1,
+          publishedAt: new Date(pub),
+          forwards: 50,
+          snapshots: [
+            { collectedAt: new Date(pub + 2 * 3600_000), views: 250 },
+            { collectedAt: new Date(pub + 24 * 3600_000), views: 450 },
+            { collectedAt: new Date(pub + 48 * 3600_000), views: 2200 },
+          ],
+        };
+      });
+      const mentions = posts.map((p) => ({
+        createdAt: new Date(p.publishedAt.getTime() + 26 * 3600_000),
+      }));
+
+      const res = checkHourlyViewProfile({ id: 14, posts, mentions });
+      expect(res.flag).toBe(false);
+      expect(res.anomalousPostsCount).toBe(0);
+      expect(res.reason).toContain('внешними упоминаниями');
+    });
+  });
+
+  describe('checkNightBotActivity', () => {
+    it('returns insufficientData when fewer than 5 posts have timestamped snapshots', () => {
+      const base = new Date('2026-10-10T20:00:00Z').getTime();
+      const posts = Array(3).fill(null).map((_, idx) => ({
+        id: idx + 1,
+        publishedAt: new Date(base - idx * 86400000),
+        reactions: 0,
+        forwards: 0,
+        snapshots: [
+          { collectedAt: new Date(base - idx * 86400000 + 3600_000), views: 100 },
+          { collectedAt: new Date(base - idx * 86400000 + 3 * 3600_000), views: 600 },
+          { collectedAt: new Date(base - idx * 86400000 + 4 * 3600_000), views: 900 },
+        ],
+      }));
+
+      const res = checkNightBotActivity({ id: 20, posts, timeZone: 'Europe/Moscow' });
+      expect(res.flag).toBe(false);
+      expect(res.insufficientData).toBe(true);
+      expect(res.evaluatedPostsCount).toBe(3);
+    });
+
+    it('flags concentrated 02:00-05:59 local-time view increments with 0 reactions and 0 forwards', () => {
+      // Europe/Moscow is UTC+3: 23:30Z = 02:30 MSK, 00:30Z = 03:30 MSK, 01:30Z = 04:30 MSK
+      const posts = Array(5).fill(null).map((_, idx) => {
+        const dayOffset = idx * 86400_000;
+        const t0 = new Date('2026-10-10T18:00:00Z').getTime() - dayOffset; // 21:00 MSK
+        const t1 = new Date('2026-10-10T20:00:00Z').getTime() - dayOffset; // 23:00 MSK
+        const t2 = new Date('2026-10-10T23:30:00Z').getTime() - dayOffset; // 02:30 MSK
+        const t3 = new Date('2026-10-11T00:30:00Z').getTime() - dayOffset; // 03:30 MSK
+        const t4 = new Date('2026-10-11T01:30:00Z').getTime() - dayOffset; // 04:30 MSK
+        return {
+          id: idx + 1,
+          publishedAt: new Date(t0),
+          reactions: 12,
+          forwards: 2,
+          engagementHours: [
+            { hourStart: new Date(t1), reactionsAdded: 12, forwardsAdded: 2 },
+          ],
+          snapshots: [
+            { collectedAt: new Date(t0), views: 100 },
+            { collectedAt: new Date(t1), views: 250 },
+            { collectedAt: new Date(t2), views: 600 },
+            { collectedAt: new Date(t3), views: 950 },
+            { collectedAt: new Date(t4), views: 1300 },
+          ],
+        };
+      });
+
+      const res = checkNightBotActivity({ id: 21, posts, timeZone: 'Europe/Moscow' });
+      expect(res.flag).toBe(true);
+      expect(res.insufficientData).toBe(false);
+      expect(res.nightIntervalsCount).toBe(15);
+      expect(res.nightViewsShare).toBeGreaterThan(0.8);
+      expect(res.zeroEngagementRatio).toBe(1);
+      expect(res.signal?.signalType).toBe('night_bot_activity');
+    });
+
+    it('does not flag night views when reactions and forwards grow alongside views in engagementHours', () => {
+      const posts = Array(5).fill(null).map((_, idx) => {
+        const dayOffset = idx * 86400_000;
+        const t0 = new Date('2026-10-10T18:00:00Z').getTime() - dayOffset;
+        const t1 = new Date('2026-10-10T23:30:00Z').getTime() - dayOffset; // 02:30 MSK
+        const t2 = new Date('2026-10-11T00:30:00Z').getTime() - dayOffset; // 03:30 MSK
+        const t3 = new Date('2026-10-11T01:30:00Z').getTime() - dayOffset; // 04:30 MSK
+        return {
+          id: idx + 1,
+          publishedAt: new Date(t0),
+          reactions: 30,
+          forwards: 6,
+          engagementHours: [
+            { hourStart: new Date('2026-10-10T23:00:00Z').getTime() - dayOffset, reactionsAdded: 10, forwardsAdded: 2 },
+            { hourStart: new Date('2026-10-11T00:00:00Z').getTime() - dayOffset, reactionsAdded: 10, forwardsAdded: 2 },
+            { hourStart: new Date('2026-10-11T01:00:00Z').getTime() - dayOffset, reactionsAdded: 10, forwardsAdded: 2 },
+          ],
+          snapshots: [
+            { collectedAt: new Date(t0), views: 100 },
+            { collectedAt: new Date(t1), views: 450 },
+            { collectedAt: new Date(t2), views: 800 },
+            { collectedAt: new Date(t3), views: 1150 },
+          ],
+        };
+      });
+
+      const res = checkNightBotActivity({ id: 22, posts, timeZone: 'Europe/Moscow' });
+      expect(res.flag).toBe(false);
+      expect(res.zeroEngagementRatio).toBe(0);
+    });
+
+    it('does not flag normal daytime view distribution', () => {
+      const posts = Array(5).fill(null).map((_, idx) => {
+        const dayOffset = idx * 86400_000;
+        const t0 = new Date('2026-10-10T07:00:00Z').getTime() - dayOffset; // 10:00 MSK
+        const t1 = new Date('2026-10-10T09:00:00Z').getTime() - dayOffset; // 12:00 MSK
+        const t2 = new Date('2026-10-10T12:00:00Z').getTime() - dayOffset; // 15:00 MSK
+        const t3 = new Date('2026-10-10T15:00:00Z').getTime() - dayOffset; // 18:00 MSK
+        return {
+          id: idx + 1,
+          publishedAt: new Date(t0),
+          reactions: 0,
+          forwards: 0,
+          snapshots: [
+            { collectedAt: new Date(t0), views: 150 },
+            { collectedAt: new Date(t1), views: 600 },
+            { collectedAt: new Date(t2), views: 1050 },
+            { collectedAt: new Date(t3), views: 1200 },
+          ],
+        };
+      });
+
+      const res = checkNightBotActivity({ id: 23, posts, timeZone: 'Europe/Moscow' });
+      expect(res.flag).toBe(false);
+      expect(res.nightIntervalsCount).toBe(0);
+      expect(res.nightViewsShare).toBe(0);
+    });
+
+    it('integrates unnatural_view_decay and night_bot_activity into runFraudAudit and caps score at 100', () => {
+      const partial = runFraudAudit({
+        id: 30,
+        unnaturalViewDecay: true,
+        nightBotActivity: true,
+      });
+      expect(partial.fraudScore).toBe(50);
+      expect(partial.signals.map((s) => s.signalType)).toEqual([
+        'unnatural_view_decay',
+        'night_bot_activity',
+      ]);
+
+      const capped = runFraudAudit({
+        id: 31,
+        viewsToSubsRatio: true,
+        growthSmoothness: true,
+        uncorrelatedSpikes: true,
+        uniformReactionRatio: true,
+        unnaturalViewDecay: true,
+        nightBotActivity: true,
+      });
+      expect(capped.fraudScore).toBe(100);
+      expect(capped.signals).toHaveLength(6);
+
+      const fromDb = runFraudAudit({
+        id: 32,
+        fraudSignals: [
+          { signalType: 'unnatural_view_decay', value: 0.72, reason: 'Поздний добор просмотров без упоминаний' },
+          { signalType: 'night_bot_activity', value: 0.61, reason: 'Ночная активность ботов 02:00-05:59' },
+        ],
+      });
+      expect(fromDb.fraudScore).toBe(50);
+      expect(fromDb.details.unnaturalViewDecay.flag).toBe(true);
+      expect(fromDb.details.nightBotActivity.flag).toBe(true);
     });
   });
 });

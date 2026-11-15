@@ -10,6 +10,32 @@ export interface RiskBadgeProps {
   className?: string;
 }
 
+const FRAUD_SIGNAL_LABELS: Record<string, string> = {
+  views_to_subs_ratio: 'Аномалия охвата к аудитории',
+  growth_smoothness: 'Линейный рост подписчиков',
+  uncorrelated_spikes: 'Необъяснимые скачки подписчиков',
+  uniform_err: 'Шаблонная равномерность реакций',
+  uniform_reaction_ratio: 'Шаблонная равномерность реакций',
+  unnatural_view_decay: 'Аномалия почасового профиля просмотров',
+  hourly_view_anomaly: 'Аномалия почасового профиля просмотров',
+  hourly_view_profile: 'Аномалия почасового профиля просмотров',
+  night_bot_activity: 'Ночная ботовая активность (02:00-05:59)',
+};
+
+export function getFraudSignalLabel(signalType?: string | null): string | null {
+  if (!signalType) return null;
+  const trimmed = signalType.trim();
+  if (!trimmed) return null;
+  return FRAUD_SIGNAL_LABELS[trimmed] ?? null;
+}
+
+const HOURLY_SIGNAL_TYPES = new Set([
+  'unnatural_view_decay',
+  'hourly_view_anomaly',
+  'hourly_view_profile',
+  'night_bot_activity',
+]);
+
 export function RiskBadge({ score, signals = [], className = '' }: RiskBadgeProps) {
   const parsedScore =
     typeof score === 'number'
@@ -35,7 +61,13 @@ export function RiskBadge({ score, signals = [], className = '' }: RiskBadgeProp
     safeSignals.length > 0
       ? `Risk of Artificial Traffic: ${safeScore}%\n` +
         safeSignals
-          .map((s) => `• ${s.reason || s.signalType || 'Подозрительная активность'}`)
+          .map((s) => {
+            if (s.reason) return `• ${s.reason}`;
+            if (s.signalType && HOURLY_SIGNAL_TYPES.has(s.signalType)) {
+              return `• ${getFraudSignalLabel(s.signalType) ?? s.signalType}`;
+            }
+            return `• ${s.signalType || 'Подозрительная активность'}`;
+          })
           .join('\n')
       : `Risk of Artificial Traffic: ${safeScore}% (Низкий риск накрутки)`;
 

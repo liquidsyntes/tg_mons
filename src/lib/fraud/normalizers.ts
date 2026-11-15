@@ -3,6 +3,8 @@ import type {
   GrowthSmoothnessResult,
   UncorrelatedSpikesResult,
   UniformReactionRatioResult,
+  HourlyViewProfileResult,
+  NightBotActivityResult,
   UniformReactionRatioInput,
 } from './types';
 
@@ -43,7 +45,7 @@ export function isRecord(val: unknown): val is Record<string, unknown> {
   return typeof val === 'object' && val !== null && !Array.isArray(val);
 }
 
-function parseNonNegativeNumber(val: unknown): number | null {
+export function parseNonNegativeNumber(val: unknown): number | null {
   if (typeof val === 'number') return Number.isFinite(val) && val >= 0 ? val : null;
   if (typeof val === 'bigint') {
     const n = Number(val);
@@ -57,7 +59,7 @@ function parseNonNegativeNumber(val: unknown): number | null {
   return null;
 }
 
-function parsePositiveMetricNumber(val: unknown): number {
+export function parsePositiveMetricNumber(val: unknown): number {
   const parsed = parseNonNegativeNumber(val);
   return parsed !== null && parsed > 0 ? parsed : 0;
 }
@@ -226,7 +228,7 @@ function normalizeMetricEntries(channel: Record<string, unknown>): Array<{ date:
   return result;
 }
 
-function extractValidDates(
+export function extractValidDates(
   items: unknown,
   primaryKey: string,
   secondaryKey: string
@@ -428,6 +430,165 @@ export function resolveUniformErrCheck(
     return {
       flag: true,
       cv: typeof existing.value === 'number' ? existing.value : 0.02,
+      reason: typeof existing.reason === 'string' && existing.reason ? existing.reason : flaggedReason,
+    };
+  }
+
+  return calculate(fullInput);
+}
+
+export function resolveHourlyViewProfileCheck(
+  channel: Record<string, unknown>,
+  fullInput: UniformReactionRatioInput,
+  calculate: (input: UniformReactionRatioInput) => HourlyViewProfileResult,
+): HourlyViewProfileResult {
+  const keys = [
+    'unnaturalViewDecay',
+    'unnatural_view_decay',
+    'hourlyViewProfile',
+    'hourly_view_profile',
+    'hourlyViewAnomaly',
+    'hourly_view_anomaly',
+    'UNNATURAL_VIEW_DECAY',
+  ];
+  const flaggedReason = 'Аномальный профиль набора просмотров: поздний добор или равномерные шаги без упоминаний';
+  const clearedReason = 'Профиль затухания просмотров в пределах органической нормы';
+
+  const override = resolveFlagOverride(channel, keys);
+  if (override) {
+    const lateViewsShare =
+      typeof override.lateViewsShare === 'number' ? override.lateViewsShare : override.flag ? 0.65 : 0.15;
+    const stepUniformityCv =
+      typeof override.stepUniformityCv === 'number' ? override.stepUniformityCv : override.flag ? 0.05 : 0.5;
+    const value = typeof override.value === 'number' ? override.value : lateViewsShare;
+    return {
+      flag: override.flag,
+      insufficientData: Boolean(override.insufficientData),
+      evaluatedPostsCount: typeof override.evaluatedPostsCount === 'number' ? override.evaluatedPostsCount : 5,
+      anomalousPostsCount:
+        typeof override.anomalousPostsCount === 'number' ? override.anomalousPostsCount : override.flag ? 3 : 0,
+      lateViewsShare,
+      stepUniformityCv,
+      value,
+      reason:
+        typeof override.reason === 'string' && override.reason
+          ? override.reason
+          : override.flag
+          ? flaggedReason
+          : clearedReason,
+    };
+  }
+
+  const directResult = isRecord(channel.unnaturalViewDecayResult)
+    ? channel.unnaturalViewDecayResult
+    : isRecord(channel.hourlyViewProfileResult)
+    ? channel.hourlyViewProfileResult
+    : undefined;
+  if (directResult && typeof directResult.flag === 'boolean') {
+    const lateViewsShare = typeof directResult.lateViewsShare === 'number' ? directResult.lateViewsShare : 0;
+    return {
+      flag: directResult.flag,
+      insufficientData: Boolean(directResult.insufficientData),
+      evaluatedPostsCount: typeof directResult.evaluatedPostsCount === 'number' ? directResult.evaluatedPostsCount : 0,
+      anomalousPostsCount: typeof directResult.anomalousPostsCount === 'number' ? directResult.anomalousPostsCount : 0,
+      lateViewsShare,
+      stepUniformityCv: typeof directResult.stepUniformityCv === 'number' ? directResult.stepUniformityCv : 0,
+      value: typeof directResult.value === 'number' ? directResult.value : lateViewsShare,
+      reason: typeof directResult.reason === 'string' ? directResult.reason : '',
+    };
+  }
+
+  const existing = findActiveFraudSignal(channel.fraudSignals, [
+    'unnatural_view_decay',
+    'unnaturalViewDecay',
+    'hourly_view_anomaly',
+    'hourlyViewAnomaly',
+    'hourly_view_profile',
+    'hourlyViewProfile',
+    'UNNATURAL_VIEW_DECAY',
+  ]);
+  if (existing) {
+    const value = typeof existing.value === 'number' ? existing.value : 0.65;
+    return {
+      flag: true,
+      insufficientData: false,
+      evaluatedPostsCount: 5,
+      anomalousPostsCount: 3,
+      lateViewsShare: value,
+      stepUniformityCv: 0,
+      value,
+      reason: typeof existing.reason === 'string' && existing.reason ? existing.reason : flaggedReason,
+    };
+  }
+
+  return calculate(fullInput);
+}
+
+export function resolveNightBotActivityCheck(
+  channel: Record<string, unknown>,
+  fullInput: UniformReactionRatioInput,
+  calculate: (input: UniformReactionRatioInput) => NightBotActivityResult,
+): NightBotActivityResult {
+  const keys = ['nightBotActivity', 'night_bot_activity', 'NIGHT_BOT_ACTIVITY'];
+  const flaggedReason = 'Аномальная ночная активность (02:00-05:59): всплеск просмотров при нулевом отклике';
+  const clearedReason = 'Ночная активность просмотров в пределах нормы';
+
+  const override = resolveFlagOverride(channel, keys);
+  if (override) {
+    const nightViewsShare =
+      typeof override.nightViewsShare === 'number' ? override.nightViewsShare : override.flag ? 0.45 : 0.08;
+    const zeroEngagementRatio =
+      typeof override.zeroEngagementRatio === 'number' ? override.zeroEngagementRatio : override.flag ? 1 : 0;
+    const value = typeof override.value === 'number' ? override.value : nightViewsShare;
+    return {
+      flag: override.flag,
+      insufficientData: Boolean(override.insufficientData),
+      evaluatedPostsCount: typeof override.evaluatedPostsCount === 'number' ? override.evaluatedPostsCount : 5,
+      nightIntervalsCount:
+        typeof override.nightIntervalsCount === 'number' ? override.nightIntervalsCount : override.flag ? 4 : 0,
+      nightViewsShare,
+      zeroEngagementRatio,
+      value,
+      reason:
+        typeof override.reason === 'string' && override.reason
+          ? override.reason
+          : override.flag
+          ? flaggedReason
+          : clearedReason,
+    };
+  }
+
+  const directResult = isRecord(channel.nightBotActivityResult) ? channel.nightBotActivityResult : undefined;
+  if (directResult && typeof directResult.flag === 'boolean') {
+    const nightViewsShare = typeof directResult.nightViewsShare === 'number' ? directResult.nightViewsShare : 0;
+    return {
+      flag: directResult.flag,
+      insufficientData: Boolean(directResult.insufficientData),
+      evaluatedPostsCount: typeof directResult.evaluatedPostsCount === 'number' ? directResult.evaluatedPostsCount : 0,
+      nightIntervalsCount: typeof directResult.nightIntervalsCount === 'number' ? directResult.nightIntervalsCount : 0,
+      nightViewsShare,
+      zeroEngagementRatio:
+        typeof directResult.zeroEngagementRatio === 'number' ? directResult.zeroEngagementRatio : 0,
+      value: typeof directResult.value === 'number' ? directResult.value : nightViewsShare,
+      reason: typeof directResult.reason === 'string' ? directResult.reason : '',
+    };
+  }
+
+  const existing = findActiveFraudSignal(channel.fraudSignals, [
+    'night_bot_activity',
+    'nightBotActivity',
+    'NIGHT_BOT_ACTIVITY',
+  ]);
+  if (existing) {
+    const value = typeof existing.value === 'number' ? existing.value : 0.45;
+    return {
+      flag: true,
+      insufficientData: false,
+      evaluatedPostsCount: 5,
+      nightIntervalsCount: 4,
+      nightViewsShare: value,
+      zeroEngagementRatio: 1,
+      value,
       reason: typeof existing.reason === 'string' && existing.reason ? existing.reason : flaggedReason,
     };
   }

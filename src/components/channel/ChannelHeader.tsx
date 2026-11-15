@@ -5,7 +5,7 @@ import { ArrowLeft, Crown, ExternalLink, AlertTriangle } from 'lucide-react';
 import { type AdPriceResult, type ChannelMetrics, type ChannelDetailStats } from '@/lib/types';
 import { SummaryMetric, GrowthMetric } from '@/components/SummaryMetric';
 import { StatusBadge } from '@/components/StatusBadge';
-import { RiskBadge } from '@/components/RiskBadge';
+import { RiskBadge, getFraudSignalLabel } from '@/components/RiskBadge';
 import { runFraudAudit } from '@/lib/fraudDetector';
 import { ExportPdfButton } from '@/components/ExportPdfButton';
 import { ExportMenu } from '@/components/ExportMenu';
@@ -171,6 +171,30 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
                 tags={channel.tags ?? []}
               />
             </div>
+
+            {fraudSignals.length > 0 && (
+              <div
+                data-testid="channel-fraud-signals"
+                className="pt-1.5 flex flex-wrap gap-1.5"
+              >
+                {fraudSignals.map((sig, idx) => {
+                  const text =
+                    sig.reason ||
+                    getFraudSignalLabel(sig.signalType) ||
+                    sig.signalType ||
+                    'Подозрительная активность';
+                  return (
+                    <span
+                      key={`${sig.signalType}-${idx}`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] bg-rose-500/10 text-rose-300 border border-rose-500/25"
+                    >
+                      <AlertTriangle className="w-3 h-3 shrink-0 text-rose-400" />
+                      <span>{text}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-6">

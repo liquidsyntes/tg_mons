@@ -1,4 +1,5 @@
 import { calculateCitationIndex, type CitationInput } from '../citationIndex';
+import { DEFAULT_APP_TIMEZONE, getAppTimezone, getZonedDateParts } from '../timezone';
 import type {
   FraudSignalResult,
   GrowthSmoothnessResult,
@@ -6,16 +7,23 @@ import type {
   LowCitationGrowthResult,
   LowCitationChannelInput,
   UniformReactionRatioResult,
+  HourlyViewProfileOptions,
+  NightBotActivityOptions,
+  HourlyViewProfileResult,
+  NightBotActivityResult,
   UniformReactionRatioInput,
 } from './types';
 import {
   parseGrowth,
   parseCitationIndexParam,
+  parseNonNegativeNumber,
+  parsePositiveMetricNumber,
   isRecord,
   extractRawPostsFromChannel,
   extractPostTimestamp,
   extractPostERR,
   extractChannelId,
+  extractValidDates,
 } from './normalizers';
 
 /**
@@ -460,6 +468,489 @@ export function checkUniformReactionRatio(channel: UniformReactionRatioInput): U
       value: cv,
       reason,
       channelId: extractChannelId(channel),
+    };
+  }
+
+  return result;
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+
+interface NormalizedCheckpoint {
+  ts: number;
+  elapsedHours: number | null;
+  views: number;
+}
+
+interface NormalizedEngagementHour {
+  postId: number | undefined;
+  hourMs: number;
+  totalAdded: number;
+  forwardsAdded: number;
+}
+
+function parseTimestampMs(raw: unknown): number | null {
+  if (raw instanceof Date) {
+    const t = raw.getTime();
+    return Number.isFinite(t) ? t : null;
+  }
+  if (typeof raw === 'string' || typeof raw === 'number') {
+    const t = new Date(raw).getTime();
+    return Number.isFinite(t) ? t : null;
+  }
+  return null;
+}
+
+function extractPostCheckpoints(post: Record<string, unknown>, publishedMs: number): NormalizedCheckpoint[] {
+  const rawSnapshots: unknown[] = [];
+  if (Array.isArray(post.snapshots)) rawSnapshots.push(...post.snapshots);
+  if (Array.isArray(post.viewSnapshots)) rawSnapshots.push(...post.viewSnapshots);
+
+  const parsed: NormalizedCheckpoint[] = [];
+  for (const snap of rawSnapshots) {
+    if (!isRecord(snap)) continue;
+    const views = parseNonNegativeNumber(snap.views ?? snap.viewsCount);
+    if (views === null) continue;
+
+    const rawHours = parseNonNegativeNumber(snap.hoursAfterPost);
+    let ts = parseTimestampMs(snap.collectedAt ?? snap.capturedAt);
+
+    if (ts === null) {
+      if (rawHours !== null && publishedMs > 0) {
+        ts = publishedMs + rawHours * HOUR_MS;
+      } else if (rawHours !== null) {
+        // Synthetic checkpoint without absolute wall clock timestamp
+        ts = rawHours * HOUR_MS;
+      } else {
+        continue;
+      }
+    }
+
+    const elapsedHours =
+      rawHours !== null
+        ? rawHours
+        : publishedMs > 0
+        ? (ts - publishedMs) / HOUR_MS
+        : null;
+
+    if (elapsedHours !== null && elapsedHours < -0.25) {
+      continue;
+    }
+
+    parsed.push({ ts, elapsedHours, views });
+  }
+
+  parsed.sort((a, b) => a.ts - b.ts);
+
+  // Deduplicate closely spaced snapshots (< 5 min) keeping higher views and newer timestamp
+  const deduped: NormalizedCheckpoint[] = [];
+  for (const point of parsed) {
+    const prev = deduped[deduped.length - 1];
+    if (prev && Math.abs(point.ts - prev.ts) < 5 * 60 * 1000) {
+      if (point.views >= prev.views) {
+        deduped[deduped.length - 1] = point;
+      }
+    } else {
+      deduped.push(point);
+    }
+  }
+
+  return deduped;
+}
+
+function normalizeEngagementHoursList(raw: unknown): NormalizedEngagementHour[] {
+  if (!Array.isArray(raw)) return [];
+  const entries: NormalizedEngagementHour[] = [];
+  for (const item of raw) {
+    if (!isRecord(item)) continue;
+    const ts = parseTimestampMs(item.hourStart);
+    if (ts === null) continue;
+    const hourMs = Math.floor(ts / HOUR_MS) * HOUR_MS;
+    const reactionsAdded = parsePositiveMetricNumber(item.reactionsAdded);
+    const forwardsAdded = parsePositiveMetricNumber(item.forwardsAdded);
+    entries.push({
+      postId: typeof item.postId === 'number' ? item.postId : undefined,
+      hourMs,
+      totalAdded: reactionsAdded + forwardsAdded,
+      forwardsAdded,
+    });
+  }
+  return entries;
+}
+
+function getLocalHourSafe(date: Date, timeZone: string): number {
+  try {
+    return getZonedDateParts(date, timeZone).hour;
+  } catch {
+    try {
+      return getZonedDateParts(date, DEFAULT_APP_TIMEZONE).hour;
+    } catch {
+      return date.getUTCHours();
+    }
+  }
+}
+
+function isNightHourInWindow(hour: number, startHour: number, endHour: number): boolean {
+  if (startHour <= endHour) {
+    return hour >= startHour && hour <= endHour;
+  }
+  return hour >= startHour || hour <= endHour;
+}
+
+function computePopulationCv(values: ReadonlyArray<number>): number | null {
+  if (values.length < 3) return null;
+  const mean = values.reduce((acc, v) => acc + v, 0) / values.length;
+  if (mean <= 0) return null;
+  const variance = values.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / values.length;
+  const stdDev = Math.sqrt(Math.max(0, variance));
+  const cv = stdDev / mean;
+  return Number.isFinite(cv) ? cv : null;
+}
+
+/**
+ * Проверка профиля набора просмотров по часовым снимкам (`checkHourlyViewProfile`).
+ *
+ * Detects unnatural post view accumulation curves across `PostSnapshot` / `PostViewSnapshot` history:
+ * 1. Late view injection: > 50% of total views accumulated after 24h without incoming mentions or viral forwards.
+ * 2. Linear bot drip-feed: unnaturally uniform hourly view step increments (`CV < 0.15`) after early exposure.
+ *
+ * Returns `flag: false, insufficientData: true` when fewer than `minPosts` (default 5) posts
+ * have at least `minPointsPerPost` (default 3) snapshots.
+ */
+export function checkHourlyViewProfile(
+  input: UniformReactionRatioInput,
+  options: HourlyViewProfileOptions = {},
+): HourlyViewProfileResult {
+  const minPosts = options.minPosts ?? 5;
+  const minPointsPerPost = options.minPointsPerPost ?? 3;
+  const lateViewsShareThreshold = options.lateViewsShareThreshold ?? 0.5;
+  const stepUniformityCvThreshold = options.stepUniformityCvThreshold ?? 0.15;
+  const minPostAnomalyRatio = options.minPostAnomalyRatio ?? 0.4;
+
+  const rawPosts = extractRawPostsFromChannel(input);
+  const channelId = extractChannelId(input);
+  const mentionsTimestamps = isRecord(input)
+    ? (
+        Array.isArray(input.mentionsDates)
+          ? input.mentionsDates.filter((d): d is Date => d instanceof Date && !Number.isNaN(d.getTime()))
+          : extractValidDates(input.mentions, 'createdAt', 'date')
+      ).map((d) => d.getTime())
+    : [];
+  const channelEngagement = isRecord(input) ? normalizeEngagementHoursList(input.engagementHours) : [];
+
+  const evaluatedPosts: Array<{
+    anomalous: boolean;
+    lateShare: number | null;
+    stepCv: number | null;
+    isLateSurge: boolean;
+    isUniformSteps: boolean;
+    viralProtected: boolean;
+  }> = [];
+
+  for (const rawPost of rawPosts) {
+    if (!isRecord(rawPost)) continue;
+    const publishedMs = extractPostTimestamp(rawPost);
+    const checkpoints = extractPostCheckpoints(rawPost, publishedMs);
+    if (checkpoints.length < minPointsPerPost) continue;
+
+    const maxSnapshotViews = Math.max(...checkpoints.map((c) => c.views), 0);
+    if (maxSnapshotViews <= 0) continue;
+
+    const forwards = parsePositiveMetricNumber(rawPost.forwards);
+    const postId = typeof rawPost.id === 'number' ? rawPost.id : undefined;
+    const postEng = Array.isArray(rawPost.engagementHours)
+      ? normalizeEngagementHoursList(rawPost.engagementHours)
+      : postId !== undefined
+      ? channelEngagement.filter((e) => e.postId === postId)
+      : [];
+
+    const hasPostMention = rawPost.hasExternalMention === true;
+    const hasMentionWindowMatch =
+      publishedMs > 0 &&
+      mentionsTimestamps.some((mTs) => mTs >= publishedMs - 2 * HOUR_MS && mTs <= publishedMs + 72 * HOUR_MS);
+    const hasViralForwards = forwards >= 10 && forwards / maxSnapshotViews >= 0.015;
+    const hasLateForwardSurge =
+      publishedMs > 0 &&
+      postEng.some((e) => e.hourMs - publishedMs >= 12 * HOUR_MS && e.forwardsAdded >= 5);
+    const viralProtected = hasPostMention || hasMentionWindowMatch || hasViralForwards || hasLateForwardSurge;
+
+    // 1) Late views share after 24h
+    let lateShare: number | null = null;
+    if (publishedMs > 0 || checkpoints.some((c) => c.elapsedHours !== null)) {
+      const earlyPoints = checkpoints.filter((c) => c.elapsedHours !== null && c.elapsedHours <= 25);
+      const after24Points = checkpoints.filter((c) => c.elapsedHours !== null && c.elapsedHours > 25);
+      if (earlyPoints.length > 0 && after24Points.length > 0) {
+        const viewsAt24 = Math.max(...earlyPoints.map((c) => c.views));
+        const finalViews = Math.max(maxSnapshotViews, ...after24Points.map((c) => c.views));
+        lateShare = finalViews > 0 ? Math.max(0, finalViews - viewsAt24) / finalViews : 0;
+      }
+    }
+
+    // 2) Step uniformity CV across sustained post-launch growth intervals (>= 4h elapsed)
+    const stepRates: number[] = [];
+    let stepDeltaSum = 0;
+    for (let i = 1; i < checkpoints.length; i++) {
+      const prev = checkpoints[i - 1];
+      const curr = checkpoints[i];
+      const deltaViews = curr.views - prev.views;
+      const dtHours = (curr.ts - prev.ts) / HOUR_MS;
+      if (deltaViews <= 0 || dtHours < 0.5 || dtHours > 12) continue;
+      if ((prev.elapsedHours === null || prev.elapsedHours >= 4) && (curr.elapsedHours === null || curr.elapsedHours >= 4)) {
+        stepRates.push(deltaViews / Math.max(1, dtHours));
+        stepDeltaSum += deltaViews;
+      }
+    }
+    const meanRate = stepRates.length > 0 ? stepRates.reduce((a, b) => a + b, 0) / stepRates.length : 0;
+    const stepCv =
+      stepRates.length >= 4 && stepDeltaSum >= 80 && meanRate >= 15 ? computePopulationCv(stepRates) : null;
+
+    const isLateSurge = lateShare !== null && lateShare > lateViewsShareThreshold;
+    const isUniformSteps = stepCv !== null && stepCv < stepUniformityCvThreshold;
+    const anomalous = !viralProtected && (isLateSurge || isUniformSteps);
+
+    evaluatedPosts.push({
+      anomalous,
+      lateShare,
+      stepCv,
+      isLateSurge,
+      isUniformSteps,
+      viralProtected,
+    });
+  }
+
+  const evaluatedPostsCount = evaluatedPosts.length;
+  if (evaluatedPostsCount < minPosts) {
+    return {
+      flag: false,
+      insufficientData: true,
+      evaluatedPostsCount,
+      anomalousPostsCount: 0,
+      lateViewsShare: 0,
+      stepUniformityCv: 0,
+      value: 0,
+      reason: `Недостаточно данных для почасового анализа (менее ${minPosts} постов со снимками просмотров)`,
+    };
+  }
+
+  const anomalousItems = evaluatedPosts.filter((p) => p.anomalous);
+  const anomalousPostsCount = anomalousItems.length;
+  const lateSamples = (anomalousItems.length > 0 ? anomalousItems : evaluatedPosts)
+    .map((p) => p.lateShare)
+    .filter((v): v is number => v !== null);
+  const stepSamples = (anomalousItems.length > 0 ? anomalousItems : evaluatedPosts)
+    .map((p) => p.stepCv)
+    .filter((v): v is number => v !== null);
+
+  const avgLateViewsShare =
+    lateSamples.length > 0
+      ? Number((lateSamples.reduce((a, b) => a + b, 0) / lateSamples.length).toFixed(4))
+      : 0;
+  const avgStepUniformityCv =
+    stepSamples.length > 0
+      ? Number((stepSamples.reduce((a, b) => a + b, 0) / stepSamples.length).toFixed(4))
+      : 0;
+
+  const anomalyRatio = anomalousPostsCount / evaluatedPostsCount;
+  const flag = anomalousPostsCount >= 2 && anomalyRatio >= minPostAnomalyRatio;
+
+  const lateCount = anomalousItems.filter((p) => p.isLateSurge).length;
+  const stepCount = anomalousItems.filter((p) => p.isUniformSteps).length;
+  const primaryValue = flag
+    ? lateCount >= stepCount
+      ? avgLateViewsShare
+      : avgStepUniformityCv
+    : avgLateViewsShare;
+
+  let reason: string;
+  if (flag) {
+    reason =
+      lateCount >= stepCount
+        ? `Аномальный профиль набора просмотров: ${(avgLateViewsShare * 100).toFixed(0)}% просмотров после 24ч без внешних упоминаний (${anomalousPostsCount} из ${evaluatedPostsCount} постов)`
+        : `Аномальная равномерность набора просмотров: линейные шаги после публикации (CV = ${avgStepUniformityCv.toFixed(2)}, ${anomalousPostsCount} из ${evaluatedPostsCount} постов)`;
+  } else if (evaluatedPosts.some((p) => p.viralProtected && (p.lateShare ?? 0) > lateViewsShareThreshold)) {
+    reason = 'Поздний рост просмотров объясняется внешними упоминаниями или репостами';
+  } else {
+    reason = 'Профиль затухания просмотров в пределах органической нормы';
+  }
+
+  const result: HourlyViewProfileResult = {
+    flag,
+    insufficientData: false,
+    evaluatedPostsCount,
+    anomalousPostsCount,
+    lateViewsShare: avgLateViewsShare,
+    stepUniformityCv: avgStepUniformityCv,
+    value: primaryValue,
+    reason,
+  };
+
+  if (flag) {
+    result.signal = {
+      signalType: 'unnatural_view_decay',
+      value: primaryValue,
+      reason,
+      channelId,
+    };
+  }
+
+  return result;
+}
+
+/**
+ * Проверка ночной ботовой активности по часовым интервалам (`checkNightBotActivity`).
+ *
+ * Flags channels where a disproportionate share of view growth happens in deep night hours
+ * (default `02:00-05:59` in `APP_TIMEZONE`) with zero accompanying reactions or forwards.
+ */
+export function checkNightBotActivity(
+  input: UniformReactionRatioInput,
+  options: NightBotActivityOptions = {},
+): NightBotActivityResult {
+  const minPosts = options.minPosts ?? 5;
+  const minPointsPerPost = options.minPointsPerPost ?? 3;
+  const nightStartHour = options.nightStartHour ?? 2;
+  const nightEndHour = options.nightEndHour ?? 5;
+  const nightViewsShareThreshold = options.nightViewsShareThreshold ?? 0.3;
+  const minZeroEngagementRatio = options.minZeroEngagementRatio ?? 0.8;
+  const minNightDeltaViews = options.minNightDeltaViews ?? 100;
+  const timeZone =
+    options.timeZone ??
+    (isRecord(input) && typeof input.timeZone === 'string' && input.timeZone.trim()
+      ? input.timeZone.trim()
+      : getAppTimezone());
+
+  const rawPosts = extractRawPostsFromChannel(input);
+  const channelId = extractChannelId(input);
+  const channelEngagement = isRecord(input) ? normalizeEngagementHoursList(input.engagementHours) : [];
+
+  let evaluatedPostsCount = 0;
+  let totalDeltaViews = 0;
+  let nightDeltaViews = 0;
+  let nightIntervalsCount = 0;
+  let zeroEngagementIntervals = 0;
+
+  for (const rawPost of rawPosts) {
+    if (!isRecord(rawPost)) continue;
+    const publishedMs = extractPostTimestamp(rawPost);
+    const checkpoints = extractPostCheckpoints(rawPost, publishedMs);
+    if (checkpoints.length < minPointsPerPost) continue;
+
+    // Require real wall-clock timestamps to classify local hour
+    const hasAbsoluteTimestamps = checkpoints.some((c) => c.ts > 1_000_000_000_000);
+    if (!hasAbsoluteTimestamps) continue;
+
+    const maxViews = Math.max(...checkpoints.map((c) => c.views), 0);
+    if (maxViews <= 0) continue;
+
+    evaluatedPostsCount++;
+
+    const postId = typeof rawPost.id === 'number' ? rawPost.id : undefined;
+    const hasPostEngagementArray = Array.isArray(rawPost.engagementHours);
+    const postEng = hasPostEngagementArray
+      ? normalizeEngagementHoursList(rawPost.engagementHours)
+      : postId !== undefined
+      ? channelEngagement.filter((e) => e.postId === postId)
+      : channelEngagement;
+
+    const reactionsTotal = parseNonNegativeNumber(rawPost.reactions);
+    const forwardsTotal = parseNonNegativeNumber(rawPost.forwards);
+    const hasExplicitZeroPostEngagement =
+      reactionsTotal === 0 && (forwardsTotal === null || forwardsTotal === 0);
+    // Require either confirmed zero total engagement or actual hourly engagement logs for this post
+    const hasHourTracking = hasExplicitZeroPostEngagement || postEng.length > 0;
+
+    const engByHour = new Map<number, number>();
+    for (const entry of postEng) {
+      engByHour.set(entry.hourMs, (engByHour.get(entry.hourMs) ?? 0) + entry.totalAdded);
+    }
+
+    for (let i = 1; i < checkpoints.length; i++) {
+      const prev = checkpoints[i - 1];
+      const curr = checkpoints[i];
+      if (prev.ts <= 1_000_000_000_000 || curr.ts <= 1_000_000_000_000) continue;
+
+      const dtHours = (curr.ts - prev.ts) / HOUR_MS;
+      const deltaViews = curr.views - prev.views;
+      if (deltaViews <= 0 || dtHours <= 0 || dtHours > 6) continue;
+
+      totalDeltaViews += deltaViews;
+
+      const localHour = getLocalHourSafe(new Date(curr.ts), timeZone);
+      if (!isNightHourInWindow(localHour, nightStartHour, nightEndHour)) continue;
+
+      nightDeltaViews += deltaViews;
+      if (deltaViews < 15) continue;
+
+      nightIntervalsCount++;
+
+      let intervalEngagement = 0;
+      if (hasExplicitZeroPostEngagement) {
+        intervalEngagement = 0;
+      } else if (hasHourTracking) {
+        const startHourBucket = Math.floor(prev.ts / HOUR_MS) * HOUR_MS;
+        const endHourBucket = Math.floor(curr.ts / HOUR_MS) * HOUR_MS;
+        for (let h = startHourBucket; h <= endHourBucket; h += HOUR_MS) {
+          const bucketHour = getLocalHourSafe(new Date(h), timeZone);
+          if (h === endHourBucket || isNightHourInWindow(bucketHour, nightStartHour, nightEndHour)) {
+            intervalEngagement += engByHour.get(h) ?? 0;
+          }
+        }
+      } else {
+        // Without hourly engagement tracking and non-zero totals, cannot verify zero night engagement
+        intervalEngagement = 1;
+      }
+
+      if (intervalEngagement === 0) {
+        zeroEngagementIntervals++;
+      }
+    }
+  }
+
+  if (evaluatedPostsCount < minPosts) {
+    return {
+      flag: false,
+      insufficientData: true,
+      evaluatedPostsCount,
+      nightIntervalsCount: 0,
+      nightViewsShare: 0,
+      zeroEngagementRatio: 0,
+      value: 0,
+      reason: `Недостаточно данных для анализа ночной активности (менее ${minPosts} постов со снимками)`,
+    };
+  }
+
+  const nightViewsShare =
+    totalDeltaViews > 0 ? Number((nightDeltaViews / totalDeltaViews).toFixed(4)) : 0;
+  const zeroEngagementRatio =
+    nightIntervalsCount > 0 ? Number((zeroEngagementIntervals / nightIntervalsCount).toFixed(4)) : 0;
+
+  const flag =
+    nightIntervalsCount >= 3 &&
+    nightDeltaViews >= minNightDeltaViews &&
+    nightViewsShare >= nightViewsShareThreshold &&
+    zeroEngagementRatio >= minZeroEngagementRatio;
+
+  const reason = flag
+    ? `Аномальная ночная активность (${String(nightStartHour).padStart(2, '0')}:00-${String(nightEndHour).padStart(2, '0')}:59 ${timeZone}): ${(nightViewsShare * 100).toFixed(0)}% прироста просмотров при 0 реакций и репостов (${zeroEngagementIntervals} из ${nightIntervalsCount} ночных интервалов)`
+    : 'Ночная активность просмотров в пределах нормы';
+
+  const result: NightBotActivityResult = {
+    flag,
+    insufficientData: false,
+    evaluatedPostsCount,
+    nightIntervalsCount,
+    nightViewsShare,
+    zeroEngagementRatio,
+    value: nightViewsShare,
+    reason,
+  };
+
+  if (flag) {
+    result.signal = {
+      signalType: 'night_bot_activity',
+      value: nightViewsShare,
+      reason,
+      channelId,
     };
   }
 

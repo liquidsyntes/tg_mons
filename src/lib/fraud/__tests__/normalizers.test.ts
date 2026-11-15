@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveFlagOverride, resolveGrowthSmoothnessCheck } from '../normalizers';
+import {
+  resolveFlagOverride,
+  resolveGrowthSmoothnessCheck,
+  resolveHourlyViewProfileCheck,
+  resolveNightBotActivityCheck,
+} from '../normalizers';
 
 const keys = ['growthSmoothness', 'growth_smoothness'];
 
@@ -96,5 +101,26 @@ describe('resolveGrowthSmoothnessCheck priorities', () => {
     };
     expect(resolveGrowthSmoothnessCheck(input, calculate)).toBe(computed);
     expect(calculate).toHaveBeenCalledExactlyOnceWith([{ date: new Date('2026-10-01'), followers: 100 }]);
+  });
+});
+
+describe('resolveHourlyViewProfileCheck and resolveNightBotActivityCheck', () => {
+  it('resolves DB fraudSignals and explicit overrides before running calculation', () => {
+    const calcHourly = vi.fn();
+    const hourlyFromDb = resolveHourlyViewProfileCheck({
+      fraudSignals: [{ signalType: 'unnatural_view_decay', value: 0.72, reason: 'Поздний добор' }],
+    }, {}, calcHourly);
+    expect(hourlyFromDb.flag).toBe(true);
+    expect(hourlyFromDb.lateViewsShare).toBe(0.72);
+    expect(hourlyFromDb.reason).toBe('Поздний добор');
+    expect(calcHourly).not.toHaveBeenCalled();
+
+    const calcNight = vi.fn();
+    const nightFromOverride = resolveNightBotActivityCheck({
+      nightBotActivity: false,
+      fraudSignals: [{ signalType: 'night_bot_activity', value: 0.6 }],
+    }, {}, calcNight);
+    expect(nightFromOverride.flag).toBe(false);
+    expect(calcNight).not.toHaveBeenCalled();
   });
 });

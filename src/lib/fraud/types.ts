@@ -95,12 +95,77 @@ export interface UniformReactionRatioResult {
   signal?: FraudSignal;
 }
 
+export interface FraudPostSnapshotInput {
+  views?: number | string | bigint | null;
+  viewsCount?: number | string | bigint | null;
+  collectedAt?: Date | string | number | null;
+  capturedAt?: Date | string | number | null;
+  hoursAfterPost?: number | string | null;
+}
+
+export interface FraudEngagementHourInput {
+  postId?: number;
+  hourStart?: Date | string | number | null;
+  reactionsAdded?: number | string | bigint | null;
+  forwardsAdded?: number | string | bigint | null;
+}
+
+export interface HourlyViewProfileOptions {
+  minPosts?: number;
+  minPointsPerPost?: number;
+  lateViewsShareThreshold?: number;
+  stepUniformityCvThreshold?: number;
+  minPostAnomalyRatio?: number;
+  timeZone?: string;
+}
+
+export interface NightBotActivityOptions {
+  minPosts?: number;
+  minPointsPerPost?: number;
+  nightStartHour?: number;
+  nightEndHour?: number;
+  nightViewsShareThreshold?: number;
+  minZeroEngagementRatio?: number;
+  minNightDeltaViews?: number;
+  timeZone?: string;
+}
+
+/**
+ * Result of the hourly post view accumulation profile check (`checkHourlyViewProfile`).
+ */
+export interface HourlyViewProfileResult {
+  flag: boolean;
+  insufficientData: boolean;
+  evaluatedPostsCount: number;
+  anomalousPostsCount: number;
+  lateViewsShare: number;
+  stepUniformityCv: number;
+  value?: number;
+  reason: string;
+  signal?: FraudSignal;
+}
+
+/**
+ * Result of the night bot view injection check (`checkNightBotActivity`).
+ */
+export interface NightBotActivityResult {
+  flag: boolean;
+  insufficientData: boolean;
+  evaluatedPostsCount: number;
+  nightIntervalsCount: number;
+  nightViewsShare: number;
+  zeroEngagementRatio: number;
+  value?: number;
+  reason: string;
+  signal?: FraudSignal;
+}
+
 /**
  * Persistent or transient fraud signal record representing an identified anomaly.
  *
  * @property id - Optional database primary key identifier for persisted signals.
  * @property channelId - Optional ID of the channel associated with the detected anomaly.
- * @property signalType - Category of the signal (`views_to_subs_ratio`, `growth_smoothness`, `uncorrelated_spikes`, `uniform_err`).
+ * @property signalType - Category of the signal (`views_to_subs_ratio`, `growth_smoothness`, `uncorrelated_spikes`, `uniform_err`, `unnatural_view_decay`, `night_bot_activity`).
  * @property value - Numerical metric value associated with the trigger (e.g. CV value, ratio, or spike count).
  * @property reason - Human-readable diagnostic explanation of why the signal was triggered.
  * @property detectedAt - Timestamp when the anomaly was detected or recorded.
@@ -115,24 +180,22 @@ export interface FraudSignal {
 }
 
 /**
- * Consolidated audit result aggregating all four primary anti-fraud checks into a unified score (`runFraudAudit`).
+ * Consolidated audit result aggregating anti-fraud checks into a unified score (`runFraudAudit`).
  *
- * @property fraudScore - Aggregated risk score from 0 to 100, where each triggered heuristic contributes 25 points.
+ * @property fraudScore - Aggregated risk score from 0 to 100 (capped at 100), where each triggered heuristic contributes 25 points.
  * @property signals - List of triggered `FraudSignal` objects representing identified anomalies.
- * @property details - Detailed breakdown of constituent check results:
- *   - `viewsToSubsRatio`: Result from `checkViewsToSubsRatio`.
- *   - `growthSmoothness`: Result from `checkGrowthSmoothness`.
- *   - `uncorrelatedSpikes`: Result from `checkUncorrelatedSpikes`.
- *   - `uniformReactionRatio`: Result from `checkUniformReactionRatio`.
+ * @property details - Detailed breakdown of constituent check results.
  */
 export interface FraudAuditResult {
-  fraudScore: number; // 0 to 100 (each flag contributes 25 points)
+  fraudScore: number; // 0 to 100 (each flag contributes 25 points, capped at 100)
   signals: FraudSignal[];
   details: {
     viewsToSubsRatio: FraudSignalResult;
     growthSmoothness: GrowthSmoothnessResult;
     uncorrelatedSpikes: UncorrelatedSpikesResult;
     uniformReactionRatio: UniformReactionRatioResult;
+    unnaturalViewDecay: HourlyViewProfileResult;
+    nightBotActivity: NightBotActivityResult;
   };
 }
 
@@ -148,6 +211,10 @@ export interface FraudPostInput {
   publishedAt?: Date | string | number | null;
   date?: Date | string | number | null;
   createdAt?: Date | string | number | null;
+  snapshots?: ReadonlyArray<FraudPostSnapshotInput | null | undefined>;
+  viewSnapshots?: ReadonlyArray<FraudPostSnapshotInput | null | undefined>;
+  engagementHours?: ReadonlyArray<FraudEngagementHourInput | null | undefined>;
+  hasExternalMention?: boolean;
 }
 
 export interface FraudMetricInput {
@@ -189,6 +256,14 @@ export interface SimulatedFraudFlags {
   uniform_reaction_ratio?: boolean | Partial<UniformReactionRatioResult>;
   uniformErr?: boolean | Partial<UniformReactionRatioResult>;
   uniform_err?: boolean | Partial<UniformReactionRatioResult>;
+  unnaturalViewDecay?: boolean | Partial<HourlyViewProfileResult>;
+  unnatural_view_decay?: boolean | Partial<HourlyViewProfileResult>;
+  hourlyViewProfile?: boolean | Partial<HourlyViewProfileResult>;
+  hourly_view_profile?: boolean | Partial<HourlyViewProfileResult>;
+  hourlyViewAnomaly?: boolean | Partial<HourlyViewProfileResult>;
+  hourly_view_anomaly?: boolean | Partial<HourlyViewProfileResult>;
+  nightBotActivity?: boolean | Partial<NightBotActivityResult>;
+  night_bot_activity?: boolean | Partial<NightBotActivityResult>;
 }
 
 export interface FraudAuditChannelInput extends SimulatedFraudFlags {
@@ -207,6 +282,7 @@ export interface FraudAuditChannelInput extends SimulatedFraudFlags {
   postsDates?: Date[];
   mentionsDates?: Date[];
   mentions?: ReadonlyArray<FraudMentionDateInput | CitationMention | null | undefined>;
+  engagementHours?: ReadonlyArray<FraudEngagementHourInput | null | undefined>;
   fraudSignals?: ReadonlyArray<FraudSignalInput | null | undefined>;
   simulatedFlags?: SimulatedFraudFlags;
   triggers?: ReadonlyArray<string> | Set<string> | string;
@@ -214,6 +290,10 @@ export interface FraudAuditChannelInput extends SimulatedFraudFlags {
   growthSmoothnessResult?: GrowthSmoothnessResult;
   uncorrelatedSpikesResult?: UncorrelatedSpikesResult;
   uniformReactionRatioResult?: UniformReactionRatioResult;
+  hourlyViewProfileResult?: HourlyViewProfileResult;
+  unnaturalViewDecayResult?: HourlyViewProfileResult;
+  nightBotActivityResult?: NightBotActivityResult;
+  timeZone?: string;
 }
 
 export type UniformReactionRatioInput =

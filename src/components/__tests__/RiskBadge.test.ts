@@ -109,4 +109,16 @@ describe('RiskBadge UI Component', () => {
     render(React.createElement(RiskBadge, { score: 25, className: 'custom-test-class' }));
     expect(screen.getByTestId('risk-badge').className).toContain('custom-test-class');
   });
+
+  it('provides Russian fallback labels in tooltip for hourly view profile and night bot signals', () => {
+    const signals = [
+      { signalType: 'unnatural_view_decay', value: 0.68, reason: '' },
+      { signalType: 'night_bot_activity', value: 0.55, reason: '' },
+    ];
+
+    render(React.createElement(RiskBadge, { score: 50, signals: signals as any }));
+    const title = screen.getByTestId('risk-badge').getAttribute('title') || '';
+    expect(title).toContain('Аномалия почасового профиля просмотров');
+    expect(title).toContain('Ночная ботовая активность (02:00-05:59)');
+  });
 });
