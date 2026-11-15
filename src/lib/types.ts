@@ -818,3 +818,69 @@ export interface TagBenchmarkProfileResult {
   participant: CompareParticipantStats;
   metrics: Record<CompareKpiMetricKey, TagBenchmarkStat>;
 }
+
+export type NewsjackingWindowHours = 24 | 48 | 72;
+
+export interface NewsReactionItem {
+  postId: number;
+  messageId: string;
+  channelId: number;
+  channelTitle: string;
+  channelUsername: string | null;
+  isMine: boolean;
+  publishedAt: string;
+  delayMinutes: number;
+  isFirst: boolean;
+  isPeak: boolean;
+  views: number | null;
+  err: number | null;
+  reactions: number | null;
+  comments: number | null;
+  forwards: number | null;
+  excerpt: string;
+}
+
+export interface NewsTopicCluster {
+  topicId: string;
+  title: string;
+  keywords: string[];
+  firstPublishedAt: string;
+  lastPublishedAt: string;
+  firstPost: NewsReactionItem;
+  peakPost: NewsReactionItem;
+  channelsCount: number;
+  postsCount: number;
+  totalViews: number;
+  avgErr: number | null;
+  coveredByMyChannel: boolean;
+  myChannelDelayMinutes: number | null;
+  timeline: NewsReactionItem[];
+}
+
+export interface ChannelReactionSpeedSummary {
+  channelId: number;
+  channelTitle: string;
+  channelUsername: string | null;
+  isMine: boolean;
+  topicsCovered: number;
+  firstCount: number;
+  peakCount: number;
+  medianDelayMinutes: number;
+  avgDelayMinutes: number;
+}
+
+export interface NewsjackingAnalysisResult {
+  windowHours: NewsjackingWindowHours;
+  analyzedPostsCount: number;
+  totalClusters: number;
+  uncoveredByMyChannelCount: number;
+  clusters: NewsTopicCluster[];
+  speedLeaderboard: ChannelReactionSpeedSummary[];
+}
+
+export interface NewsjackingApiResponse extends NewsjackingAnalysisResult {
+  tag: string | null;
+  niche: string | null;
+  myChannelId: number | null;
+  availableTags?: string[];
+}

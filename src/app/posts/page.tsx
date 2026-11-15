@@ -22,6 +22,7 @@ import { TopAdvertisersPanel } from '@/components/posts/TopAdvertisersPanel';
 import { AdCreativesPanel } from '@/components/posts/AdCreativesPanel';
 import { ContentPlanBoard, type ContentPlanPatchPayload } from '@/components/posts/ContentPlanBoard';
 import { AdRetentionBadge } from '@/components/AdRetentionBadge';
+import { NewsjackingWidget } from '@/components/NewsjackingWidget';
 import { isDeletedRetentionFormat } from '@/lib/adReach';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
@@ -440,6 +441,8 @@ export default function PostsPage() {
             </label>
           </div>
         </section>
+
+        {!onlyAds && !onlySaved && <NewsjackingWidget initialTag={tag} initialNiche={niche} />}
 
         {onlyAds && <TopAdvertisersPanel niche={niche} days={advertiserDays} selectedUsername={advertiserUsername}
           onDaysChange={value => { setAdvertiserDays(value); if (advertiserUsername) setDays(value); }}

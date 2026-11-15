@@ -12,6 +12,7 @@ import { WatchlistWidget } from '@/components/WatchlistWidget';
 import { OverviewStats } from '@/lib/types';
 import { BestTimeWidget } from '@/components/BestTimeWidget';
 import { TrendSpotterWidget } from '@/components/TrendSpotterWidget';
+import { NewsjackingWidget } from '@/components/NewsjackingWidget';
 import Link from 'next/link';
 import { Plus, Radio, AlertCircle, GitCompareArrows } from 'lucide-react';
 
@@ -99,6 +100,9 @@ export default function OverviewPage() {
 
               {/* AI Trend Spotter */}
               <TrendSpotterWidget />
+
+              {/* Newsjacking Speed */}
+              <NewsjackingWidget showTagSelector={true} />
 
               {/* Dashboard Block */}
               <Dashboard />

@@ -1,22 +1,22 @@
 # Текущее состояние проекта
 
 Дата обновления: 2026-11-15  
-Ветка: `main` (базовая ревизия `6984e89`)
+Ветка: `main` (базовая ревизия `11e652f`)
 
 ## Реализовано в текущем цикле
 
-- Выполнен **Issue #79** (`feat(compare): добавь мульти-сравнение каналов и сравнение с папкой или нишей`):
-  - **Доменная логика и типы** (`src/lib/compare.ts`, `src/lib/types.ts`, `src/lib/metrics/queries.ts`): сохранена обратная совместимость `mergeSubscriberHistory` и `mergePostsDistribution`; добавлены `buildMultiChannelComparison` (выровненные ряды подписчиков с абсолютными значениями и относительным ростом в процентах от первой положительной точки периода, ряды постов/просмотров, матрица KPI-лидеров с нейтральной метрикой `adSharePercent`, матрица взаимных упоминаний `citationMatrix` `N x N`, список `sharedAdvertisers` для пересечений от двух каналов) и `buildTagBenchmarkProfile` (медиана и среднее по активным каналам тега `UserChannel.tags`). В `getChannelDetailStats` добавлен проброс `fraudScore` и `fraudSignals` на объект `channel`.
-  - **API** (`src/app/api/stats/compare/route.ts`, `src/app/api/channels/compare/route.ts`): поддержаны `ids` (2-4 ID), legacy `a` и `b`, `benchmarkTag` (при одном ID или с несколькими) и `period` (`24h`, `7d`, `30d`), доступ ограничен каналами пользователя (`400`, `403`, `404`), ответ расширен полями `participants`, `comparison`, `benchmarkProfile`.
-  - **UI** (`src/app/compare/page.tsx`, `src/components/compare/*`): поддержаны выбор 2-4 каналов, переключатель режима сравнения с папкой/нишей (`role="switch"` + выбор тега), переключение масштаба графика подписчиков (абсолютные значения / рост в `%`), таблица KPI-лидеров со столбцом медианы папки, блоки общих рекламодателей и матрицы взаимных упоминаний; соблюдено скругление `3px`.
-  - **Документация**: обновлены `docs/analytics-formulas.md`, `docs/api-reference.md`, `docs/project-map.md` и `docs/current-state.md`.
+- Выполнен **Issue #80** (`feat(analytics): добавь мониторинг скорости реакции на инфоповоды (Newsjacking Speed)`):
+  - **Алгоритм и типы** (`src/lib/metrics/newsjacking.ts`, `src/lib/types.ts`): реализованы чистые детерминированные функции `detectNewsTopicClusters` и `buildChannelReactionSpeedSummary` для окон `24 | 48 | 72` часов с фильтрацией рекламы (`isAd = true`) и коротких служебных записей, нормализацией RU/EN лемм, сущностей, биграмм и прямых цитирований (`targetMessageId`, `t.me/...`), выделением `firstPost`, `peakPost` по `ERR` (резерв по `views`), `coveredByMyChannel`, `myChannelDelayMinutes`, таймлайна реакции `delayMinutes` и рейтинга оперативности каналов.
+  - **API** (`src/app/api/analytics/newsjacking/route.ts`): добавлен `GET /api/analytics/newsjacking` с авторизацией `verifyBearerToken`, валидацией `hours` (`24 | 48 | 72`), `tag`, `niche`, `minChannels` (`2..10`) и ограничением источников активными `UserChannel` текущего пользователя.
+  - **UI** (`src/components/NewsjackingWidget.tsx`, `src/app/posts/page.tsx`, `src/app/page.tsx`): добавлен виджет «Скорость реакции на инфоповоды» с переключением окна `24ч/48ч/72ч`, фильтром `Не освещено мной`, бейджами статуса покрытия «Моего канала», таймлайном задержек и блоком «Лидеры оперативности»; подключён на дашборде `/` (с выбором папки) и на странице `/posts` (с синхронизацией по фильтрам `tag` и `niche`). Соблюдено скругление `3px`.
+  - **Тесты и документация**: добавлены `src/lib/metrics/__tests__/newsjacking.test.ts`, `src/app/api/analytics/newsjacking/__tests__/route.test.ts` и `src/components/__tests__/NewsjackingWidget.test.ts`; обновлены `docs/analytics-formulas.md`, `docs/api-reference.md`, `docs/project-map.md` и `docs/current-state.md`.
 
 ## Выполненные проверки
 
-- `npm test -- src/lib/__tests__/compare.test.ts src/components/compare/__tests__/multi-compare.test.ts src/components/__tests__/ComparePage.test.ts src/app/api/stats/compare/__tests__/route.test.ts`: 4 файла, 15 тестов пройдены.
+- `npm test -- src/lib/metrics/__tests__/newsjacking.test.ts src/components/__tests__/NewsjackingWidget.test.ts src/app/api/analytics/newsjacking/__tests__/route.test.ts src/app/posts/__tests__/page.test.ts`: 4 файла, 19 тестов пройдены.
 - `npx tsc --noEmit`: 0 ошибок.
 - `npx eslint src`: 0 ошибок.
-- `npm test`: 150 тестовых файлов, 972 теста пройдены.
+- `npm test`: 153 тестовых файла, 985 тестов пройдены.
 - `npm run build`: `prisma generate && next build` завершены успешно (19 статических маршрутов).
 
 ## Ожидающие работы и блокеры
@@ -25,4 +25,4 @@
 
 ## Следующий шаг
 
-- Перейти к планированию и реализации **Issue #80** (`feat(analytics): добавь мониторинг скорости реакции на инфоповоды (Newsjacking Speed)`).
+- Перейти к планированию и реализации **Issue #81** (`feat(fraud): добавь почасовую эвристику профиля набора просмотров и ночных аномалий`).

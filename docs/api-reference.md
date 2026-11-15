@@ -76,10 +76,13 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 | `GET /api/stats/best-time` | Нет параметров | `{timeZone,bestDay,bestHour,score,avgViews,avgVr,postCount,heatmap}` или `null`, если нет активных конкурентов |
 | `GET /api/stats/trends` | — | Последний сохранённый trend: `{createdAt,data}`; `null` при отсутствии/невалидном JSON, новую генерацию не запускает |
 | `GET /api/stats/demographics/:id` | Положительный Int ID | Последний языковой снимок; контракт ниже |
+| `GET /api/analytics/newsjacking` | `hours=24\|48\|72` (default `48`), необязательные `tag` (до 30 симв.), `niche` (до 64 симв.), `minChannels` (`2..10`, default `2`) | `{windowHours,analyzedPostsCount,totalClusters,uncoveredByMyChannelCount,clusters,speedLeaderboard,tag,niche,myChannelId,availableTags}`; 400 при неверных параметрах |
 
 Эти GET доступны с Web UI-сессией или Bearer; у `/api/stats/channel/:id/activity` есть дополнительный гард в обработчике: обычный пользователь должен иметь личный `UserChannel`. Overview/dashboard/detail кэшируются в web на 5 минут, best-time на 30 минут; activity не кэшируется. Detail берёт EP и «Мой канал» из загруженного overview; при пустом кэше overview рассчитывается и сохраняется для следующих запросов. Если в overview нет «Моего канала», detail выполняет резервный поиск. Неизвестное значение period заменяется на `7d`. Best-time использует VR и количество постов; `avgVr` уже в процентах. Дни и часы слотов берутся в `APP_TIMEZONE` (по умолчанию `Europe/Moscow`).
 
 Activity группирует последние 48 календарных часов по UTC, а UI показывает их в `timeZone` приложения. В каждом часе используется последний `Snapshot`; `membersDelta` считается только при наличии замера в предыдущем соседнем часе, иначе `null`. Посты привязаны к часу `publishedAt`; `isForwarded` показывает, что пост канала переслал запись другого канала. `reactionsAdded` и `forwardsAdded` отражают положительные изменения счётчиков уже известных постов, замеченные worker в этом часе, а не точное время действий пользователей. Первый доступный счётчик служит базой. Старую почасовую историю реакций и пересылок восстановить нельзя; сбор обновляет до 200 последних сообщений канала за цикл.
+
+`GET /api/analytics/newsjacking` ограничивает выборку активными доступными пользователю каналами (`UserChannel`) и до 5000 нерекламных неудалённых постов за выбранное окно часов (`hours`), детерминированно группирует сквозные инфоповоды в `clusters` (`NewsTopicCluster`) и строит рейтинг оперативности `speedLeaderboard` (`ChannelReactionSpeedSummary`) без обращений к LLM.
 
 ### Демография
 
