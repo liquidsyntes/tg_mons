@@ -16,6 +16,10 @@ const mocks = vi.hoisted(() => ({
   channelMetricDailyFindMany: vi.fn(),
   fraudSignalFindMany: vi.fn(),
   fraudSignalCount: vi.fn(),
+  eventFindMany: vi.fn(),
+  eventFindUnique: vi.fn(),
+  eventUpdate: vi.fn(),
+  userDismissedEventUpsert: vi.fn(),
   calculateChannelMetrics: vi.fn(),
   runFraudAudit: vi.fn(),
   buildDailyDigest: vi.fn(),
@@ -43,6 +47,14 @@ vi.mock('../prisma', () => ({
     fraudSignal: {
       findMany: mocks.fraudSignalFindMany,
       count: mocks.fraudSignalCount,
+    },
+    event: {
+      findMany: mocks.eventFindMany,
+      findUnique: mocks.eventFindUnique,
+      update: mocks.eventUpdate,
+    },
+    userDismissedEvent: {
+      upsert: mocks.userDismissedEventUpsert,
     },
   },
 }));
@@ -94,6 +106,10 @@ beforeEach(() => {
   mocks.channelMetricDailyFindMany.mockResolvedValue([]);
   mocks.fraudSignalFindMany.mockResolvedValue([]);
   mocks.fraudSignalCount.mockResolvedValue(0);
+  mocks.eventFindMany.mockResolvedValue([]);
+  mocks.eventFindUnique.mockResolvedValue(null);
+  mocks.eventUpdate.mockResolvedValue({});
+  mocks.userDismissedEventUpsert.mockResolvedValue({});
   mocks.runFraudAudit.mockReturnValue({ fraudScore: 25, signals: [], details: {} });
   mocks.buildDailyDigest.mockResolvedValue({
     activeChannels: 2,
@@ -192,6 +208,43 @@ describe('parseTelegramBotUpdate', () => {
       target: null,
       rawCommand: '/unknowncmd',
     });
+  });
+
+  it('parses /events, /afisha, /event, and /dismiss commands cleanly', () => {
+    expect(parseTelegramBotUpdate({
+      update_id: 30,
+      message: { chat: { id: 111222 }, text: '/events' },
+    })).toEqual({ type: 'events', chatId: '111222', target: null, rawCommand: '/events' });
+
+    expect(parseTelegramBotUpdate({
+      update_id: 31,
+      message: { chat: { id: 111222 }, text: '/afisha выходные' },
+    })).toEqual({ type: 'events', chatId: '111222', target: 'выходные', rawCommand: '/afisha' });
+
+    expect(parseTelegramBotUpdate({
+      update_id: 32,
+      message: { chat: { id: 111222 }, text: '/events живой джаз' },
+    })).toEqual({ type: 'events', chatId: '111222', target: 'живой джаз', rawCommand: '/events' });
+
+    expect(parseTelegramBotUpdate({
+      update_id: 33,
+      message: { chat: { id: 111222 }, text: '/event #42' },
+    })).toEqual({ type: 'event', chatId: '111222', target: '42', rawCommand: '/event' });
+
+    expect(parseTelegramBotUpdate({
+      update_id: 34,
+      message: { chat: { id: 111222 }, text: '/event invalid_id' },
+    })).toEqual({ type: 'event', chatId: '111222', target: null, rawCommand: '/event' });
+
+    expect(parseTelegramBotUpdate({
+      update_id: 35,
+      message: { chat: { id: 111222 }, text: '/dismiss 77' },
+    })).toEqual({ type: 'dismiss', chatId: '111222', target: '77', rawCommand: '/dismiss' });
+
+    expect(parseTelegramBotUpdate({
+      update_id: 36,
+      message: { chat: { id: 111222 }, text: '/hide #78' },
+    })).toEqual({ type: 'dismiss', chatId: '111222', target: '78', rawCommand: '/hide' });
   });
 
   it('recognizes forwarded posts via forward_from_chat and forward_origin', () => {
@@ -302,6 +355,9 @@ describe('handleTelegramBotCommand', () => {
     expect(userReply).toContain('/digest');
     expect(userReply).toContain('/channel @username');
     expect(userReply).toContain('/add @username');
+    expect(userReply).toContain('/events');
+    expect(userReply).toContain('/event <id>');
+    expect(userReply).toContain('/dismiss <id>');
 
     vi.stubEnv('TELEGRAM_CHAT_ID', '888000');
     const adminReply = await handleTelegramBotCommand(
@@ -456,5 +512,285 @@ describe('handleTelegramBotCommand', () => {
       { resolveAccess: async () => ({ authorized: true, userId: 3, userName: 'Tester', isSystemAdmin: false }) },
     );
     expect(emptyAddReply).toContain('Укажите канал для добавления');
+  });
+
+  it('lists, filters, deduplicates and caps events for /events command', async () => {
+    const wednesdayNow = new Date('2026-11-18T12:00:00.000Z');
+    mocks.userFindFirst.mockResolvedValue({
+      id: 7,
+      username: 'tester',
+      telegramName: 'Tester',
+      telegramUsername: null,
+      role: 'USER',
+    });
+    mocks.userChannelFindMany.mockResolvedValue([{ channelId: 10 }, { channelId: 11 }]);
+
+    const dbEvents = [
+      {
+        id: 101,
+        title: 'Джаз на крыше',
+        date: new Date('2026-11-18T00:00:00.000Z'),
+        timeStr: '19:30',
+        organizer: 'Roof Club',
+        prices: ['Бесплатно', 'Донат'],
+        mentions: [
+          {
+            id: 1,
+            postId: 501,
+            post: {
+              id: 501,
+              messageId: 8001n,
+              channelId: 10,
+              text: 'Приглашаем на концерт живого джаза!',
+              channel: { title: 'Афиша Города', username: 'afisha_city', tgId: -10010n },
+            },
+          },
+          {
+            id: 2,
+            postId: 502,
+            post: {
+              id: 502,
+              messageId: 9001n,
+              channelId: 99,
+              text: 'Пост из чужого канала',
+              channel: { title: 'Чужой канал', username: 'alien', tgId: -10099n },
+            },
+          },
+        ],
+      },
+      {
+        // Duplicate of #101 from another channel -> merged into #101 via isSameEvent
+        id: 102,
+        title: 'Джаз на крыше',
+        date: new Date('2026-11-18T00:00:00.000Z'),
+        timeStr: '19:30',
+        organizer: 'Roof Club',
+        prices: ['Бесплатно'],
+        mentions: [
+          {
+            id: 3,
+            postId: 503,
+            post: {
+              id: 503,
+              messageId: 8002n,
+              channelId: 11,
+              text: 'Живой джаз уже сегодня вечером',
+              channel: { title: 'Куда пойти', username: 'kuda_go', tgId: -10011n },
+            },
+          },
+        ],
+      },
+      {
+        // Digest post -> filtered out via isClearlyEventDigest
+        id: 103,
+        title: 'Подборка на неделю',
+        date: new Date('2026-11-19T00:00:00.000Z'),
+        timeStr: null,
+        organizer: null,
+        prices: [],
+        mentions: [
+          {
+            id: 4,
+            postId: 504,
+            post: {
+              id: 504,
+              messageId: 8003n,
+              channelId: 10,
+              text: 'Подборка: лучшие события недели https://t.me/a/1',
+              channel: { title: 'Афиша Города', username: 'afisha_city', tgId: -10010n },
+            },
+          },
+        ],
+      },
+      {
+        id: 104,
+        title: 'Симфония в зале',
+        date: new Date('2026-11-21T00:00:00.000Z'),
+        timeStr: '20:00',
+        organizer: 'Филармония',
+        prices: ['500 грн'],
+        mentions: [
+          {
+            id: 5,
+            postId: 505,
+            post: {
+              id: 505,
+              messageId: 8004n,
+              channelId: 10,
+              text: 'Большой концерт в субботу',
+              channel: { title: 'Афиша Города', username: 'afisha_city', tgId: -10010n },
+            },
+          },
+        ],
+      },
+    ];
+    mocks.eventFindMany.mockResolvedValue(dbEvents);
+
+    const todayReply = await handleTelegramBotCommand(
+      { type: 'events', chatId: '777', target: 'сегодня', rawCommand: '/events' },
+      { now: () => wednesdayNow },
+    );
+    expect(todayReply).toContain('Афиша мероприятий (сегодня и завтра): найдено 1');
+    expect(todayReply).toContain('[#101] 18.11.2026, 19:30 – Джаз на крыше');
+    expect(todayReply).toContain('https://t.me/afisha_city/8001');
+    expect(todayReply).not.toContain('[#102]');
+    expect(todayReply).not.toContain('Подборка на неделю');
+    expect(todayReply).not.toContain('Симфония в зале');
+
+    const weekendReply = await handleTelegramBotCommand(
+      { type: 'events', chatId: '777', target: 'weekend', rawCommand: '/events' },
+      { now: () => wednesdayNow },
+    );
+    expect(weekendReply).toContain('[#104] 21.11.2026, 20:00 – Симфония в зале');
+    expect(weekendReply).toContain('500 грн');
+
+    const freeReply = await handleTelegramBotCommand(
+      { type: 'events', chatId: '777', target: 'free', rawCommand: '/events' },
+      { now: () => wednesdayNow },
+    );
+    expect(freeReply).toContain('Джаз на крыше');
+    expect(freeReply).not.toContain('Симфония в зале');
+
+    const searchEmptyReply = await handleTelegramBotCommand(
+      { type: 'events', chatId: '777', target: 'несуществующий_тег', rawCommand: '/events' },
+      { now: () => wednesdayNow },
+    );
+    expect(searchEmptyReply).toContain('сейчас нет подходящих мероприятий');
+
+    // Verify 10-item cap with listUserEvents override
+    const manyEvents = Array.from({ length: 12 }, (_, idx) => ({
+      id: idx + 1,
+      title: `Событие ${idx + 1}`,
+      date: new Date('2026-11-20T00:00:00.000Z'),
+      timeStr: null,
+      organizer: null,
+      prices: [],
+      mentions: [],
+    }));
+    const cappedReply = await handleTelegramBotCommand(
+      { type: 'events', chatId: '777', target: null, rawCommand: '/events' },
+      {
+        now: () => wednesdayNow,
+        resolveAccess: async () => ({ authorized: true, userId: 7, userName: 'Tester', isSystemAdmin: false }),
+        listUserEvents: async () => manyEvents,
+      },
+    );
+    expect(cappedReply).toContain('найдено 12');
+    expect(cappedReply).toContain('Показаны первые 10 из 12');
+    expect(cappedReply).not.toContain('[#11]');
+  });
+
+  it('formats detailed /event card with Google Calendar URL and enforces auth', async () => {
+    const unauthorizedReply = await handleTelegramBotCommand({
+      type: 'events',
+      chatId: '999000',
+      target: null,
+      rawCommand: '/events',
+    });
+    expect(unauthorizedReply).toContain('Чат не привязан к аккаунту TgMon');
+
+    const detailReply = await handleTelegramBotCommand(
+      { type: 'event', chatId: '777', target: '101', rawCommand: '/event' },
+      {
+        resolveAccess: async () => ({ authorized: true, userId: 7, userName: 'Tester', isSystemAdmin: false }),
+        appBaseUrl: 'https://tgmon.example.com',
+        listUserEvents: async () => [{
+          id: 101,
+          title: 'Джаз на крыше',
+          date: new Date('2026-11-18T00:00:00.000Z'),
+          timeStr: '19:30 - 22:00',
+          organizer: 'Roof Club',
+          prices: ['Бесплатно'],
+          mentions: [
+            {
+              id: 1,
+              postId: 501,
+              post: {
+                messageId: '8001',
+                channel: { title: 'Афиша Города', username: 'afisha_city', tgId: '-10010' },
+              },
+            },
+            {
+              id: 2,
+              postId: 503,
+              post: {
+                messageId: '8002',
+                channel: { title: 'Куда пойти', username: 'kuda_go', tgId: '-10011' },
+              },
+            },
+          ],
+        }],
+      },
+    );
+
+    expect(detailReply).toContain('🎫 [#101] Джаз на крыше');
+    expect(detailReply).toContain('18.11.2026 (19:30 - 22:00)');
+    expect(detailReply).toContain('Roof Club');
+    expect(detailReply).toContain('Бесплатно (бесплатно)');
+    expect(detailReply).toContain('Афиша Города: https://t.me/afisha_city/8001');
+    expect(detailReply).toContain('Куда пойти: https://t.me/kuda_go/8002');
+    expect(detailReply).toContain('https://calendar.google.com/calendar/render?');
+    expect(detailReply).toContain('/dismiss 101');
+
+    const missingReply = await handleTelegramBotCommand(
+      { type: 'event', chatId: '777', target: '999', rawCommand: '/event' },
+      {
+        resolveAccess: async () => ({ authorized: true, userId: 7, userName: 'Tester', isSystemAdmin: false }),
+        listUserEvents: async () => [],
+      },
+    );
+    expect(missingReply).toContain('Мероприятие #999 не найдено');
+  });
+
+  it('dismisses event via /dismiss for user and system admin modes', async () => {
+    mocks.userFindFirst.mockResolvedValueOnce({
+      id: 7,
+      username: 'tester',
+      telegramName: 'Tester',
+      telegramUsername: null,
+      role: 'USER',
+    });
+    mocks.eventFindUnique.mockResolvedValueOnce({
+      id: 101,
+      title: 'Джаз на крыше',
+      dismissedAt: null,
+    });
+
+    const userDismissReply = await handleTelegramBotCommand({
+      type: 'dismiss',
+      chatId: '777',
+      target: '101',
+      rawCommand: '/dismiss',
+    });
+    expect(mocks.userDismissedEventUpsert).toHaveBeenCalledWith({
+      where: { userId_eventId: { userId: 7, eventId: 101 } },
+      create: { userId: 7, eventId: 101 },
+      update: {},
+    });
+    expect(userDismissReply).toContain('Мероприятие #101 («Джаз на крыше») скрыто');
+
+    vi.stubEnv('TELEGRAM_CHAT_ID', '888000');
+    mocks.eventFindUnique.mockResolvedValueOnce({
+      id: 104,
+      title: 'Симфония в зале',
+      dismissedAt: null,
+    });
+    const adminDismissReply = await handleTelegramBotCommand({
+      type: 'dismiss',
+      chatId: '888000',
+      target: '104',
+      rawCommand: '/dismiss',
+    });
+    expect(mocks.eventUpdate).toHaveBeenCalledWith({
+      where: { id: 104 },
+      data: { dismissedAt: expect.any(Date) },
+    });
+    expect(adminDismissReply).toContain('Мероприятие #104 («Симфония в зале») скрыто');
+
+    mocks.eventFindUnique.mockResolvedValueOnce(null);
+    const notFoundReply = await handleTelegramBotCommand(
+      { type: 'dismiss', chatId: '888000', target: '404', rawCommand: '/dismiss' },
+    );
+    expect(notFoundReply).toContain('Мероприятие #404 не найдено');
   });
 });

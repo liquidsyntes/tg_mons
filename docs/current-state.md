@@ -1,28 +1,33 @@
-# Текущее состояние проекта
+# Current State
 
-Дата обновления: 2026-11-15  
-Ветка: `main` (базовая ревизия `6d306f3`)
+Дата снимка: 2026-11-15  
+Базовая ревизия: `670202d` (`main`, синхронизирован с `origin/main` до фиксации изменений Issue #84)
 
-## Реализовано в текущем цикле
+## Что реализовано
 
-- Выполнен **Issue #82** (`feat(bot): добавь интерактивные команды Telegram-бота для быстрой проверки каналов и дайджеста`):
-  - **Парсинг, авторизация и обработчик команд** (`src/lib/telegram-bot-commands.ts`): реализованы `normalizeChannelTarget`, `parseTelegramBotUpdate` (поддержка `/start`, `/help`, `/status`, `/digest`, `/channel`, `/add`, суффиксов `@bot_name`, пересланных постов через `forward_origin` / `forward_from_chat` и прямых ссылок `t.me/...`) и `handleTelegramBotCommand`. Авторизация проверяет активного пользователя (`User.accessStatus === 'ACTIVE'`) с привязанным `telegramChatId` или системный `TELEGRAM_CHAT_ID`; непривязанные чаты получают только числовой `Chat ID` и инструкцию по привязке в `/settings` без утечки данных.
-  - **Карточки, сводки и добавление каналов**: `/status` показывает последний `SyncJob`, число активных каналов и сводку «Моего канала»; `/digest` переиспользует `buildDailyDigest` / `formatDailyDigest` и добавляет лучший пост за 24 часа; `/channel` выводит подписчиков, динамику 7д/30д, ER, ERR, Ad Share 30д, `Trust Score = 100 - fraudScore` и ссылку на `/channel/:id` (или предлагает `/add` для неизвестных каналов); `/add` привязывает канал к `UserChannel` и запускает добавление через воркер.
-  - **Фоновый поллер Bot API и интеграция в worker** (`src/worker/bot-poller.ts`, `src/worker/index.ts`): реализован неблокирующий `createTelegramBotPoller` (`getUpdates`, продвижение `offset`, разбиение длинных сообщений, защита от `409 Conflict` и сетевых сбоев без остановки основного MTProto-сборщика), добавлена функция `redactBotToken` с маскированием токена (`bot[REDACTED]`), настроено управление через `TELEGRAM_BOT_POLLING_ENABLED` (`.env.example`, `docker-compose.yml`) и корректная остановка при `SIGINT`/`SIGTERM`.
-  - **Тесты и документация**: добавлены `src/lib/__tests__/telegram-bot-commands.test.ts` (10 тестов) и `src/worker/__tests__/bot-poller.test.ts` (4 теста); обновлены `docs/deployment.md`, `docs/project-map.md` и `docs/current-state.md`.
+Выполнена задача **Issue #84** (`feat(bot): интерактивные команды афиши мероприятий в Telegram-боте`):
+
+- **`src/lib/telegram-bot-commands.ts`**:
+  - Добавлены команды `/events` (алиас `/afisha`), `/event <id>` (поддерживает префикс `#`) и `/dismiss <id>` (алиас `/hide <id>`).
+  - Парсер `/events` распознаёт временные пресеты (`today`/`сегодня`, `weekend`/`выходные`, `week`/`неделя`, `month`/`месяц`), фильтр `free`/`бесплатно` и произвольный поисковый запрос; общие правила фильтрации, дедупликации, отсеивания анонсов-дайджестов и генерации ссылки Google Calendar переиспользованы из `src/lib/events/calendar.ts`, `src/lib/events/digest.ts` и `src/lib/events/matching.ts`.
+  - В выборке `/events`, карточке `/event` и скрытии `/dismiss` учтена изоляция по `UserChannel` и `UserDismissedEvent` для привязанного пользователя (`chatId`) и глобальный админ-доступ через `TELEGRAM_CHAT_ID`.
+  - Обновлена справка `/help` и подсказка при неизвестной команде.
+- **`src/lib/__tests__/telegram-bot-commands.test.ts`**: добавлены модульные и интеграционные тесты парсинга и выполнения `/events`, `/event`, `/dismiss`, дедупликации, фильтрации, проверки прав доступа и обновлённого `/help`.
+- **`docs/deployment.md`**, **`docs/project-map.md`**, **`docs/current-state.md`**: актуализированы команды Telegram-бота, карта модулей и текущее состояние.
 
 ## Выполненные проверки
 
-- `npx tsc --noEmit`: 0 ошибок.
-- `npx eslint src`: 0 ошибок.
-- `npm test`: 155 тестовых файлов, 1014 тестов пройдены.
-- `npm run build`: `prisma generate && next build` завершены успешно (19 статических маршрутов).
-- Docker (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build worker web`): образы `tgmon-worker` и `tgmon-web` пересобраны и запущены; `GET http://localhost:4000/api/health` вернул `200 OK` (`"status":"ok"`), в логах `tgmon-worker` зафиксирован запуск `Telegram bot command poller started`.
+- Целевые тесты бота: `npm test -- src/lib/__tests__/telegram-bot-commands.test.ts src/worker/__tests__/bot-poller.test.ts` -> **2 файла, 18 тестов пройдены**.
+- Проверка типов: `npx tsc --noEmit` -> код `0`, без ошибок.
+- Линтинг: `npx eslint src` -> код `0`, без предупреждений и ошибок.
+- Полный прогон тестов: `npm test` -> **155 файлов, 1018 тестов пройдены** (первый прогон споткнулся на таймерной гонке `src/worker/__tests__/timeout.test.ts` под параллельной нагрузкой; изолированный перезапуск `timeout.test.ts` прошёл за 177 мс, последующий полный `npm test` прошёл полностью `155/155`, `1018/1018`).
+- Производственная сборка: `npx prisma generate && next build` (`npm run build`) -> код `0`, сгенерировано `19/19` статических страниц.
+- Docker-сервисы: пересобраны и перезапущены `worker` и `web` (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build worker web`), все сервисы запущены (`tgmon-postgres` healthy, `tgmon-web` `:4000`, `tgmon-worker` `:4001`), `curl.exe -s -i http://localhost:4000/api/health` вернул `HTTP/1.1 200 OK` (`{"status":"ok","lastSyncStatus":"COMPLETED",...}`), в логах `tgmon-worker` зафиксирован запуск `Telegram bot command poller started`.
 
-## Ожидающие работы и блокеры
+## Непроверенное / остаточные риски
 
-- Блокеров нет; изменений схемы БД и новых миграций Prisma не требовалось.
+- Отправка и приём реальных сообщений `/events`, `/event <id>` и `/dismiss <id>` через live Telegram Bot API не выполнялись вручную в чате из-за отсутствия интерактивного клиентского шага пользователя; работа парсера, форматирования, прав и Prisma-запросов подтверждена unit/integration тестами с моками, а запуск long-polling loop подтверждён логами `tgmon-worker`.
 
-## Следующий шаг
+## Следующий конкретный шаг
 
-- Выбрать следующую приоритетную задачу в GitHub Issues.
+Протестировать команды `/events`, `/events today free`, `/event <id>` и `/dismiss <id>` в личном чате с Telegram-ботом и перейти к следующим задачам по плану развития.

@@ -1,6 +1,16 @@
-import type { SyncStatus } from '@prisma/client';
+import type { Prisma, SyncStatus } from '@prisma/client';
 import { prisma } from './prisma';
 import { buildDailyDigest, formatDailyDigest, normalizeTelegramChatId } from './digest';
+import {
+  buildGoogleCalendarUrl,
+  filterEvents,
+  getTelegramPostUrl,
+  isFreeEvent,
+  type CalendarEventInput,
+  type EventFilterOptions,
+} from './events/calendar';
+import { isClearlyEventDigest } from './events/digest';
+import { isSameEvent } from './events/matching';
 import { calculateChannelMetrics } from './metrics';
 import { runFraudAudit } from './fraudDetector';
 import { formatDurationMs } from './ops';
@@ -9,6 +19,7 @@ import type { DailyDigestSummary } from './types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * DAY_MS;
+const MAX_BOT_EVENTS_LIST = 10;
 const numberFormat = new Intl.NumberFormat('ru-RU');
 
 const RESERVED_TME_SEGMENTS = new Set([
@@ -30,6 +41,9 @@ export type TelegramBotCommandType =
   | 'digest'
   | 'channel'
   | 'add'
+  | 'events'
+  | 'event'
+  | 'dismiss'
   | 'unknown';
 
 export interface TelegramChatRef {
@@ -130,6 +144,35 @@ export interface AddChannelCommandResult {
   message?: string;
 }
 
+export interface BotEventMention {
+  id: number;
+  postId: number;
+  post: {
+    messageId: string;
+    channel: {
+      title: string;
+      username: string | null;
+      tgId: string | null;
+    } | null;
+  };
+}
+
+export interface BotEventItem {
+  id: number;
+  title: string;
+  date: Date;
+  timeStr: string | null;
+  organizer: string | null;
+  prices: string[];
+  mentions: BotEventMention[];
+}
+
+export interface DismissEventCommandResult {
+  status: 'dismissed' | 'not_found' | 'invalid_id';
+  eventId?: number;
+  title?: string;
+}
+
 export interface TelegramBotCommandDeps {
   now?: () => Date;
   appBaseUrl?: string;
@@ -141,6 +184,8 @@ export interface TelegramBotCommandDeps {
   getDigestExtras?: (now: Date, userId: number | null) => Promise<BotDigestExtras>;
   findChannelCardData?: (target: string, userId: number | null) => Promise<BotChannelCardData | null>;
   onAddChannel?: (target: string, userId: number | null) => Promise<AddChannelCommandResult>;
+  listUserEvents?: (userId: number | null) => Promise<BotEventItem[]>;
+  onDismissEvent?: (eventId: number, userId: number | null) => Promise<DismissEventCommandResult>;
 }
 
 /** Normalizes a `@username`, `t.me/<slug>` URL, or bare slug to `@lowercase_slug`. */
@@ -233,7 +278,8 @@ export function parseTelegramBotUpdate(update: TelegramBotUpdate): ParsedBotComm
     }
 
     const command = cmdMatch[1].toLowerCase();
-    const firstArg = (cmdMatch[2] ?? '').trim().split(/\s+/)[0] ?? '';
+    const rawArg = (cmdMatch[2] ?? '').trim();
+    const firstArg = rawArg.split(/\s+/)[0] ?? '';
 
     switch (command) {
       case 'start':
@@ -261,6 +307,33 @@ export function parseTelegramBotUpdate(update: TelegramBotUpdate): ParsedBotComm
           target: normalizeChannelTarget(firstArg),
           rawCommand: `/${command}`,
         };
+      case 'events':
+      case 'afisha':
+        return {
+          type: 'events',
+          chatId,
+          target: rawArg || null,
+          rawCommand: `/${command}`,
+        };
+      case 'event': {
+        const cleanId = firstArg.replace(/^#/, '');
+        return {
+          type: 'event',
+          chatId,
+          target: /^[1-9]\d*$/.test(cleanId) ? cleanId : null,
+          rawCommand: '/event',
+        };
+      }
+      case 'dismiss':
+      case 'hide': {
+        const cleanId = firstArg.replace(/^#/, '');
+        return {
+          type: 'dismiss',
+          chatId,
+          target: /^[1-9]\d*$/.test(cleanId) ? cleanId : null,
+          rawCommand: `/${command}`,
+        };
+      }
       default:
         return {
           type: 'unknown',
@@ -386,6 +459,9 @@ function buildHelpMessage(chatId: string, userName: string | null): string {
     '/digest – экспресс-дайджест аудитории и лучших постов за 24 часа',
     '/channel @username – быстрая карточка метрик канала и индекс доверия',
     '/add @username – добавить канал в мониторинг',
+    '/events [today|weekend|week|free|поиск] – афиша предстоящих мероприятий',
+    '/event <id> – карточка мероприятия, источники и ссылка в Google Календарь',
+    '/dismiss <id> – скрыть мероприятие из афиши',
     '/help – показать эту справку',
     '',
     'Также можно просто переслать пост из публичного канала или отправить ссылку вида https://t.me/channel.',
@@ -707,6 +783,322 @@ async function defaultAddChannel(target: string, userId: number | null): Promise
   };
 }
 
+function parseJsonPrices(value: Prisma.JsonValue | null | undefined): string[] {
+  if (!Array.isArray(value)) return [];
+  const result: string[] = [];
+  for (const item of value) {
+    if (typeof item === 'string') {
+      const trimmed = item.trim();
+      if (trimmed) result.push(trimmed);
+    } else if (typeof item === 'number' && Number.isFinite(item)) {
+      result.push(String(item));
+    }
+  }
+  return result;
+}
+
+export function parseEventsCommandFilter(rawArg: string | null): {
+  filterOptions: EventFilterOptions;
+  label: string;
+} {
+  const trimmed = rawArg?.trim() ?? '';
+  if (!trimmed) {
+    return {
+      filterOptions: { datePreset: 'all' },
+      label: 'все предстоящие',
+    };
+  }
+
+  const normalized = trimmed.toLocaleLowerCase('ru-RU');
+  switch (normalized) {
+    case 'today':
+    case 'сегодня':
+    case 'завтра':
+    case 'today_tomorrow':
+      return {
+        filterOptions: { datePreset: 'today_tomorrow' },
+        label: 'сегодня и завтра',
+      };
+    case 'weekend':
+    case 'выходные':
+      return {
+        filterOptions: { datePreset: 'weekend' },
+        label: 'на выходные',
+      };
+    case 'week':
+    case 'неделя':
+      return {
+        filterOptions: { datePreset: 'week' },
+        label: 'на эту неделю',
+      };
+    case 'month':
+    case 'месяц':
+      return {
+        filterOptions: { datePreset: 'month' },
+        label: 'в этом месяце',
+      };
+    case 'free':
+    case 'бесплатно':
+      return {
+        filterOptions: { datePreset: 'all', freeOnly: true },
+        label: 'бесплатные (предстоящие)',
+      };
+    default:
+      return {
+        filterOptions: { datePreset: 'all', query: trimmed },
+        label: `поиск «${trimmed}»`,
+      };
+  }
+}
+
+async function defaultListUserEvents(userId: number | null): Promise<BotEventItem[]> {
+  let userChannelIds: Set<number> | null = null;
+  if (userId != null && typeof prisma.userChannel?.findMany === 'function') {
+    const subs = await prisma.userChannel.findMany({
+      where: { userId, isActive: true },
+      select: { channelId: true },
+    });
+    userChannelIds = new Set(subs.map((item) => item.channelId));
+    if (userChannelIds.size === 0) {
+      return [];
+    }
+  }
+
+  const events = await prisma.event.findMany({
+    where: userId != null
+      ? {
+          dismissedAt: null,
+          dismissedByUsers: { none: { userId } },
+        }
+      : { dismissedAt: null },
+    orderBy: [{ date: 'asc' }, { id: 'asc' }],
+    include: {
+      mentions: {
+        include: {
+          post: {
+            select: {
+              id: true,
+              messageId: true,
+              channelId: true,
+              text: true,
+              channel: {
+                select: {
+                  title: true,
+                  username: true,
+                  tgId: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const filteredEvents: BotEventItem[] = [];
+  for (const event of events) {
+    const validMentions: BotEventMention[] = [];
+    for (const mention of event.mentions) {
+      if (isClearlyEventDigest(mention.post.text)) continue;
+      if (userChannelIds && !userChannelIds.has(mention.post.channelId)) continue;
+      validMentions.push({
+        id: mention.id,
+        postId: mention.postId,
+        post: {
+          messageId: mention.post.messageId.toString(),
+          channel: mention.post.channel
+            ? {
+                title: mention.post.channel.title,
+                username: mention.post.channel.username,
+                tgId: mention.post.channel.tgId ? mention.post.channel.tgId.toString() : null,
+              }
+            : null,
+        },
+      });
+    }
+
+    if (userChannelIds && validMentions.length === 0) continue;
+    if (event.mentions.length > 0 && validMentions.length === 0) continue;
+
+    const item: BotEventItem = {
+      id: event.id,
+      title: event.title,
+      date: event.date instanceof Date ? event.date : new Date(event.date),
+      timeStr: event.timeStr ?? null,
+      organizer: event.organizer ?? null,
+      prices: parseJsonPrices(event.prices),
+      mentions: validMentions,
+    };
+
+    const existing = filteredEvents.find((candidate) => isSameEvent(candidate, item));
+    if (!existing) {
+      filteredEvents.push(item);
+      continue;
+    }
+
+    const linkedPostIds = new Set(existing.mentions.map((mention) => mention.postId));
+    for (const mention of item.mentions) {
+      if (!linkedPostIds.has(mention.postId)) {
+        existing.mentions.push(mention);
+      }
+    }
+  }
+
+  return filteredEvents;
+}
+
+async function defaultDismissEvent(
+  eventId: number,
+  userId: number | null,
+): Promise<DismissEventCommandResult> {
+  if (!Number.isSafeInteger(eventId) || eventId <= 0) {
+    return { status: 'invalid_id' };
+  }
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, title: true, dismissedAt: true },
+  });
+  if (!event) {
+    return { status: 'not_found', eventId };
+  }
+
+  if (userId != null && typeof prisma.userDismissedEvent?.upsert === 'function') {
+    await prisma.userDismissedEvent.upsert({
+      where: {
+        userId_eventId: {
+          userId,
+          eventId,
+        },
+      },
+      create: { userId, eventId },
+      update: {},
+    });
+    return { status: 'dismissed', eventId: event.id, title: event.title };
+  }
+
+  if (!event.dismissedAt) {
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { dismissedAt: new Date() },
+    });
+  }
+
+  return { status: 'dismissed', eventId: event.id, title: event.title };
+}
+
+function toCalendarEventInput(event: BotEventItem): CalendarEventInput {
+  return {
+    id: event.id,
+    title: event.title,
+    date: event.date.toISOString(),
+    timeStr: event.timeStr,
+    organizer: event.organizer,
+    prices: event.prices,
+    mentions: event.mentions,
+  };
+}
+
+function formatEventDate(date: Date): string {
+  const isUtcMidnight =
+    date.getUTCHours() === 0 &&
+    date.getUTCMinutes() === 0 &&
+    date.getUTCSeconds() === 0;
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: isUtcMidnight ? 'UTC' : getAppTimezone(),
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
+function formatEventsListReply(
+  events: BotEventItem[],
+  label: string,
+  appBaseUrl: string,
+): string {
+  if (events.length === 0) {
+    return [
+      `📅 В афише (${label}) сейчас нет подходящих мероприятий.`,
+      'Попробуйте /events для просмотра всех предстоящих событий или фильтр /events free.',
+      `Веб-афиша: ${appBaseUrl}/events`,
+    ].join('\n');
+  }
+
+  const visible = events.slice(0, MAX_BOT_EVENTS_LIST);
+  const lines: string[] = [
+    `📅 Афиша мероприятий (${label}): найдено ${numberFormat.format(events.length)}`,
+  ];
+
+  visible.forEach((event, index) => {
+    const when = `${formatEventDate(event.date)}${event.timeStr ? `, ${event.timeStr}` : ''}`;
+    lines.push('', `${index + 1}. [#${event.id}] ${when} – ${event.title}`);
+
+    const metaParts: string[] = [];
+    if (event.organizer) metaParts.push(`📍 ${event.organizer}`);
+    if (event.prices.length > 0) {
+      metaParts.push(`💰 ${event.prices.join(', ')}`);
+    } else if (isFreeEvent(event.prices)) {
+      metaParts.push('💰 Бесплатно');
+    }
+    if (metaParts.length > 0) {
+      lines.push(metaParts.join(' | '));
+    }
+
+    const firstSourceUrl = event.mentions
+      .map((mention) => getTelegramPostUrl(mention.post))
+      .find((url): url is string => Boolean(url));
+    if (firstSourceUrl) {
+      lines.push(`Источник: ${firstSourceUrl}`);
+    }
+  });
+
+  if (events.length > MAX_BOT_EVENTS_LIST) {
+    lines.push('', `Показаны первые ${MAX_BOT_EVENTS_LIST} из ${numberFormat.format(events.length)} событий. Уточните запрос: /events today, /events weekend, /events free или /events <слово>.`);
+  }
+
+  lines.push('', `Подробнее: /event <id> | Скрыть: /dismiss <id> | Веб-афиша: ${appBaseUrl}/events`);
+  return lines.join('\n');
+}
+
+function formatEventDetailReply(event: BotEventItem, appBaseUrl: string): string {
+  const when = `${formatEventDate(event.date)}${event.timeStr ? ` (${event.timeStr})` : ''}`;
+  const priceText = event.prices.length > 0
+    ? `${event.prices.join(', ')}${isFreeEvent(event.prices) ? ' (бесплатно)' : ''}`
+    : 'не указана';
+
+  const lines: string[] = [
+    `🎫 [#${event.id}] ${event.title}`,
+    `Дата: ${when}`,
+    `Организатор / место: ${event.organizer || 'не указано'}`,
+    `Стоимость: ${priceText}`,
+  ];
+
+  const seenUrls = new Set<string>();
+  const sourceLines: string[] = [];
+  for (const mention of event.mentions) {
+    const url = getTelegramPostUrl(mention.post);
+    if (!url || seenUrls.has(url)) continue;
+    seenUrls.add(url);
+    const channelTitle = mention.post.channel?.title || 'Канал';
+    sourceLines.push(`- ${channelTitle}: ${url}`);
+  }
+
+  if (sourceLines.length > 0) {
+    lines.push('', 'Источники в Telegram:', ...sourceLines);
+  }
+
+  const calendarUrl = buildGoogleCalendarUrl(toCalendarEventInput(event));
+  lines.push(
+    '',
+    `Google Календарь: ${calendarUrl}`,
+    `Скрыть из афиши: /dismiss ${event.id}`,
+    `Веб-афиша: ${appBaseUrl}/events`,
+  );
+
+  return lines.join('\n');
+}
+
 function formatStatusReply(job: BotLatestSyncJob | null, summary: BotUserStatusSummary): string {
   const lines = ['📡 Статус мониторинга TgMon'];
   if (!job) {
@@ -834,6 +1226,53 @@ export async function handleTelegramBotCommand(
         return `✅ Канал ${label}${handle} подключен к вашему списку мониторинга.${linkLine}`;
       }
       return `✅ Канал ${label}${handle} добавлен в мониторинг и поставлен на сбор метрик.${linkLine}`;
+    }
+
+    case 'events': {
+      const listEvents = deps.listUserEvents ?? defaultListUserEvents;
+      const allEvents = await listEvents(access.userId);
+      const { filterOptions, label } = parseEventsCommandFilter(command.target);
+      const calendarById = new Map<number, BotEventItem>();
+      const calendarInputs = allEvents.map((ev) => {
+        calendarById.set(ev.id, ev);
+        return toCalendarEventInput(ev);
+      });
+      const filteredInputs = filterEvents(calendarInputs, filterOptions, now);
+      const filteredEvents = filteredInputs
+        .map((item) => calendarById.get(item.id))
+        .filter((item): item is BotEventItem => Boolean(item));
+      return formatEventsListReply(filteredEvents, label, appBaseUrl);
+    }
+
+    case 'event': {
+      if (!command.target) {
+        return 'Укажите ID мероприятия, например: /event 12 (список ID можно посмотреть командой /events).';
+      }
+      const eventId = Number(command.target);
+      const listEvents = deps.listUserEvents ?? defaultListUserEvents;
+      const allEvents = await listEvents(access.userId);
+      const found = allEvents.find((item) => item.id === eventId);
+      if (!found) {
+        return `Мероприятие #${command.target} не найдено в актуальной афише. Проверьте список командой /events.`;
+      }
+      return formatEventDetailReply(found, appBaseUrl);
+    }
+
+    case 'dismiss': {
+      if (!command.target) {
+        return 'Укажите ID мероприятия для скрытия, например: /dismiss 12.';
+      }
+      const eventId = Number(command.target);
+      const dismissEvent = deps.onDismissEvent ?? defaultDismissEvent;
+      const result = await dismissEvent(eventId, access.userId);
+      if (result.status === 'invalid_id') {
+        return 'Некорректный ID мероприятия. Укажите положительное число, например: /dismiss 12.';
+      }
+      if (result.status === 'not_found') {
+        return `Мероприятие #${command.target} не найдено.`;
+      }
+      const titlePart = result.title ? ` («${result.title}»)` : '';
+      return `🗑 Мероприятие #${result.eventId}${titlePart} скрыто из вашей афиши.`;
     }
 
     case 'unknown':
