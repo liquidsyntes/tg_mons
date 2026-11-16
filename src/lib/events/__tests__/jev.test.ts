@@ -144,3 +144,20 @@ describe('selectEventCandidatesWithJev', () => {
     expect(logger.warn).toHaveBeenCalledOnce();
   });
 });
+
+it('uses Gemini Decisions independently of the extraction model', async () => {
+  const previous = process.env.EVENT_DECISION_MODEL;
+  process.env.EVENT_DECISION_MODEL = 'google/gemini-decision-1';
+  aiConfig.get.mockResolvedValue({apiKey:'test',model:'extraction-model'});
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({answers:answersFor(1,1,1)})));
+  vi.stubGlobal('fetch',fetchMock);
+  try {
+    const result = await selectEventCandidatesWithJev([posts[0]]);
+    expect(result.mode).toBe('gemini');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).model).toBe('google/gemini-decision-1');
+  } finally {
+    if (previous === undefined) delete process.env.EVENT_DECISION_MODEL;
+    else process.env.EVENT_DECISION_MODEL = previous;
+    vi.unstubAllGlobals();
+  }
+});

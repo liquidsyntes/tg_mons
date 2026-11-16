@@ -1,3 +1,5 @@
+import { buildExtractionPrompt } from '@/lib/events/extraction';
+import { keywordCandidate } from '@/lib/events/decisions';
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -57,14 +59,13 @@ export async function POST(request: NextRequest) {
 
     // Jev screens the full recent sample; keywords are only a fallback if it is unavailable.
     const selection = await selectEventCandidatesWithJev(textPosts);
-    if (selection.mode === 'jev') {
+    if (selection.mode !== 'keyword_fallback') {
       const selectedIds = new Set(selection.posts.map(post => post.id));
       await markPostsScanned(textPosts.filter(post => !selectedIds.has(post.id)).map(post => post.id));
     }
-    const keywords = ['вечеринка', 'старт', 'начало', 'билет', 'dj', 'вход', 'line-up', 'мероприятие', 'анонс', 'событие'];
-    const selectedPosts = (selection.mode === 'jev'
+    const selectedPosts = (selection.mode !== 'keyword_fallback'
       ? selection.posts
-      : selection.posts.filter(post => keywords.some(keyword => post.text.toLowerCase().includes(keyword)))
+      : selection.posts.filter(post => keywordCandidate(post.text))
     ).slice(0, 100);
 
     if (selectedPosts.length === 0) {
@@ -80,35 +81,7 @@ export async function POST(request: NextRequest) {
       text: p.text
     }));
 
-    const prompt = `
-Твоя задача — извлечь анонсы будущих мероприятий (вечеринки, концерты, лекции и т.д.) из предоставленных постов.
-
-ВХОДНЫЕ ДАННЫЕ (JSON):
-${JSON.stringify(payloadForAi)}
-
-ПРАВИЛА:
-1. Выбирай посты, главная цель которых пригласить на одно конкретное будущее мероприятие. Обзорная статья, реклама курса или отчёт о прошедшем занятии не становятся анонсом из-за списка будущих дат в конце.
-2. Извлеки название (или суть) мероприятия, дату проведения, точное время (например, "с 22:00 до 05:00" или "20:00"), организатора (если указан) и виды/стоимость билетов. 
-3. Билеты/цены должны быть массивом строк (например: ["Мужчины - 1000р", "Женщины - бесплатно", "Пары - 1500р"]).
-4. ВАЖНО: Дедупликация! Одно и то же мероприятие часто рекламируется в разных каналах. Объедини их в одно событие. В массиве "sourcePostIds" перечисли ID всех постов, которые рекламируют это событие.
-5. Возвращай только реальные будущие мероприятия с указанной датой. Разрешай относительную дату относительно даты публикации поста, но не угадывай отсутствующую или неточную дату. Верни дату мероприятия в формате YYYY-MM-DD.
-6. Дайджесты и подборки нескольких самостоятельных мероприятий не обрабатывай: не создавай из них события и не включай их ID в sourcePostIds. Программа одного мероприятия, например фестиваля, дайджестом не считается.
-7. Помимо даты в посте должна быть хотя бы одна конкретная деталь участия в том же мероприятии: время, место, онлайн-площадка, билет, регистрация или контакт. Одного тизера с датой недостаточно.
-
-ФОРМАТ ОТВЕТА (JSON):
-{
-  "events": [
-    {
-      "title": "Название мероприятия",
-      "date": "2026-09-01",
-      "timeStr": "22:00 - 05:00",
-      "organizer": "Имя или название (или null)",
-      "prices": ["Категория 1: 500р", "Категория 2: 1000р"],
-      "sourcePostIds": [101, 105, 203]
-    }
-  ]
-}
-`;
+    const prompt = buildExtractionPrompt(payloadForAi);
 
     const aiResponse = await callOpenRouter(prompt, { timeoutMs: 120000 });
     
@@ -184,8 +157,8 @@ ${JSON.stringify(payloadForAi)}
     await mergeDuplicateEventsInDb();
     await markPostsScanned(selectedPosts.map(post => post.id));
     return NextResponse.json({ success: true, savedCount, parsedEvents: events, selectionMode: selection.mode });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error scanning events:', undefined, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Не удалось выполнить сканирование' }, { status: 500 });
   }
 }

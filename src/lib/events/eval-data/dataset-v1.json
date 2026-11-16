@@ -1,0 +1,1573 @@
+{
+  "version": "synthetic-v1",
+  "examples": [
+    {
+      "id": 1,
+      "category": "announcement",
+      "split": "calibration",
+      "text": "Приглашаем на концерт «Тихий берег» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тихий берег",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            1
+          ]
+        },
+        "duplicateGroup": "concert-0"
+      }
+    },
+    {
+      "id": 2,
+      "category": "recap",
+      "split": "calibration",
+      "text": "Вчера прошёл концерт «Тихий берег». Спасибо всем! Посмотрите фотографии. Следующие встречи объявим позже.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 3,
+      "category": "digest",
+      "split": "calibration",
+      "text": "Афиша недели: 20 декабря концерт «Тихий берег», 21 декабря лекция «История города», 22 декабря выставка. Билеты на каждое мероприятие отдельно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 4,
+      "category": "teaser",
+      "split": "calibration",
+      "text": "«Тихий берег». 20 декабря 2026. Скоро всё расскажем. Следите за новостями!",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 5,
+      "category": "online",
+      "split": "calibration",
+      "text": "Онлайн-лекция «Тихий берег» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Подключение: https://example.org/meeting. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тихий берег",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            5
+          ]
+        },
+        "duplicateGroup": "online-0"
+      }
+    },
+    {
+      "id": 6,
+      "category": "relative",
+      "split": "calibration",
+      "text": "Завтра в 19:00 встреча «Тихий берег». Организатор: Студия Маяк. Регистрация: https://example.org/register. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тихий берег",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            6
+          ]
+        },
+        "duplicateGroup": "relative-0"
+      }
+    },
+    {
+      "id": 7,
+      "category": "year_boundary",
+      "split": "calibration",
+      "text": "Завтра в 19:00 концерт «Тихий берег». Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тихий берег",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            7
+          ]
+        },
+        "duplicateGroup": "year_boundary-0"
+      }
+    },
+    {
+      "id": 8,
+      "category": "ambiguous",
+      "split": "calibration",
+      "text": "Когда-нибудь в декабре проведём «Тихий берег». Билеты и точные даты пока обсуждаем.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 9,
+      "category": "duplicate",
+      "split": "calibration",
+      "text": "Напоминаем: концерт «Тихий берег» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тихий берег",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            9
+          ]
+        },
+        "duplicateGroup": "concert-0"
+      }
+    },
+    {
+      "id": 10,
+      "category": "different_session",
+      "split": "calibration",
+      "text": "Концерт «Тихий берег» 20 декабря 2026 в 21:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тихий берег",
+          "date": "2026-12-20",
+          "timeStr": "21:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            10
+          ]
+        },
+        "duplicateGroup": "different_session-0"
+      }
+    },
+    {
+      "id": 11,
+      "category": "announcement",
+      "split": "calibration",
+      "text": "Приглашаем на концерт «Зимние огни» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Зимние огни",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            11
+          ]
+        },
+        "duplicateGroup": "concert-1"
+      }
+    },
+    {
+      "id": 12,
+      "category": "recap",
+      "split": "calibration",
+      "text": "Вчера прошёл концерт «Зимние огни». Спасибо всем! Посмотрите фотографии. Следующие встречи объявим позже.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 13,
+      "category": "digest",
+      "split": "calibration",
+      "text": "Афиша недели: 20 декабря концерт «Зимние огни», 21 декабря лекция «История города», 22 декабря выставка. Билеты на каждое мероприятие отдельно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 14,
+      "category": "teaser",
+      "split": "calibration",
+      "text": "«Зимние огни». 20 декабря 2026. Скоро всё расскажем. Следите за новостями!",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 15,
+      "category": "online",
+      "split": "calibration",
+      "text": "Онлайн-лекция «Зимние огни» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Подключение: https://example.org/meeting. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Зимние огни",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            15
+          ]
+        },
+        "duplicateGroup": "online-1"
+      }
+    },
+    {
+      "id": 16,
+      "category": "relative",
+      "split": "calibration",
+      "text": "Завтра в 19:00 встреча «Зимние огни». Организатор: Студия Маяк. Регистрация: https://example.org/register. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Зимние огни",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            16
+          ]
+        },
+        "duplicateGroup": "relative-1"
+      }
+    },
+    {
+      "id": 17,
+      "category": "year_boundary",
+      "split": "calibration",
+      "text": "Завтра в 19:00 концерт «Зимние огни». Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Зимние огни",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            17
+          ]
+        },
+        "duplicateGroup": "year_boundary-1"
+      }
+    },
+    {
+      "id": 18,
+      "category": "ambiguous",
+      "split": "calibration",
+      "text": "Когда-нибудь в декабре проведём «Зимние огни». Билеты и точные даты пока обсуждаем.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 19,
+      "category": "duplicate",
+      "split": "calibration",
+      "text": "Напоминаем: концерт «Зимние огни» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Зимние огни",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            19
+          ]
+        },
+        "duplicateGroup": "concert-1"
+      }
+    },
+    {
+      "id": 20,
+      "category": "different_session",
+      "split": "calibration",
+      "text": "Концерт «Зимние огни» 20 декабря 2026 в 21:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Зимние огни",
+          "date": "2026-12-20",
+          "timeStr": "21:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            20
+          ]
+        },
+        "duplicateGroup": "different_session-1"
+      }
+    },
+    {
+      "id": 21,
+      "category": "announcement",
+      "split": "calibration",
+      "text": "Приглашаем на концерт «Городские истории» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Городские истории",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            21
+          ]
+        },
+        "duplicateGroup": "concert-2"
+      }
+    },
+    {
+      "id": 22,
+      "category": "recap",
+      "split": "calibration",
+      "text": "Вчера прошёл концерт «Городские истории». Спасибо всем! Посмотрите фотографии. Следующие встречи объявим позже.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 23,
+      "category": "digest",
+      "split": "calibration",
+      "text": "Афиша недели: 20 декабря концерт «Городские истории», 21 декабря лекция «История города», 22 декабря выставка. Билеты на каждое мероприятие отдельно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 24,
+      "category": "teaser",
+      "split": "calibration",
+      "text": "«Городские истории». 20 декабря 2026. Скоро всё расскажем. Следите за новостями!",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 25,
+      "category": "online",
+      "split": "calibration",
+      "text": "Онлайн-лекция «Городские истории» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Подключение: https://example.org/meeting. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Городские истории",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            25
+          ]
+        },
+        "duplicateGroup": "online-2"
+      }
+    },
+    {
+      "id": 26,
+      "category": "relative",
+      "split": "calibration",
+      "text": "Завтра в 19:00 встреча «Городские истории». Организатор: Студия Маяк. Регистрация: https://example.org/register. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Городские истории",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            26
+          ]
+        },
+        "duplicateGroup": "relative-2"
+      }
+    },
+    {
+      "id": 27,
+      "category": "year_boundary",
+      "split": "calibration",
+      "text": "Завтра в 19:00 концерт «Городские истории». Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Городские истории",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            27
+          ]
+        },
+        "duplicateGroup": "year_boundary-2"
+      }
+    },
+    {
+      "id": 28,
+      "category": "ambiguous",
+      "split": "calibration",
+      "text": "Когда-нибудь в декабре проведём «Городские истории». Билеты и точные даты пока обсуждаем.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 29,
+      "category": "duplicate",
+      "split": "calibration",
+      "text": "Напоминаем: концерт «Городские истории» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Городские истории",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            29
+          ]
+        },
+        "duplicateGroup": "concert-2"
+      }
+    },
+    {
+      "id": 30,
+      "category": "different_session",
+      "split": "calibration",
+      "text": "Концерт «Городские истории» 20 декабря 2026 в 21:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Городские истории",
+          "date": "2026-12-20",
+          "timeStr": "21:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            30
+          ]
+        },
+        "duplicateGroup": "different_session-2"
+      }
+    },
+    {
+      "id": 31,
+      "category": "announcement",
+      "split": "calibration",
+      "text": "Приглашаем на концерт «Музыка дворов» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Музыка дворов",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            31
+          ]
+        },
+        "duplicateGroup": "concert-3"
+      }
+    },
+    {
+      "id": 32,
+      "category": "recap",
+      "split": "calibration",
+      "text": "Вчера прошёл концерт «Музыка дворов». Спасибо всем! Посмотрите фотографии. Следующие встречи объявим позже.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 33,
+      "category": "digest",
+      "split": "calibration",
+      "text": "Афиша недели: 20 декабря концерт «Музыка дворов», 21 декабря лекция «История города», 22 декабря выставка. Билеты на каждое мероприятие отдельно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 34,
+      "category": "teaser",
+      "split": "calibration",
+      "text": "«Музыка дворов». 20 декабря 2026. Скоро всё расскажем. Следите за новостями!",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 35,
+      "category": "online",
+      "split": "calibration",
+      "text": "Онлайн-лекция «Музыка дворов» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Подключение: https://example.org/meeting. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Музыка дворов",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            35
+          ]
+        },
+        "duplicateGroup": "online-3"
+      }
+    },
+    {
+      "id": 36,
+      "category": "relative",
+      "split": "calibration",
+      "text": "Завтра в 19:00 встреча «Музыка дворов». Организатор: Студия Маяк. Регистрация: https://example.org/register. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Музыка дворов",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            36
+          ]
+        },
+        "duplicateGroup": "relative-3"
+      }
+    },
+    {
+      "id": 37,
+      "category": "year_boundary",
+      "split": "calibration",
+      "text": "Завтра в 19:00 концерт «Музыка дворов». Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Музыка дворов",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            37
+          ]
+        },
+        "duplicateGroup": "year_boundary-3"
+      }
+    },
+    {
+      "id": 38,
+      "category": "ambiguous",
+      "split": "calibration",
+      "text": "Когда-нибудь в декабре проведём «Музыка дворов». Билеты и точные даты пока обсуждаем.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 39,
+      "category": "duplicate",
+      "split": "calibration",
+      "text": "Напоминаем: концерт «Музыка дворов» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Музыка дворов",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            39
+          ]
+        },
+        "duplicateGroup": "concert-3"
+      }
+    },
+    {
+      "id": 40,
+      "category": "different_session",
+      "split": "calibration",
+      "text": "Концерт «Музыка дворов» 20 декабря 2026 в 21:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Музыка дворов",
+          "date": "2026-12-20",
+          "timeStr": "21:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            40
+          ]
+        },
+        "duplicateGroup": "different_session-3"
+      }
+    },
+    {
+      "id": 41,
+      "category": "announcement",
+      "split": "calibration",
+      "text": "Приглашаем на концерт «Северный ветер» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Северный ветер",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            41
+          ]
+        },
+        "duplicateGroup": "concert-4"
+      }
+    },
+    {
+      "id": 42,
+      "category": "recap",
+      "split": "calibration",
+      "text": "Вчера прошёл концерт «Северный ветер». Спасибо всем! Посмотрите фотографии. Следующие встречи объявим позже.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 43,
+      "category": "digest",
+      "split": "calibration",
+      "text": "Афиша недели: 20 декабря концерт «Северный ветер», 21 декабря лекция «История города», 22 декабря выставка. Билеты на каждое мероприятие отдельно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 44,
+      "category": "teaser",
+      "split": "calibration",
+      "text": "«Северный ветер». 20 декабря 2026. Скоро всё расскажем. Следите за новостями!",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 45,
+      "category": "online",
+      "split": "calibration",
+      "text": "Онлайн-лекция «Северный ветер» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Подключение: https://example.org/meeting. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Северный ветер",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            45
+          ]
+        },
+        "duplicateGroup": "online-4"
+      }
+    },
+    {
+      "id": 46,
+      "category": "relative",
+      "split": "calibration",
+      "text": "Завтра в 19:00 встреча «Северный ветер». Организатор: Студия Маяк. Регистрация: https://example.org/register. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Северный ветер",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            46
+          ]
+        },
+        "duplicateGroup": "relative-4"
+      }
+    },
+    {
+      "id": 47,
+      "category": "year_boundary",
+      "split": "calibration",
+      "text": "Завтра в 19:00 концерт «Северный ветер». Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Северный ветер",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            47
+          ]
+        },
+        "duplicateGroup": "year_boundary-4"
+      }
+    },
+    {
+      "id": 48,
+      "category": "ambiguous",
+      "split": "calibration",
+      "text": "Когда-нибудь в декабре проведём «Северный ветер». Билеты и точные даты пока обсуждаем.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 49,
+      "category": "duplicate",
+      "split": "calibration",
+      "text": "Напоминаем: концерт «Северный ветер» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Северный ветер",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            49
+          ]
+        },
+        "duplicateGroup": "concert-4"
+      }
+    },
+    {
+      "id": 50,
+      "category": "different_session",
+      "split": "calibration",
+      "text": "Концерт «Северный ветер» 20 декабря 2026 в 21:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Северный ветер",
+          "date": "2026-12-20",
+          "timeStr": "21:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            50
+          ]
+        },
+        "duplicateGroup": "different_session-4"
+      }
+    },
+    {
+      "id": 51,
+      "category": "announcement",
+      "split": "control",
+      "text": "Приглашаем на концерт «Вечер открытий» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Вечер открытий",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            51
+          ]
+        },
+        "duplicateGroup": "concert-5"
+      }
+    },
+    {
+      "id": 52,
+      "category": "recap",
+      "split": "control",
+      "text": "Вчера прошёл концерт «Вечер открытий». Спасибо всем! Посмотрите фотографии. Следующие встречи объявим позже.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 53,
+      "category": "digest",
+      "split": "control",
+      "text": "Афиша недели: 20 декабря концерт «Вечер открытий», 21 декабря лекция «История города», 22 декабря выставка. Билеты на каждое мероприятие отдельно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 54,
+      "category": "teaser",
+      "split": "control",
+      "text": "«Вечер открытий». 20 декабря 2026. Скоро всё расскажем. Следите за новостями!",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 55,
+      "category": "online",
+      "split": "control",
+      "text": "Онлайн-лекция «Вечер открытий» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Подключение: https://example.org/meeting. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Вечер открытий",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            55
+          ]
+        },
+        "duplicateGroup": "online-5"
+      }
+    },
+    {
+      "id": 56,
+      "category": "relative",
+      "split": "control",
+      "text": "Завтра в 19:00 встреча «Вечер открытий». Организатор: Студия Маяк. Регистрация: https://example.org/register. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Вечер открытий",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            56
+          ]
+        },
+        "duplicateGroup": "relative-5"
+      }
+    },
+    {
+      "id": 57,
+      "category": "year_boundary",
+      "split": "control",
+      "text": "Завтра в 19:00 концерт «Вечер открытий». Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Вечер открытий",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            57
+          ]
+        },
+        "duplicateGroup": "year_boundary-5"
+      }
+    },
+    {
+      "id": 58,
+      "category": "ambiguous",
+      "split": "control",
+      "text": "Когда-нибудь в декабре проведём «Вечер открытий». Билеты и точные даты пока обсуждаем.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 59,
+      "category": "duplicate",
+      "split": "control",
+      "text": "Напоминаем: концерт «Вечер открытий» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Вечер открытий",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            59
+          ]
+        },
+        "duplicateGroup": "concert-5"
+      }
+    },
+    {
+      "id": 60,
+      "category": "different_session",
+      "split": "control",
+      "text": "Концерт «Вечер открытий» 20 декабря 2026 в 21:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Вечер открытий",
+          "date": "2026-12-20",
+          "timeStr": "21:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            60
+          ]
+        },
+        "duplicateGroup": "different_session-5"
+      }
+    },
+    {
+      "id": 61,
+      "category": "announcement",
+      "split": "control",
+      "text": "Приглашаем на концерт «Звёздная карта» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Звёздная карта",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            61
+          ]
+        },
+        "duplicateGroup": "concert-6"
+      }
+    },
+    {
+      "id": 62,
+      "category": "recap",
+      "split": "control",
+      "text": "Вчера прошёл концерт «Звёздная карта». Спасибо всем! Посмотрите фотографии. Следующие встречи объявим позже.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 63,
+      "category": "digest",
+      "split": "control",
+      "text": "Афиша недели: 20 декабря концерт «Звёздная карта», 21 декабря лекция «История города», 22 декабря выставка. Билеты на каждое мероприятие отдельно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 64,
+      "category": "teaser",
+      "split": "control",
+      "text": "«Звёздная карта». 20 декабря 2026. Скоро всё расскажем. Следите за новостями!",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 65,
+      "category": "online",
+      "split": "control",
+      "text": "Онлайн-лекция «Звёздная карта» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Подключение: https://example.org/meeting. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Звёздная карта",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            65
+          ]
+        },
+        "duplicateGroup": "online-6"
+      }
+    },
+    {
+      "id": 66,
+      "category": "relative",
+      "split": "control",
+      "text": "Завтра в 19:00 встреча «Звёздная карта». Организатор: Студия Маяк. Регистрация: https://example.org/register. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Звёздная карта",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            66
+          ]
+        },
+        "duplicateGroup": "relative-6"
+      }
+    },
+    {
+      "id": 67,
+      "category": "year_boundary",
+      "split": "control",
+      "text": "Завтра в 19:00 концерт «Звёздная карта». Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Звёздная карта",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            67
+          ]
+        },
+        "duplicateGroup": "year_boundary-6"
+      }
+    },
+    {
+      "id": 68,
+      "category": "ambiguous",
+      "split": "control",
+      "text": "Когда-нибудь в декабре проведём «Звёздная карта». Билеты и точные даты пока обсуждаем.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 69,
+      "category": "duplicate",
+      "split": "control",
+      "text": "Напоминаем: концерт «Звёздная карта» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Звёздная карта",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            69
+          ]
+        },
+        "duplicateGroup": "concert-6"
+      }
+    },
+    {
+      "id": 70,
+      "category": "different_session",
+      "split": "control",
+      "text": "Концерт «Звёздная карта» 20 декабря 2026 в 21:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Звёздная карта",
+          "date": "2026-12-20",
+          "timeStr": "21:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            70
+          ]
+        },
+        "duplicateGroup": "different_session-6"
+      }
+    },
+    {
+      "id": 71,
+      "category": "announcement",
+      "split": "control",
+      "text": "Приглашаем на концерт «Тёплый свет» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тёплый свет",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            71
+          ]
+        },
+        "duplicateGroup": "concert-7"
+      }
+    },
+    {
+      "id": 72,
+      "category": "recap",
+      "split": "control",
+      "text": "Вчера прошёл концерт «Тёплый свет». Спасибо всем! Посмотрите фотографии. Следующие встречи объявим позже.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 73,
+      "category": "digest",
+      "split": "control",
+      "text": "Афиша недели: 20 декабря концерт «Тёплый свет», 21 декабря лекция «История города», 22 декабря выставка. Билеты на каждое мероприятие отдельно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 74,
+      "category": "teaser",
+      "split": "control",
+      "text": "«Тёплый свет». 20 декабря 2026. Скоро всё расскажем. Следите за новостями!",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 75,
+      "category": "online",
+      "split": "control",
+      "text": "Онлайн-лекция «Тёплый свет» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Подключение: https://example.org/meeting. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тёплый свет",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            75
+          ]
+        },
+        "duplicateGroup": "online-7"
+      }
+    },
+    {
+      "id": 76,
+      "category": "relative",
+      "split": "control",
+      "text": "Завтра в 19:00 встреча «Тёплый свет». Организатор: Студия Маяк. Регистрация: https://example.org/register. Бесплатно.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тёплый свет",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "Бесплатно"
+          ],
+          "sourcePostIds": [
+            76
+          ]
+        },
+        "duplicateGroup": "relative-7"
+      }
+    },
+    {
+      "id": 77,
+      "category": "year_boundary",
+      "split": "control",
+      "text": "Завтра в 19:00 концерт «Тёплый свет». Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тёплый свет",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            77
+          ]
+        },
+        "duplicateGroup": "year_boundary-7"
+      }
+    },
+    {
+      "id": 78,
+      "category": "ambiguous",
+      "split": "control",
+      "text": "Когда-нибудь в декабре проведём «Тёплый свет». Билеты и точные даты пока обсуждаем.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 79,
+      "category": "duplicate",
+      "split": "control",
+      "text": "Напоминаем: концерт «Тёплый свет» 20 декабря 2026 в 19:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тёплый свет",
+          "date": "2026-12-20",
+          "timeStr": "19:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            79
+          ]
+        },
+        "duplicateGroup": "concert-7"
+      }
+    },
+    {
+      "id": 80,
+      "category": "different_session",
+      "split": "control",
+      "text": "Концерт «Тёплый свет» 20 декабря 2026 в 21:00. Организатор: Студия Маяк. Билет: 300 грн.",
+      "publishedAt": "2026-12-19T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тёплый свет",
+          "date": "2026-12-20",
+          "timeStr": "21:00",
+          "organizer": "Студия Маяк",
+          "prices": [
+            "300 грн"
+          ],
+          "sourcePostIds": [
+            80
+          ]
+        },
+        "duplicateGroup": "different_session-7"
+      }
+    }
+  ]
+}

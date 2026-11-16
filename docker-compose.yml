@@ -29,6 +29,7 @@ services:
     ports:
       - "4000:4000"
     environment:
+      EVENT_DECISION_MODEL: ${EVENT_DECISION_MODEL:-~typesafe/jev-latest}
       DATABASE_URL: "postgresql://postgres:password@postgres:5432/tgmon?schema=public"
       COLLECT_API_TOKEN: ${COLLECT_API_TOKEN}
       WORKER_INTERNAL_URL: ${WORKER_INTERNAL_URL:-http://worker:4001}

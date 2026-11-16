@@ -1,100 +1,15 @@
+import { buildDecisionRequest, readDecisionAnswers, parseDecisionModel, type EventCandidate, type EventSelection } from './decisions';
 import { logger } from '@/lib/logger';
 import { getAiConfig } from '@/lib/ai-config';
 
 const JEV_ENDPOINT = 'https://openrouter.ai/api/alpha/decisions';
 const BATCH_SIZE = 10;
 const CONCURRENT_BATCHES = 4;
-const MAX_TEXT_LENGTH = 4000;
-// Conservative pilot threshold: only clear negatives are excluded until labeled posts are available.
-const MIN_ANNOUNCEMENT_PROBABILITY = 0.2;
-const MIN_DIGEST_PROBABILITY = 0.8;
-const MIN_FOCUSED_PROBABILITY = 0.5;
-const MIN_ACTIONABLE_PROBABILITY = 0.5;
-const MIN_RECAP_PROBABILITY = 0.8;
 const REQUEST_TIMEOUT_MS = 15000;
-const SIGNALS = [
-  { id: 'announcement', weight: 0.6, question: 'Does the text announce or remind readers of a specific scheduled gathering, such as a concert, party, lecture or meetup? Product advertising, event reviews, general schedules and vague plans do not count.' },
-  { id: 'date', weight: 0.12, question: 'Does the text state a calendar date or relative day for that gathering, such as tomorrow or next Saturday? Do not infer a date.' },
-  { id: 'time', weight: 0.08, question: 'Does the text state a clock time or time range for that gathering? Do not infer a time.' },
-  { id: 'invitation', weight: 0.08, question: 'Does the text invite readers to attend the gathering or ask them to take action to attend it?' },
-  { id: 'tickets', weight: 0.06, question: 'Does the text mention admission tickets or a price for attending the gathering?' },
-  { id: 'registration', weight: 0.06, question: 'Does the text mention registering, reserving or booking a place at the gathering?' },
-  { id: 'digest', weight: 0, question: 'Is this post primarily a roundup of several independent events, each with its own title, date or destination, rather than an announcement of one event? A multi-day festival or the program of one gathering is not a roundup.' },
-  { id: 'focused', weight: 0, question: 'Is the main purpose of this post to invite readers to one specific future event? An article, recap, general course promotion or list of upcoming events does not count, even when it mentions dates.' },
-  { id: 'actionable', weight: 0, question: 'Does this post give both a specific event date and at least one practical attendance detail for that same event, such as a start time, venue, online platform, ticket terms, registration link or contact? A date-only teaser is insufficient.' },
-  { id: 'recap', weight: 0, question: 'Is this post mainly looking back at a completed activity, including photos, video or reflections, even if a short list of future events appears near the end?' },
-] as const;
-
-export interface EventCandidate {
-  id: number;
-  text: string;
-}
-
-export type EventSelectionMode = 'jev' | 'keyword_fallback';
-
-export interface EventSelection<T extends EventCandidate> {
-  posts: T[];
-  mode: EventSelectionMode;
-}
-
-function readProbability(answers: Record<string, unknown>, key: string): number {
-  const answer = answers[key];
-  if (!answer || typeof answer !== 'object' || !('type' in answer) || !('noul' in answer) ||
-      answer.type !== 'noul' || typeof answer.noul !== 'number' ||
-      !Number.isFinite(answer.noul) || answer.noul < 0 || answer.noul > 1) {
-    throw new Error('Invalid Jev answer');
-  }
-  return answer.noul;
-}
-
-function readAnswers(value: unknown, posts: EventCandidate[]): Map<number, number> {
-  if (!value || typeof value !== 'object' || !('answers' in value)) {
-    throw new Error('Invalid Jev response');
-  }
-
-  const answers = value.answers;
-  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
-    throw new Error('Invalid Jev answers');
-  }
-
-  const answerMap = answers as Record<string, unknown>;
-  const selected = new Map<number, number>();
-  for (const post of posts) {
-    let announcement = 0;
-    let digest = 0;
-    let focused = 0;
-    let actionable = 0;
-    let recap = 0;
-    let priority = 0;
-    for (const signal of SIGNALS) {
-      const probability = readProbability(answerMap, `${signal.id}_${post.id}`);
-      if (signal.id === 'announcement') announcement = probability;
-      if (signal.id === 'digest') digest = probability;
-      if (signal.id === 'focused') focused = probability;
-      if (signal.id === 'actionable') actionable = probability;
-      if (signal.id === 'recap') recap = probability;
-      priority += signal.weight * probability;
-    }
-    if (announcement >= MIN_ANNOUNCEMENT_PROBABILITY && digest < MIN_DIGEST_PROBABILITY &&
-        focused >= MIN_FOCUSED_PROBABILITY && actionable >= MIN_ACTIONABLE_PROBABILITY &&
-        recap < MIN_RECAP_PROBABILITY) {
-      selected.set(post.id, priority);
-    }
-  }
-  return selected;
-}
+export type { EventCandidate, EventSelection, EventSelectionMode } from './decisions';
 
 async function evaluateBatch(posts: EventCandidate[], apiKey: string): Promise<Map<number, number>> {
-  const state = {
-    posts: posts.map(post => ({
-      id: post.id,
-      text: post.text.slice(0, MAX_TEXT_LENGTH),
-    })),
-  };
-  const questions = Object.fromEntries(posts.flatMap((post, index) => SIGNALS.map(signal => [
-    `${signal.id}_${post.id}`,
-    { type: 'noul', instructions: `Evaluate only posts[${index}]. ${signal.question}` },
-  ])));
+  const payload = buildDecisionRequest(posts, parseDecisionModel(process.env.EVENT_DECISION_MODEL || '~typesafe/jev-latest'));
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const controller = new AbortController();
@@ -107,7 +22,7 @@ async function evaluateBatch(posts: EventCandidate[], apiKey: string): Promise<M
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ state, model: '~typesafe/jev-latest', questions }),
+        body: JSON.stringify(payload),
         signal: controller.signal,
       });
     } finally {
@@ -119,7 +34,7 @@ async function evaluateBatch(posts: EventCandidate[], apiKey: string): Promise<M
       continue;
     }
     if (!response.ok) throw new Error(`Jev API status ${response.status}`);
-    return readAnswers(await response.json() as unknown, posts);
+    return readDecisionAnswers(await response.json() as unknown, posts);
   }
 
   throw new Error('Jev API retries exhausted');
@@ -144,7 +59,7 @@ export async function selectEventCandidatesWithJev<T extends EventCandidate>(pos
     return {
       posts: posts.filter(post => selectedPriorities.has(post.id))
         .sort((a, b) => (selectedPriorities.get(b.id) ?? 0) - (selectedPriorities.get(a.id) ?? 0)),
-      mode: 'jev',
+      mode: process.env.EVENT_DECISION_MODEL === 'google/gemini-decision-1' ? 'gemini' : 'jev',
     };
   } catch (error) {
     logger.warn('Jev event screening unavailable; using keyword candidates', undefined, error);
