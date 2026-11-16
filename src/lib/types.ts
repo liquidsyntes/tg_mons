@@ -138,7 +138,12 @@ export interface OpsProblemChannel {
   lastCollectedAt: string | null;
 }
 
+export interface PublicationCollectionRunSummary {
+  id:string;startedAt:string;updatedAt:string;endedAt:string|null;status:string;
+  candidates:number;processed:number;saved:number;errors:number;limited:number;deleted:number;noResponse:number;invalidViews:number;
+}
 export interface OpsStatusResponse {
+  publicationRuns?:PublicationCollectionRunSummary[];
   latestJob: OpsSyncJob | null;
   jobs: OpsSyncJob[];
   summary: {

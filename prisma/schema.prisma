@@ -549,3 +549,21 @@ model PostPerformanceCheckpoint {
   @@unique([postId, hoursAfterPost])
   @@map("post_performance_checkpoints")
 }
+
+model PublicationCollectionRun {
+  id String @id @default(uuid())
+  startedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  endedAt DateTime?
+  status String @default("RUNNING")
+  candidates Int @default(0)
+  processed Int @default(0)
+  saved Int @default(0)
+  errors Int @default(0)
+  limited Int @default(0)
+  deleted Int @default(0)
+  noResponse Int @default(0)
+  invalidViews Int @default(0)
+  @@index([startedAt])
+  @@map("publication_collection_runs")
+}

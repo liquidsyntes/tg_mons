@@ -1,4 +1,5 @@
 'use client';
+import { PublicationCoverage } from './PublicationCoverage';
 import { PublicationResultCard } from './PublicationResultCard';
 import { DataEvidenceDetails } from '@/components/DataEvidenceDetails';
 
@@ -82,7 +83,7 @@ export function ContentPlanBoard({
   const bestAvailableSlot = recommendations?.slots[0] ?? null;
   const guidance = recommendations?.formatGuidance ?? null;
 
-  async function runPostUpdate(postId: number, patch: ContentPlanPatchPayload) {
+  async function runPostUpdate(postId: number, patch: ContentPlanPatchPayload, propagate = false) {
     setSavingPostId(postId);
     setActionError(null);
     try {
@@ -91,6 +92,7 @@ export function ContentPlanBoard({
       setActionError(
         error instanceof Error ? error.message : 'Не удалось обновить карточку контент-плана',
       );
+      if(propagate)throw error;
     } finally {
       setSavingPostId((current) => (current === postId ? null : current));
     }
@@ -112,6 +114,7 @@ export function ContentPlanBoard({
 
   return (
     <section aria-label="Доска контент-плана" className="space-y-4">
+      <PublicationCoverage revision={posts} />
       <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
@@ -192,7 +195,7 @@ export function ContentPlanBoard({
                           key={post.id}
                           className="rounded-xl border border-border bg-slate-950/80 p-3 space-y-2.5"
                         >
-                          <PublicationResultCard result={post.publicationResult} disabled={isBusy} onLink={id=>runPostUpdate(post.id,{publishedPostId:id})} />
+                          <PublicationResultCard result={post.publicationResult} disabled={isBusy} onLink={id=>runPostUpdate(post.id,{publishedPostId:id},true)} />
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <Link

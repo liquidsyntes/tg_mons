@@ -141,6 +141,13 @@ export function OperationsMonitorSettings() {
             </div>
 
             <div className="border-t border-border pt-5 space-y-3">
+              <h3 className="font-semibold text-white">Замеры публикаций</h3>
+              <p className="text-xs text-slate-400">Последние 20 проходов, хранение 30 дней. Незавершённая запись не доказывает причину остановки.</p>
+              {data.publicationRuns?.length ? data.publicationRuns.map(run=><div key={run.id} className="rounded border border-border p-3 text-xs space-y-1">
+                <p>{formatDate(run.startedAt)} · {run.endedAt ? run.status : 'Нет итога прохода'} · обновлено {formatDate(run.updatedAt)}</p>
+                <p>Кандидаты: {run.candidates}; обработано: {run.processed}; новых точек: {run.saved}; ошибок: {run.errors}; за лимитом: {run.limited}</p>
+                <p>Удалены: {run.deleted}; нет ответа: {run.noResponse}; нет валидных просмотров: {run.invalidViews}</p>
+              </div>) : <p className="text-sm text-slate-400">Диагностики новых проходов пока нет.</p>}
               <h3 className="font-semibold text-white">Последние запуски</h3>
               {data.jobs.length === 0 ? <p className="text-sm text-slate-400">Запусков пока нет.</p> :
                 <div className="overflow-x-auto">

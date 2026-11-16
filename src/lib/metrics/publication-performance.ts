@@ -31,3 +31,21 @@ export function publicationPerformance(post:PerformancePost,cohort:readonly Perf
     return {hours,state:sample?'measured':post.deletedAt?'deleted':age<=hours+2?'pending':'missed',views:sample?.views??null,capturedAt:sample?.capturedAt.toISOString()??null,actualAgeHours:sample?(sample.capturedAt.getTime()-post.publishedAt.getTime())/3600000:null,median,sampleSize:values.length,delta,deltaPercent:delta!==null&&median!==null&&median>0?delta/median*100:null};
   });
 }
+
+export interface PerformanceCoverage {
+  periodStart:string; periodEnd:string; calculatedAt:string; publications:number;deletedPublications:number;
+  windows:Array<{hours:number;pending:number;measured:number;missed:number;deleted:number;denominator:number;completenessPercent:number|null}>;
+}
+export function performanceCoverage(posts:readonly PerformancePost[],days:number,now=new Date()):PerformanceCoverage {
+  const start=new Date(now.getTime()-days*86400000);
+  const selected=[...new Map(posts.filter(p=>p.publishedAt>=start&&p.publishedAt<=now).map(p=>[p.id,p])).values()];
+  return {periodStart:start.toISOString(),periodEnd:now.toISOString(),calculatedAt:now.toISOString(),publications:selected.length,deletedPublications:selected.filter(p=>p.deletedAt!==null).length,windows:PERFORMANCE_HOURS.map(hours=>{
+    const counts={pending:0,measured:0,missed:0,deleted:0};
+    for(const post of selected) counts[publicationPerformance(post,[],now).find(p=>p.hours===hours)!.state]++;
+    const matured=selected.filter(p=>now.getTime()>p.publishedAt.getTime()+(hours+PERFORMANCE_TOLERANCE_HOURS)*3600000);
+    const measured=matured.filter(p=>selectPerformanceSample(p,hours)!==null).length;
+    const missed=matured.filter(p=>!p.deletedAt&&selectPerformanceSample(p,hours)===null).length;
+    const denominator=measured+missed;
+    return {hours,...counts,denominator,completenessPercent:denominator?Math.round(measured/denominator*1000)/10:null};
+  })};
+}

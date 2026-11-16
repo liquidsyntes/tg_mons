@@ -2,12 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 
 const mocks = vi.hoisted(() => ({
-  auth: vi.fn(), jobs: vi.fn(), lastCompleted: vi.fn(), jobCount: vi.fn(),
+  runs:vi.fn(), auth: vi.fn(), jobs: vi.fn(), lastCompleted: vi.fn(), jobCount: vi.fn(),
   channelCount: vi.fn(), problems: vi.fn(), channel: vi.fn(), updateChannel: vi.fn(),
   updateSubscription: vi.fn(), transaction: vi.fn(), metricsInvalidate: vi.fn(), bestTimeInvalidate: vi.fn(),
 }));
 vi.mock('@/lib/auth', () => ({ verifyBearerToken: mocks.auth }));
 vi.mock('@/lib/prisma', () => ({ prisma: {
+  publicationCollectionRun:{findMany:mocks.runs},
   syncJob: { findMany: mocks.jobs, findFirst: mocks.lastCompleted, count: mocks.jobCount },
   channel: { count: mocks.channelCount, findMany: mocks.problems },
   $transaction: mocks.transaction,
@@ -38,6 +39,7 @@ function post(body: unknown): Promise<NextResponse> {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.runs.mockResolvedValue([]);
   mocks.auth.mockResolvedValue({ authorized: true, role: 'ADMIN', userId: 7 });
   mocks.jobs.mockResolvedValue([job]);
   mocks.lastCompleted.mockResolvedValue({ endedAt: job.endedAt });

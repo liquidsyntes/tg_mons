@@ -1,5 +1,5 @@
 import { loadPublicationResults } from '@/lib/publication-results';
-import { selectPerformanceSample, PERFORMANCE_HOURS } from '@/lib/metrics/publication-performance';
+import { performanceCoverage, selectPerformanceSample, PERFORMANCE_HOURS } from '@/lib/metrics/publication-performance';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyBearerToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -132,6 +132,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       savedPosts: [],
       recommendations: { slots: [], formatGuidance: null },
+      coverage:performanceCoverage([],30),
     });
   }
 
@@ -152,9 +153,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       select: SAVED_POST_SELECT,
     });
 
+    const days=Number(request.nextUrl.searchParams.get('coverageDays')??30);
+    if(![7,30,90].includes(days))return NextResponse.json({error:'Некорректный период'},{status:400});
+    const now=new Date();
+    const coveragePosts=await prisma.post.findMany({where:{publishedAt:{gte:new Date(now.getTime()-days*86400000),lte:now},publicationPlans:{some:{userId:auth.userId,post:{channel:{isActive:true,userChannels:{some:{userId:auth.userId,isActive:true}}}}}},channel:{isActive:true,userChannels:{some:{userId:auth.userId,isActive:true}}}},include:{performanceCheckpoints:true,snapshots:true}});
+    const coverage=performanceCoverage(coveragePosts,days,now);
     const recommendations = await loadContentPlanRecommendations(auth.userId, savedPosts);
     const results = await loadPublicationResults(auth.userId,savedPosts);
-    return NextResponse.json({ savedPosts: savedPosts.map(p=>({...p,publicationResult:results.get(p.postId)})), recommendations });
+    return NextResponse.json({ savedPosts: savedPosts.map(p=>({...p,publicationResult:results.get(p.postId)})), recommendations, coverage });
   } catch (error) {
     logger.error('GET /api/posts/saved error:', undefined, error);
     return NextResponse.json({ error: 'Не удалось загрузить закладки' }, { status: 500 });

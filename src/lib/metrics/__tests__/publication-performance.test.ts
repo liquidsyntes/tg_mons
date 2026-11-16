@@ -31,3 +31,28 @@ it('keeps zero baseline distinct from unavailable data',()=>{
  const peers=Array.from({length:5},(_,i)=>{const p=post(i+2,0);p.publishedAt=new Date(date.getTime()-(i+1)*86400000);p.performanceCheckpoints[0].capturedAt=new Date(p.publishedAt.getTime()+24*3600000);return p;});
  expect(publicationPerformance(target,peers)[0]).toMatchObject({median:0,delta:10,deltaPercent:null,sampleSize:5});
 });
+
+it('coverage deduplicates publications and excludes pending windows from completeness',async()=>{
+ const {performanceCoverage}=await import('../publication-performance');
+ const p=post();const now=new Date(date.getTime()+27*3600000);
+ const result=performanceCoverage([p,p],7,now);
+ expect(result.publications).toBe(1);
+ expect(result.windows[0]).toMatchObject({measured:1,denominator:1,completenessPercent:100});
+ expect(result.windows[1]).toMatchObject({pending:1,denominator:0,completenessPercent:null});
+});
+it('checks both inclusive window ends and the first instant outside',()=>{
+ for(const hours of [24,48]){
+   expect(checkpointHours(date,new Date(date.getTime()+hours*3600000-1))).toEqual([]);
+   expect(checkpointHours(date,new Date(date.getTime()+(hours+2)*3600000))).toEqual([hours]);
+   expect(checkpointHours(date,new Date(date.getTime()+(hours+2)*3600000+1))).toEqual([]);
+ }
+});
+it('coverage separates deletions and missed points without inventing samples',async()=>{
+ const {performanceCoverage}=await import('../publication-performance');
+ const missing={...post(2),performanceCheckpoints:[]};
+ const deleted={...missing,id:3,deletedAt:new Date()};
+ const result=performanceCoverage([post(),missing,deleted],7,new Date(date.getTime()+60*3600000));
+ expect(result.deletedPublications).toBe(1);
+ expect(result.windows[0]).toMatchObject({measured:1,missed:1,deleted:1,denominator:2,completenessPercent:50});
+ expect(result.windows[1]).toMatchObject({measured:0,missed:2,deleted:1,denominator:2,completenessPercent:0});
+});

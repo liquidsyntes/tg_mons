@@ -149,3 +149,13 @@ describe('ContentPlanBoard', () => {
     await waitFor(() => expect(onRemoveSaved).toHaveBeenCalledWith(11));
   });
 });
+it('keeps the publication picker open when saving a link fails',async()=>{
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({posts:[{id:20,text:'Целевая публикация',publishedAt:'2026-11-10T12:00:00Z'}],hasMore:false,noMyChannel:false})}));
+ try {
+  render(React.createElement(ContentPlanBoard,{posts:[makePost()],recommendations:null,onUpdatePlan:vi.fn().mockRejectedValue(new Error('Связь отклонена')),onRemoveSaved:vi.fn()}));
+  fireEvent.click(screen.getByText('Связать с публикацией'));
+  fireEvent.click(await screen.findByText(/Целевая публикация/));
+  await waitFor(()=>expect(screen.getAllByText('Связь отклонена').length).toBeGreaterThan(0));
+  expect(screen.getByLabelText('Поиск публикации')).toBeDefined();
+ }finally{vi.unstubAllGlobals();}
+});

@@ -68,7 +68,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
       problemChannels,
     };
-    return NextResponse.json(response);
+    const publicationRuns=await prisma.publicationCollectionRun.findMany({orderBy:{startedAt:'desc'},take:20});
+    return NextResponse.json({...response,publicationRuns});
   } catch (error) {
     logger.error('GET /api/ops/status error:', undefined, error);
     return NextResponse.json({ error: 'Не удалось загрузить состояние сбора' }, { status: 500 });
