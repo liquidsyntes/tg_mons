@@ -1,3 +1,4 @@
+import { loadPublicationSummary, summarizePublications } from '@/lib/metrics/publication-summary';
 import { loadPublicationResults } from '@/lib/publication-results';
 import { performanceCoverage, selectPerformanceSample, PERFORMANCE_HOURS } from '@/lib/metrics/publication-performance';
 import { NextRequest, NextResponse } from 'next/server';
@@ -128,6 +129,17 @@ async function loadContentPlanRecommendations(
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await verifyBearerToken(request);
   if (!auth.authorized) return auth.response;
+  const days = Number(request.nextUrl.searchParams.get('coverageDays') ?? 30);
+  if (![7, 30, 90].includes(days)) return NextResponse.json({error:'Некорректный период'}, {status:400});
+  if (request.nextUrl.searchParams.get('summaryOnly') === 'true') {
+    try {
+      const summary = auth.userId === null ? summarizePublications([], [], days) : await loadPublicationSummary(auth.userId, days);
+      return NextResponse.json({summary});
+    } catch (error) {
+      logger.error('GET publication summary error:', undefined, error);
+      return NextResponse.json({error:'Не удалось загрузить сводку'}, {status:500});
+    }
+  }
   if (auth.userId === null) {
     return NextResponse.json({
       savedPosts: [],
@@ -153,8 +165,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       select: SAVED_POST_SELECT,
     });
 
-    const days=Number(request.nextUrl.searchParams.get('coverageDays')??30);
-    if(![7,30,90].includes(days))return NextResponse.json({error:'Некорректный период'},{status:400});
     const now=new Date();
     const coveragePosts=await prisma.post.findMany({where:{publishedAt:{gte:new Date(now.getTime()-days*86400000),lte:now},publicationPlans:{some:{userId:auth.userId,post:{channel:{isActive:true,userChannels:{some:{userId:auth.userId,isActive:true}}}}}},channel:{isActive:true,userChannels:{some:{userId:auth.userId,isActive:true}}}},include:{performanceCheckpoints:true,snapshots:true}});
     const coverage=performanceCoverage(coveragePosts,days,now);

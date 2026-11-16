@@ -305,3 +305,20 @@ describe('/api/posts/saved', () => {
   });
 
 });
+
+it('loads summary only with access filters and without recommendations', async () => {
+  mocks.auth.mockResolvedValue({authorized:true,userId:3});
+  mocks.savedPostFindMany.mockResolvedValue([{publishedPostId:9,publicationLinkedAt:new Date()},{publishedPostId:9,publicationLinkedAt:new Date()},{publishedPostId:null,publicationLinkedAt:new Date()}]);
+  mocks.postFindMany.mockResolvedValue([]);
+  mocks.getBestTimeRecommendation.mockClear();
+  const response=await GET(new NextRequest('http://localhost:4000/api/posts/saved?summaryOnly=true&coverageDays=7'));
+  const data=await response.json();
+  expect(response.status).toBe(200);
+  expect(data.summary).toMatchObject({unavailable:1,removedLinks:1,groups:[],coverage:{publications:0}});
+  expect(mocks.postFindMany).toHaveBeenCalledWith(expect.objectContaining({where:expect.objectContaining({channel:{isActive:true,userChannels:{some:{userId:3,isActive:true}}}})}));
+  expect(mocks.getBestTimeRecommendation).not.toHaveBeenCalled();
+});
+it('rejects invalid summary periods',async()=>{
+ mocks.auth.mockResolvedValue({authorized:true,userId:3});
+ expect((await GET(new NextRequest('http://localhost:4000/api/posts/saved?summaryOnly=true&coverageDays=8'))).status).toBe(400);
+});
