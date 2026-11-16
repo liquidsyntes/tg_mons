@@ -1,0 +1,611 @@
+{
+  "firstModel": "~typesafe/jev-latest",
+  "secondModel": "google/gemini-decision-1",
+  "datasetHash": "d09d84b8949f63281944f848cfc0d1d59738c15f59dd9b516c81ae62f96b5750",
+  "firstRunHash": "270452efc36dd014e4b913bd111d83abc7d1ea9964acd3ff69803f103d3be2f0",
+  "secondRunHash": "b2e9d3931139f6d5c899eb95500d8e0fadd6a78e9a55be0e89aeea51713b7d6a",
+  "firstStageReused": true,
+  "secondStageExamples": 46,
+  "selection": {
+    "tp": 44,
+    "fp": 1,
+    "fn": 4,
+    "tn": 31,
+    "errors": 0,
+    "precision": 0.9777777777777777,
+    "recall": 0.9166666666666666,
+    "coverage": 1
+  },
+  "control": {
+    "tp": 16,
+    "fp": 0,
+    "fn": 2,
+    "tn": 12,
+    "errors": 0,
+    "precision": 1,
+    "recall": 0.8888888888888888,
+    "coverage": 1
+  },
+  "recovered": [
+    16,
+    17,
+    27,
+    37,
+    46,
+    47,
+    56,
+    66,
+    67,
+    77
+  ],
+  "missed": [
+    6,
+    7,
+    57,
+    76
+  ],
+  "additionalCostUsd": 0.0036454,
+  "totalCostUsd": 0.00546379,
+  "rows": [
+    {
+      "id": 1,
+      "category": "announcement",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 2,
+      "category": "recap",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 3,
+      "category": "digest",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 4,
+      "category": "teaser",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 5,
+      "category": "online",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 6,
+      "category": "relative",
+      "expected": true,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 7,
+      "category": "year_boundary",
+      "expected": true,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 8,
+      "category": "ambiguous",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 9,
+      "category": "duplicate",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 10,
+      "category": "different_session",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 11,
+      "category": "announcement",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 12,
+      "category": "recap",
+      "expected": false,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 13,
+      "category": "digest",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 14,
+      "category": "teaser",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 15,
+      "category": "online",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 16,
+      "category": "relative",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 17,
+      "category": "year_boundary",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 18,
+      "category": "ambiguous",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 19,
+      "category": "duplicate",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 20,
+      "category": "different_session",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 21,
+      "category": "announcement",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 22,
+      "category": "recap",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 23,
+      "category": "digest",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 24,
+      "category": "teaser",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 25,
+      "category": "online",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 26,
+      "category": "relative",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 27,
+      "category": "year_boundary",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 28,
+      "category": "ambiguous",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 29,
+      "category": "duplicate",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 30,
+      "category": "different_session",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 31,
+      "category": "announcement",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 32,
+      "category": "recap",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 33,
+      "category": "digest",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 34,
+      "category": "teaser",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 35,
+      "category": "online",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 36,
+      "category": "relative",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 37,
+      "category": "year_boundary",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 38,
+      "category": "ambiguous",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 39,
+      "category": "duplicate",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 40,
+      "category": "different_session",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 41,
+      "category": "announcement",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 42,
+      "category": "recap",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 43,
+      "category": "digest",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 44,
+      "category": "teaser",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 45,
+      "category": "online",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 46,
+      "category": "relative",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 47,
+      "category": "year_boundary",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 48,
+      "category": "ambiguous",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 49,
+      "category": "duplicate",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 50,
+      "category": "different_session",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 51,
+      "category": "announcement",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 52,
+      "category": "recap",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 53,
+      "category": "digest",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 54,
+      "category": "teaser",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 55,
+      "category": "online",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 56,
+      "category": "relative",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 57,
+      "category": "year_boundary",
+      "expected": true,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 58,
+      "category": "ambiguous",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 59,
+      "category": "duplicate",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 60,
+      "category": "different_session",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 61,
+      "category": "announcement",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 62,
+      "category": "recap",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 63,
+      "category": "digest",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 64,
+      "category": "teaser",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 65,
+      "category": "online",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 66,
+      "category": "relative",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 67,
+      "category": "year_boundary",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 68,
+      "category": "ambiguous",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 69,
+      "category": "duplicate",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 70,
+      "category": "different_session",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 71,
+      "category": "announcement",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 72,
+      "category": "recap",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 73,
+      "category": "digest",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 74,
+      "category": "teaser",
+      "expected": false,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 75,
+      "category": "online",
+      "expected": true,
+      "actual": true,
+      "fallback": false
+    },
+    {
+      "id": 76,
+      "category": "relative",
+      "expected": true,
+      "actual": false,
+      "fallback": false
+    },
+    {
+      "id": 77,
+      "category": "year_boundary",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 78,
+      "category": "ambiguous",
+      "expected": false,
+      "actual": false,
+      "fallback": true
+    },
+    {
+      "id": 79,
+      "category": "duplicate",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    },
+    {
+      "id": 80,
+      "category": "different_session",
+      "expected": true,
+      "actual": true,
+      "fallback": true
+    }
+  ]
+}

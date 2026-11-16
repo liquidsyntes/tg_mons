@@ -77,3 +77,28 @@ it('keeps calendar dates tied to the publication timezone across year boundaries
   run.extraction!.events=run.extraction!.events.map(e=>e.sourcePostIds.includes(example.id)?{...e,date:'2026-12-31'}:e);
   expect(evaluate(dataset,run).extraction?.fieldErrors).toContainEqual({id:example.id,fields:['date']});
 });
+
+it('limits cascade requests to negatives and verifies the parent run', async () => {
+  const { rejectedExamples, evaluateCascade } = await import('../evaluation');
+  const first=fixture();
+  const rejected=rejectedExamples(dataset,first);
+  expect(rejected.every(e=>!e.expected.selected)).toBe(true);
+  const second=fixture(); second.model='google/gemini-decision-1'; second.parentRunHash=hash(first);
+  expect(()=>evaluateCascade(dataset,first,second)).toThrow('non-rejected');
+  second.batches=second.batches.map(b=>({...b,ids:rejected.map(e=>e.id)}));
+  expect(evaluateCascade(dataset,first,second).selection.recall).toBe(1);
+  second.parentRunHash='wrong';
+  expect(()=>evaluateCascade(dataset,first,second)).toThrow('parent hash');
+  first.batches=[];
+  expect(()=>rejectedExamples(dataset,first)).toThrow('complete valid');
+});
+
+it('reports a missing second-stage result as unknown rather than rejection', async () => {
+  const { evaluateCascade } = await import('../evaluation');
+  const first=fixture();
+  first.batches=[{ids:dataset.examples.map(e=>e.id),response:{answers:Object.fromEntries(dataset.examples.flatMap(e=>SIGNALS.map(s=>[`${s.id}_${e.id}`,{type:'noul',noul:0}])) )}}];
+  const second=fixture();second.parentRunHash=hash(first);second.batches=[];
+  const result=evaluateCascade(dataset,first,second);
+  expect(result.selection.errors).toBeGreaterThan(0);
+  expect(result.selection.recall).toBeNull();
+});

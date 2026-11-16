@@ -11,6 +11,7 @@ export interface EvalExample {
 export interface EvalDataset { version: string; examples: EvalExample[] }
 export interface DecisionBatch { ids: number[]; response?: unknown; error?: string; durationMs?: number; usage?: unknown }
 export interface EvalRun {
+  parentRunHash?: string;
   schemaVersion: 1; datasetHash: string; model: DecisionModel; provenance: 'live' | 'synthetic';
   requestHash: string; thresholds: Record<string, number>; batches: DecisionBatch[];
   extraction?: { provenance: 'live' | 'synthetic'; events: EvalEvent[] };
@@ -111,4 +112,33 @@ export function evaluate(dataset: EvalDataset, run: EvalRun, split?: EvalExample
 export function compareReports(a: ReturnType<typeof evaluate>, b: ReturnType<typeof evaluate>) {
   requireValue(a.datasetHash === b.datasetHash && a.split === b.split, 'Cannot compare different datasets or splits');
   return {before:a.model, after:b.model, regressions:b.rows.filter(r => a.rows.find(p => p.id === r.id)?.actual === r.expected && r.actual !== r.expected).map(r => r.id), improvements:b.rows.filter(r => a.rows.find(p => p.id === r.id)?.actual !== r.expected && r.actual === r.expected).map(r => r.id), extraction: {before:a.extraction, after:b.extraction, regressionIds: b.extraction?.fieldErrors.filter(e => !a.extraction?.fieldErrors.some(p => p.id === e.id && JSON.stringify(p.fields) === JSON.stringify(e.fields))).map(e=>e.id) ?? []}};
+}
+
+/** Retry only explicit negative decisions, never missing or failed classifier responses. */
+export function rejectedExamples(dataset: EvalDataset, first: EvalRun): EvalExample[] {
+  const report = evaluate(dataset, first);
+  requireValue(report.selection.errors === 0, 'First stage must have complete valid decisions');
+  const ids = new Set(report.rows.filter(r => r.actual === false).map(r => r.id));
+  return dataset.examples.filter(e => ids.has(e.id));
+}
+
+export function evaluateCascade(dataset: EvalDataset, first: EvalRun, second: EvalRun) {
+  requireValue(second.parentRunHash === hash(first), 'Cascade parent hash mismatch');
+  const rejected = new Set(rejectedExamples(dataset, first).map(e => e.id));
+  requireValue(second.batches.every(b => b.ids.every(id => rejected.has(id))), 'Second stage contains non-rejected IDs');
+  const a = evaluate(dataset, first), b = evaluate(dataset, second);
+  const byId = new Map(b.rows.map(r => [r.id,r]));
+  const rows = a.rows.map(r => ({...r, actual: r.actual === true ? true : byId.get(r.id)?.actual ?? null}));
+  return {
+    firstModel:first.model, secondModel:second.model, datasetHash:hash(dataset),
+    firstRunHash:hash(first), secondRunHash:hash(second),
+    firstStageReused:true, secondStageExamples:second.batches.reduce((n,b)=>n+b.ids.length,0),
+    selection:metrics(rows),
+    control:metrics(rows.filter(r => dataset.examples.find(e=>e.id===r.id)?.split==='control')),
+    recovered:rows.filter(r=>r.expected && r.actual===true && a.rows.find(p=>p.id===r.id)?.actual===false).map(r=>r.id),
+    missed:rows.filter(r=>r.expected && r.actual!==true).map(r=>r.id),
+    additionalCostUsd:b.costUsd,
+    totalCostUsd:a.costUsd!==null && b.costUsd!==null ? a.costUsd+b.costUsd : null,
+    rows,
+  };
 }
