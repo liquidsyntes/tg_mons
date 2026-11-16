@@ -1,0 +1,54 @@
+{
+  "version": "synthetic-v2",
+  "datasetHash": "8898cf2f1fb87e7ed62c98976e3b1d455e1f7a1a2f528922c246b028a73004ef",
+  "fileSha256": "1631695fb40cea141cf6e3b6aafc2a21a9f8f05fc58755587142e9819880c9c3",
+  "hashNote": "fileSha256 hashes raw UTF-8 bytes; datasetHash hashes JSON.stringify(dataset)",
+  "examples": 200,
+  "families": 50,
+  "plans": [
+    {
+      "model": "~typesafe/jev-latest",
+      "order": "original",
+      "seed": "issue92-v1",
+      "requestCount": 20,
+      "requestHash": "1a780176c02467ecccf8e5a949dec3d701fc68fc261f5ea9d5db42bb3a79761a"
+    },
+    {
+      "model": "~typesafe/jev-latest",
+      "order": "within-batch",
+      "seed": "issue92-v1",
+      "requestCount": 20,
+      "requestHash": "ef124406aff6bc812117b6d46356b8ddafc41926af6506b02753337f98388f9a"
+    },
+    {
+      "model": "~typesafe/jev-latest",
+      "order": "regroup",
+      "seed": "issue92-v1",
+      "requestCount": 20,
+      "requestHash": "cc5107efac800f233d3b44c3236ce8f6fd7a5ed72810e64891503afc5b0c0238"
+    },
+    {
+      "model": "google/gemini-decision-1",
+      "order": "original",
+      "seed": "issue92-v1",
+      "requestCount": 20,
+      "requestHash": "583ad24d442408127e98675c8bc3ba5420d350267857f59d8b7360cf078b8524"
+    },
+    {
+      "model": "google/gemini-decision-1",
+      "order": "within-batch",
+      "seed": "issue92-v1",
+      "requestCount": 20,
+      "requestHash": "edd7353a5f30f1ea7acf4cc86995abed79544002d07c320e4d4ac360bd816d13"
+    },
+    {
+      "model": "google/gemini-decision-1",
+      "order": "regroup",
+      "seed": "issue92-v1",
+      "requestCount": 20,
+      "requestHash": "1d5a66dcaed3694e087a20146bae7a4541c9111f4170454e915d79e6ab305a24"
+    }
+  ],
+  "paidRuns": [],
+  "status": "awaiting thresholds and paid authorization"
+}

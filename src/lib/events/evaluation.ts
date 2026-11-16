@@ -5,7 +5,7 @@ import { isSameEvent } from './matching';
 
 export interface EvalEvent { title: string; date: string; timeStr: string | null; organizer: string | null; prices: string[]; sourcePostIds: number[] }
 export interface EvalExample {
-  id: number; category: string; split: 'calibration' | 'control'; text: string;
+  id: number; category: string; family?: string; language?: 'ru' | 'uk'; split: 'calibration' | 'control'; text: string;
   publishedAt: string; timeZone: string; expected: { selected: boolean; event: EvalEvent | null; duplicateGroup: string | null };
 }
 export interface EvalDataset { version: string; examples: EvalExample[] }
@@ -24,9 +24,19 @@ export function parseDataset(raw: unknown): EvalDataset {
   requireValue(record(raw) && typeof raw.version === 'string' && Array.isArray(raw.examples), 'Invalid dataset');
   const ids = new Set<number>();
   const groups = new Map<string, string>();
+  const families = new Map<string, string>();
+  const texts = new Set<string>();
   for (const item of raw.examples) {
     requireValue(record(item) && Number.isSafeInteger(item.id) && typeof item.text === 'string' && typeof item.category === 'string' && validDate(item.publishedAt) && typeof item.timeZone === 'string' && (item.split === 'calibration' || item.split === 'control'), 'Invalid example');
     requireValue(typeof item.id === 'number' && !ids.has(item.id), 'Duplicate example ID'); ids.add(item.id);
+    if (raw.version === 'synthetic-v2') {
+      requireValue(typeof item.family === 'string' && item.family.length > 0 && (item.language === 'ru' || item.language === 'uk'), 'Invalid v2 metadata');
+      requireValue(!families.has(item.family) || families.get(item.family) === item.split, 'Scenario family leaks across splits');
+      families.set(item.family, item.split);
+      const normalized = item.text.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+      requireValue(normalized.length > 0 && !texts.has(normalized), 'Duplicate example text');
+      texts.add(normalized);
+    }
     new Intl.DateTimeFormat('en', {timeZone: item.timeZone});
     requireValue(record(item.expected) && typeof item.expected.selected === 'boolean', 'Invalid expectation');
     requireValue(item.expected.event === null || validEvent(item.expected.event), 'Invalid expected event');
@@ -72,7 +82,7 @@ export function evaluate(dataset: EvalDataset, run: EvalRun, split?: EvalExample
     } catch { errors.push(`Invalid or failed batch: ${batch.ids.join(',')}`); }
   }
   const examples = dataset.examples.filter(e => !split || e.split === split);
-  const rows = examples.map(e => ({id: e.id, category: e.category, expected: e.expected.selected, actual: isClearlyEventDigest(e.text) ? false : answers.get(e.id) ?? null, fallback: !isClearlyEventDigest(e.text) && keywordCandidate(e.text)}));
+  const rows = examples.map(e => ({id: e.id, category: e.category, expected: e.expected.selected, modelActual: answers.get(e.id) ?? null, filtered: isClearlyEventDigest(e.text), actual: isClearlyEventDigest(e.text) ? false : answers.get(e.id) ?? null, fallback: !isClearlyEventDigest(e.text) && keywordCandidate(e.text)}));
   const extraction = run.extraction;
   const extracted = extraction?.events ?? [];
   const selectedIds = new Set(rows.filter(r => r.actual === true).map(r => r.id));
@@ -101,11 +111,13 @@ export function evaluate(dataset: EvalDataset, run: EvalRun, split?: EvalExample
   const durations = run.batches.flatMap(b => typeof b.durationMs === 'number' ? [b.durationMs] : []).sort((a,b) => a-b);
   return {
     datasetHash: run.datasetHash, model: run.model, provenance: run.provenance, split: split ?? 'all',
-    selection: metrics(rows), fallback: metrics(rows.map(r => ({expected: r.expected, actual: r.fallback}))),
+    selection: metrics(rows), modelSelection: metrics(rows.map(r => ({expected:r.expected, actual:r.modelActual}))), splits: Object.fromEntries((['calibration','control'] as const).map(part => [part,metrics(rows.filter(r => dataset.examples.find(e => e.id === r.id)?.split === part))])), fallback: metrics(rows.map(r => ({expected: r.expected, actual: r.fallback}))),
+    languages:Object.fromEntries(['ru','uk'].map(lang=>[lang,metrics(rows.filter(r=>dataset.examples.find(e=>e.id===r.id)?.language===lang))])),
     categories: Object.fromEntries([...new Set(rows.map(r => r.category))].sort().map(c => [c, metrics(rows.filter(r => r.category === c))])),
     extraction: extraction ? {provenance: extraction.provenance, fieldErrors, falseMerges, missedDuplicates, unknownSourceIds: [...new Set(extracted.flatMap(e => e.sourcePostIds).filter(id => !allIds.has(id)))], endToEnd: metrics(rows.map(r => ({expected:r.expected, actual:r.actual === null ? null : accepted.some(e => e.sourcePostIds.includes(r.id))})))} : null,
     costUsd: costs.length > 0 && costs.every((c): c is number => c !== null) ? costs.reduce((a,b) => a+b,0) : null,
-    latency: {batchCount: durations.length, medianMs: durations.length ? durations[Math.floor(durations.length / 2)] : null},
+    knownCostUsd: costs.reduce<number>((sum,c) => sum + (c ?? 0),0), unknownCostBatches: costs.filter(c => c === null).length,
+    latency: {totalMs: durations.length === run.batches.length && durations.length > 0 ? durations.reduce((a,b)=>a+b,0) : null, batchCount: durations.length, medianMs: durations.length ? durations[Math.floor(durations.length / 2)] : null},
     errors, rows,
   };
 }
@@ -117,23 +129,27 @@ export function compareReports(a: ReturnType<typeof evaluate>, b: ReturnType<typ
 /** Retry only explicit negative decisions, never missing or failed classifier responses. */
 export function rejectedExamples(dataset: EvalDataset, first: EvalRun): EvalExample[] {
   const report = evaluate(dataset, first);
-  requireValue(report.selection.errors === 0, 'First stage must have complete valid decisions');
-  const ids = new Set(report.rows.filter(r => r.actual === false).map(r => r.id));
+  requireValue(report.modelSelection.errors === 0, 'First stage must have complete valid decisions');
+  const ids = new Set(report.rows.filter(r => r.modelActual === false && !r.filtered).map(r => r.id));
   return dataset.examples.filter(e => ids.has(e.id));
 }
 
 export function evaluateCascade(dataset: EvalDataset, first: EvalRun, second: EvalRun) {
+  requireValue(first.provenance === second.provenance && hash(first.thresholds) === hash(second.thresholds), 'Cascade provenance or thresholds mismatch');
   requireValue(second.parentRunHash === hash(first), 'Cascade parent hash mismatch');
   const rejected = new Set(rejectedExamples(dataset, first).map(e => e.id));
   requireValue(second.batches.every(b => b.ids.every(id => rejected.has(id))), 'Second stage contains non-rejected IDs');
   const a = evaluate(dataset, first), b = evaluate(dataset, second);
   const byId = new Map(b.rows.map(r => [r.id,r]));
-  const rows = a.rows.map(r => ({...r, actual: r.actual === true ? true : byId.get(r.id)?.actual ?? null}));
+  const rows = a.rows.map(r => ({...r, actual: r.filtered ? false : r.actual === true ? true : byId.get(r.id)?.actual ?? null}));
   return {
     firstModel:first.model, secondModel:second.model, datasetHash:hash(dataset),
     firstRunHash:hash(first), secondRunHash:hash(second),
     firstStageReused:true, secondStageExamples:second.batches.reduce((n,b)=>n+b.ids.length,0),
     selection:metrics(rows),
+    languages:Object.fromEntries(['ru','uk'].map(lang=>[lang,metrics(rows.filter(r=>dataset.examples.find(e=>e.id===r.id)?.language===lang))])),
+    categories:Object.fromEntries([...new Set(rows.map(r=>r.category))].sort().map(c=>[c,metrics(rows.filter(r=>r.category===c))])),
+    calibration:metrics(rows.filter(r => dataset.examples.find(e=>e.id===r.id)?.split==='calibration')),
     control:metrics(rows.filter(r => dataset.examples.find(e=>e.id===r.id)?.split==='control')),
     recovered:rows.filter(r=>r.expected && r.actual===true && a.rows.find(p=>p.id===r.id)?.actual===false).map(r=>r.id),
     missed:rows.filter(r=>r.expected && r.actual!==true).map(r=>r.id),

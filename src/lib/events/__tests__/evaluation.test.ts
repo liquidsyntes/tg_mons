@@ -102,3 +102,54 @@ it('reports a missing second-stage result as unknown rather than rejection', asy
   expect(result.selection.errors).toBeGreaterThan(0);
   expect(result.selection.recall).toBeNull();
 });
+
+it('validates v2 families, exact duplicates and language metadata', async () => {
+  const { default: corpusV2 } = await import('../eval-data/dataset-v2.json');
+  const input = structuredClone(corpusV2);
+  expect(parseDataset(input).examples).toHaveLength(200);
+  input.examples[1].split = 'control';
+  expect(()=>parseDataset(input)).toThrow('family leaks');
+  input.examples[1].split = input.examples[0].split;
+  input.examples[1].text = input.examples[0].text;
+  expect(()=>parseDataset(input)).toThrow('Duplicate example text');
+});
+
+it('prepares deterministic plans without credentials or network and preserves package membership', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const dir = await mkdtemp(join(tmpdir(),'tgmon-plan-'));
+  const network = vi.spyOn(globalThis,'fetch').mockRejectedValue(new Error('Network forbidden'));
+  try {
+    const path = join(dir,'dataset.json');
+    await writeFile(path,JSON.stringify(dataset));
+    const plan = async (name:string,order:string) => {
+      const out=join(dir,name);
+      await runEvaluationCli(['plan','--dataset',path,'--out',out,'--model','~typesafe/jev-latest','--limit','80','--order',order]);
+      return JSON.parse(await readFile(out,'utf8')) as {requestHash:string;payloads:Array<{state:{posts:Array<{id:number}>}}>};
+    };
+    const original=await plan('original','original'), reversed=await plan('reversed','within-batch');
+    expect(reversed.payloads.map(p=>p.state.posts.map(e=>e.id))).toEqual(original.payloads.map(p=>p.state.posts.map(e=>e.id).reverse()));
+    expect((await plan('again','within-batch')).requestHash).toBe(reversed.requestHash);
+    const regrouped=await plan('regrouped','regroup');
+    expect(regrouped.requestHash).not.toBe(original.requestHash);
+    expect(regrouped.payloads.flatMap(p=>p.state.posts.map(e=>e.id)).sort((a,b)=>a-b)).toEqual(dataset.examples.map(e=>e.id).sort((a,b)=>a-b));
+    expect(network).not.toHaveBeenCalled();
+  } finally {network.mockRestore();await rm(dir,{recursive:true,force:true});}
+});
+
+it('does not hide missing classifier answers behind the digest prefilter', async () => {
+  const { rejectedExamples }=await import('../evaluation');
+  const input=structuredClone(dataset);
+  input.examples=[{...input.examples[0],text:'Афиша недели:\n23 ноября концерт в клубе.\n24 ноября лекция в музее.\n25 ноября спектакль в театре.'}];
+  const run=fixture();run.datasetHash=hash(input);run.batches=[];
+  expect(evaluate(input,run).modelSelection.errors).toBe(1);
+  expect(()=>rejectedExamples(input,run)).toThrow('complete valid');
+});
+
+it('keeps undefined metrics null and separates known cost from unpriced batches', () => {
+  const input={version:'empty',examples:[]};
+  const run=fixture();run.datasetHash=hash(input);run.batches=[];delete run.extraction;
+  const result=evaluate(input,run);
+  expect(result.selection).toEqual({tp:0,fp:0,fn:0,tn:0,errors:0,precision:null,recall:null,coverage:null});
+  expect(result.costUsd).toBeNull();
+  expect(result.latency.totalMs).toBeNull();
+});

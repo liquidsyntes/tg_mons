@@ -1,0 +1,3905 @@
+{
+  "version": "synthetic-v2",
+  "examples": [
+    {
+      "id": 1,
+      "category": "offline",
+      "family": "p1",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября 2026 в 19:00 в зале «Лист» собираемся слушать камерный джаз. Вход свободный.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 в зале «Лист» собираемся слушать камерный джаз. Вход свободный.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            1
+          ]
+        },
+        "duplicateGroup": "p1"
+      }
+    },
+    {
+      "id": 2,
+      "category": "offline",
+      "family": "p1",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября 2026 в 19:00 в зале «Лист» собираемся слушать камерный джаз. Вход свободный.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 в зале «Лист» собираемся слушать камерный джаз. Вход свободный.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            2
+          ]
+        },
+        "duplicateGroup": "p1"
+      }
+    },
+    {
+      "id": 3,
+      "category": "offline",
+      "family": "p1",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада 2026 о 19:00 у залі «Лист» слухаємо камерний джаз. Вхід вільний.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 у залі «Лист» слухаємо камерний джаз. Вхід вільний.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            3
+          ]
+        },
+        "duplicateGroup": "p1"
+      }
+    },
+    {
+      "id": 4,
+      "category": "offline",
+      "family": "p1",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада 2026 о 19:00 у залі «Лист» слухаємо камерний джаз. Вхід вільний.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 у залі «Лист» слухаємо камерний джаз. Вхід вільний.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            4
+          ]
+        },
+        "duplicateGroup": "p1"
+      }
+    },
+    {
+      "id": 5,
+      "category": "online",
+      "family": "p2",
+      "language": "ru",
+      "split": "calibration",
+      "text": "24 ноября 2026 в 19:00 обсудим снимки Марса в видеокомнате. Регистрация открыта.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "24 ноября 2026 в 19:00 обсудим снимки Марса в видеокомнате. Регистрация открыта.",
+          "date": "2026-11-24",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            5
+          ]
+        },
+        "duplicateGroup": "p2"
+      }
+    },
+    {
+      "id": 6,
+      "category": "online",
+      "family": "p2",
+      "language": "ru",
+      "split": "calibration",
+      "text": "24 ноября 2026 в 19:00 обсудим снимки Марса в видеокомнате. Регистрация открыта.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "24 ноября 2026 в 19:00 обсудим снимки Марса в видеокомнате. Регистрация открыта.",
+          "date": "2026-11-24",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            6
+          ]
+        },
+        "duplicateGroup": "p2"
+      }
+    },
+    {
+      "id": 7,
+      "category": "online",
+      "family": "p2",
+      "language": "uk",
+      "split": "calibration",
+      "text": "24 листопада 2026 о 19:00 обговоримо знімки Марса у відеокімнаті. Реєстрацію відкрито.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "24 листопада 2026 о 19:00 обговоримо знімки Марса у відеокімнаті. Реєстрацію відкрито.",
+          "date": "2026-11-24",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            7
+          ]
+        },
+        "duplicateGroup": "p2"
+      }
+    },
+    {
+      "id": 8,
+      "category": "online",
+      "family": "p2",
+      "language": "uk",
+      "split": "calibration",
+      "text": "24 листопада 2026 о 19:00 обговоримо знімки Марса у відеокімнаті. Реєстрацію відкрито.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "24 листопада 2026 о 19:00 обговоримо знімки Марса у відеокімнаті. Реєстрацію відкрито.",
+          "date": "2026-11-24",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            8
+          ]
+        },
+        "duplicateGroup": "p2"
+      }
+    },
+    {
+      "id": 9,
+      "category": "relative",
+      "family": "p3",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Завтра в 19:00 приходите на обмен растениями в павильон «Мох».",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Завтра в 19:00 приходите на обмен растениями в павильон «Мох».",
+          "date": "2026-11-17",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            9
+          ]
+        },
+        "duplicateGroup": "p3"
+      }
+    },
+    {
+      "id": 10,
+      "category": "relative",
+      "family": "p3",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Завтра в 19:00 приходите на обмен растениями в павильон «Мох».\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Завтра в 19:00 приходите на обмен растениями в павильон «Мох».",
+          "date": "2026-11-17",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            10
+          ]
+        },
+        "duplicateGroup": "p3"
+      }
+    },
+    {
+      "id": 11,
+      "category": "relative",
+      "family": "p3",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Завтра о 19:00 приходьте на обмін рослинами до павільйону «Мох».",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Завтра о 19:00 приходьте на обмін рослинами до павільйону «Мох».",
+          "date": "2026-11-17",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            11
+          ]
+        },
+        "duplicateGroup": "p3"
+      }
+    },
+    {
+      "id": 12,
+      "category": "relative",
+      "family": "p3",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Завтра о 19:00 приходьте на обмін рослинами до павільйону «Мох».\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Завтра о 19:00 приходьте на обмін рослинами до павільйону «Мох».",
+          "date": "2026-11-17",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            12
+          ]
+        },
+        "duplicateGroup": "p3"
+      }
+    },
+    {
+      "id": 13,
+      "category": "rescheduled",
+      "family": "p4",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Встречу клуба переводчиков перенесли на 23 ноября 2026, 19:00. Ждём в библиотеке.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Встречу клуба переводчиков перенесли на 23 ноября 2026, 19:00. Ждём в библиотеке.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            13
+          ]
+        },
+        "duplicateGroup": "p4"
+      }
+    },
+    {
+      "id": 14,
+      "category": "rescheduled",
+      "family": "p4",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Встречу клуба переводчиков перенесли на 23 ноября 2026, 19:00. Ждём в библиотеке.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Встречу клуба переводчиков перенесли на 23 ноября 2026, 19:00. Ждём в библиотеке.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            14
+          ]
+        },
+        "duplicateGroup": "p4"
+      }
+    },
+    {
+      "id": 15,
+      "category": "rescheduled",
+      "family": "p4",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Зустріч клубу перекладачів перенесено на 23 листопада 2026, 19:00. Чекаємо в бібліотеці.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Зустріч клубу перекладачів перенесено на 23 листопада 2026, 19:00. Чекаємо в бібліотеці.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            15
+          ]
+        },
+        "duplicateGroup": "p4"
+      }
+    },
+    {
+      "id": 16,
+      "category": "rescheduled",
+      "family": "p4",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Зустріч клубу перекладачів перенесено на 23 листопада 2026, 19:00. Чекаємо в бібліотеці.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Зустріч клубу перекладачів перенесено на 23 листопада 2026, 19:00. Чекаємо в бібліотеці.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            16
+          ]
+        },
+        "duplicateGroup": "p4"
+      }
+    },
+    {
+      "id": 17,
+      "category": "festival",
+      "family": "p5",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября 2026 в 19:00 открываем фестиваль теневого театра: один билет на спектакли и беседу.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 открываем фестиваль теневого театра: один билет на спектакли и беседу.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            17
+          ]
+        },
+        "duplicateGroup": "p5"
+      }
+    },
+    {
+      "id": 18,
+      "category": "festival",
+      "family": "p5",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября 2026 в 19:00 открываем фестиваль теневого театра: один билет на спектакли и беседу.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 открываем фестиваль теневого театра: один билет на спектакли и беседу.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            18
+          ]
+        },
+        "duplicateGroup": "p5"
+      }
+    },
+    {
+      "id": 19,
+      "category": "festival",
+      "family": "p5",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада 2026 о 19:00 відкриваємо фестиваль театру тіней: один квиток на вистави та бесіду.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 відкриваємо фестиваль театру тіней: один квиток на вистави та бесіду.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            19
+          ]
+        },
+        "duplicateGroup": "p5"
+      }
+    },
+    {
+      "id": 20,
+      "category": "festival",
+      "family": "p5",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада 2026 о 19:00 відкриваємо фестиваль театру тіней: один квиток на вистави та бесіду.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 відкриваємо фестиваль театру тіней: один квиток на вистави та бесіду.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            20
+          ]
+        },
+        "duplicateGroup": "p5"
+      }
+    },
+    {
+      "id": 21,
+      "category": "workshop",
+      "family": "p6",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Запишитесь на ремонт настольных ламп: 23 ноября 2026 в 19:00, мастерская «Луч».",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Запишитесь на ремонт настольных ламп: 23 ноября 2026 в 19:00, мастерская «Луч».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            21
+          ]
+        },
+        "duplicateGroup": "p6"
+      }
+    },
+    {
+      "id": 22,
+      "category": "workshop",
+      "family": "p6",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Запишитесь на ремонт настольных ламп: 23 ноября 2026 в 19:00, мастерская «Луч».\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Запишитесь на ремонт настольных ламп: 23 ноября 2026 в 19:00, мастерская «Луч».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            22
+          ]
+        },
+        "duplicateGroup": "p6"
+      }
+    },
+    {
+      "id": 23,
+      "category": "workshop",
+      "family": "p6",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Запишіться на ремонт настільних ламп: 23 листопада 2026 о 19:00, майстерня «Промінь».",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Запишіться на ремонт настільних ламп: 23 листопада 2026 о 19:00, майстерня «Промінь».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            23
+          ]
+        },
+        "duplicateGroup": "p6"
+      }
+    },
+    {
+      "id": 24,
+      "category": "workshop",
+      "family": "p6",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Запишіться на ремонт настільних ламп: 23 листопада 2026 о 19:00, майстерня «Промінь».\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Запишіться на ремонт настільних ламп: 23 листопада 2026 о 19:00, майстерня «Промінь».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            24
+          ]
+        },
+        "duplicateGroup": "p6"
+      }
+    },
+    {
+      "id": 25,
+      "category": "free",
+      "family": "p7",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Прогулка с геологом состоится 23 ноября 2026 в 19:00. Сбор у учебного карьера, бесплатно.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Прогулка с геологом состоится 23 ноября 2026 в 19:00. Сбор у учебного карьера, бесплатно.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            25
+          ]
+        },
+        "duplicateGroup": "p7"
+      }
+    },
+    {
+      "id": 26,
+      "category": "free",
+      "family": "p7",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Прогулка с геологом состоится 23 ноября 2026 в 19:00. Сбор у учебного карьера, бесплатно.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Прогулка с геологом состоится 23 ноября 2026 в 19:00. Сбор у учебного карьера, бесплатно.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            26
+          ]
+        },
+        "duplicateGroup": "p7"
+      }
+    },
+    {
+      "id": 27,
+      "category": "free",
+      "family": "p7",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Прогулянка з геологом відбудеться 23 листопада 2026 о 19:00. Збір біля навчального кар’єру, безкоштовно.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Прогулянка з геологом відбудеться 23 листопада 2026 о 19:00. Збір біля навчального кар’єру, безкоштовно.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            27
+          ]
+        },
+        "duplicateGroup": "p7"
+      }
+    },
+    {
+      "id": 28,
+      "category": "free",
+      "family": "p7",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Прогулянка з геологом відбудеться 23 листопада 2026 о 19:00. Збір біля навчального кар’єру, безкоштовно.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Прогулянка з геологом відбудеться 23 листопада 2026 о 19:00. Збір біля навчального кар’єру, безкоштовно.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            28
+          ]
+        },
+        "duplicateGroup": "p7"
+      }
+    },
+    {
+      "id": 29,
+      "category": "registration",
+      "family": "p8",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Мест осталось пять: 23 ноября 2026 в 19:00 играем в шахматы в клубе «Ферзь». Запись на стойке.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Мест осталось пять: 23 ноября 2026 в 19:00 играем в шахматы в клубе «Ферзь». Запись на стойке.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            29
+          ]
+        },
+        "duplicateGroup": "p8"
+      }
+    },
+    {
+      "id": 30,
+      "category": "registration",
+      "family": "p8",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Мест осталось пять: 23 ноября 2026 в 19:00 играем в шахматы в клубе «Ферзь». Запись на стойке.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Мест осталось пять: 23 ноября 2026 в 19:00 играем в шахматы в клубе «Ферзь». Запись на стойке.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            30
+          ]
+        },
+        "duplicateGroup": "p8"
+      }
+    },
+    {
+      "id": 31,
+      "category": "registration",
+      "family": "p8",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Місць залишилося п’ять: 23 листопада 2026 о 19:00 граємо в шахи у клубі «Ферзь». Запис біля стійки.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Місць залишилося п’ять: 23 листопада 2026 о 19:00 граємо в шахи у клубі «Ферзь». Запис біля стійки.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            31
+          ]
+        },
+        "duplicateGroup": "p8"
+      }
+    },
+    {
+      "id": 32,
+      "category": "registration",
+      "family": "p8",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Місць залишилося п’ять: 23 листопада 2026 о 19:00 граємо в шахи у клубі «Ферзь». Запис біля стійки.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Місць залишилося п’ять: 23 листопада 2026 о 19:00 граємо в шахи у клубі «Ферзь». Запис біля стійки.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            32
+          ]
+        },
+        "duplicateGroup": "p8"
+      }
+    },
+    {
+      "id": 33,
+      "category": "online",
+      "family": "p9",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября 2026 в 19:00 подключайтесь к разбору открытых карт. Площадка: учебная видеокомната.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 подключайтесь к разбору открытых карт. Площадка: учебная видеокомната.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            33
+          ]
+        },
+        "duplicateGroup": "p9"
+      }
+    },
+    {
+      "id": 34,
+      "category": "online",
+      "family": "p9",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября 2026 в 19:00 подключайтесь к разбору открытых карт. Площадка: учебная видеокомната.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 подключайтесь к разбору открытых карт. Площадка: учебная видеокомната.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            34
+          ]
+        },
+        "duplicateGroup": "p9"
+      }
+    },
+    {
+      "id": 35,
+      "category": "online",
+      "family": "p9",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада 2026 о 19:00 долучайтеся до розбору відкритих мап. Майданчик: навчальна відеокімната.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 долучайтеся до розбору відкритих мап. Майданчик: навчальна відеокімната.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            35
+          ]
+        },
+        "duplicateGroup": "p9"
+      }
+    },
+    {
+      "id": 36,
+      "category": "online",
+      "family": "p9",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада 2026 о 19:00 долучайтеся до розбору відкритих мап. Майданчик: навчальна відеокімната.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 долучайтеся до розбору відкритих мап. Майданчик: навчальна відеокімната.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            36
+          ]
+        },
+        "duplicateGroup": "p9"
+      }
+    },
+    {
+      "id": 37,
+      "category": "relative",
+      "family": "p10",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Послезавтра в 19:00 лепим глиняные свистульки в студии «Берег». Приходите с фартуком.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Послезавтра в 19:00 лепим глиняные свистульки в студии «Берег». Приходите с фартуком.",
+          "date": "2026-11-18",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            37
+          ]
+        },
+        "duplicateGroup": "p10"
+      }
+    },
+    {
+      "id": 38,
+      "category": "relative",
+      "family": "p10",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Послезавтра в 19:00 лепим глиняные свистульки в студии «Берег». Приходите с фартуком.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Послезавтра в 19:00 лепим глиняные свистульки в студии «Берег». Приходите с фартуком.",
+          "date": "2026-11-18",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            38
+          ]
+        },
+        "duplicateGroup": "p10"
+      }
+    },
+    {
+      "id": 39,
+      "category": "relative",
+      "family": "p10",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Післязавтра о 19:00 ліпимо глиняні свищики у студії «Берег». Приходьте з фартухом.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Післязавтра о 19:00 ліпимо глиняні свищики у студії «Берег». Приходьте з фартухом.",
+          "date": "2026-11-18",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            39
+          ]
+        },
+        "duplicateGroup": "p10"
+      }
+    },
+    {
+      "id": 40,
+      "category": "relative",
+      "family": "p10",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Післязавтра о 19:00 ліпимо глиняні свищики у студії «Берег». Приходьте з фартухом.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Післязавтра о 19:00 ліпимо глиняні свищики у студії «Берег». Приходьте з фартухом.",
+          "date": "2026-11-18",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            40
+          ]
+        },
+        "duplicateGroup": "p10"
+      }
+    },
+    {
+      "id": 41,
+      "category": "offline",
+      "family": "p11",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября 2026 в 19:00 на сцене «Нить» читаем пьесу по ролям. Зрители тоже участвуют.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 на сцене «Нить» читаем пьесу по ролям. Зрители тоже участвуют.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            41
+          ]
+        },
+        "duplicateGroup": "p11"
+      }
+    },
+    {
+      "id": 42,
+      "category": "offline",
+      "family": "p11",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября 2026 в 19:00 на сцене «Нить» читаем пьесу по ролям. Зрители тоже участвуют.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 на сцене «Нить» читаем пьесу по ролям. Зрители тоже участвуют.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            42
+          ]
+        },
+        "duplicateGroup": "p11"
+      }
+    },
+    {
+      "id": 43,
+      "category": "offline",
+      "family": "p11",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада 2026 о 19:00 на сцені «Нитка» читаємо п’єсу за ролями. Глядачі теж беруть участь.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 на сцені «Нитка» читаємо п’єсу за ролями. Глядачі теж беруть участь.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            43
+          ]
+        },
+        "duplicateGroup": "p11"
+      }
+    },
+    {
+      "id": 44,
+      "category": "offline",
+      "family": "p11",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада 2026 о 19:00 на сцені «Нитка» читаємо п’єсу за ролями. Глядачі теж беруть участь.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 на сцені «Нитка» читаємо п’єсу за ролями. Глядачі теж беруть участь.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            44
+          ]
+        },
+        "duplicateGroup": "p11"
+      }
+    },
+    {
+      "id": 45,
+      "category": "reminder",
+      "family": "p12",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Напоминаем участникам: дегустация травяного чая 23 ноября 2026 в 19:00 в чайной лаборатории.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Напоминаем участникам: дегустация травяного чая 23 ноября 2026 в 19:00 в чайной лаборатории.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            45
+          ]
+        },
+        "duplicateGroup": "p12"
+      }
+    },
+    {
+      "id": 46,
+      "category": "reminder",
+      "family": "p12",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Напоминаем участникам: дегустация травяного чая 23 ноября 2026 в 19:00 в чайной лаборатории.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Напоминаем участникам: дегустация травяного чая 23 ноября 2026 в 19:00 в чайной лаборатории.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            46
+          ]
+        },
+        "duplicateGroup": "p12"
+      }
+    },
+    {
+      "id": 47,
+      "category": "reminder",
+      "family": "p12",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Нагадуємо учасникам: дегустація трав’яного чаю 23 листопада 2026 о 19:00 у чайній лабораторії.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Нагадуємо учасникам: дегустація трав’яного чаю 23 листопада 2026 о 19:00 у чайній лабораторії.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            47
+          ]
+        },
+        "duplicateGroup": "p12"
+      }
+    },
+    {
+      "id": 48,
+      "category": "reminder",
+      "family": "p12",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Нагадуємо учасникам: дегустація трав’яного чаю 23 листопада 2026 о 19:00 у чайній лабораторії.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Нагадуємо учасникам: дегустація трав’яного чаю 23 листопада 2026 о 19:00 у чайній лабораторії.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            48
+          ]
+        },
+        "duplicateGroup": "p12"
+      }
+    },
+    {
+      "id": 49,
+      "category": "relative",
+      "family": "p13",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Сегодня в 19:00 открытая репетиция хора в доме культуры. Можно прийти без записи.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Сегодня в 19:00 открытая репетиция хора в доме культуры. Можно прийти без записи.",
+          "date": "2026-11-16",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            49
+          ]
+        },
+        "duplicateGroup": "p13"
+      }
+    },
+    {
+      "id": 50,
+      "category": "relative",
+      "family": "p13",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Сегодня в 19:00 открытая репетиция хора в доме культуры. Можно прийти без записи.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Сегодня в 19:00 открытая репетиция хора в доме культуры. Можно прийти без записи.",
+          "date": "2026-11-16",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            50
+          ]
+        },
+        "duplicateGroup": "p13"
+      }
+    },
+    {
+      "id": 51,
+      "category": "relative",
+      "family": "p13",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Сьогодні о 19:00 відкрита репетиція хору в будинку культури. Можна прийти без запису.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Сьогодні о 19:00 відкрита репетиція хору в будинку культури. Можна прийти без запису.",
+          "date": "2026-11-16",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            51
+          ]
+        },
+        "duplicateGroup": "p13"
+      }
+    },
+    {
+      "id": 52,
+      "category": "relative",
+      "family": "p13",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Сьогодні о 19:00 відкрита репетиція хору в будинку культури. Можна прийти без запису.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Сьогодні о 19:00 відкрита репетиція хору в будинку культури. Можна прийти без запису.",
+          "date": "2026-11-16",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            52
+          ]
+        },
+        "duplicateGroup": "p13"
+      }
+    },
+    {
+      "id": 53,
+      "category": "offline",
+      "family": "p14",
+      "language": "ru",
+      "split": "control",
+      "text": "Тихий час для читателей: 23 ноября 2026 в 19:00 библиотечный чердак открыт для совместного чтения.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тихий час для читателей: 23 ноября 2026 в 19:00 библиотечный чердак открыт для совместного чтения.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            53
+          ]
+        },
+        "duplicateGroup": "p14"
+      }
+    },
+    {
+      "id": 54,
+      "category": "offline",
+      "family": "p14",
+      "language": "ru",
+      "split": "control",
+      "text": "Тихий час для читателей: 23 ноября 2026 в 19:00 библиотечный чердак открыт для совместного чтения.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тихий час для читателей: 23 ноября 2026 в 19:00 библиотечный чердак открыт для совместного чтения.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            54
+          ]
+        },
+        "duplicateGroup": "p14"
+      }
+    },
+    {
+      "id": 55,
+      "category": "offline",
+      "family": "p14",
+      "language": "uk",
+      "split": "control",
+      "text": "Тиха година для читачів: 23 листопада 2026 о 19:00 бібліотечне горище відкрите для спільного читання.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тиха година для читачів: 23 листопада 2026 о 19:00 бібліотечне горище відкрите для спільного читання.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            55
+          ]
+        },
+        "duplicateGroup": "p14"
+      }
+    },
+    {
+      "id": 56,
+      "category": "offline",
+      "family": "p14",
+      "language": "uk",
+      "split": "control",
+      "text": "Тиха година для читачів: 23 листопада 2026 о 19:00 бібліотечне горище відкрите для спільного читання.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Тиха година для читачів: 23 листопада 2026 о 19:00 бібліотечне горище відкрите для спільного читання.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            56
+          ]
+        },
+        "duplicateGroup": "p14"
+      }
+    },
+    {
+      "id": 57,
+      "category": "online",
+      "family": "p15",
+      "language": "ru",
+      "split": "control",
+      "text": "Разбираем ошибки субтитров вместе 23 ноября 2026 в 19:00. Подключение через учебный портал.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Разбираем ошибки субтитров вместе 23 ноября 2026 в 19:00. Подключение через учебный портал.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            57
+          ]
+        },
+        "duplicateGroup": "p15"
+      }
+    },
+    {
+      "id": 58,
+      "category": "online",
+      "family": "p15",
+      "language": "ru",
+      "split": "control",
+      "text": "Разбираем ошибки субтитров вместе 23 ноября 2026 в 19:00. Подключение через учебный портал.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Разбираем ошибки субтитров вместе 23 ноября 2026 в 19:00. Подключение через учебный портал.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            58
+          ]
+        },
+        "duplicateGroup": "p15"
+      }
+    },
+    {
+      "id": 59,
+      "category": "online",
+      "family": "p15",
+      "language": "uk",
+      "split": "control",
+      "text": "Розбираємо помилки субтитрів разом 23 листопада 2026 о 19:00. Підключення через навчальний портал.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Розбираємо помилки субтитрів разом 23 листопада 2026 о 19:00. Підключення через навчальний портал.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            59
+          ]
+        },
+        "duplicateGroup": "p15"
+      }
+    },
+    {
+      "id": 60,
+      "category": "online",
+      "family": "p15",
+      "language": "uk",
+      "split": "control",
+      "text": "Розбираємо помилки субтитрів разом 23 листопада 2026 о 19:00. Підключення через навчальний портал.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Розбираємо помилки субтитрів разом 23 листопада 2026 о 19:00. Підключення через навчальний портал.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            60
+          ]
+        },
+        "duplicateGroup": "p15"
+      }
+    },
+    {
+      "id": 61,
+      "category": "rescheduled",
+      "family": "p16",
+      "language": "ru",
+      "split": "control",
+      "text": "Из-за ремонта кинопоказ переезжает в зал «Кадр». Новая дата 23 ноября 2026, начало в 19:00. Приходите.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Из-за ремонта кинопоказ переезжает в зал «Кадр». Новая дата 23 ноября 2026, начало в 19:00. Приходите.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            61
+          ]
+        },
+        "duplicateGroup": "p16"
+      }
+    },
+    {
+      "id": 62,
+      "category": "rescheduled",
+      "family": "p16",
+      "language": "ru",
+      "split": "control",
+      "text": "Из-за ремонта кинопоказ переезжает в зал «Кадр». Новая дата 23 ноября 2026, начало в 19:00. Приходите.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Из-за ремонта кинопоказ переезжает в зал «Кадр». Новая дата 23 ноября 2026, начало в 19:00. Приходите.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            62
+          ]
+        },
+        "duplicateGroup": "p16"
+      }
+    },
+    {
+      "id": 63,
+      "category": "rescheduled",
+      "family": "p16",
+      "language": "uk",
+      "split": "control",
+      "text": "Через ремонт кінопоказ переїжджає до зали «Кадр». Нова дата 23 листопада 2026, початок о 19:00. Приходьте.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Через ремонт кінопоказ переїжджає до зали «Кадр». Нова дата 23 листопада 2026, початок о 19:00. Приходьте.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            63
+          ]
+        },
+        "duplicateGroup": "p16"
+      }
+    },
+    {
+      "id": 64,
+      "category": "rescheduled",
+      "family": "p16",
+      "language": "uk",
+      "split": "control",
+      "text": "Через ремонт кінопоказ переїжджає до зали «Кадр». Нова дата 23 листопада 2026, початок о 19:00. Приходьте.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Через ремонт кінопоказ переїжджає до зали «Кадр». Нова дата 23 листопада 2026, початок о 19:00. Приходьте.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            64
+          ]
+        },
+        "duplicateGroup": "p16"
+      }
+    },
+    {
+      "id": 65,
+      "category": "workshop",
+      "family": "p17",
+      "language": "ru",
+      "split": "control",
+      "text": "23 ноября 2026 в 19:00 собираем бумажные мосты в инженерной гостиной. Участие по записи.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 собираем бумажные мосты в инженерной гостиной. Участие по записи.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            65
+          ]
+        },
+        "duplicateGroup": "p17"
+      }
+    },
+    {
+      "id": 66,
+      "category": "workshop",
+      "family": "p17",
+      "language": "ru",
+      "split": "control",
+      "text": "23 ноября 2026 в 19:00 собираем бумажные мосты в инженерной гостиной. Участие по записи.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 собираем бумажные мосты в инженерной гостиной. Участие по записи.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            66
+          ]
+        },
+        "duplicateGroup": "p17"
+      }
+    },
+    {
+      "id": 67,
+      "category": "workshop",
+      "family": "p17",
+      "language": "uk",
+      "split": "control",
+      "text": "23 листопада 2026 о 19:00 збираємо паперові мости в інженерній вітальні. Участь за записом.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 збираємо паперові мости в інженерній вітальні. Участь за записом.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            67
+          ]
+        },
+        "duplicateGroup": "p17"
+      }
+    },
+    {
+      "id": 68,
+      "category": "workshop",
+      "family": "p17",
+      "language": "uk",
+      "split": "control",
+      "text": "23 листопада 2026 о 19:00 збираємо паперові мости в інженерній вітальні. Участь за записом.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 збираємо паперові мости в інженерній вітальні. Участь за записом.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            68
+          ]
+        },
+        "duplicateGroup": "p17"
+      }
+    },
+    {
+      "id": 69,
+      "category": "festival",
+      "family": "p18",
+      "language": "ru",
+      "split": "control",
+      "text": "Один вечер звуковых опытов: 23 ноября 2026 в 19:00 в зале акустики. В программе три выступления, общий вход.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Один вечер звуковых опытов: 23 ноября 2026 в 19:00 в зале акустики. В программе три выступления, общий вход.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            69
+          ]
+        },
+        "duplicateGroup": "p18"
+      }
+    },
+    {
+      "id": 70,
+      "category": "festival",
+      "family": "p18",
+      "language": "ru",
+      "split": "control",
+      "text": "Один вечер звуковых опытов: 23 ноября 2026 в 19:00 в зале акустики. В программе три выступления, общий вход.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Один вечер звуковых опытов: 23 ноября 2026 в 19:00 в зале акустики. В программе три выступления, общий вход.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            70
+          ]
+        },
+        "duplicateGroup": "p18"
+      }
+    },
+    {
+      "id": 71,
+      "category": "festival",
+      "family": "p18",
+      "language": "uk",
+      "split": "control",
+      "text": "Один вечір звукових дослідів: 23 листопада 2026 о 19:00 у залі акустики. У програмі три виступи, спільний вхід.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Один вечір звукових дослідів: 23 листопада 2026 о 19:00 у залі акустики. У програмі три виступи, спільний вхід.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            71
+          ]
+        },
+        "duplicateGroup": "p18"
+      }
+    },
+    {
+      "id": 72,
+      "category": "festival",
+      "family": "p18",
+      "language": "uk",
+      "split": "control",
+      "text": "Один вечір звукових дослідів: 23 листопада 2026 о 19:00 у залі акустики. У програмі три виступи, спільний вхід.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Один вечір звукових дослідів: 23 листопада 2026 о 19:00 у залі акустики. У програмі три виступи, спільний вхід.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            72
+          ]
+        },
+        "duplicateGroup": "p18"
+      }
+    },
+    {
+      "id": 73,
+      "category": "free",
+      "family": "p19",
+      "language": "ru",
+      "split": "control",
+      "text": "23 ноября 2026 в 19:00 учимся описывать картины словами. Встреча в галерее «Контур», плата не нужна.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 учимся описывать картины словами. Встреча в галерее «Контур», плата не нужна.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            73
+          ]
+        },
+        "duplicateGroup": "p19"
+      }
+    },
+    {
+      "id": 74,
+      "category": "free",
+      "family": "p19",
+      "language": "ru",
+      "split": "control",
+      "text": "23 ноября 2026 в 19:00 учимся описывать картины словами. Встреча в галерее «Контур», плата не нужна.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 ноября 2026 в 19:00 учимся описывать картины словами. Встреча в галерее «Контур», плата не нужна.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            74
+          ]
+        },
+        "duplicateGroup": "p19"
+      }
+    },
+    {
+      "id": 75,
+      "category": "free",
+      "family": "p19",
+      "language": "uk",
+      "split": "control",
+      "text": "23 листопада 2026 о 19:00 вчимося описувати картини словами. Зустріч у галереї «Контур», оплата не потрібна.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 вчимося описувати картини словами. Зустріч у галереї «Контур», оплата не потрібна.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            75
+          ]
+        },
+        "duplicateGroup": "p19"
+      }
+    },
+    {
+      "id": 76,
+      "category": "free",
+      "family": "p19",
+      "language": "uk",
+      "split": "control",
+      "text": "23 листопада 2026 о 19:00 вчимося описувати картини словами. Зустріч у галереї «Контур», оплата не потрібна.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "23 листопада 2026 о 19:00 вчимося описувати картини словами. Зустріч у галереї «Контур», оплата не потрібна.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            76
+          ]
+        },
+        "duplicateGroup": "p19"
+      }
+    },
+    {
+      "id": 77,
+      "category": "registration",
+      "family": "p20",
+      "language": "ru",
+      "split": "control",
+      "text": "Приём заявок на литературный квиз заканчивается вечером. Игра 23 ноября 2026 в 19:00 в читальном зале.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Приём заявок на литературный квиз заканчивается вечером. Игра 23 ноября 2026 в 19:00 в читальном зале.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            77
+          ]
+        },
+        "duplicateGroup": "p20"
+      }
+    },
+    {
+      "id": 78,
+      "category": "registration",
+      "family": "p20",
+      "language": "ru",
+      "split": "control",
+      "text": "Приём заявок на литературный квиз заканчивается вечером. Игра 23 ноября 2026 в 19:00 в читальном зале.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Приём заявок на литературный квиз заканчивается вечером. Игра 23 ноября 2026 в 19:00 в читальном зале.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            78
+          ]
+        },
+        "duplicateGroup": "p20"
+      }
+    },
+    {
+      "id": 79,
+      "category": "registration",
+      "family": "p20",
+      "language": "uk",
+      "split": "control",
+      "text": "Прийом заявок на літературний квіз завершується ввечері. Гра 23 листопада 2026 о 19:00 у читальній залі.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Прийом заявок на літературний квіз завершується ввечері. Гра 23 листопада 2026 о 19:00 у читальній залі.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            79
+          ]
+        },
+        "duplicateGroup": "p20"
+      }
+    },
+    {
+      "id": 80,
+      "category": "registration",
+      "family": "p20",
+      "language": "uk",
+      "split": "control",
+      "text": "Прийом заявок на літературний квіз завершується ввечері. Гра 23 листопада 2026 о 19:00 у читальній залі.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Прийом заявок на літературний квіз завершується ввечері. Гра 23 листопада 2026 о 19:00 у читальній залі.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            80
+          ]
+        },
+        "duplicateGroup": "p20"
+      }
+    },
+    {
+      "id": 81,
+      "category": "offline",
+      "family": "p21",
+      "language": "ru",
+      "split": "control",
+      "text": "Нужны слушатели для премьеры радиоспектакля. 23 ноября 2026 в 19:00 приходите в студию «Эхо».",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Нужны слушатели для премьеры радиоспектакля. 23 ноября 2026 в 19:00 приходите в студию «Эхо».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            81
+          ]
+        },
+        "duplicateGroup": "p21"
+      }
+    },
+    {
+      "id": 82,
+      "category": "offline",
+      "family": "p21",
+      "language": "ru",
+      "split": "control",
+      "text": "Нужны слушатели для премьеры радиоспектакля. 23 ноября 2026 в 19:00 приходите в студию «Эхо».\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Нужны слушатели для премьеры радиоспектакля. 23 ноября 2026 в 19:00 приходите в студию «Эхо».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            82
+          ]
+        },
+        "duplicateGroup": "p21"
+      }
+    },
+    {
+      "id": 83,
+      "category": "offline",
+      "family": "p21",
+      "language": "uk",
+      "split": "control",
+      "text": "Потрібні слухачі для прем’єри радіовистави. 23 листопада 2026 о 19:00 приходьте до студії «Відлуння».",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Потрібні слухачі для прем’єри радіовистави. 23 листопада 2026 о 19:00 приходьте до студії «Відлуння».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            83
+          ]
+        },
+        "duplicateGroup": "p21"
+      }
+    },
+    {
+      "id": 84,
+      "category": "offline",
+      "family": "p21",
+      "language": "uk",
+      "split": "control",
+      "text": "Потрібні слухачі для прем’єри радіовистави. 23 листопада 2026 о 19:00 приходьте до студії «Відлуння».\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Потрібні слухачі для прем’єри радіовистави. 23 листопада 2026 о 19:00 приходьте до студії «Відлуння».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            84
+          ]
+        },
+        "duplicateGroup": "p21"
+      }
+    },
+    {
+      "id": 85,
+      "category": "online",
+      "family": "p22",
+      "language": "ru",
+      "split": "control",
+      "text": "Круглый стол о доступных шрифтах пройдёт 23 ноября 2026 в 19:00 в браузерной комнате. Присоединяйтесь.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Круглый стол о доступных шрифтах пройдёт 23 ноября 2026 в 19:00 в браузерной комнате. Присоединяйтесь.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            85
+          ]
+        },
+        "duplicateGroup": "p22"
+      }
+    },
+    {
+      "id": 86,
+      "category": "online",
+      "family": "p22",
+      "language": "ru",
+      "split": "control",
+      "text": "Круглый стол о доступных шрифтах пройдёт 23 ноября 2026 в 19:00 в браузерной комнате. Присоединяйтесь.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Круглый стол о доступных шрифтах пройдёт 23 ноября 2026 в 19:00 в браузерной комнате. Присоединяйтесь.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            86
+          ]
+        },
+        "duplicateGroup": "p22"
+      }
+    },
+    {
+      "id": 87,
+      "category": "online",
+      "family": "p22",
+      "language": "uk",
+      "split": "control",
+      "text": "Круглий стіл про доступні шрифти пройде 23 листопада 2026 о 19:00 у браузерній кімнаті. Долучайтеся.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Круглий стіл про доступні шрифти пройде 23 листопада 2026 о 19:00 у браузерній кімнаті. Долучайтеся.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            87
+          ]
+        },
+        "duplicateGroup": "p22"
+      }
+    },
+    {
+      "id": 88,
+      "category": "online",
+      "family": "p22",
+      "language": "uk",
+      "split": "control",
+      "text": "Круглий стіл про доступні шрифти пройде 23 листопада 2026 о 19:00 у браузерній кімнаті. Долучайтеся.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Круглий стіл про доступні шрифти пройде 23 листопада 2026 о 19:00 у браузерній кімнаті. Долучайтеся.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            88
+          ]
+        },
+        "duplicateGroup": "p22"
+      }
+    },
+    {
+      "id": 89,
+      "category": "reminder",
+      "family": "p23",
+      "language": "ru",
+      "split": "control",
+      "text": "Ваше приглашение на вечер настольных головоломок: 23 ноября 2026, 19:00, клуб «Узел».",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Ваше приглашение на вечер настольных головоломок: 23 ноября 2026, 19:00, клуб «Узел».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            89
+          ]
+        },
+        "duplicateGroup": "p23"
+      }
+    },
+    {
+      "id": 90,
+      "category": "reminder",
+      "family": "p23",
+      "language": "ru",
+      "split": "control",
+      "text": "Ваше приглашение на вечер настольных головоломок: 23 ноября 2026, 19:00, клуб «Узел».\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Ваше приглашение на вечер настольных головоломок: 23 ноября 2026, 19:00, клуб «Узел».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            90
+          ]
+        },
+        "duplicateGroup": "p23"
+      }
+    },
+    {
+      "id": 91,
+      "category": "reminder",
+      "family": "p23",
+      "language": "uk",
+      "split": "control",
+      "text": "Ваше запрошення на вечір настільних головоломок: 23 листопада 2026, 19:00, клуб «Вузол».",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Ваше запрошення на вечір настільних головоломок: 23 листопада 2026, 19:00, клуб «Вузол».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            91
+          ]
+        },
+        "duplicateGroup": "p23"
+      }
+    },
+    {
+      "id": 92,
+      "category": "reminder",
+      "family": "p23",
+      "language": "uk",
+      "split": "control",
+      "text": "Ваше запрошення на вечір настільних головоломок: 23 листопада 2026, 19:00, клуб «Вузол».\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Ваше запрошення на вечір настільних головоломок: 23 листопада 2026, 19:00, клуб «Вузол».",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            92
+          ]
+        },
+        "duplicateGroup": "p23"
+      }
+    },
+    {
+      "id": 93,
+      "category": "workshop",
+      "family": "p24",
+      "language": "ru",
+      "split": "control",
+      "text": "В понедельник 23 ноября 2026 в 19:00 в учебном саду показываем обрезку ветвей. Записывайтесь.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "В понедельник 23 ноября 2026 в 19:00 в учебном саду показываем обрезку ветвей. Записывайтесь.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            93
+          ]
+        },
+        "duplicateGroup": "p24"
+      }
+    },
+    {
+      "id": 94,
+      "category": "workshop",
+      "family": "p24",
+      "language": "ru",
+      "split": "control",
+      "text": "В понедельник 23 ноября 2026 в 19:00 в учебном саду показываем обрезку ветвей. Записывайтесь.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "В понедельник 23 ноября 2026 в 19:00 в учебном саду показываем обрезку ветвей. Записывайтесь.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            94
+          ]
+        },
+        "duplicateGroup": "p24"
+      }
+    },
+    {
+      "id": 95,
+      "category": "workshop",
+      "family": "p24",
+      "language": "uk",
+      "split": "control",
+      "text": "У понеділок 23 листопада 2026 о 19:00 у навчальному саду показуємо обрізання гілок. Записуйтеся.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "У понеділок 23 листопада 2026 о 19:00 у навчальному саду показуємо обрізання гілок. Записуйтеся.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            95
+          ]
+        },
+        "duplicateGroup": "p24"
+      }
+    },
+    {
+      "id": 96,
+      "category": "workshop",
+      "family": "p24",
+      "language": "uk",
+      "split": "control",
+      "text": "У понеділок 23 листопада 2026 о 19:00 у навчальному саду показуємо обрізання гілок. Записуйтеся.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "У понеділок 23 листопада 2026 о 19:00 у навчальному саду показуємо обрізання гілок. Записуйтеся.",
+          "date": "2026-11-23",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            96
+          ]
+        },
+        "duplicateGroup": "p24"
+      }
+    },
+    {
+      "id": 97,
+      "category": "year_boundary",
+      "family": "p25",
+      "language": "ru",
+      "split": "control",
+      "text": "Завтра в 19:00 ждём вас на вечер наблюдения облаков у павильона погоды.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Завтра в 19:00 ждём вас на вечер наблюдения облаков у павильона погоды.",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            97
+          ]
+        },
+        "duplicateGroup": "p25"
+      }
+    },
+    {
+      "id": 98,
+      "category": "year_boundary",
+      "family": "p25",
+      "language": "ru",
+      "split": "control",
+      "text": "Завтра в 19:00 ждём вас на вечер наблюдения облаков у павильона погоды.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Завтра в 19:00 ждём вас на вечер наблюдения облаков у павильона погоды.",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            98
+          ]
+        },
+        "duplicateGroup": "p25"
+      }
+    },
+    {
+      "id": 99,
+      "category": "year_boundary",
+      "family": "p25",
+      "language": "uk",
+      "split": "control",
+      "text": "Завтра о 19:00 чекаємо вас на вечір спостереження за хмарами біля павільйону погоди.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Завтра о 19:00 чекаємо вас на вечір спостереження за хмарами біля павільйону погоди.",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            99
+          ]
+        },
+        "duplicateGroup": "p25"
+      }
+    },
+    {
+      "id": 100,
+      "category": "year_boundary",
+      "family": "p25",
+      "language": "uk",
+      "split": "control",
+      "text": "Завтра о 19:00 чекаємо вас на вечір спостереження за хмарами біля павільйону погоди.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-12-31T21:30:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": true,
+        "event": {
+          "title": "Завтра о 19:00 чекаємо вас на вечір спостереження за хмарами біля павільйону погоди.",
+          "date": "2027-01-01",
+          "timeStr": "19:00",
+          "organizer": null,
+          "prices": [],
+          "sourcePostIds": [
+            100
+          ]
+        },
+        "duplicateGroup": "p25"
+      }
+    },
+    {
+      "id": 101,
+      "category": "recap",
+      "family": "n1",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Вчера завершился концерт арфистов. В 19:00 зал был полон, спасибо слушателям.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 102,
+      "category": "recap",
+      "family": "n1",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Вчера завершился концерт арфистов. В 19:00 зал был полон, спасибо слушателям.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 103,
+      "category": "recap",
+      "family": "n1",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Учора завершився концерт арфістів. О 19:00 зала була повна, дякуємо слухачам.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 104,
+      "category": "recap",
+      "family": "n1",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Учора завершився концерт арфістів. О 19:00 зала була повна, дякуємо слухачам.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 105,
+      "category": "cancelled",
+      "family": "n2",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Мастер-класс по мозаике 23 ноября отменён. Новую дату не назначали, билеты возвращаем.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 106,
+      "category": "cancelled",
+      "family": "n2",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Мастер-класс по мозаике 23 ноября отменён. Новую дату не назначали, билеты возвращаем.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 107,
+      "category": "cancelled",
+      "family": "n2",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Майстер-клас із мозаїки 23 листопада скасовано. Нової дати немає, квитки повертаємо.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 108,
+      "category": "cancelled",
+      "family": "n2",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Майстер-клас із мозаїки 23 листопада скасовано. Нової дати немає, квитки повертаємо.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 109,
+      "category": "advertising",
+      "family": "n3",
+      "language": "ru",
+      "split": "calibration",
+      "text": "До 23 ноября скидка на телескопы. Доставка со склада, инструкция в комплекте.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 110,
+      "category": "advertising",
+      "family": "n3",
+      "language": "ru",
+      "split": "calibration",
+      "text": "До 23 ноября скидка на телескопы. Доставка со склада, инструкция в комплекте.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 111,
+      "category": "advertising",
+      "family": "n3",
+      "language": "uk",
+      "split": "calibration",
+      "text": "До 23 листопада знижка на телескопи. Доставка зі складу, інструкція в комплекті.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 112,
+      "category": "advertising",
+      "family": "n3",
+      "language": "uk",
+      "split": "calibration",
+      "text": "До 23 листопада знижка на телескопи. Доставка зі складу, інструкція в комплекті.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 113,
+      "category": "digest",
+      "family": "n4",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Выберите отдых: 23 ноября концерт в зале «Снег», 24 ноября лекция в музее, 25 ноября ярмарка на площади.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 114,
+      "category": "digest",
+      "family": "n4",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Выберите отдых: 23 ноября концерт в зале «Снег», 24 ноября лекция в музее, 25 ноября ярмарка на площади.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 115,
+      "category": "digest",
+      "family": "n4",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Оберіть відпочинок: 23 листопада концерт у залі «Сніг», 24 листопада лекція в музеї, 25 листопада ярмарок на площі.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 116,
+      "category": "digest",
+      "family": "n4",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Оберіть відпочинок: 23 листопада концерт у залі «Сніг», 24 листопада лекція в музеї, 25 листопада ярмарок на площі.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 117,
+      "category": "teaser",
+      "family": "n5",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября будет нечто удивительное. Пока ни места, ни времени, ни способа участия не сообщаем.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 118,
+      "category": "teaser",
+      "family": "n5",
+      "language": "ru",
+      "split": "calibration",
+      "text": "23 ноября будет нечто удивительное. Пока ни места, ни времени, ни способа участия не сообщаем.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 119,
+      "category": "teaser",
+      "family": "n5",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада буде щось дивовижне. Поки ні місця, ні часу, ні способу участі не повідомляємо.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 120,
+      "category": "teaser",
+      "family": "n5",
+      "language": "uk",
+      "split": "calibration",
+      "text": "23 листопада буде щось дивовижне. Поки ні місця, ні часу, ні способу участі не повідомляємо.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 121,
+      "category": "news",
+      "family": "n6",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Город утвердил бюджет ремонта театра 23 ноября. Открытие после завершения работ, точной даты нет.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 122,
+      "category": "news",
+      "family": "n6",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Город утвердил бюджет ремонта театра 23 ноября. Открытие после завершения работ, точной даты нет.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 123,
+      "category": "news",
+      "family": "n6",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Місто затвердило бюджет ремонту театру 23 листопада. Відкриття після завершення робіт, точної дати немає.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 124,
+      "category": "news",
+      "family": "n6",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Місто затвердило бюджет ремонту театру 23 листопада. Відкриття після завершення робіт, точної дати немає.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 125,
+      "category": "vague",
+      "family": "n7",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Когда-нибудь устроим обмен пластинками. Следите за новостями, сейчас встреча не назначена.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 126,
+      "category": "vague",
+      "family": "n7",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Когда-нибудь устроим обмен пластинками. Следите за новостями, сейчас встреча не назначена.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 127,
+      "category": "vague",
+      "family": "n7",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Колись влаштуємо обмін платівками. Стежте за новинами, зараз зустріч не призначена.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 128,
+      "category": "vague",
+      "family": "n7",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Колись влаштуємо обмін платівками. Стежте за новинами, зараз зустріч не призначена.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 129,
+      "category": "recap",
+      "family": "n8",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Фото с прошедшего семинара по реставрации: вот как выглядел наш зал в начале занятия.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 130,
+      "category": "recap",
+      "family": "n8",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Фото с прошедшего семинара по реставрации: вот как выглядел наш зал в начале занятия.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 131,
+      "category": "recap",
+      "family": "n8",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Фото з минулого семінару з реставрації: ось який вигляд мала зала на початку заняття.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 132,
+      "category": "recap",
+      "family": "n8",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Фото з минулого семінару з реставрації: ось який вигляд мала зала на початку заняття.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 133,
+      "category": "cancelled",
+      "family": "n9",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Завтрашняя экскурсия не состоится: маршрут закрыт. Перенос не подтверждён.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 134,
+      "category": "cancelled",
+      "family": "n9",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Завтрашняя экскурсия не состоится: маршрут закрыт. Перенос не подтверждён.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 135,
+      "category": "cancelled",
+      "family": "n9",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Завтрашня екскурсія не відбудеться: маршрут закрито. Перенесення не підтверджено.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 136,
+      "category": "cancelled",
+      "family": "n9",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Завтрашня екскурсія не відбудеться: маршрут закрито. Перенесення не підтверджено.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 137,
+      "category": "advertising",
+      "family": "n10",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Записывайтесь на курс фотографии в удобное время. Индивидуальный график без общей даты старта.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 138,
+      "category": "advertising",
+      "family": "n10",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Записывайтесь на курс фотографии в удобное время. Индивидуальный график без общей даты старта.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 139,
+      "category": "advertising",
+      "family": "n10",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Записуйтеся на курс фотографії у зручний час. Індивідуальний графік без спільної дати початку.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 140,
+      "category": "advertising",
+      "family": "n10",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Записуйтеся на курс фотографії у зручний час. Індивідуальний графік без спільної дати початку.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 141,
+      "category": "past",
+      "family": "n11",
+      "language": "ru",
+      "split": "calibration",
+      "text": "12 ноября 2026 в 19:00 в зале проходила олимпиада. Сегодня публикуем её результаты.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 142,
+      "category": "past",
+      "family": "n11",
+      "language": "ru",
+      "split": "calibration",
+      "text": "12 ноября 2026 в 19:00 в зале проходила олимпиада. Сегодня публикуем её результаты.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 143,
+      "category": "past",
+      "family": "n11",
+      "language": "uk",
+      "split": "calibration",
+      "text": "12 листопада 2026 о 19:00 у залі проходила олімпіада. Сьогодні публікуємо її результати.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 144,
+      "category": "past",
+      "family": "n11",
+      "language": "uk",
+      "split": "calibration",
+      "text": "12 листопада 2026 о 19:00 у залі проходила олімпіада. Сьогодні публікуємо її результати.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 145,
+      "category": "digest",
+      "family": "n12",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Афиша недели: понедельник - кукольный театр в клубе, среда - кинолекция в библиотеке, пятница - танцы в парке.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 146,
+      "category": "digest",
+      "family": "n12",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Афиша недели: понедельник - кукольный театр в клубе, среда - кинолекция в библиотеке, пятница - танцы в парке.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 147,
+      "category": "digest",
+      "family": "n12",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Афіша тижня: понеділок - ляльковий театр у клубі, середа - кінолекція в бібліотеці, п’ятниця - танці в парку.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 148,
+      "category": "digest",
+      "family": "n12",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Афіша тижня: понеділок - ляльковий театр у клубі, середа - кінолекція в бібліотеці, п’ятниця - танці в парку.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 149,
+      "category": "teaser",
+      "family": "n13",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Запомните 24 ноября. Скоро объясним, зачем. Больше сведений сегодня нет.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 150,
+      "category": "teaser",
+      "family": "n13",
+      "language": "ru",
+      "split": "calibration",
+      "text": "Запомните 24 ноября. Скоро объясним, зачем. Больше сведений сегодня нет.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 151,
+      "category": "teaser",
+      "family": "n13",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Запам’ятайте 24 листопада. Скоро пояснимо, навіщо. Інших відомостей сьогодні немає.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 152,
+      "category": "teaser",
+      "family": "n13",
+      "language": "uk",
+      "split": "calibration",
+      "text": "Запам’ятайте 24 листопада. Скоро пояснимо, навіщо. Інших відомостей сьогодні немає.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 153,
+      "category": "news",
+      "family": "n14",
+      "language": "ru",
+      "split": "control",
+      "text": "Исследователи опубликовали каталог местных птиц. Презентаций и встреч с авторами не планируется.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 154,
+      "category": "news",
+      "family": "n14",
+      "language": "ru",
+      "split": "control",
+      "text": "Исследователи опубликовали каталог местных птиц. Презентаций и встреч с авторами не планируется.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 155,
+      "category": "news",
+      "family": "n14",
+      "language": "uk",
+      "split": "control",
+      "text": "Дослідники опублікували каталог місцевих птахів. Презентацій та зустрічей з авторами не планують.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 156,
+      "category": "news",
+      "family": "n14",
+      "language": "uk",
+      "split": "control",
+      "text": "Дослідники опублікували каталог місцевих птахів. Презентацій та зустрічей з авторами не планують.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 157,
+      "category": "vague",
+      "family": "n15",
+      "language": "ru",
+      "split": "control",
+      "text": "Нас спрашивают о следующем турнире. Пока согласуем сезон и состав организаторов.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 158,
+      "category": "vague",
+      "family": "n15",
+      "language": "ru",
+      "split": "control",
+      "text": "Нас спрашивают о следующем турнире. Пока согласуем сезон и состав организаторов.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 159,
+      "category": "vague",
+      "family": "n15",
+      "language": "uk",
+      "split": "control",
+      "text": "Нас запитують про наступний турнір. Поки узгоджуємо сезон та склад організаторів.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 160,
+      "category": "vague",
+      "family": "n15",
+      "language": "uk",
+      "split": "control",
+      "text": "Нас запитують про наступний турнір. Поки узгоджуємо сезон та склад організаторів.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 161,
+      "category": "recap",
+      "family": "n16",
+      "language": "ru",
+      "split": "control",
+      "text": "Спасибо за вчерашнее обсуждение романа! Разобрали финал, видео уже в архиве.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 162,
+      "category": "recap",
+      "family": "n16",
+      "language": "ru",
+      "split": "control",
+      "text": "Спасибо за вчерашнее обсуждение романа! Разобрали финал, видео уже в архиве.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 163,
+      "category": "recap",
+      "family": "n16",
+      "language": "uk",
+      "split": "control",
+      "text": "Дякуємо за вчорашнє обговорення роману! Розібрали фінал, відео вже в архіві.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 164,
+      "category": "recap",
+      "family": "n16",
+      "language": "uk",
+      "split": "control",
+      "text": "Дякуємо за вчорашнє обговорення роману! Розібрали фінал, відео вже в архіві.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 165,
+      "category": "cancelled",
+      "family": "n17",
+      "language": "ru",
+      "split": "control",
+      "text": "Показ документального кино снят с программы 25 ноября. Замены в этот день не будет.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 166,
+      "category": "cancelled",
+      "family": "n17",
+      "language": "ru",
+      "split": "control",
+      "text": "Показ документального кино снят с программы 25 ноября. Замены в этот день не будет.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 167,
+      "category": "cancelled",
+      "family": "n17",
+      "language": "uk",
+      "split": "control",
+      "text": "Показ документального кіно знято з програми 25 листопада. Заміни цього дня не буде.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 168,
+      "category": "cancelled",
+      "family": "n17",
+      "language": "uk",
+      "split": "control",
+      "text": "Показ документального кіно знято з програми 25 листопада. Заміни цього дня не буде.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 169,
+      "category": "advertising",
+      "family": "n18",
+      "language": "ru",
+      "split": "control",
+      "text": "Наши фартуки подходят для любых кулинарных мастер-классов. Закажите набор до конца месяца.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 170,
+      "category": "advertising",
+      "family": "n18",
+      "language": "ru",
+      "split": "control",
+      "text": "Наши фартуки подходят для любых кулинарных мастер-классов. Закажите набор до конца месяца.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 171,
+      "category": "advertising",
+      "family": "n18",
+      "language": "uk",
+      "split": "control",
+      "text": "Наші фартухи підходять для будь-яких кулінарних майстер-класів. Замовте набір до кінця місяця.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 172,
+      "category": "advertising",
+      "family": "n18",
+      "language": "uk",
+      "split": "control",
+      "text": "Наші фартухи підходять для будь-яких кулінарних майстер-класів. Замовте набір до кінця місяця.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 173,
+      "category": "past",
+      "family": "n19",
+      "language": "ru",
+      "split": "control",
+      "text": "В 2024 году мы впервые провели ночь науки. Вспоминаем тот ноябрь и благодарим команду.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 174,
+      "category": "past",
+      "family": "n19",
+      "language": "ru",
+      "split": "control",
+      "text": "В 2024 году мы впервые провели ночь науки. Вспоминаем тот ноябрь и благодарим команду.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 175,
+      "category": "past",
+      "family": "n19",
+      "language": "uk",
+      "split": "control",
+      "text": "У 2024 році ми вперше провели ніч науки. Згадуємо той листопад і дякуємо команді.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 176,
+      "category": "past",
+      "family": "n19",
+      "language": "uk",
+      "split": "control",
+      "text": "У 2024 році ми вперше провели ніч науки. Згадуємо той листопад і дякуємо команді.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 177,
+      "category": "digest",
+      "family": "n20",
+      "language": "ru",
+      "split": "control",
+      "text": "Два отдельных приглашения: ботаническая прогулка 23 ноября в саду и встреча нумизматов 26 ноября в клубе.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 178,
+      "category": "digest",
+      "family": "n20",
+      "language": "ru",
+      "split": "control",
+      "text": "Два отдельных приглашения: ботаническая прогулка 23 ноября в саду и встреча нумизматов 26 ноября в клубе.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 179,
+      "category": "digest",
+      "family": "n20",
+      "language": "uk",
+      "split": "control",
+      "text": "Два окремі запрошення: ботанічна прогулянка 23 листопада в саду та зустріч нумізматів 26 листопада у клубі.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 180,
+      "category": "digest",
+      "family": "n20",
+      "language": "uk",
+      "split": "control",
+      "text": "Два окремі запрошення: ботанічна прогулянка 23 листопада в саду та зустріч нумізматів 26 листопада у клубі.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 181,
+      "category": "teaser",
+      "family": "n21",
+      "language": "ru",
+      "split": "control",
+      "text": "День керамики скоро вернётся. Место найдём, дату объявим отдельно.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 182,
+      "category": "teaser",
+      "family": "n21",
+      "language": "ru",
+      "split": "control",
+      "text": "День керамики скоро вернётся. Место найдём, дату объявим отдельно.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 183,
+      "category": "teaser",
+      "family": "n21",
+      "language": "uk",
+      "split": "control",
+      "text": "День кераміки скоро повернеться. Місце знайдемо, дату оголосимо окремо.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 184,
+      "category": "teaser",
+      "family": "n21",
+      "language": "uk",
+      "split": "control",
+      "text": "День кераміки скоро повернеться. Місце знайдемо, дату оголосимо окремо.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 185,
+      "category": "news",
+      "family": "n22",
+      "language": "ru",
+      "split": "control",
+      "text": "На площади установили новую сцену. Она выдерживает дождь и рассчитана на камерные ансамбли.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 186,
+      "category": "news",
+      "family": "n22",
+      "language": "ru",
+      "split": "control",
+      "text": "На площади установили новую сцену. Она выдерживает дождь и рассчитана на камерные ансамбли.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 187,
+      "category": "news",
+      "family": "n22",
+      "language": "uk",
+      "split": "control",
+      "text": "На площі встановили нову сцену. Вона витримує дощ і розрахована на камерні ансамблі.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 188,
+      "category": "news",
+      "family": "n22",
+      "language": "uk",
+      "split": "control",
+      "text": "На площі встановили нову сцену. Вона витримує дощ і розрахована на камерні ансамблі.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 189,
+      "category": "vague",
+      "family": "n23",
+      "language": "ru",
+      "split": "control",
+      "text": "Открыт набор идей для будущего фестиваля. Это опрос, сам фестиваль ещё не назначен.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 190,
+      "category": "vague",
+      "family": "n23",
+      "language": "ru",
+      "split": "control",
+      "text": "Открыт набор идей для будущего фестиваля. Это опрос, сам фестиваль ещё не назначен.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 191,
+      "category": "vague",
+      "family": "n23",
+      "language": "uk",
+      "split": "control",
+      "text": "Відкрито збір ідей для майбутнього фестивалю. Це опитування, сам фестиваль ще не призначений.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 192,
+      "category": "vague",
+      "family": "n23",
+      "language": "uk",
+      "split": "control",
+      "text": "Відкрито збір ідей для майбутнього фестивалю. Це опитування, сам фестиваль ще не призначений.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 193,
+      "category": "recap",
+      "family": "n24",
+      "language": "ru",
+      "split": "control",
+      "text": "Наш урок каллиграфии закончился час назад. Делимся упражнениями для самостоятельной работы.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 194,
+      "category": "recap",
+      "family": "n24",
+      "language": "ru",
+      "split": "control",
+      "text": "Наш урок каллиграфии закончился час назад. Делимся упражнениями для самостоятельной работы.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 195,
+      "category": "recap",
+      "family": "n24",
+      "language": "uk",
+      "split": "control",
+      "text": "Наш урок каліграфії закінчився годину тому. Ділимося вправами для самостійної роботи.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 196,
+      "category": "recap",
+      "family": "n24",
+      "language": "uk",
+      "split": "control",
+      "text": "Наш урок каліграфії закінчився годину тому. Ділимося вправами для самостійної роботи.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 197,
+      "category": "cancelled",
+      "family": "n25",
+      "language": "ru",
+      "split": "control",
+      "text": "Встречу любителей минералов переносим на неопределённый срок. Пожалуйста, не приезжайте 23 ноября.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 198,
+      "category": "cancelled",
+      "family": "n25",
+      "language": "ru",
+      "split": "control",
+      "text": "Встречу любителей минералов переносим на неопределённый срок. Пожалуйста, не приезжайте 23 ноября.\n\nНебольшое пояснение редакции: мы публикуем эту заметку в учебной ленте, чтобы читателям было проще разобраться в деталях. Все упомянутые площадки вымышлены.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 199,
+      "category": "cancelled",
+      "family": "n25",
+      "language": "uk",
+      "split": "control",
+      "text": "Зустріч любителів мінералів переносимо на невизначений термін. Будь ласка, не приїжджайте 23 листопада.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    },
+    {
+      "id": 200,
+      "category": "cancelled",
+      "family": "n25",
+      "language": "uk",
+      "split": "control",
+      "text": "Зустріч любителів мінералів переносимо на невизначений термін. Будь ласка, не приїжджайте 23 листопада.\n\nНевелике пояснення редакції: ми публікуємо цю нотатку в навчальній стрічці, щоб читачам було простіше розібратися в деталях. Усі згадані майданчики вигадані.",
+      "publishedAt": "2026-11-16T10:00:00Z",
+      "timeZone": "Europe/Kyiv",
+      "expected": {
+        "selected": false,
+        "event": null,
+        "duplicateGroup": null
+      }
+    }
+  ]
+}
