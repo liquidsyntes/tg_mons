@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { logger } from '../lib/logger';
 
 export async function runEventsScan(): Promise<void> {
@@ -20,7 +21,7 @@ export async function runEventsScan(): Promise<void> {
   }
 
   const response = await fetch(`${baseUrl}/api/events/scan`, {
-    method: 'POST', headers, signal: AbortSignal.timeout(20 * 60 * 1000),
+    method: 'POST', headers: {...headers, 'Idempotency-Key': randomUUID()}, signal: AbortSignal.timeout(20 * 60 * 1000),
   });
   if (!response.ok) throw new Error(`Event scan failed: HTTP ${response.status}`);
   const result: unknown = await response.json();

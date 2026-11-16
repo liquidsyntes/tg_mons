@@ -1,3 +1,4 @@
+import { withAiOperation } from '@/lib/ai-operations/route';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { listUserChannels } from '@/lib/user-channels';
@@ -23,7 +24,7 @@ function isTrendReport(value: unknown): value is {
     'quote' in trend && typeof trend.quote === 'string');
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
@@ -119,3 +120,5 @@ ${contentToAnalyze}
     return handleAiRouteError(error);
   }
 }
+
+export const POST = withAiOperation('trends', handlePost);

@@ -1,4 +1,5 @@
 'use client';
+import { aiRequest } from '@/lib/ai-request';
 
 import React, { useEffect, useState } from 'react';
 import { Radar, RefreshCw, TrendingUp, AlertCircle, ChevronDown, Target } from 'lucide-react';
@@ -53,7 +54,7 @@ export function TrendSpotterWidget() {
     setGenerating(true);
     setError(null);
     try {
-      const res = await fetch('/api/ai/trends', { method: 'POST' });
+      const res = await aiRequest('/api/ai/trends', { method: 'POST' });
       if (!res.ok) {
         const errData: unknown = await res.json().catch(() => null);
         const message = errData && typeof errData === 'object' && 'error' in errData && typeof errData.error === 'string'
@@ -77,7 +78,7 @@ export function TrendSpotterWidget() {
     setGapGenerating(true);
     setError(null);
     try {
-      const res = await fetch('/api/ai/content-gap', {
+      const res = await aiRequest('/api/ai/content-gap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ days: 14 }),

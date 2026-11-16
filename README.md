@@ -17,7 +17,7 @@ flowchart LR
 
     subgraph TgMon["Контур TgMon (Docker Compose)"]
         Web["Next.js 15 Web UI и REST API (:4000)"]
-        DB[("PostgreSQL 15 + pg_trgm (25 таблиц)")]
+        DB[("PostgreSQL 15 + pg_trgm (27 таблиц)")]
         Worker["MTProto Worker (:4001, TaskCoordinator, BotPoller, node-cron)"]
     end
 

@@ -1,3 +1,5 @@
+import { AiOperationError } from '@/lib/ai-operations/store';
+import { withAiOperation } from '@/lib/ai-operations/route';
 import { buildExtractionPrompt } from '@/lib/events/extraction';
 import { keywordCandidate } from '@/lib/events/decisions';
 import { logger } from '@/lib/logger';
@@ -19,7 +21,7 @@ async function markPostsScanned(ids: number[]): Promise<void> {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const auth = await verifyBearerToken(request);
   if (!auth.authorized) return auth.response;
   try {
@@ -31,6 +33,7 @@ export async function POST(request: NextRequest) {
     // For broader compatibility, let's fetch recent text posts and filter in JS.
     const recentPosts = await prisma.post.findMany({
       where: {
+        ...(auth.userId !== null ? {channel: {userChannels: {some: {userId: auth.userId}}}} : {}),
         publishedAt: { gte: dateLimit },
         text: { not: null },
         eventsScannedAt: null,
@@ -156,9 +159,12 @@ export async function POST(request: NextRequest) {
 
     await mergeDuplicateEventsInDb();
     await markPostsScanned(selectedPosts.map(post => post.id));
-    return NextResponse.json({ success: true, savedCount, parsedEvents: events, selectionMode: selection.mode });
+    return NextResponse.json({ success: true, savedCount, parsedEvents: events.filter(evt => Array.isArray(evt.sourcePostIds) && evt.sourcePostIds.some((id: unknown) => typeof id === 'number' && selectedPostIds.has(id))), selectionMode: selection.mode });
   } catch (error: unknown) {
+    if (error instanceof AiOperationError) return NextResponse.json({error:error.message},{status:error.status,headers:error.retryAfter?{'Retry-After':String(error.retryAfter)}:undefined});
     logger.error('Error scanning events:', undefined, error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Не удалось выполнить сканирование' }, { status: 500 });
   }
 }
+
+export const POST = withAiOperation('events-scan', handlePost);

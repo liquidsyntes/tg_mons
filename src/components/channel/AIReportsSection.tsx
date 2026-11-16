@@ -1,4 +1,5 @@
 'use client';
+import { aiRequest } from '@/lib/ai-request';
 
 /**
  * Секция AI-отчетов на странице детального анализа канала (/channel/[id]).
@@ -54,7 +55,7 @@ function useAiReportRequest<T>(
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(endpoint, {
+        const res = await aiRequest(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

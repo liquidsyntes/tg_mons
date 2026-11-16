@@ -1,3 +1,4 @@
+import { trackedProviderFetch, AiOperationError } from '../ai-operations/store';
 import { buildDecisionRequest, readDecisionAnswers, parseDecisionModel, type EventCandidate, type EventSelection } from './decisions';
 import { logger } from '@/lib/logger';
 import { getAiConfig } from '@/lib/ai-config';
@@ -16,7 +17,7 @@ async function evaluateBatch(posts: EventCandidate[], apiKey: string): Promise<M
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     let response: Response;
     try {
-      response = await fetch(JEV_ENDPOINT, {
+      response = await trackedProviderFetch(payload.model, 'decisions', JEV_ENDPOINT, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -62,6 +63,7 @@ export async function selectEventCandidatesWithJev<T extends EventCandidate>(pos
       mode: process.env.EVENT_DECISION_MODEL === 'google/gemini-decision-1' ? 'gemini' : 'jev',
     };
   } catch (error) {
+    if (error instanceof AiOperationError) throw error;
     logger.warn('Jev event screening unavailable; using keyword candidates', undefined, error);
     return { posts, mode: 'keyword_fallback' };
   }

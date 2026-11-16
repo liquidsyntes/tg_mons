@@ -28,10 +28,11 @@
 | `PARTIAL` | Цикл сбора завершён, но сбор для одного или нескольких каналов завершился с ошибкой |
 | `FAILED` | Критический сбой всего цикла сбора (например, потеря связи с Telegram MTProto или ошибка БД) |
 
-## ER-диаграмма схемы базы данных (25 моделей)
+## ER-диаграмма схемы базы данных (27 моделей)
 
 ```mermaid
 erDiagram
+    AiOperation ||--o{ AiProviderCall : "запросы провайдеру (Cascade)"
     User ||--o{ UserChannel : "подписки (Cascade)"
     User ||--o{ AiReport : "отчёты (Cascade)"
     User ||--o{ AlertRule : "правила (Cascade)"
@@ -152,10 +153,12 @@ erDiagram
 
 ## Сводная таблица моделей
 
-Схема содержит **25 моделей**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
+Схема содержит **27 моделей**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
+| `AiOperation` | `ai_operations` | `id` (String, cuid) | unique actor/kind/key; actor/createdAt; status/expiresAt | 1:N AiProviderCall | Идемпотентность, состояние и временный результат операции |
+| `AiProviderCall` | `ai_provider_calls` | `id` (String, cuid) | operationId/startedAt; startedAt/model; status/expiresAt | operation -> AiOperation (Cascade) | Попытки провайдера, токены и подтверждённая стоимость |
 | `User` | `users` | `id` (Int, autoincrement) | `@unique username`<br>`@unique telegramSub` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `UserSavedPost`, `AdPlacement`, `InviteCode` | Учётные записи с ролями `ADMIN`/`USER`, статусом доступа и необязательной привязкой Telegram; пароль может отсутствовать |
 | `InviteCode` | `invite_codes` | `id` (Int, autoincrement) | `@unique code`<br>`@unique usedById`<br>`@@index([createdById])` | `createdBy` -> `User` (`Cascade`)<br>`usedBy` -> `User?` (`SetNull`) | Исторические инвайты сохранены; новая регистрация их не использует |
 | `UserChannel` | `user_channels` | `id` (Int, autoincrement) | `@@unique([userId, channelId])`<br>`@@index([userId])`<br>`@@index([channelId])` | `user` -> `User` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Персональная подписка пользователя на канал из общего пула (`isMine`, `isFavorite`, `niche`, `tags`, `isActive`), необязательные `customAdPriceUah` и `customCpmUah` в гривнах |
@@ -753,3 +756,38 @@ flowchart TD
   - `20261026162020_add_user_channel_ad_pricing` – nullable INTEGER-колонки `user_channels.custom_ad_price_uah` и `user_channels.custom_cpm_uah`.
 - Для генерации клиента Prisma используется скрипт `npm run prisma:generate`.
 - **Особенность Windows-окружения:** Если `npx prisma generate` завершился с `EPERM`, проверьте процессы Next.js и worker именно этого checkout на блокировку Prisma Query Engine. Останавливайте только установленный блокирующий процесс, затем повторите генерацию.
+
+## Журнал AI-операций (#87)
+
+Миграция `20261116043000_ai_operations` добавляет `AiOperation` (`ai_operations`), `AiProviderCall` (`ai_provider_calls`), enum `AiOperationStatus` и три поля лимитов в `SystemSetting`.
+
+```mermaid
+erDiagram
+    AiOperation ||--o{ AiProviderCall : records
+    AiOperation {
+        string id PK
+        string actor
+        int userId "nullable historical identifier"
+        string kind
+        string key
+        string requestHash
+        AiOperationStatus status
+        datetime expiresAt
+        json response "nullable, 7 days"
+    }
+    AiProviderCall {
+        string id PK
+        string operationId FK
+        string model
+        string stage
+        AiOperationStatus status
+        int inputTokens "nullable"
+        int outputTokens "nullable"
+        decimal cost "nullable Decimal(20,10)"
+        string currency "nullable USD"
+    }
+```
+
+Инициатор хранится явным пространством имён, `userId` исторический идентификатор без внешнего ключа: удаление учётной записи не удаляет финансовый журнал. Уникальность `(actor, kind, key)` поддерживает идемпотентность. Индексы обслуживают период/инициатора и поиск активных lease. Вызовы связаны с операцией, каскадное удаление операции удалит её вызовы; приложение не удаляет журнал автоматически. Тексты ответов очищаются лениво при следующем резервировании после 7 дней, метаданные остаются. Промпты и секреты не сохраняются.
+
+Лимиты `aiHourlyLimit=0`, `aiConcurrentLimit=0`, `aiProviderConcurrency=4` применяются к существующим настройкам через defaults. Миграция добавочная, существующие отчёты и события не меняются.

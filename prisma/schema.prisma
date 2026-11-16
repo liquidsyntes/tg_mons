@@ -358,6 +358,9 @@ model AudienceDemographics {
 }
 
 model SystemSetting {
+  aiHourlyLimit Int @default(0) @map("ai_hourly_limit")
+  aiConcurrentLimit Int @default(0) @map("ai_concurrent_limit")
+  aiProviderConcurrency Int @default(4) @map("ai_provider_concurrency")
   id            String    @id @default("global")
   aiProvider    String    @default("openrouter") @map("ai_provider")
   aiModel       String    @default("meta-llama/llama-3.1-8b-instruct:free") @map("ai_model")
@@ -477,4 +480,54 @@ model AdPlacement {
   @@index([donorChannelId])
   @@index([postId])
   @@map("ad_placements")
+}
+
+enum AiOperationStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  UNKNOWN
+}
+
+model AiOperation {
+  id String @id @default(cuid())
+  actor String
+  userId Int? @map("user_id")
+  kind String
+  key String
+  requestHash String @map("request_hash")
+  status AiOperationStatus @default(RUNNING)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  expiresAt DateTime @map("expires_at")
+  response Json?
+  httpStatus Int? @map("http_status")
+  calls AiProviderCall[]
+  @@unique([actor, kind, key])
+  @@index([actor, createdAt])
+  @@index([status, expiresAt])
+  @@map("ai_operations")
+}
+
+model AiProviderCall {
+  id String @id @default(cuid())
+  operationId String @map("operation_id")
+  operation AiOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  model String
+  stage String
+  status AiOperationStatus @default(RUNNING)
+  startedAt DateTime @default(now()) @map("started_at")
+  endedAt DateTime? @map("ended_at")
+  expiresAt DateTime @map("expires_at")
+  durationMs Int? @map("duration_ms")
+  inputTokens Int? @map("input_tokens")
+  outputTokens Int? @map("output_tokens")
+  cost Decimal? @db.Decimal(20, 10)
+  currency String?
+  providerRequestId String? @map("provider_request_id")
+  errorCode String? @map("error_code")
+  @@index([status, expiresAt])
+  @@index([operationId, startedAt])
+  @@index([startedAt, model])
+  @@map("ai_provider_calls")
 }

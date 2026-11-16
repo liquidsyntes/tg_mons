@@ -1,4 +1,5 @@
 'use client';
+import { aiRequest } from '@/lib/ai-request';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -40,7 +41,7 @@ export function ReportsListClient({ reports }: Props) {
     setIsComparing(true);
     setError(null);
     try {
-      const res = await fetch('/api/ai/compare-reports', {
+      const res = await aiRequest('/api/ai/compare-reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId1: selectedIds[0], reportId2: selectedIds[1] })

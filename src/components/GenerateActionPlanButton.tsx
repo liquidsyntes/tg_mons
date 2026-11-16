@@ -1,4 +1,5 @@
 'use client';
+import { aiRequest } from '@/lib/ai-request';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,7 +18,7 @@ export function GenerateActionPlanButton({ reportId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/ai/action-plan', {
+      const res = await aiRequest('/api/ai/action-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reportId })

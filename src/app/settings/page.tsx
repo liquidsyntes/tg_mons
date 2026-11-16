@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { AiUsageSettings } from '@/components/settings/AiUsageSettings';
 import { Header } from '@/components/Header';
 import { AlertRulesSettings } from '@/components/settings/AlertRulesSettings';
 import { TelegramRegistrationsSettings } from '@/components/settings/TelegramRegistrationsSettings';
@@ -293,7 +294,7 @@ export default function SettingsPage() {
             </div>
           </form>
         ) : null}
-        {isAdmin && <OperationsMonitorSettings />}
+        {isAdmin && <><OperationsMonitorSettings /><AiUsageSettings /></>}
         <PersonalDigestSettings />
         <AlertRulesSettings />
       </main>

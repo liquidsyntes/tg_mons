@@ -1,3 +1,4 @@
+import { withAiOperation } from '@/lib/ai-operations/route';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
@@ -6,7 +7,7 @@ import { handleAiRouteError, saveAiReport } from '@/lib/ai-reports';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
@@ -77,3 +78,4 @@ ${postsText}
     return handleAiRouteError(error);
   }
 }
+export const POST = withAiOperation('audience', handlePost);

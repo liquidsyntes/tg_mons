@@ -1,3 +1,4 @@
+import { trackedProviderFetch, AiOperationError } from './ai-operations/store';
 import { logger } from '@/lib/logger';
 import { getAiConfig } from '@/lib/ai-config';
 
@@ -59,7 +60,7 @@ export async function callOpenRouter(
 
   let res: Response;
   try {
-    res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    res = await trackedProviderFetch(model, 'chat', 'https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,15 +75,14 @@ export async function callOpenRouter(
       }),
     });
   } catch (error) {
-    if (controller.signal.aborted) throw error;
+    if (controller.signal.aborted || error instanceof AiOperationError) throw error;
     throw new OpenRouterTransportError(getTransportReasonCode(error));
   } finally {
     clearTimeout(timeoutId);
   }
 
   if (!res.ok) {
-    const errorData = await res.text();
-    logger.error('OpenRouter Error', { status: res.status, errorData });
+    logger.error('OpenRouter Error', { status: res.status });
     throw new Error(`Ошибка API OpenRouter: ${res.status}`);
   }
 

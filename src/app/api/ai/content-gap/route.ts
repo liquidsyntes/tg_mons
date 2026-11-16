@@ -1,3 +1,4 @@
+import { withAiOperation } from '@/lib/ai-operations/route';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerToken } from '@/lib/auth';
@@ -42,7 +43,7 @@ function calculateMedian(values: number[]): number {
     : (positive[mid - 1] + positive[mid]) / 2;
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
@@ -240,3 +241,5 @@ ${competitorPostsContent}
     return handleAiRouteError(error);
   }
 }
+
+export const POST = withAiOperation('content-gap', handlePost);

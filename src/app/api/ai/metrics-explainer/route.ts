@@ -1,3 +1,4 @@
+import { withAiOperation } from '@/lib/ai-operations/route';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyBearerToken } from '@/lib/auth';
 import { getChannelDetailStats, parseStatsPeriod } from '@/lib/metrics';
@@ -18,7 +19,7 @@ function fmtDelta(delta?: { abs: number | null; percent: number | null }): strin
   return `${sign}${delta.abs}${pct}`;
 }
 
-export async function POST(req: NextRequest) {
+async function handlePost(req: NextRequest) {
   try {
     const authCheck = await verifyBearerToken(req);
     if (!authCheck.authorized) return authCheck.response;
@@ -202,3 +203,5 @@ ${metricsContext}
     return handleAiRouteError(error);
   }
 }
+
+export const POST = withAiOperation('metrics-explainer', handlePost);

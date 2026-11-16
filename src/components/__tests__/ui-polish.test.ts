@@ -128,7 +128,7 @@ describe('trend radar disclosure', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const fetcher = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => report })
-      .mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'Example failure' }) });
+      .mockResolvedValueOnce(new Response(JSON.stringify({error:'Example failure'}),{status:500}));
     vi.stubGlobal('fetch', fetcher);
     render(React.createElement(TrendSpotterWidget));
     const refresh = screen.getByRole('button', { name: 'Обновить радар' });
@@ -144,7 +144,7 @@ describe('trend radar disclosure', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => report })
-      .mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'fetch failed' }) }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({error:'fetch failed'}),{status:503})));
     render(React.createElement(TrendSpotterWidget));
     const refresh = screen.getByRole('button', { name: 'Обновить радар' });
     await waitFor(() => expect(refresh.hasAttribute('disabled')).toBe(false));

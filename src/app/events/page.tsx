@@ -1,4 +1,5 @@
 'use client';
+import { aiRequest } from '@/lib/ai-request';
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { Calendar as CalendarIcon, Loader2, ScanSearch, Search, X } from 'lucide-react';
@@ -50,7 +51,7 @@ export default function EventsPage() {
     if (!confirm('Запустить глубокое сканирование постов? Это может занять несколько минут.')) return;
     setScanning(true);
     try {
-      const res = await fetch('/api/events/scan', { method: 'POST' });
+      const res = await aiRequest('/api/events/scan', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         const screeningNote = data.selectionMode === 'keyword_fallback'

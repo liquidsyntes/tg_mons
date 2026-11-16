@@ -1,3 +1,4 @@
+vi.mock('@/lib/ai-operations/store', async (importOriginal) => { const actual = await importOriginal<typeof import('@/lib/ai-operations/store')>(); return { ...actual, trackedProviderFetch: (_model: string, _stage: string, url: string, init: RequestInit) => fetch(url, init) }; });
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '@/lib/logger';
 import { selectEventCandidatesWithJev } from '../jev';

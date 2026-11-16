@@ -1,3 +1,4 @@
+import { AiOperationError, operationContext } from './ai-operations/store';
 import { NextResponse } from 'next/server';
 import { logger } from './logger';
 import { prisma } from './prisma';
@@ -62,6 +63,8 @@ export async function saveAiReport(
     });
     return report.id;
   } catch (dbError) {
+    const context=operationContext.getStore();
+    if(context)context.reportSaveFailed=true;
     console.error('Failed to save AI report to DB:', dbError);
     return null;
   }
@@ -156,6 +159,7 @@ ${contentToAnalyze.substring(0, maxChars)}
 }
 
 export function handleAiRouteError(error: unknown): NextResponse {
+  if (error instanceof AiOperationError) return NextResponse.json({error:error.message},{status:error.status,headers:error.retryAfter?{'Retry-After':String(error.retryAfter)}:undefined});
   logger.error('AI Error', error instanceof OpenRouterTransportError && error.reasonCode
     ? { reasonCode: error.reasonCode } : undefined, error);
   if (error instanceof OpenRouterTransportError) {

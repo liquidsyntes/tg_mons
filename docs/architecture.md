@@ -27,7 +27,7 @@ flowchart TB
             Collector["Сборщик teleproto (collector, fetcher, persister, retry-policy)"]
         end
 
-        DB[("PostgreSQL 15 + pg_trgm (25 таблиц, Advisory Lock)")]
+        DB[("PostgreSQL 15 + pg_trgm (27 таблиц, Advisory Lock)")]
     end
 
     subgraph External["Внешние системы"]
@@ -235,7 +235,7 @@ flowchart TB
 
 Полная спецификация моделей PostgreSQL 15, типов полей, вторичных индексов, перечислений и каскадов приведена в документе [База данных и схема Prisma](database.md).
 
-Схема `prisma/schema.prisma` включает **25 моделей** и два перечисления: `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок. Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
+Схема `prisma/schema.prisma` включает **27 моделей** и три перечисления (включая `AiOperationStatus`): `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок. Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
 
 | Prisma-модель | Таблица | Назначение |
 | --- | --- | --- |
@@ -258,6 +258,8 @@ flowchart TB
 | `AiReport` | `ai_reports` | Тип (10 видов отчётов) и строковый JSON-ответ LLM, необязательный `channelId` и `userId` владельца отчёта |
 | `Event` | `events` | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | Связи M:N событий с исходными постами; unique `(eventId, postId)` |
+| `AiOperation` | `ai_operations` | Идемпотентность и состояние AI-операции, временный результат |
+| `AiProviderCall` | `ai_provider_calls` | Журнал попыток провайдера, токены и подтверждённая стоимость |
 | `SystemSetting` | `system_settings` | Запись `global` с общими настройками AI (`aiToken`, `aiModel`) и полями глобального дайджеста |
 | `AlertRule` | `alert_rules` | Глобальные и канальные правила Telegram-уведомлений (метрики, `keyword`, `viralPostMultiplier`) с привязкой `userId` |
 | `AlertRuleFire` | `alert_rule_fires` | Время последней отправки и значение для пары «правило и канал» (24ч cooldown) |
@@ -265,7 +267,8 @@ flowchart TB
 | `FraudSignal` | `fraud_signals` | Тип (6 эвристик), значение, причина и время срабатывания эвристики |
 | `AdPlacement` | `ad_placements` | Зафиксированные рекламные сделки пользователя (бюджет, формат, статус, `inviteLink`, `actualJoins`, связка с постом/донором) |
 
-Миграции находятся в `prisma/migrations/` (**33 миграции**). Последние миграции в репозитории:
+Миграции находятся в `prisma/migrations/` (**34 миграции**). Последние миграции в репозитории:
+- `20261116043000_ai_operations`: журнал AI и лимиты;
 - `20261114063600_add_content_plan_to_saved_posts` – поля контент-плана (`status`, `planned_for`, `draft_text`) в таблице `user_saved_posts`;
 - `20261114042500_add_post_deletion_tracking` – поля фиксации удаления рекламных постов (`deleted_at`, `deleted_after_hours`, `last_checked_at`) в таблице `posts`;
 - `20261113053607_add_ad_placements` – таблица `ad_placements` для трекера рекламных закупок и расчёта фактического ROI/CPF;
@@ -478,3 +481,31 @@ flowchart TD
 ## 8. Граница доступа и безопасность Middleware
 
 Middleware (`src/middleware.ts`) проверяет `Bearer` для сервисных запросов либо подписанную `HttpOnly`-cookie Web UI (`v2` с `userId` и `role` либо `v1` при резервном мастер-входе). Для пользовательской cookie middleware в Node.js runtime дополнительно читает текущие роль и `User.accessStatus` из БД. `PENDING` видит только страницу ожидания, `BLOCKED` теряет доступ с действующей cookie. Сессия действует 12 часов и не содержит секретный ключ. Cookie-мутации требуют совпадающий `Origin`; `/api/internal/*` принимает только `Bearer`. Заявками управляет `ADMIN` через `/api/admin/registrations`; данные каналов, отчётов, алертов и скрытых событий изолированы по `userId`. [Эксплуатация](deployment.md).
+
+## Учёт и резервирование AI (#87)
+
+```mermaid
+sequenceDiagram
+    participant UI as Browser or Worker
+    participant API as AI route wrapper
+    participant DB as PostgreSQL
+    participant AI as OpenRouter
+    UI->>API: POST with Idempotency-Key
+    API->>DB: Validate access and atomically reserve operation
+    alt Existing operation
+        DB-->>API: State or stored response
+        API-->>UI: 202 or saved result
+    else New operation
+        API->>DB: Reserve each provider call under global limit
+        API->>AI: Request outside transaction
+        AI-->>API: Body and optional usage
+        API->>DB: Record call and operation result
+        API-->>UI: Result
+    end
+```
+
+Транзакционный advisory lock `870001` сериализует короткие admission-транзакции между web-процессами. HTTP не выполняется под блокировкой. AsyncLocalStorage передаёт ID операции внутренним вызовам без изменения возвращаемой строки `callOpenRouter`. Вызов провайдера без контекста отклоняется; автономный eval CLI остаётся отдельным экспериментальным инструментом и не учитывается в журнале приложения.
+
+Lease операции 120 секунд продлевается каждые 30 секунд. Lease HTTP-вызова 180 секунд. Просроченные записи переводятся в UNKNOWN при следующем резервировании; платный запрос не восстанавливается автоматически. Завершение обновляет только RUNNING, чтобы поздний ответ не воскресил просроченную операцию. Локальное ограничение параллелизма не гарантирует отмену запроса на стороне провайдера после сетевого таймаута.
+
+Успешный ответ операции хранится для повторной выдачи 7 дней. Если сохранение AiReport не удалось, ответ остаётся в операции, а заголовок `X-AI-Report-Saved: false` сигнализирует о сбое архива. Сбой журнала после отправки запроса даёт неопределённый исход, а не автоматическую повторную генерацию.
