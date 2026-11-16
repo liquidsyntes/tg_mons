@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
   postFindUnique: vi.fn(),
+  postFindFirst: vi.fn(),
+  checkpointUpsert: vi.fn(),
   postFindMany: vi.fn(),
   userChannelFindUnique: vi.fn(),
   savedPostUpsert: vi.fn(),
@@ -17,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/auth', () => ({ verifyBearerToken: mocks.auth }));
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    $transaction: async (callback: (tx: unknown)=>Promise<unknown>) => callback({post:{findFirst:mocks.postFindFirst,findMany:mocks.postFindMany},postPerformanceCheckpoint:{createMany:mocks.checkpointUpsert},userSavedPost:{upsert:mocks.savedPostUpsert}}),
     post: { findUnique: mocks.postFindUnique, findMany: mocks.postFindMany },
     userChannel: { findUnique: mocks.userChannelFindUnique },
     snapshot: { findFirst: mocks.snapshotFindFirst },
@@ -116,6 +119,8 @@ describe('/api/posts/saved', () => {
       select: {
         id: true,
         postId: true,
+        publishedPostId: true,
+        publicationLinkedAt: true,
         note: true,
         status: true,
         plannedFor: true,
@@ -283,4 +288,20 @@ describe('/api/posts/saved', () => {
       where: { userId: 3, postId: 42 },
     });
   });
+  it('links only an accessible own-channel post and preserves the reference',async()=>{
+    mocks.postFindFirst.mockResolvedValue({id:88,channelId:9,publishedAt:new Date('2026-11-10'),snapshots:[],performanceCheckpoints:[]});
+    const response=await PATCH(makeJsonRequest('PATCH',{postId:42,publishedPostId:88}));
+    expect(response.status).toBe(200);
+    expect(mocks.postFindFirst).toHaveBeenCalledWith(expect.objectContaining({where:expect.objectContaining({id:88,deletedAt:null,channel:expect.objectContaining({userChannels:{some:{userId:3,isActive:true,isMine:true}}})})}));
+    expect(mocks.savedPostUpsert).toHaveBeenCalledWith(expect.objectContaining({where:{userId_postId:{userId:3,postId:42}},update:expect.objectContaining({publishedPostId:88,status:'published'})}));
+  });
+  it('rejects inaccessible publications and permits explicit unlink without resetting status',async()=>{
+    mocks.postFindFirst.mockResolvedValue(null);
+    expect((await PATCH(makeJsonRequest('PATCH',{postId:42,publishedPostId:99}))).status).toBe(403);
+    expect(mocks.savedPostUpsert).not.toHaveBeenCalled();
+    expect((await PATCH(makeJsonRequest('PATCH',{postId:42,publishedPostId:null}))).status).toBe(200);
+    const update=mocks.savedPostUpsert.mock.calls[0][0].update;
+    expect(update).toMatchObject({publishedPostId:null,publicationLinkedAt:null});expect(update).not.toHaveProperty('status');
+  });
+
 });

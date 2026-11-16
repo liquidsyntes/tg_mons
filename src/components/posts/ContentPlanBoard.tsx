@@ -1,4 +1,5 @@
 'use client';
+import { PublicationResultCard } from './PublicationResultCard';
 import { DataEvidenceDetails } from '@/components/DataEvidenceDetails';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -19,6 +20,7 @@ import type {
 } from '@/lib/types';
 
 export interface ContentPlanPatchPayload {
+  publishedPostId?: number | null;
   status?: ContentPlanStatus;
   plannedFor?: string | null;
   draftText?: string | null;
@@ -190,6 +192,7 @@ export function ContentPlanBoard({
                           key={post.id}
                           className="rounded-xl border border-border bg-slate-950/80 p-3 space-y-2.5"
                         >
+                          <PublicationResultCard result={post.publicationResult} disabled={isBusy} onLink={id=>runPostUpdate(post.id,{publishedPostId:id})} />
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <Link

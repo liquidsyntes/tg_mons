@@ -195,6 +195,7 @@ export interface SearchPost extends ViralClassification {
   savedStatus?: ContentPlanStatus;
   savedPlannedFor?: string | null;
   savedDraftText?: string | null;
+  publicationResult?: import('./publication-results').PublicationResult;
   deletedAt?: string | null;
   deletedAfterHours?: number | null;
   retentionFormat?: AdRetentionFormat;
@@ -234,6 +235,7 @@ export interface AdCreativePostItem {
   savedStatus?: ContentPlanStatus;
   savedPlannedFor?: string | null;
   savedDraftText?: string | null;
+  publicationResult?: import('./publication-results').PublicationResult;
   deletedAt?: string | null;
   deletedAfterHours?: number | null;
   retentionFormat?: AdRetentionFormat;
@@ -712,6 +714,9 @@ export interface ContentPlanRecommendations {
 }
 
 export interface SavedPostItem {
+  publicationLinkedAt?: string | null;
+  publishedPostId?: number | null;
+  publicationResult?: import('./publication-results').PublicationResult;
   id: number;
   postId: number;
   note: string | null;

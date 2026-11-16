@@ -1,3 +1,5 @@
+import { loadPublicationResults } from '@/lib/publication-results';
+import { selectPerformanceSample, PERFORMANCE_HOURS } from '@/lib/metrics/publication-performance';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyBearerToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -21,6 +23,8 @@ const MY_CHANNEL_LOOKBACK_DAYS = 60;
 const SAVED_POST_SELECT = {
   id: true,
   postId: true,
+  publishedPostId: true,
+  publicationLinkedAt: true,
   note: true,
   status: true,
   plannedFor: true,
@@ -149,7 +153,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     const recommendations = await loadContentPlanRecommendations(auth.userId, savedPosts);
-    return NextResponse.json({ savedPosts, recommendations });
+    const results = await loadPublicationResults(auth.userId,savedPosts);
+    return NextResponse.json({ savedPosts: savedPosts.map(p=>({...p,publicationResult:results.get(p.postId)})), recommendations });
   } catch (error) {
     logger.error('GET /api/posts/saved error:', undefined, error);
     return NextResponse.json({ error: 'Не удалось загрузить закладки' }, { status: 500 });
@@ -166,6 +171,7 @@ async function handleUpsert(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  const userId = auth.userId;
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -181,6 +187,10 @@ async function handleUpsert(request: NextRequest): Promise<NextResponse> {
   if (postId === null) {
     return NextResponse.json({ error: 'Некорректный ID публикации' }, { status: 400 });
   }
+
+  const hasPublication = body.publishedPostId !== undefined;
+  const publishedPostId = body.publishedPostId === null ? null : parsePositiveId(body.publishedPostId);
+  if(hasPublication && body.publishedPostId !== null && publishedPostId === null) return NextResponse.json({error:'Некорректная публикация'},{status:400});
 
   const hasNote = body.note !== undefined;
   let normalizedNote: string | null = null;
@@ -248,7 +258,7 @@ async function handleUpsert(request: NextRequest): Promise<NextResponse> {
 
     const subscription = await prisma.userChannel.findUnique({
       where: {
-        userId_channelId: { userId: auth.userId, channelId: post.channelId },
+        userId_channelId: { userId: userId, channelId: post.channelId },
       },
       select: { isActive: true },
     });
@@ -256,14 +266,27 @@ async function handleUpsert(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Нет доступа к каналу публикации' }, { status: 403 });
     }
 
-    const savedPost = await prisma.userSavedPost.upsert({
+    const savedPost = await prisma.$transaction(async tx => {
+      if(hasPublication && publishedPostId !== null) {
+        const target = await tx.post.findFirst({where:{id:publishedPostId,deletedAt:null,channel:{isActive:true,userChannels:{some:{userId:userId,isActive:true,isMine:true}}}},include:{snapshots:true,performanceCheckpoints:true}});
+        if(!target) return null;
+        // Preserve usable historical points before the rolling snapshot cleanup removes them.
+        const peers = await tx.post.findMany({where:{channelId:target.channelId,contentType:target.contentType,isAd:target.isAd,publishedAt:{gte:new Date(target.publishedAt.getTime()-30*86400000),lte:target.publishedAt}},include:{snapshots:true,performanceCheckpoints:true}});
+        const checkpoints=peers.flatMap(peer=>PERFORMANCE_HOURS.flatMap(hoursAfterPost=>{
+          const sample=selectPerformanceSample(peer,hoursAfterPost);
+          return sample?[{postId:peer.id,hoursAfterPost,views:sample.views,capturedAt:sample.capturedAt,source:'snapshot'}]:[];
+        }));
+        if(checkpoints.length) await tx.postPerformanceCheckpoint.createMany({data:checkpoints,skipDuplicates:true});
+      }
+      return tx.userSavedPost.upsert({
       where: {
-        userId_postId: { userId: auth.userId, postId },
+        userId_postId: { userId: userId, postId },
       },
       create: {
-        userId: auth.userId,
+        userId: userId,
         postId,
-        status: parsedStatus,
+        status: hasPublication && publishedPostId !== null ? 'published' : parsedStatus,
+        ...(hasPublication ? {publishedPostId,publicationLinkedAt:publishedPostId === null ? null : new Date()} : {}),
         ...(hasNote ? { note: normalizedNote } : { note: null }),
         ...(hasPlannedFor ? { plannedFor: normalizedPlannedFor } : {}),
         ...(hasDraftText ? { draftText: normalizedDraftText } : {}),
@@ -271,11 +294,14 @@ async function handleUpsert(request: NextRequest): Promise<NextResponse> {
       update: {
         ...(hasNote ? { note: normalizedNote } : {}),
         ...(hasStatus ? { status: parsedStatus } : {}),
+        ...(hasPublication ? {publishedPostId,publicationLinkedAt:publishedPostId === null ? null : new Date(),...(publishedPostId !== null ? {status:'published'} : {})} : {}),
         ...(hasPlannedFor ? { plannedFor: normalizedPlannedFor } : {}),
         ...(hasDraftText ? { draftText: normalizedDraftText } : {}),
       },
       select: SAVED_POST_SELECT,
+      });
     });
+    if(!savedPost) return NextResponse.json({error:'Публикация недоступна или не относится к вашему каналу'},{status:403});
 
     metricsCache.invalidate();
     return NextResponse.json({ savedPost });

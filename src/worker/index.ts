@@ -1,3 +1,4 @@
+import { runPublicationPerformanceCycle } from './publication-performance';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
 import { runDailyDigestIfDue } from '@/lib/digest';
@@ -203,7 +204,7 @@ async function startWorker(): Promise<void> {
 
   scheduled.push(cron.schedule('15 * * * *', () => {
     logger.info('Ad Reach cron triggered');
-    void execute('ad-reach', () => runAdReachCycle());
+    void execute('ad-reach', async () => { await runAdReachCycle(); await runPublicationPerformanceCycle(); });
   }));
   logger.info('Ad Reach cron scheduled (hourly at minute 15)');
 

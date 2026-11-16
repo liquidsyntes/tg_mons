@@ -57,6 +57,7 @@ function toSearchPost(item: AdCreativePostItem): SearchPost {
     savedStatus: item.savedStatus,
     savedPlannedFor: item.savedPlannedFor ?? null,
     savedDraftText: item.savedDraftText ?? null,
+    publicationResult: item.publicationResult,
     deletedAt: item.deletedAt ?? null,
     deletedAfterHours: item.deletedAfterHours ?? null,
     retentionFormat: item.retentionFormat,
@@ -79,6 +80,7 @@ export default function PostsPage() {
   const [onlyViral, setOnlyViral] = useState(false);
   const [onlySaved, setOnlySaved] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
+  const [planMetadata, setPlanMetadata] = useState<Map<number, SavedPostItem>>(new Map());
   const [recommendations, setRecommendations] = useState<ContentPlanRecommendations | null>(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [niche, setNiche] = useState('');
@@ -200,8 +202,11 @@ export default function PostsPage() {
   );
 
   const displayedPosts = useMemo(
-    () => (activeCluster ? activeCluster.posts.map(toSearchPost) : posts),
-    [activeCluster, posts],
+    () => (activeCluster ? activeCluster.posts.map(toSearchPost) : posts).map(post => {
+      const meta=planMetadata.get(post.id);
+      return meta ? {...post,savedStatus:meta.status,publicationResult:meta.publicationResult} : post;
+    }),
+    [activeCluster, posts, planMetadata],
   );
 
   const displayedTotal = activeCluster ? displayedPosts.length : total;
@@ -210,7 +215,7 @@ export default function PostsPage() {
     setRecommendationsLoading(true);
     try {
       const response = await fetch('/api/posts/saved');
-      if (!response.ok) return;
+      if (!response.ok) throw new Error('Не удалось загрузить связи и результаты контент-плана');
       const data = (await response.json()) as {
         savedPosts?: SavedPostItem[];
         recommendations?: ContentPlanRecommendations;
@@ -218,12 +223,13 @@ export default function PostsPage() {
       if (data.recommendations) {
         setRecommendations(data.recommendations);
       }
-      if (Array.isArray(data.savedPosts) && data.savedPosts.length > 0) {
+      if (Array.isArray(data.savedPosts)) {
         const byPostId = new Map(data.savedPosts.map((item) => [item.postId, item]));
+        setPlanMetadata(byPostId);
         setPosts((current) =>
           current.map((post) => {
             const meta = byPostId.get(post.id);
-            if (!meta) return post;
+            if (!meta) return {...post,publicationResult:{state:'unavailable' as const}};
             return {
               ...post,
               isSaved: true,
@@ -231,12 +237,13 @@ export default function PostsPage() {
               savedStatus: meta.status,
               savedPlannedFor: meta.plannedFor,
               savedDraftText: meta.draftText,
+              publicationResult: meta.publicationResult,
             };
           }),
         );
       }
-    } catch {
-      // Опциональные рекомендации не блокируют просмотр закладок
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось загрузить результаты контент-плана');
     } finally {
       setRecommendationsLoading(false);
     }

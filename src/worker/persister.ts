@@ -1,3 +1,4 @@
+import { savePerformanceCheckpoints } from './publication-performance';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import type { ReactionBreakdownItem } from '../lib/types';
@@ -224,6 +225,7 @@ export async function upsertPostWithReactions(params: {
     }
 
     if (params.views !== null && params.views !== undefined) {
+        await savePerformanceCheckpoints(post.id,params.publishedAt,params.views).catch(error=>logger.warn('Performance checkpoint unavailable',{postId:post.id},error));
         const now = new Date();
         const postAgeMs = now.getTime() - params.publishedAt.getTime();
         if (postAgeMs >= 0 && postAgeMs <= 72 * 60 * 60 * 1000) {

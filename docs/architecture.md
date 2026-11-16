@@ -27,7 +27,7 @@ flowchart TB
             Collector["Сборщик teleproto (collector, fetcher, persister, retry-policy)"]
         end
 
-        DB[("PostgreSQL 15 + pg_trgm (27 таблиц, Advisory Lock)")]
+        DB[("PostgreSQL 15 + pg_trgm (28 таблиц, Advisory Lock)")]
     end
 
     subgraph External["Внешние системы"]
@@ -235,7 +235,7 @@ flowchart TB
 
 Полная спецификация моделей PostgreSQL 15, типов полей, вторичных индексов, перечислений и каскадов приведена в документе [База данных и схема Prisma](database.md).
 
-Схема `prisma/schema.prisma` включает **27 моделей** и три перечисления (включая `AiOperationStatus`): `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок. Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
+Схема `prisma/schema.prisma` включает **28 моделей** и три перечисления (включая `AiOperationStatus`): `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок. Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
 
 | Prisma-модель | Таблица | Назначение |
 | --- | --- | --- |
@@ -258,6 +258,7 @@ flowchart TB
 | `AiReport` | `ai_reports` | Тип (10 видов отчётов) и строковый JSON-ответ LLM, необязательный `channelId` и `userId` владельца отчёта |
 | `Event` | `events` | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | Связи M:N событий с исходными постами; unique `(eventId, postId)` |
+| `PostPerformanceCheckpoint` | `post_performance_checkpoints` | Долговременные просмотры в окнах 24/48 ч |
 | `AiOperation` | `ai_operations` | Идемпотентность и состояние AI-операции, временный результат |
 | `AiProviderCall` | `ai_provider_calls` | Журнал попыток провайдера, токены и подтверждённая стоимость |
 | `SystemSetting` | `system_settings` | Запись `global` с общими настройками AI (`aiToken`, `aiModel`) и полями глобального дайджеста |
@@ -267,7 +268,8 @@ flowchart TB
 | `FraudSignal` | `fraud_signals` | Тип (6 эвристик), значение, причина и время срабатывания эвристики |
 | `AdPlacement` | `ad_placements` | Зафиксированные рекламные сделки пользователя (бюджет, формат, статус, `inviteLink`, `actualJoins`, связка с постом/донором) |
 
-Миграции находятся в `prisma/migrations/` (**34 миграции**). Последние миграции в репозитории:
+Миграции находятся в `prisma/migrations/` (**35 миграций**). Последние миграции в репозитории:
+- `20261116050000_publication_performance`: связь контент-плана и контрольные точки;
 - `20261116043000_ai_operations`: журнал AI и лимиты;
 - `20261114063600_add_content_plan_to_saved_posts` – поля контент-плана (`status`, `planned_for`, `draft_text`) в таблице `user_saved_posts`;
 - `20261114042500_add_post_deletion_tracking` – поля фиксации удаления рекламных постов (`deleted_at`, `deleted_after_hours`, `last_checked_at`) в таблице `posts`;

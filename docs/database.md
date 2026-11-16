@@ -28,10 +28,12 @@
 | `PARTIAL` | Цикл сбора завершён, но сбор для одного или нескольких каналов завершился с ошибкой |
 | `FAILED` | Критический сбой всего цикла сбора (например, потеря связи с Telegram MTProto или ошибка БД) |
 
-## ER-диаграмма схемы базы данных (27 моделей)
+## ER-диаграмма схемы базы данных (28 моделей)
 
 ```mermaid
 erDiagram
+    Post ||--o{ PostPerformanceCheckpoint : "контрольные точки"
+    Post |o--o{ UserSavedPost : "фактическая публикация SetNull"
     AiOperation ||--o{ AiProviderCall : "запросы провайдеру (Cascade)"
     User ||--o{ UserChannel : "подписки (Cascade)"
     User ||--o{ AiReport : "отчёты (Cascade)"
@@ -153,10 +155,11 @@ erDiagram
 
 ## Сводная таблица моделей
 
-Схема содержит **27 моделей**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
+Схема содержит **28 моделей**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
+| `PostPerformanceCheckpoint` | `post_performance_checkpoints` | Int autoincrement | unique postId/hoursAfterPost | Post Cascade | Долговременные контрольные точки 24/48 ч |
 | `AiOperation` | `ai_operations` | `id` (String, cuid) | unique actor/kind/key; actor/createdAt; status/expiresAt | 1:N AiProviderCall | Идемпотентность, состояние и временный результат операции |
 | `AiProviderCall` | `ai_provider_calls` | `id` (String, cuid) | operationId/startedAt; startedAt/model; status/expiresAt | operation -> AiOperation (Cascade) | Попытки провайдера, токены и подтверждённая стоимость |
 | `User` | `users` | `id` (Int, autoincrement) | `@unique username`<br>`@unique telegramSub` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `UserSavedPost`, `AdPlacement`, `InviteCode` | Учётные записи с ролями `ADMIN`/`USER`, статусом доступа и необязательной привязкой Telegram; пароль может отсутствовать |
@@ -791,3 +794,24 @@ erDiagram
 Инициатор хранится явным пространством имён, `userId` исторический идентификатор без внешнего ключа: удаление учётной записи не удаляет финансовый журнал. Уникальность `(actor, kind, key)` поддерживает идемпотентность. Индексы обслуживают период/инициатора и поиск активных lease. Вызовы связаны с операцией, каскадное удаление операции удалит её вызовы; приложение не удаляет журнал автоматически. Тексты ответов очищаются лениво при следующем резервировании после 7 дней, метаданные остаются. Промпты и секреты не сохраняются.
 
 Лимиты `aiHourlyLimit=0`, `aiConcurrentLimit=0`, `aiProviderConcurrency=4` применяются к существующим настройкам через defaults. Миграция добавочная, существующие отчёты и события не меняются.
+
+## Фактические публикации и контрольные точки (#88)
+
+Миграция `20261116050000_publication_performance` добавляет nullable `UserSavedPost.publishedPostId` с индексом и FK SetNull, `publicationLinkedAt` и модель `PostPerformanceCheckpoint` (`post_performance_checkpoints`). Исходная связь `postId` остаётся референсом с прежним Cascade. Обе связи Prisma получили отдельные имена PlanReference/PlanPublication.
+
+```mermaid
+erDiagram
+    Post ||--o{ UserSavedPost : "reference Cascade"
+    Post |o--o{ UserSavedPost : "publication SetNull"
+    Post ||--o{ PostPerformanceCheckpoint : "Cascade"
+    PostPerformanceCheckpoint {
+        int id PK
+        int postId FK
+        int hoursAfterPost "24 or 48, unique with postId"
+        int views
+        datetime capturedAt
+        string source "collector, targeted, snapshot"
+    }
+```
+
+Checkpoint общий для публикации, а не пользователя. Повторный сбор не создаёт дубли. Физическое удаление Post удаляет его checkpoints; мягкое deletedAt сохраняет их. Существующие строки закладок получают null в новых полях. Исторические снимки переносятся только при наличии подходящего реального замера, текущие просмотры не используются для backfill.

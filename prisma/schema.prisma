@@ -130,6 +130,9 @@ model UserDismissedEvent {
 }
 
 model UserSavedPost {
+  publishedPostId Int? @map("published_post_id")
+  publicationLinkedAt DateTime? @map("publication_linked_at")
+  publishedPost Post? @relation("PlanPublication", fields: [publishedPostId], references: [id], onDelete: SetNull)
   id         Int       @id @default(autoincrement())
   userId     Int       @map("user_id")
   postId     Int       @map("post_id")
@@ -141,8 +144,9 @@ model UserSavedPost {
   updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post Post @relation("PlanReference", fields: [postId], references: [id], onDelete: Cascade)
 
+  @@index([publishedPostId])
   @@unique([userId, postId])
   @@index([userId, createdAt])
   @@index([userId, status])
@@ -202,7 +206,9 @@ model Post {
   eventMentions        EventMention[]
   image                PostImage?
   alertRulePostFires   AlertRulePostFire[]
-  savedByUsers         UserSavedPost[]
+  savedByUsers         UserSavedPost[] @relation("PlanReference")
+  publicationPlans     UserSavedPost[] @relation("PlanPublication")
+  performanceCheckpoints PostPerformanceCheckpoint[]
   engagementHours      PostEngagementHour[]
   adPlacements         AdPlacement[]
 
@@ -530,4 +536,16 @@ model AiProviderCall {
   @@index([operationId, startedAt])
   @@index([startedAt, model])
   @@map("ai_provider_calls")
+}
+
+model PostPerformanceCheckpoint {
+  id Int @id @default(autoincrement())
+  postId Int @map("post_id")
+  hoursAfterPost Int @map("hours_after_post")
+  views Int
+  capturedAt DateTime @map("captured_at")
+  source String @default("collector")
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@unique([postId, hoursAfterPost])
+  @@map("post_performance_checkpoints")
 }
