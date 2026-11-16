@@ -1,0 +1,23 @@
+import {readFile,readdir} from 'node:fs/promises';
+import {parseDataset,parseRun,evaluate,hash} from '/app/src/lib/events/evaluation';
+async function main(){
+ const root='/app/src/lib/events/eval-data/';const dataset=parseDataset(JSON.parse(await readFile(root+'dataset-v2.json','utf8')));
+ const manifest=JSON.parse(await readFile(root+'manifest-v2.json','utf8'));
+ const summary=JSON.parse(await readFile(root+'live-v2/report.json','utf8'));
+ for(const [name,expected] of Object.entries(summary.reports)){
+  const run=parseRun(JSON.parse(await readFile(root+'live-v2/'+name+'.json','utf8')));
+  if(JSON.stringify(evaluate(dataset,run))!==JSON.stringify(expected))throw Error('Report mismatch '+name);
+  if(JSON.stringify(evaluate(dataset,run,'control'))!==JSON.stringify(summary.control[name]))throw Error('Control mismatch '+name);
+  const plan=JSON.parse(await readFile(root+'live-v2/'+name+'.json.requests.json','utf8'));
+  if(hash(plan.payloads)!==run.requestHash || plan.datasetHash!==hash(dataset) || !manifest.plans.some((p:{requestHash:string})=>p.requestHash===run.requestHash))throw Error('Plan mismatch '+name);
+ }
+ const cascadePlan=JSON.parse(await readFile(root+'live-v2/cascade.json.requests.json','utf8'));
+ if(cascadePlan.parentRunHash!==summary.sanitation['jev-original'].originalHash)throw Error('Original provenance mismatch');
+ for(const file of await readdir(root+'live-v2')){
+  const content=await readFile(root+'live-v2/'+file,'utf8');
+  const key=process.env.OPENROUTER_API_KEY;
+  if((key && content.includes(key)) || /sk-(or-v1|proj)-[A-Za-z0-9]{12,}|-----BEGIN .*PRIVATE KEY/.test(content) || content.includes('\u2014'))throw Error('Artifact check failed '+file);
+ }
+ console.log('Six full/control reports replayed; request manifests, parent provenance and artifact checks passed');
+}
+main().catch(e=>{console.error(e.message);process.exitCode=1});

@@ -1,0 +1,30 @@
+import { runEvaluationCli } from '/app/src/lib/events/eval-cli';
+import { mkdir,writeFile } from 'node:fs/promises';
+const root='/app/src/lib/events/eval-data/live-v2';
+const dataset='/app/src/lib/events/eval-data/dataset-v2.json';
+let spent=0,requests=0,unknown=false;
+const originalFetch=globalThis.fetch;
+globalThis.fetch=async (...args:Parameters<typeof fetch>)=>{
+ if(unknown || spent>=0.9 || requests>=140) throw new Error('Experiment stopped');
+ requests++;
+ try {
+ const response=await originalFetch(...args);
+ const data=await response.clone().json() as {usage?:{cost?:number}};
+ const cost=data.usage?.cost;
+ if(typeof cost==='number' && Number.isFinite(cost) && cost>=0) spent+=cost; else unknown=true;
+ await writeFile(root+'/budget.json',JSON.stringify({requests,knownCostUsd:spent,unknown,authorization:'2026-11-16 user approved up to 140 requests; proposed USD 1',stopBeforeNextAtUsd:0.9},null,2)+'\n');
+ return response;
+ } catch {unknown=true;await writeFile(root+'/budget.json',JSON.stringify({requests,knownCostUsd:spent,unknown},null,2)+'\n');throw new Error('Uncertain request; stop');}
+};
+async function main(){
+ await mkdir(root,{recursive:false});
+ const captures=[['jev-original','~typesafe/jev-latest','original'],['gemini-original','google/gemini-decision-1','original'],['cascade','google/gemini-decision-1','original'],['jev-within','~typesafe/jev-latest','within-batch'],['gemini-within','google/gemini-decision-1','within-batch'],['jev-regroup','~typesafe/jev-latest','regroup'],['gemini-regroup','google/gemini-decision-1','regroup']];
+ for(const [name,model,order] of captures){
+ if(unknown||spent>=0.9) break;
+ const args=['capture','--dataset',dataset,'--model',model,'--limit','200','--allow-paid','yes','--order',order,'--seed','issue92-v1','--out',root+'/'+name+'.json'];
+ if(name==='cascade') args.push('--rejected-by',root+'/jev-original.json');
+ await runEvaluationCli(args);
+ console.log(JSON.stringify({completed:name,requests,knownCostUsd:spent,unknown}));
+ }
+}
+main().catch(()=>{console.error('Experiment stopped; inspect saved artifacts without retrying paid requests');process.exitCode=1;});

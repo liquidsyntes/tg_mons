@@ -49,6 +49,15 @@
       "requestHash": "1d5a66dcaed3694e087a20146bae7a4541c9111f4170454e915d79e6ab305a24"
     }
   ],
-  "paidRuns": [],
-  "status": "awaiting thresholds and paid authorization"
+  "paidRuns": [
+    "jev-original",
+    "gemini-original",
+    "cascade",
+    "jev-within",
+    "gemini-within",
+    "jev-regroup",
+    "gemini-regroup"
+  ],
+  "status": "completed; user approval 2026-11-16 before control results",
+  "report": "live-v2/report.json"
 }

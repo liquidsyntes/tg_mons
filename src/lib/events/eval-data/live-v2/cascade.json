@@ -1,0 +1,5993 @@
+{
+  "parentRunHash": "690862a94087905e951c1053bcbab94786b2a3995eaff4349bd8eb6a7c81fc73",
+  "schemaVersion": 1,
+  "datasetHash": "8898cf2f1fb87e7ed62c98976e3b1d455e1f7a1a2f528922c246b028a73004ef",
+  "model": "google/gemini-decision-1",
+  "provenance": "live",
+  "requestHash": "2cac74beb888c5f2c2e1feea098967244e0c165168fff480bbc09ef18a40a56b",
+  "thresholds": {
+    "announcement": 0.2,
+    "digest": 0.8,
+    "focused": 0.5,
+    "actionable": 0.5,
+    "recap": 0.8
+  },
+  "batches": [
+    {
+      "ids": [
+        9,
+        10,
+        37,
+        38,
+        39,
+        40,
+        49,
+        50,
+        97,
+        98
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "announcement_39": {
+            "type": "noul",
+            "noul": 0.8727410639559744,
+            "confidence": 0.8727410639559744
+          },
+          "tickets_9": {
+            "type": "noul",
+            "noul": 0.04250525382960328,
+            "confidence": 0.9574947461703968
+          },
+          "announcement_38": {
+            "type": "noul",
+            "noul": 0.8898216397709232,
+            "confidence": 0.8898216397709232
+          },
+          "tickets_50": {
+            "type": "noul",
+            "noul": 0.06609233120675895,
+            "confidence": 0.933907668793241
+          },
+          "date_10": {
+            "type": "noul",
+            "noul": 0.9610434791183816,
+            "confidence": 0.9610434791183816
+          },
+          "focused_39": {
+            "type": "noul",
+            "noul": 0.8070356886340043,
+            "confidence": 0.8070356886340043
+          },
+          "recap_97": {
+            "type": "noul",
+            "noul": 0.09990419366677976,
+            "confidence": 0.9000958063332203
+          },
+          "digest_37": {
+            "type": "noul",
+            "noul": 0.04567405398265462,
+            "confidence": 0.9543259460173454
+          },
+          "date_98": {
+            "type": "noul",
+            "noul": 0.8707161858719996,
+            "confidence": 0.8707161858719996
+          },
+          "actionable_37": {
+            "type": "noul",
+            "noul": 0.9414882922650507,
+            "confidence": 0.9414882922650507
+          },
+          "time_49": {
+            "type": "noul",
+            "noul": 0.9433738492155997,
+            "confidence": 0.9433738492155997
+          },
+          "recap_10": {
+            "type": "noul",
+            "noul": 0.04356989079283635,
+            "confidence": 0.9564301092071636
+          },
+          "digest_9": {
+            "type": "noul",
+            "noul": 0.055311438568425346,
+            "confidence": 0.9446885614315746
+          },
+          "tickets_98": {
+            "type": "noul",
+            "noul": 0.04580274102172845,
+            "confidence": 0.9541972589782716
+          },
+          "focused_38": {
+            "type": "noul",
+            "noul": 0.8581830556355119,
+            "confidence": 0.8581830556355119
+          },
+          "announcement_98": {
+            "type": "noul",
+            "noul": 0.8249379998909785,
+            "confidence": 0.8249379998909785
+          },
+          "registration_97": {
+            "type": "noul",
+            "noul": 0.16293328242373523,
+            "confidence": 0.8370667175762647
+          },
+          "date_39": {
+            "type": "noul",
+            "noul": 0.7944173320797833,
+            "confidence": 0.7944173320797833
+          },
+          "focused_97": {
+            "type": "noul",
+            "noul": 0.8713165114374075,
+            "confidence": 0.8713165114374075
+          },
+          "invitation_40": {
+            "type": "noul",
+            "noul": 0.8662248111416895,
+            "confidence": 0.8662248111416895
+          },
+          "digest_10": {
+            "type": "noul",
+            "noul": 0.04864280438222672,
+            "confidence": 0.9513571956177733
+          },
+          "registration_40": {
+            "type": "noul",
+            "noul": 0.11406058237631053,
+            "confidence": 0.8859394176236894
+          },
+          "actionable_9": {
+            "type": "noul",
+            "noul": 0.9724824515647821,
+            "confidence": 0.9724824515647821
+          },
+          "invitation_98": {
+            "type": "noul",
+            "noul": 0.7734508439089527,
+            "confidence": 0.7734508439089527
+          },
+          "recap_37": {
+            "type": "noul",
+            "noul": 0.04711585309933117,
+            "confidence": 0.9528841469006688
+          },
+          "focused_9": {
+            "type": "noul",
+            "noul": 0.9552250395386092,
+            "confidence": 0.9552250395386092
+          },
+          "actionable_39": {
+            "type": "noul",
+            "noul": 0.8740021199362984,
+            "confidence": 0.8740021199362984
+          },
+          "invitation_10": {
+            "type": "noul",
+            "noul": 0.9362076367214957,
+            "confidence": 0.9362076367214957
+          },
+          "invitation_37": {
+            "type": "noul",
+            "noul": 0.8906338723279023,
+            "confidence": 0.8906338723279023
+          },
+          "date_50": {
+            "type": "noul",
+            "noul": 0.7538431771491984,
+            "confidence": 0.7538431771491984
+          },
+          "announcement_97": {
+            "type": "noul",
+            "noul": 0.8978427077569922,
+            "confidence": 0.8978427077569922
+          },
+          "tickets_39": {
+            "type": "noul",
+            "noul": 0.07912350450983864,
+            "confidence": 0.9208764954901614
+          },
+          "time_39": {
+            "type": "noul",
+            "noul": 0.9329857151807908,
+            "confidence": 0.9329857151807908
+          },
+          "focused_98": {
+            "type": "noul",
+            "noul": 0.8091364341939004,
+            "confidence": 0.8091364341939004
+          },
+          "digest_98": {
+            "type": "noul",
+            "noul": 0.08344808933886219,
+            "confidence": 0.9165519106611378
+          },
+          "registration_38": {
+            "type": "noul",
+            "noul": 0.13050468015056355,
+            "confidence": 0.8694953198494364
+          },
+          "date_38": {
+            "type": "noul",
+            "noul": 0.8197841998692764,
+            "confidence": 0.8197841998692764
+          },
+          "focused_10": {
+            "type": "noul",
+            "noul": 0.8186048469991223,
+            "confidence": 0.8186048469991223
+          },
+          "actionable_40": {
+            "type": "noul",
+            "noul": 0.8318651468328662,
+            "confidence": 0.8318651468328662
+          },
+          "invitation_9": {
+            "type": "noul",
+            "noul": 0.9578645730698071,
+            "confidence": 0.9578645730698071
+          },
+          "announcement_40": {
+            "type": "noul",
+            "noul": 0.8657044776241344,
+            "confidence": 0.8657044776241344
+          },
+          "digest_50": {
+            "type": "noul",
+            "noul": 0.09245016661646632,
+            "confidence": 0.9075498333835337
+          },
+          "time_38": {
+            "type": "noul",
+            "noul": 0.9554738566106609,
+            "confidence": 0.9554738566106609
+          },
+          "registration_49": {
+            "type": "noul",
+            "noul": 0.12285535252202404,
+            "confidence": 0.8771446474779759
+          },
+          "invitation_39": {
+            "type": "noul",
+            "noul": 0.8031614480306056,
+            "confidence": 0.8031614480306056
+          },
+          "digest_40": {
+            "type": "noul",
+            "noul": 0.11591668086791121,
+            "confidence": 0.8840833191320888
+          },
+          "actionable_10": {
+            "type": "noul",
+            "noul": 0.9534448288730728,
+            "confidence": 0.9534448288730728
+          },
+          "recap_50": {
+            "type": "noul",
+            "noul": 0.14794279228680807,
+            "confidence": 0.8520572077131919
+          },
+          "recap_39": {
+            "type": "noul",
+            "noul": 0.08265373648328034,
+            "confidence": 0.9173462635167197
+          },
+          "invitation_50": {
+            "type": "noul",
+            "noul": 0.8033995699381219,
+            "confidence": 0.8033995699381219
+          },
+          "registration_39": {
+            "type": "noul",
+            "noul": 0.12651808428456818,
+            "confidence": 0.8734819157154319
+          },
+          "focused_50": {
+            "type": "noul",
+            "noul": 0.87639764658269,
+            "confidence": 0.87639764658269
+          },
+          "tickets_49": {
+            "type": "noul",
+            "noul": 0.12550684375419346,
+            "confidence": 0.8744931562458065
+          },
+          "date_49": {
+            "type": "noul",
+            "noul": 0.7793827382330749,
+            "confidence": 0.7793827382330749
+          },
+          "tickets_40": {
+            "type": "noul",
+            "noul": 0.06782522707779459,
+            "confidence": 0.9321747729222054
+          },
+          "date_37": {
+            "type": "noul",
+            "noul": 0.9059471427768474,
+            "confidence": 0.9059471427768474
+          },
+          "tickets_37": {
+            "type": "noul",
+            "noul": 0.04752803137802354,
+            "confidence": 0.9524719686219765
+          },
+          "announcement_10": {
+            "type": "noul",
+            "noul": 0.9342130410171127,
+            "confidence": 0.9342130410171127
+          },
+          "date_97": {
+            "type": "noul",
+            "noul": 0.8685708349557479,
+            "confidence": 0.8685708349557479
+          },
+          "actionable_50": {
+            "type": "noul",
+            "noul": 0.8652384114946859,
+            "confidence": 0.8652384114946859
+          },
+          "actionable_98": {
+            "type": "noul",
+            "noul": 0.8573262476579335,
+            "confidence": 0.8573262476579335
+          },
+          "actionable_38": {
+            "type": "noul",
+            "noul": 0.9037161045531027,
+            "confidence": 0.9037161045531027
+          },
+          "tickets_38": {
+            "type": "noul",
+            "noul": 0.06089371214016553,
+            "confidence": 0.9391062878598345
+          },
+          "digest_38": {
+            "type": "noul",
+            "noul": 0.057461998166447883,
+            "confidence": 0.9425380018335521
+          },
+          "time_37": {
+            "type": "noul",
+            "noul": 0.8251676922203989,
+            "confidence": 0.8251676922203989
+          },
+          "announcement_50": {
+            "type": "noul",
+            "noul": 0.8755534851723318,
+            "confidence": 0.8755534851723318
+          },
+          "registration_9": {
+            "type": "noul",
+            "noul": 0.044880375962572605,
+            "confidence": 0.9551196240374273
+          },
+          "digest_39": {
+            "type": "noul",
+            "noul": 0.12476583687412693,
+            "confidence": 0.8752341631258731
+          },
+          "focused_40": {
+            "type": "noul",
+            "noul": 0.8403889402520447,
+            "confidence": 0.8403889402520447
+          },
+          "focused_37": {
+            "type": "noul",
+            "noul": 0.8752312209815617,
+            "confidence": 0.8752312209815617
+          },
+          "registration_50": {
+            "type": "noul",
+            "noul": 0.1574745043461543,
+            "confidence": 0.8425254956538457
+          },
+          "announcement_9": {
+            "type": "noul",
+            "noul": 0.9356727895187412,
+            "confidence": 0.9356727895187412
+          },
+          "digest_97": {
+            "type": "noul",
+            "noul": 0.06711433616012337,
+            "confidence": 0.9328856638398766
+          },
+          "focused_49": {
+            "type": "noul",
+            "noul": 0.831196990852012,
+            "confidence": 0.831196990852012
+          },
+          "time_97": {
+            "type": "noul",
+            "noul": 0.9563876782750824,
+            "confidence": 0.9563876782750824
+          },
+          "digest_49": {
+            "type": "noul",
+            "noul": 0.08658484337661859,
+            "confidence": 0.9134151566233815
+          },
+          "date_40": {
+            "type": "noul",
+            "noul": 0.8256957124421979,
+            "confidence": 0.8256957124421979
+          },
+          "tickets_10": {
+            "type": "noul",
+            "noul": 0.036783997376235694,
+            "confidence": 0.9632160026237643
+          },
+          "recap_98": {
+            "type": "noul",
+            "noul": 0.05524362156660252,
+            "confidence": 0.9447563784333974
+          },
+          "recap_40": {
+            "type": "noul",
+            "noul": 0.07625460238626547,
+            "confidence": 0.9237453976137345
+          },
+          "tickets_97": {
+            "type": "noul",
+            "noul": 0.07761438520209799,
+            "confidence": 0.922385614797902
+          },
+          "invitation_38": {
+            "type": "noul",
+            "noul": 0.7984844511747121,
+            "confidence": 0.7984844511747121
+          },
+          "time_40": {
+            "type": "noul",
+            "noul": 0.9547465038840156,
+            "confidence": 0.9547465038840156
+          },
+          "registration_10": {
+            "type": "noul",
+            "noul": 0.048573876333364206,
+            "confidence": 0.9514261236666358
+          },
+          "date_9": {
+            "type": "noul",
+            "noul": 0.9436377324104853,
+            "confidence": 0.9436377324104853
+          },
+          "time_10": {
+            "type": "noul",
+            "noul": 0.9619617428613495,
+            "confidence": 0.9619617428613495
+          },
+          "announcement_49": {
+            "type": "noul",
+            "noul": 0.8619469581352183,
+            "confidence": 0.8619469581352183
+          },
+          "invitation_49": {
+            "type": "noul",
+            "noul": 0.8420844366633109,
+            "confidence": 0.8420844366633109
+          },
+          "actionable_97": {
+            "type": "noul",
+            "noul": 0.8449323486652728,
+            "confidence": 0.8449323486652728
+          },
+          "invitation_97": {
+            "type": "noul",
+            "noul": 0.7955859083405648,
+            "confidence": 0.7955859083405648
+          },
+          "actionable_49": {
+            "type": "noul",
+            "noul": 0.8206101212258454,
+            "confidence": 0.8206101212258454
+          },
+          "recap_9": {
+            "type": "noul",
+            "noul": 0.03576798279772691,
+            "confidence": 0.9642320172022731
+          },
+          "time_50": {
+            "type": "noul",
+            "noul": 0.9222115153753506,
+            "confidence": 0.9222115153753506
+          },
+          "time_9": {
+            "type": "noul",
+            "noul": 0.9687165979228861,
+            "confidence": 0.9687165979228861
+          },
+          "recap_38": {
+            "type": "noul",
+            "noul": 0.0499673189438869,
+            "confidence": 0.950032681056113
+          },
+          "announcement_37": {
+            "type": "noul",
+            "noul": 0.9352769951993064,
+            "confidence": 0.9352769951993064
+          },
+          "recap_49": {
+            "type": "noul",
+            "noul": 0.11019700488020177,
+            "confidence": 0.8898029951197982
+          },
+          "registration_98": {
+            "type": "noul",
+            "noul": 0.09470542898194673,
+            "confidence": 0.9052945710180533
+          },
+          "registration_37": {
+            "type": "noul",
+            "noul": 0.06435636240602431,
+            "confidence": 0.9356436375939757
+          },
+          "time_98": {
+            "type": "noul",
+            "noul": 0.9320441332226207,
+            "confidence": 0.9320441332226207
+          }
+        },
+        "usage": {
+          "input_tokens": 8116,
+          "output_tokens": 0,
+          "cost": 0.0008116,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008116,
+            "upstream_inference_prompt_cost": 0.0008116,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 428
+    },
+    {
+      "ids": [
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "date_107": {
+            "type": "noul",
+            "noul": 0.8282018421418711,
+            "confidence": 0.8282018421418711
+          },
+          "date_106": {
+            "type": "noul",
+            "noul": 0.8381585136114096,
+            "confidence": 0.8381585136114096
+          },
+          "recap_102": {
+            "type": "noul",
+            "noul": 0.13872713767447523,
+            "confidence": 0.8612728623255248
+          },
+          "date_101": {
+            "type": "noul",
+            "noul": 0.5700318902871763,
+            "confidence": 0.5700318902871763
+          },
+          "actionable_108": {
+            "type": "noul",
+            "noul": 0.3804183041932083,
+            "confidence": 0.6195816958067917
+          },
+          "focused_101": {
+            "type": "noul",
+            "noul": 0.0780653380259804,
+            "confidence": 0.9219346619740196
+          },
+          "invitation_107": {
+            "type": "noul",
+            "noul": 0.10134742773201337,
+            "confidence": 0.8986525722679867
+          },
+          "date_108": {
+            "type": "noul",
+            "noul": 0.6384312715701461,
+            "confidence": 0.6384312715701461
+          },
+          "tickets_106": {
+            "type": "noul",
+            "noul": 0.5685491938944468,
+            "confidence": 0.5685491938944468
+          },
+          "recap_104": {
+            "type": "noul",
+            "noul": 0.13483689233644597,
+            "confidence": 0.865163107663554
+          },
+          "digest_102": {
+            "type": "noul",
+            "noul": 0.16313404478595722,
+            "confidence": 0.8368659552140427
+          },
+          "digest_99": {
+            "type": "noul",
+            "noul": 0.04519371210787877,
+            "confidence": 0.9548062878921212
+          },
+          "actionable_104": {
+            "type": "noul",
+            "noul": 0.32449507306994846,
+            "confidence": 0.6755049269300515
+          },
+          "actionable_107": {
+            "type": "noul",
+            "noul": 0.35050664672509174,
+            "confidence": 0.6494933532749083
+          },
+          "announcement_108": {
+            "type": "noul",
+            "noul": 0.16780114979429814,
+            "confidence": 0.8321988502057018
+          },
+          "digest_101": {
+            "type": "noul",
+            "noul": 0.07185199548320731,
+            "confidence": 0.9281480045167927
+          },
+          "announcement_100": {
+            "type": "noul",
+            "noul": 0.9069657941052928,
+            "confidence": 0.9069657941052928
+          },
+          "invitation_102": {
+            "type": "noul",
+            "noul": 0.13809524835368617,
+            "confidence": 0.8619047516463139
+          },
+          "invitation_104": {
+            "type": "noul",
+            "noul": 0.12791251186874547,
+            "confidence": 0.8720874881312546
+          },
+          "date_99": {
+            "type": "noul",
+            "noul": 0.919898020407424,
+            "confidence": 0.919898020407424
+          },
+          "recap_107": {
+            "type": "noul",
+            "noul": 0.10216405413050417,
+            "confidence": 0.8978359458694958
+          },
+          "time_100": {
+            "type": "noul",
+            "noul": 0.973803364469675,
+            "confidence": 0.973803364469675
+          },
+          "registration_103": {
+            "type": "noul",
+            "noul": 0.1805474632174137,
+            "confidence": 0.8194525367825863
+          },
+          "tickets_102": {
+            "type": "noul",
+            "noul": 0.18172258533115415,
+            "confidence": 0.8182774146688458
+          },
+          "digest_105": {
+            "type": "noul",
+            "noul": 0.11362851028696702,
+            "confidence": 0.886371489713033
+          },
+          "recap_108": {
+            "type": "noul",
+            "noul": 0.10518370491998649,
+            "confidence": 0.8948162950800135
+          },
+          "focused_108": {
+            "type": "noul",
+            "noul": 0.15283916978907935,
+            "confidence": 0.8471608302109206
+          },
+          "actionable_102": {
+            "type": "noul",
+            "noul": 0.3139943863813119,
+            "confidence": 0.6860056136186881
+          },
+          "registration_100": {
+            "type": "noul",
+            "noul": 0.05720116554888429,
+            "confidence": 0.9427988344511157
+          },
+          "tickets_104": {
+            "type": "noul",
+            "noul": 0.3310327287790128,
+            "confidence": 0.6689672712209872
+          },
+          "actionable_106": {
+            "type": "noul",
+            "noul": 0.35328672181373544,
+            "confidence": 0.6467132781862646
+          },
+          "digest_107": {
+            "type": "noul",
+            "noul": 0.07770852418987617,
+            "confidence": 0.9222914758101238
+          },
+          "announcement_99": {
+            "type": "noul",
+            "noul": 0.9243997313014735,
+            "confidence": 0.9243997313014735
+          },
+          "focused_99": {
+            "type": "noul",
+            "noul": 0.90182971411298,
+            "confidence": 0.90182971411298
+          },
+          "focused_107": {
+            "type": "noul",
+            "noul": 0.08830332918189135,
+            "confidence": 0.9116966708181087
+          },
+          "recap_100": {
+            "type": "noul",
+            "noul": 0.04579019738193709,
+            "confidence": 0.9542098026180629
+          },
+          "announcement_104": {
+            "type": "noul",
+            "noul": 0.31138666449846747,
+            "confidence": 0.6886133355015325
+          },
+          "actionable_105": {
+            "type": "noul",
+            "noul": 0.3707439449124181,
+            "confidence": 0.6292560550875819
+          },
+          "registration_99": {
+            "type": "noul",
+            "noul": 0.06316296563824267,
+            "confidence": 0.9368370343617574
+          },
+          "tickets_103": {
+            "type": "noul",
+            "noul": 0.23680055070109254,
+            "confidence": 0.7631994492989075
+          },
+          "focused_106": {
+            "type": "noul",
+            "noul": 0.06951238182474744,
+            "confidence": 0.9304876181752526
+          },
+          "actionable_101": {
+            "type": "noul",
+            "noul": 0.42245991949628553,
+            "confidence": 0.5775400805037145
+          },
+          "actionable_99": {
+            "type": "noul",
+            "noul": 0.6954387511373518,
+            "confidence": 0.6954387511373518
+          },
+          "announcement_105": {
+            "type": "noul",
+            "noul": 0.24760501983362296,
+            "confidence": 0.7523949801663771
+          },
+          "actionable_100": {
+            "type": "noul",
+            "noul": 0.5956401059461138,
+            "confidence": 0.5956401059461138
+          },
+          "time_108": {
+            "type": "noul",
+            "noul": 0.15793701351171127,
+            "confidence": 0.8420629864882887
+          },
+          "time_99": {
+            "type": "noul",
+            "noul": 0.9677066167857841,
+            "confidence": 0.9677066167857841
+          },
+          "focused_104": {
+            "type": "noul",
+            "noul": 0.1632433146604961,
+            "confidence": 0.8367566853395039
+          },
+          "tickets_107": {
+            "type": "noul",
+            "noul": 0.8088177177074983,
+            "confidence": 0.8088177177074983
+          },
+          "recap_99": {
+            "type": "noul",
+            "noul": 0.04304432072189707,
+            "confidence": 0.9569556792781029
+          },
+          "time_101": {
+            "type": "noul",
+            "noul": 0.9200530728464175,
+            "confidence": 0.9200530728464175
+          },
+          "date_104": {
+            "type": "noul",
+            "noul": 0.31452980473714715,
+            "confidence": 0.6854701952628528
+          },
+          "focused_100": {
+            "type": "noul",
+            "noul": 0.9165456611742026,
+            "confidence": 0.9165456611742026
+          },
+          "invitation_99": {
+            "type": "noul",
+            "noul": 0.939450798677474,
+            "confidence": 0.939450798677474
+          },
+          "registration_101": {
+            "type": "noul",
+            "noul": 0.08886514897016279,
+            "confidence": 0.9111348510298372
+          },
+          "invitation_106": {
+            "type": "noul",
+            "noul": 0.060846919379968945,
+            "confidence": 0.939153080620031
+          },
+          "tickets_100": {
+            "type": "noul",
+            "noul": 0.04324305534896761,
+            "confidence": 0.9567569446510324
+          },
+          "time_103": {
+            "type": "noul",
+            "noul": 0.383859492107084,
+            "confidence": 0.6161405078929161
+          },
+          "digest_106": {
+            "type": "noul",
+            "noul": 0.059757215008777384,
+            "confidence": 0.9402427849912226
+          },
+          "announcement_102": {
+            "type": "noul",
+            "noul": 0.26481749295093293,
+            "confidence": 0.7351825070490671
+          },
+          "recap_103": {
+            "type": "noul",
+            "noul": 0.12363010601424931,
+            "confidence": 0.8763698939857507
+          },
+          "focused_102": {
+            "type": "noul",
+            "noul": 0.19912843090203622,
+            "confidence": 0.8008715690979638
+          },
+          "invitation_105": {
+            "type": "noul",
+            "noul": 0.1793553495820338,
+            "confidence": 0.8206446504179662
+          },
+          "digest_104": {
+            "type": "noul",
+            "noul": 0.08416324553090651,
+            "confidence": 0.9158367544690935
+          },
+          "date_105": {
+            "type": "noul",
+            "noul": 0.6853305431581193,
+            "confidence": 0.6853305431581193
+          },
+          "date_102": {
+            "type": "noul",
+            "noul": 0.27453902415276293,
+            "confidence": 0.725460975847237
+          },
+          "date_100": {
+            "type": "noul",
+            "noul": 0.8856842334593465,
+            "confidence": 0.8856842334593465
+          },
+          "registration_104": {
+            "type": "noul",
+            "noul": 0.16591956828418994,
+            "confidence": 0.83408043171581
+          },
+          "tickets_105": {
+            "type": "noul",
+            "noul": 0.5215164985773797,
+            "confidence": 0.5215164985773797
+          },
+          "registration_108": {
+            "type": "noul",
+            "noul": 0.08379537417732127,
+            "confidence": 0.9162046258226787
+          },
+          "tickets_108": {
+            "type": "noul",
+            "noul": 0.388985935703203,
+            "confidence": 0.6110140642967969
+          },
+          "announcement_103": {
+            "type": "noul",
+            "noul": 0.3472178482511741,
+            "confidence": 0.6527821517488259
+          },
+          "announcement_101": {
+            "type": "noul",
+            "noul": 0.251998980358634,
+            "confidence": 0.748001019641366
+          },
+          "invitation_103": {
+            "type": "noul",
+            "noul": 0.2084330380205679,
+            "confidence": 0.7915669619794321
+          },
+          "recap_106": {
+            "type": "noul",
+            "noul": 0.07117112504927099,
+            "confidence": 0.928828874950729
+          },
+          "registration_105": {
+            "type": "noul",
+            "noul": 0.14150616937440105,
+            "confidence": 0.8584938306255989
+          },
+          "invitation_100": {
+            "type": "noul",
+            "noul": 0.9244583431461476,
+            "confidence": 0.9244583431461476
+          },
+          "time_107": {
+            "type": "noul",
+            "noul": 0.09315519364546543,
+            "confidence": 0.9068448063545346
+          },
+          "tickets_101": {
+            "type": "noul",
+            "noul": 0.0720702105666147,
+            "confidence": 0.9279297894333853
+          },
+          "registration_102": {
+            "type": "noul",
+            "noul": 0.14106537238301456,
+            "confidence": 0.8589346276169855
+          },
+          "time_106": {
+            "type": "noul",
+            "noul": 0.09960106916138432,
+            "confidence": 0.9003989308386157
+          },
+          "actionable_103": {
+            "type": "noul",
+            "noul": 0.3194219857743855,
+            "confidence": 0.6805780142256145
+          },
+          "time_102": {
+            "type": "noul",
+            "noul": 0.41151557267184624,
+            "confidence": 0.5884844273281538
+          },
+          "digest_108": {
+            "type": "noul",
+            "noul": 0.06122656302666972,
+            "confidence": 0.9387734369733303
+          },
+          "registration_106": {
+            "type": "noul",
+            "noul": 0.07753760539645488,
+            "confidence": 0.9224623946035451
+          },
+          "date_103": {
+            "type": "noul",
+            "noul": 0.2782525427064613,
+            "confidence": 0.7217474572935387
+          },
+          "digest_100": {
+            "type": "noul",
+            "noul": 0.04001955930554376,
+            "confidence": 0.9599804406944562
+          },
+          "registration_107": {
+            "type": "noul",
+            "noul": 0.09467583208749601,
+            "confidence": 0.905324167912504
+          },
+          "focused_105": {
+            "type": "noul",
+            "noul": 0.11553257341527805,
+            "confidence": 0.884467426584722
+          },
+          "digest_103": {
+            "type": "noul",
+            "noul": 0.14764798312923882,
+            "confidence": 0.8523520168707612
+          },
+          "invitation_101": {
+            "type": "noul",
+            "noul": 0.10842497873251516,
+            "confidence": 0.8915750212674849
+          },
+          "recap_101": {
+            "type": "noul",
+            "noul": 0.2829170561966113,
+            "confidence": 0.7170829438033888
+          },
+          "announcement_107": {
+            "type": "noul",
+            "noul": 0.20729618822480475,
+            "confidence": 0.7927038117751952
+          },
+          "recap_105": {
+            "type": "noul",
+            "noul": 0.1968705006424184,
+            "confidence": 0.8031294993575816
+          },
+          "announcement_106": {
+            "type": "noul",
+            "noul": 0.18303206521927398,
+            "confidence": 0.816967934780726
+          },
+          "invitation_108": {
+            "type": "noul",
+            "noul": 0.09599261814836228,
+            "confidence": 0.9040073818516378
+          },
+          "focused_103": {
+            "type": "noul",
+            "noul": 0.1351642630043893,
+            "confidence": 0.8648357369956107
+          },
+          "tickets_99": {
+            "type": "noul",
+            "noul": 0.022461493458833567,
+            "confidence": 0.9775385065411665
+          },
+          "time_105": {
+            "type": "noul",
+            "noul": 0.18160985532056462,
+            "confidence": 0.8183901446794354
+          },
+          "time_104": {
+            "type": "noul",
+            "noul": 0.26809649546153336,
+            "confidence": 0.7319035045384666
+          }
+        },
+        "usage": {
+          "input_tokens": 8154,
+          "output_tokens": 0,
+          "cost": 0.0008154,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008154,
+            "upstream_inference_prompt_cost": 0.0008154,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 368
+    },
+    {
+      "ids": [
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "registration_112": {
+            "type": "noul",
+            "noul": 0.11809523473553965,
+            "confidence": 0.8819047652644604
+          },
+          "focused_114": {
+            "type": "noul",
+            "noul": 0.19795191822001715,
+            "confidence": 0.8020480817799829
+          },
+          "announcement_115": {
+            "type": "noul",
+            "noul": 0.24822777498576654,
+            "confidence": 0.7517722250142335
+          },
+          "tickets_111": {
+            "type": "noul",
+            "noul": 0.08882075021309463,
+            "confidence": 0.9111792497869053
+          },
+          "time_117": {
+            "type": "noul",
+            "noul": 0.05286007981370285,
+            "confidence": 0.9471399201862971
+          },
+          "time_113": {
+            "type": "noul",
+            "noul": 0.10652911553564451,
+            "confidence": 0.8934708844643555
+          },
+          "date_117": {
+            "type": "noul",
+            "noul": 0.9321359299401217,
+            "confidence": 0.9321359299401217
+          },
+          "time_109": {
+            "type": "noul",
+            "noul": 0.07966645422774989,
+            "confidence": 0.9203335457722501
+          },
+          "date_115": {
+            "type": "noul",
+            "noul": 0.7351024289178223,
+            "confidence": 0.7351024289178223
+          },
+          "time_111": {
+            "type": "noul",
+            "noul": 0.18355073816482068,
+            "confidence": 0.8164492618351793
+          },
+          "focused_115": {
+            "type": "noul",
+            "noul": 0.26270478122297175,
+            "confidence": 0.7372952187770283
+          },
+          "date_110": {
+            "type": "noul",
+            "noul": 0.952090008787723,
+            "confidence": 0.952090008787723
+          },
+          "invitation_112": {
+            "type": "noul",
+            "noul": 0.17211997471279014,
+            "confidence": 0.8278800252872098
+          },
+          "digest_117": {
+            "type": "noul",
+            "noul": 0.13255977534149405,
+            "confidence": 0.867440224658506
+          },
+          "recap_113": {
+            "type": "noul",
+            "noul": 0.14157128376096578,
+            "confidence": 0.8584287162390343
+          },
+          "announcement_110": {
+            "type": "noul",
+            "noul": 0.055014138721467376,
+            "confidence": 0.9449858612785327
+          },
+          "recap_112": {
+            "type": "noul",
+            "noul": 0.08487724751275993,
+            "confidence": 0.9151227524872401
+          },
+          "focused_110": {
+            "type": "noul",
+            "noul": 0.07025055377248995,
+            "confidence": 0.92974944622751
+          },
+          "date_118": {
+            "type": "noul",
+            "noul": 0.89415644769867,
+            "confidence": 0.89415644769867
+          },
+          "registration_117": {
+            "type": "noul",
+            "noul": 0.09241286002065084,
+            "confidence": 0.9075871399793491
+          },
+          "actionable_116": {
+            "type": "noul",
+            "noul": 0.16356109838685387,
+            "confidence": 0.8364389016131462
+          },
+          "time_118": {
+            "type": "noul",
+            "noul": 0.04477320407888651,
+            "confidence": 0.9552267959211135
+          },
+          "recap_114": {
+            "type": "noul",
+            "noul": 0.07285736009654697,
+            "confidence": 0.927142639903453
+          },
+          "tickets_112": {
+            "type": "noul",
+            "noul": 0.10681853209187195,
+            "confidence": 0.893181467908128
+          },
+          "registration_116": {
+            "type": "noul",
+            "noul": 0.11295066184282335,
+            "confidence": 0.8870493381571767
+          },
+          "actionable_118": {
+            "type": "noul",
+            "noul": 0.06349700200670173,
+            "confidence": 0.9365029979932983
+          },
+          "actionable_113": {
+            "type": "noul",
+            "noul": 0.5571381871342803,
+            "confidence": 0.5571381871342803
+          },
+          "tickets_114": {
+            "type": "noul",
+            "noul": 0.14386713459231493,
+            "confidence": 0.8561328654076851
+          },
+          "actionable_110": {
+            "type": "noul",
+            "noul": 0.363109052019327,
+            "confidence": 0.636890947980673
+          },
+          "registration_109": {
+            "type": "noul",
+            "noul": 0.035226786916112314,
+            "confidence": 0.9647732130838876
+          },
+          "invitation_114": {
+            "type": "noul",
+            "noul": 0.38250055249789255,
+            "confidence": 0.6174994475021074
+          },
+          "tickets_109": {
+            "type": "noul",
+            "noul": 0.073955548444335,
+            "confidence": 0.926044451555665
+          },
+          "tickets_115": {
+            "type": "noul",
+            "noul": 0.07399990608003354,
+            "confidence": 0.9260000939199664
+          },
+          "digest_118": {
+            "type": "noul",
+            "noul": 0.14259135025332093,
+            "confidence": 0.8574086497466791
+          },
+          "recap_111": {
+            "type": "noul",
+            "noul": 0.07640992316519479,
+            "confidence": 0.9235900768348052
+          },
+          "invitation_110": {
+            "type": "noul",
+            "noul": 0.07027687281709984,
+            "confidence": 0.9297231271829002
+          },
+          "digest_113": {
+            "type": "noul",
+            "noul": 0.5981483594866694,
+            "confidence": 0.5981483594866694
+          },
+          "registration_115": {
+            "type": "noul",
+            "noul": 0.08827764268093423,
+            "confidence": 0.9117223573190658
+          },
+          "tickets_110": {
+            "type": "noul",
+            "noul": 0.05111228943816366,
+            "confidence": 0.9488877105618363
+          },
+          "announcement_111": {
+            "type": "noul",
+            "noul": 0.14342343573418412,
+            "confidence": 0.8565765642658159
+          },
+          "announcement_116": {
+            "type": "noul",
+            "noul": 0.2522272378281395,
+            "confidence": 0.7477727621718605
+          },
+          "actionable_114": {
+            "type": "noul",
+            "noul": 0.4369221975860597,
+            "confidence": 0.5630778024139402
+          },
+          "date_112": {
+            "type": "noul",
+            "noul": 0.7215624064922092,
+            "confidence": 0.7215624064922092
+          },
+          "invitation_111": {
+            "type": "noul",
+            "noul": 0.17405393049422038,
+            "confidence": 0.8259460695057796
+          },
+          "focused_109": {
+            "type": "noul",
+            "noul": 0.043576217960417725,
+            "confidence": 0.9564237820395822
+          },
+          "actionable_117": {
+            "type": "noul",
+            "noul": 0.043276568422282016,
+            "confidence": 0.956723431577718
+          },
+          "tickets_117": {
+            "type": "noul",
+            "noul": 0.05471204249115388,
+            "confidence": 0.9452879575088461
+          },
+          "date_111": {
+            "type": "noul",
+            "noul": 0.9168653075589465,
+            "confidence": 0.9168653075589465
+          },
+          "registration_111": {
+            "type": "noul",
+            "noul": 0.06701915095605025,
+            "confidence": 0.9329808490439497
+          },
+          "invitation_116": {
+            "type": "noul",
+            "noul": 0.196418062821609,
+            "confidence": 0.803581937178391
+          },
+          "announcement_113": {
+            "type": "noul",
+            "noul": 0.3636610568134562,
+            "confidence": 0.6363389431865438
+          },
+          "recap_109": {
+            "type": "noul",
+            "noul": 0.0327782585792851,
+            "confidence": 0.9672217414207149
+          },
+          "registration_118": {
+            "type": "noul",
+            "noul": 0.12316854970637879,
+            "confidence": 0.8768314502936212
+          },
+          "time_112": {
+            "type": "noul",
+            "noul": 0.10384622971403772,
+            "confidence": 0.8961537702859623
+          },
+          "date_113": {
+            "type": "noul",
+            "noul": 0.8961648374213599,
+            "confidence": 0.8961648374213599
+          },
+          "digest_116": {
+            "type": "noul",
+            "noul": 0.3009654931137938,
+            "confidence": 0.6990345068862063
+          },
+          "recap_110": {
+            "type": "noul",
+            "noul": 0.034818062015587396,
+            "confidence": 0.9651819379844127
+          },
+          "registration_113": {
+            "type": "noul",
+            "noul": 0.08177182133419048,
+            "confidence": 0.9182281786658095
+          },
+          "recap_116": {
+            "type": "noul",
+            "noul": 0.08544267066327071,
+            "confidence": 0.9145573293367293
+          },
+          "tickets_113": {
+            "type": "noul",
+            "noul": 0.1247544051623558,
+            "confidence": 0.8752455948376442
+          },
+          "announcement_114": {
+            "type": "noul",
+            "noul": 0.38756160970785203,
+            "confidence": 0.612438390292148
+          },
+          "focused_116": {
+            "type": "noul",
+            "noul": 0.2345902521517198,
+            "confidence": 0.7654097478482802
+          },
+          "announcement_118": {
+            "type": "noul",
+            "noul": 0.13363466511758523,
+            "confidence": 0.8663653348824147
+          },
+          "recap_117": {
+            "type": "noul",
+            "noul": 0.05984877547904234,
+            "confidence": 0.9401512245209577
+          },
+          "date_109": {
+            "type": "noul",
+            "noul": 0.8144267927770555,
+            "confidence": 0.8144267927770555
+          },
+          "invitation_118": {
+            "type": "noul",
+            "noul": 0.13525488110507916,
+            "confidence": 0.8647451188949209
+          },
+          "time_110": {
+            "type": "noul",
+            "noul": 0.0631812846100867,
+            "confidence": 0.9368187153899133
+          },
+          "announcement_112": {
+            "type": "noul",
+            "noul": 0.2576110336397042,
+            "confidence": 0.7423889663602958
+          },
+          "digest_111": {
+            "type": "noul",
+            "noul": 0.3533638302225805,
+            "confidence": 0.6466361697774194
+          },
+          "actionable_111": {
+            "type": "noul",
+            "noul": 0.23385734333213085,
+            "confidence": 0.7661426566678692
+          },
+          "announcement_117": {
+            "type": "noul",
+            "noul": 0.1362164514792605,
+            "confidence": 0.8637835485207395
+          },
+          "digest_115": {
+            "type": "noul",
+            "noul": 0.31372150670362364,
+            "confidence": 0.6862784932963764
+          },
+          "invitation_117": {
+            "type": "noul",
+            "noul": 0.06923869683028597,
+            "confidence": 0.9307613031697141
+          },
+          "invitation_109": {
+            "type": "noul",
+            "noul": 0.05683388721091919,
+            "confidence": 0.9431661127890808
+          },
+          "actionable_112": {
+            "type": "noul",
+            "noul": 0.2940684416213935,
+            "confidence": 0.7059315583786065
+          },
+          "digest_109": {
+            "type": "noul",
+            "noul": 0.058737540331564995,
+            "confidence": 0.941262459668435
+          },
+          "time_116": {
+            "type": "noul",
+            "noul": 0.10704973695707848,
+            "confidence": 0.8929502630429216
+          },
+          "digest_114": {
+            "type": "noul",
+            "noul": 0.5247819651182926,
+            "confidence": 0.5247819651182926
+          },
+          "time_115": {
+            "type": "noul",
+            "noul": 0.08060646163760016,
+            "confidence": 0.9193935383623999
+          },
+          "date_116": {
+            "type": "noul",
+            "noul": 0.7318012260383238,
+            "confidence": 0.7318012260383238
+          },
+          "tickets_118": {
+            "type": "noul",
+            "noul": 0.046924922104088135,
+            "confidence": 0.9530750778959118
+          },
+          "tickets_116": {
+            "type": "noul",
+            "noul": 0.1535781923951999,
+            "confidence": 0.8464218076048001
+          },
+          "focused_118": {
+            "type": "noul",
+            "noul": 0.1526875571890368,
+            "confidence": 0.8473124428109632
+          },
+          "focused_112": {
+            "type": "noul",
+            "noul": 0.14656596362771135,
+            "confidence": 0.8534340363722887
+          },
+          "actionable_115": {
+            "type": "noul",
+            "noul": 0.1927407462060634,
+            "confidence": 0.8072592537939366
+          },
+          "recap_115": {
+            "type": "noul",
+            "noul": 0.15868579482307846,
+            "confidence": 0.8413142051769216
+          },
+          "digest_110": {
+            "type": "noul",
+            "noul": 0.13491471277418396,
+            "confidence": 0.865085287225816
+          },
+          "registration_114": {
+            "type": "noul",
+            "noul": 0.20102283139765253,
+            "confidence": 0.7989771686023475
+          },
+          "date_114": {
+            "type": "noul",
+            "noul": 0.7925686098617349,
+            "confidence": 0.7925686098617349
+          },
+          "focused_111": {
+            "type": "noul",
+            "noul": 0.1727888042192138,
+            "confidence": 0.8272111957807862
+          },
+          "focused_117": {
+            "type": "noul",
+            "noul": 0.32536773522474555,
+            "confidence": 0.6746322647752545
+          },
+          "digest_112": {
+            "type": "noul",
+            "noul": 0.36805577166718684,
+            "confidence": 0.6319442283328132
+          },
+          "invitation_115": {
+            "type": "noul",
+            "noul": 0.12870264298518377,
+            "confidence": 0.8712973570148163
+          },
+          "actionable_109": {
+            "type": "noul",
+            "noul": 0.23165472195794387,
+            "confidence": 0.7683452780420561
+          },
+          "focused_113": {
+            "type": "noul",
+            "noul": 0.23542647544479015,
+            "confidence": 0.7645735245552099
+          },
+          "invitation_113": {
+            "type": "noul",
+            "noul": 0.31202587079911714,
+            "confidence": 0.6879741292008829
+          },
+          "time_114": {
+            "type": "noul",
+            "noul": 0.2155685836912872,
+            "confidence": 0.7844314163087128
+          },
+          "recap_118": {
+            "type": "noul",
+            "noul": 0.047886362253014035,
+            "confidence": 0.952113637746986
+          },
+          "registration_110": {
+            "type": "noul",
+            "noul": 0.062372980571351315,
+            "confidence": 0.9376270194286487
+          },
+          "announcement_109": {
+            "type": "noul",
+            "noul": 0.041418357039139195,
+            "confidence": 0.9585816429608608
+          }
+        },
+        "usage": {
+          "input_tokens": 8142,
+          "output_tokens": 0,
+          "cost": 0.0008142,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008142,
+            "upstream_inference_prompt_cost": 0.0008142,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 397
+    },
+    {
+      "ids": [
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "time_125": {
+            "type": "noul",
+            "noul": 0.07382764861033342,
+            "confidence": 0.9261723513896666
+          },
+          "digest_119": {
+            "type": "noul",
+            "noul": 0.1138605741359761,
+            "confidence": 0.8861394258640239
+          },
+          "tickets_119": {
+            "type": "noul",
+            "noul": 0.04826755241526609,
+            "confidence": 0.951732447584734
+          },
+          "registration_125": {
+            "type": "noul",
+            "noul": 0.11671073562007105,
+            "confidence": 0.8832892643799289
+          },
+          "tickets_126": {
+            "type": "noul",
+            "noul": 0.07137034220051593,
+            "confidence": 0.928629657799484
+          },
+          "date_125": {
+            "type": "noul",
+            "noul": 0.17051608690362133,
+            "confidence": 0.8294839130963787
+          },
+          "actionable_126": {
+            "type": "noul",
+            "noul": 0.06172052552548787,
+            "confidence": 0.9382794744745121
+          },
+          "invitation_128": {
+            "type": "noul",
+            "noul": 0.17188135249284278,
+            "confidence": 0.8281186475071572
+          },
+          "time_124": {
+            "type": "noul",
+            "noul": 0.08964916006548719,
+            "confidence": 0.9103508399345128
+          },
+          "actionable_121": {
+            "type": "noul",
+            "noul": 0.13091596376968054,
+            "confidence": 0.8690840362303195
+          },
+          "focused_121": {
+            "type": "noul",
+            "noul": 0.17212123580485103,
+            "confidence": 0.8278787641951489
+          },
+          "focused_120": {
+            "type": "noul",
+            "noul": 0.3379943478328854,
+            "confidence": 0.6620056521671146
+          },
+          "announcement_124": {
+            "type": "noul",
+            "noul": 0.1852083111589332,
+            "confidence": 0.8147916888410668
+          },
+          "invitation_119": {
+            "type": "noul",
+            "noul": 0.1791411899831169,
+            "confidence": 0.8208588100168831
+          },
+          "tickets_122": {
+            "type": "noul",
+            "noul": 0.06492708394923484,
+            "confidence": 0.9350729160507651
+          },
+          "announcement_127": {
+            "type": "noul",
+            "noul": 0.09674423085809429,
+            "confidence": 0.9032557691419058
+          },
+          "focused_126": {
+            "type": "noul",
+            "noul": 0.28548477201130823,
+            "confidence": 0.7145152279886917
+          },
+          "time_128": {
+            "type": "noul",
+            "noul": 0.08347166374851807,
+            "confidence": 0.9165283362514819
+          },
+          "invitation_121": {
+            "type": "noul",
+            "noul": 0.15406837474370708,
+            "confidence": 0.845931625256293
+          },
+          "registration_123": {
+            "type": "noul",
+            "noul": 0.1384629855568784,
+            "confidence": 0.8615370144431216
+          },
+          "digest_128": {
+            "type": "noul",
+            "noul": 0.15728665897827707,
+            "confidence": 0.8427133410217229
+          },
+          "invitation_125": {
+            "type": "noul",
+            "noul": 0.20983382783238627,
+            "confidence": 0.7901661721676138
+          },
+          "digest_120": {
+            "type": "noul",
+            "noul": 0.145178475187606,
+            "confidence": 0.854821524812394
+          },
+          "focused_127": {
+            "type": "noul",
+            "noul": 0.24791680689384055,
+            "confidence": 0.7520831931061595
+          },
+          "actionable_125": {
+            "type": "noul",
+            "noul": 0.08508764731070688,
+            "confidence": 0.9149123526892932
+          },
+          "actionable_122": {
+            "type": "noul",
+            "noul": 0.1112899669853912,
+            "confidence": 0.8887100330146088
+          },
+          "tickets_124": {
+            "type": "noul",
+            "noul": 0.07302998238543733,
+            "confidence": 0.9269700176145627
+          },
+          "digest_123": {
+            "type": "noul",
+            "noul": 0.10849211009522516,
+            "confidence": 0.8915078899047748
+          },
+          "time_126": {
+            "type": "noul",
+            "noul": 0.07882330212885175,
+            "confidence": 0.9211766978711482
+          },
+          "announcement_119": {
+            "type": "noul",
+            "noul": 0.19184147068649923,
+            "confidence": 0.8081585293135007
+          },
+          "invitation_123": {
+            "type": "noul",
+            "noul": 0.22646066494112468,
+            "confidence": 0.7735393350588753
+          },
+          "actionable_127": {
+            "type": "noul",
+            "noul": 0.08032532968752205,
+            "confidence": 0.919674670312478
+          },
+          "focused_122": {
+            "type": "noul",
+            "noul": 0.1913224522779272,
+            "confidence": 0.8086775477220728
+          },
+          "registration_124": {
+            "type": "noul",
+            "noul": 0.143445530736522,
+            "confidence": 0.856554469263478
+          },
+          "date_128": {
+            "type": "noul",
+            "noul": 0.14800387911432802,
+            "confidence": 0.851996120885672
+          },
+          "focused_119": {
+            "type": "noul",
+            "noul": 0.5135384570251885,
+            "confidence": 0.5135384570251885
+          },
+          "focused_128": {
+            "type": "noul",
+            "noul": 0.23161458256309533,
+            "confidence": 0.7683854174369047
+          },
+          "date_123": {
+            "type": "noul",
+            "noul": 0.31090985552518413,
+            "confidence": 0.6890901444748159
+          },
+          "tickets_123": {
+            "type": "noul",
+            "noul": 0.07087318386047393,
+            "confidence": 0.9291268161395261
+          },
+          "registration_126": {
+            "type": "noul",
+            "noul": 0.13227122162863109,
+            "confidence": 0.867728778371369
+          },
+          "announcement_123": {
+            "type": "noul",
+            "noul": 0.23325932230092708,
+            "confidence": 0.766740677699073
+          },
+          "recap_126": {
+            "type": "noul",
+            "noul": 0.08052205215432215,
+            "confidence": 0.9194779478456778
+          },
+          "announcement_122": {
+            "type": "noul",
+            "noul": 0.18318165700663766,
+            "confidence": 0.8168183429933623
+          },
+          "registration_120": {
+            "type": "noul",
+            "noul": 0.12320243506507442,
+            "confidence": 0.8767975649349256
+          },
+          "time_121": {
+            "type": "noul",
+            "noul": 0.15736373272526744,
+            "confidence": 0.8426362672747325
+          },
+          "announcement_120": {
+            "type": "noul",
+            "noul": 0.08090042318273576,
+            "confidence": 0.9190995768172643
+          },
+          "actionable_128": {
+            "type": "noul",
+            "noul": 0.10803793201112236,
+            "confidence": 0.8919620679888777
+          },
+          "tickets_125": {
+            "type": "noul",
+            "noul": 0.0739944417191239,
+            "confidence": 0.9260055582808762
+          },
+          "invitation_126": {
+            "type": "noul",
+            "noul": 0.20207420793133068,
+            "confidence": 0.7979257920686693
+          },
+          "announcement_126": {
+            "type": "noul",
+            "noul": 0.10200966595549919,
+            "confidence": 0.8979903340445008
+          },
+          "actionable_120": {
+            "type": "noul",
+            "noul": 0.08692945485080887,
+            "confidence": 0.9130705451491912
+          },
+          "tickets_120": {
+            "type": "noul",
+            "noul": 0.0542380587003405,
+            "confidence": 0.9457619412996595
+          },
+          "announcement_121": {
+            "type": "noul",
+            "noul": 0.16238600376057258,
+            "confidence": 0.8376139962394274
+          },
+          "focused_125": {
+            "type": "noul",
+            "noul": 0.19434997971771142,
+            "confidence": 0.8056500202822886
+          },
+          "digest_127": {
+            "type": "noul",
+            "noul": 0.13706136079345071,
+            "confidence": 0.8629386392065492
+          },
+          "recap_124": {
+            "type": "noul",
+            "noul": 0.0703231937669233,
+            "confidence": 0.9296768062330767
+          },
+          "tickets_121": {
+            "type": "noul",
+            "noul": 0.07163907689829302,
+            "confidence": 0.9283609231017069
+          },
+          "date_127": {
+            "type": "noul",
+            "noul": 0.1646511875405766,
+            "confidence": 0.8353488124594234
+          },
+          "registration_121": {
+            "type": "noul",
+            "noul": 0.12387360109124648,
+            "confidence": 0.8761263989087535
+          },
+          "registration_128": {
+            "type": "noul",
+            "noul": 0.13444050427351664,
+            "confidence": 0.8655594957264834
+          },
+          "registration_119": {
+            "type": "noul",
+            "noul": 0.10213774267626402,
+            "confidence": 0.897862257323736
+          },
+          "registration_122": {
+            "type": "noul",
+            "noul": 0.06886948956629398,
+            "confidence": 0.931130510433706
+          },
+          "invitation_120": {
+            "type": "noul",
+            "noul": 0.18894605853195215,
+            "confidence": 0.8110539414680479
+          },
+          "tickets_127": {
+            "type": "noul",
+            "noul": 0.05645834365082446,
+            "confidence": 0.9435416563491755
+          },
+          "digest_124": {
+            "type": "noul",
+            "noul": 0.13368040413264953,
+            "confidence": 0.8663195958673504
+          },
+          "date_126": {
+            "type": "noul",
+            "noul": 0.1295934427084543,
+            "confidence": 0.8704065572915457
+          },
+          "recap_123": {
+            "type": "noul",
+            "noul": 0.07139699357488685,
+            "confidence": 0.9286030064251132
+          },
+          "digest_126": {
+            "type": "noul",
+            "noul": 0.1182773920703005,
+            "confidence": 0.8817226079296995
+          },
+          "date_119": {
+            "type": "noul",
+            "noul": 0.7794037010750998,
+            "confidence": 0.7794037010750998
+          },
+          "recap_119": {
+            "type": "noul",
+            "noul": 0.052896182510157264,
+            "confidence": 0.9471038174898427
+          },
+          "tickets_128": {
+            "type": "noul",
+            "noul": 0.07572706516489178,
+            "confidence": 0.9242729348351082
+          },
+          "registration_127": {
+            "type": "noul",
+            "noul": 0.11858079940355663,
+            "confidence": 0.8814192005964434
+          },
+          "date_122": {
+            "type": "noul",
+            "noul": 0.26621157014268304,
+            "confidence": 0.733788429857317
+          },
+          "digest_125": {
+            "type": "noul",
+            "noul": 0.1267876331561591,
+            "confidence": 0.873212366843841
+          },
+          "digest_121": {
+            "type": "noul",
+            "noul": 0.15025336812749884,
+            "confidence": 0.8497466318725011
+          },
+          "invitation_127": {
+            "type": "noul",
+            "noul": 0.18582924931161796,
+            "confidence": 0.8141707506883821
+          },
+          "actionable_119": {
+            "type": "noul",
+            "noul": 0.045076382991202896,
+            "confidence": 0.9549236170087971
+          },
+          "recap_120": {
+            "type": "noul",
+            "noul": 0.057692812413532794,
+            "confidence": 0.9423071875864673
+          },
+          "time_120": {
+            "type": "noul",
+            "noul": 0.05595717258687749,
+            "confidence": 0.9440428274131225
+          },
+          "announcement_125": {
+            "type": "noul",
+            "noul": 0.10293735352340232,
+            "confidence": 0.8970626464765977
+          },
+          "digest_122": {
+            "type": "noul",
+            "noul": 0.16164811673151472,
+            "confidence": 0.8383518832684853
+          },
+          "recap_122": {
+            "type": "noul",
+            "noul": 0.1248114951183573,
+            "confidence": 0.8751885048816427
+          },
+          "invitation_122": {
+            "type": "noul",
+            "noul": 0.1864199043866875,
+            "confidence": 0.8135800956133125
+          },
+          "recap_121": {
+            "type": "noul",
+            "noul": 0.09408919112810697,
+            "confidence": 0.905910808871893
+          },
+          "recap_127": {
+            "type": "noul",
+            "noul": 0.07469966432658845,
+            "confidence": 0.9253003356734115
+          },
+          "recap_125": {
+            "type": "noul",
+            "noul": 0.04376889649216534,
+            "confidence": 0.9562311035078347
+          },
+          "time_119": {
+            "type": "noul",
+            "noul": 0.058268912563091066,
+            "confidence": 0.9417310874369089
+          },
+          "actionable_124": {
+            "type": "noul",
+            "noul": 0.11410221474046009,
+            "confidence": 0.8858977852595399
+          },
+          "actionable_123": {
+            "type": "noul",
+            "noul": 0.115094645902838,
+            "confidence": 0.884905354097162
+          },
+          "time_127": {
+            "type": "noul",
+            "noul": 0.06569111176563659,
+            "confidence": 0.9343088882343634
+          },
+          "focused_123": {
+            "type": "noul",
+            "noul": 0.24147310426580904,
+            "confidence": 0.758526895734191
+          },
+          "date_121": {
+            "type": "noul",
+            "noul": 0.5659374018404775,
+            "confidence": 0.5659374018404775
+          },
+          "recap_128": {
+            "type": "noul",
+            "noul": 0.06290360589271608,
+            "confidence": 0.937096394107284
+          },
+          "invitation_124": {
+            "type": "noul",
+            "noul": 0.19073951944105735,
+            "confidence": 0.8092604805589426
+          },
+          "time_122": {
+            "type": "noul",
+            "noul": 0.09215806016844692,
+            "confidence": 0.907841939831553
+          },
+          "time_123": {
+            "type": "noul",
+            "noul": 0.08722170215782052,
+            "confidence": 0.9127782978421795
+          },
+          "announcement_128": {
+            "type": "noul",
+            "noul": 0.15080030904312583,
+            "confidence": 0.8491996909568742
+          },
+          "date_120": {
+            "type": "noul",
+            "noul": 0.8129394653199726,
+            "confidence": 0.8129394653199726
+          },
+          "focused_124": {
+            "type": "noul",
+            "noul": 0.1940627633804064,
+            "confidence": 0.8059372366195936
+          },
+          "date_124": {
+            "type": "noul",
+            "noul": 0.24967173213308272,
+            "confidence": 0.7503282678669173
+          }
+        },
+        "usage": {
+          "input_tokens": 8119,
+          "output_tokens": 0,
+          "cost": 0.0008119,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008119,
+            "upstream_inference_prompt_cost": 0.0008119,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 754
+    },
+    {
+      "ids": [
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        135,
+        136,
+        137,
+        138
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "invitation_130": {
+            "type": "noul",
+            "noul": 0.07082702776658521,
+            "confidence": 0.9291729722334148
+          },
+          "digest_137": {
+            "type": "noul",
+            "noul": 0.06689131674100135,
+            "confidence": 0.9331086832589987
+          },
+          "tickets_138": {
+            "type": "noul",
+            "noul": 0.06040019441627299,
+            "confidence": 0.939599805583727
+          },
+          "time_138": {
+            "type": "noul",
+            "noul": 0.06522417397187096,
+            "confidence": 0.934775826028129
+          },
+          "focused_133": {
+            "type": "noul",
+            "noul": 0.10341059521744739,
+            "confidence": 0.8965894047825527
+          },
+          "registration_130": {
+            "type": "noul",
+            "noul": 0.07241939970963551,
+            "confidence": 0.9275806002903645
+          },
+          "invitation_137": {
+            "type": "noul",
+            "noul": 0.597688272226661,
+            "confidence": 0.597688272226661
+          },
+          "recap_133": {
+            "type": "noul",
+            "noul": 0.08747218578001936,
+            "confidence": 0.9125278142199806
+          },
+          "time_130": {
+            "type": "noul",
+            "noul": 0.06867328225556298,
+            "confidence": 0.931326717744437
+          },
+          "time_132": {
+            "type": "noul",
+            "noul": 0.07199323171308077,
+            "confidence": 0.9280067682869192
+          },
+          "time_133": {
+            "type": "noul",
+            "noul": 0.16318279383833123,
+            "confidence": 0.8368172061616688
+          },
+          "focused_132": {
+            "type": "noul",
+            "noul": 0.11105695950511549,
+            "confidence": 0.8889430404948845
+          },
+          "recap_137": {
+            "type": "noul",
+            "noul": 0.06911080706321171,
+            "confidence": 0.9308891929367883
+          },
+          "registration_138": {
+            "type": "noul",
+            "noul": 0.476729547333722,
+            "confidence": 0.5232704526662779
+          },
+          "tickets_135": {
+            "type": "noul",
+            "noul": 0.05088454961062941,
+            "confidence": 0.9491154503893706
+          },
+          "recap_129": {
+            "type": "noul",
+            "noul": 0.8745407681151484,
+            "confidence": 0.8745407681151484
+          },
+          "actionable_138": {
+            "type": "noul",
+            "noul": 0.08821965667533194,
+            "confidence": 0.9117803433246681
+          },
+          "invitation_131": {
+            "type": "noul",
+            "noul": 0.1844939642947737,
+            "confidence": 0.8155060357052263
+          },
+          "date_138": {
+            "type": "noul",
+            "noul": 0.05029887597684776,
+            "confidence": 0.9497011240231522
+          },
+          "announcement_130": {
+            "type": "noul",
+            "noul": 0.19172608112909031,
+            "confidence": 0.8082739188709097
+          },
+          "announcement_134": {
+            "type": "noul",
+            "noul": 0.17683589682455422,
+            "confidence": 0.8231641031754457
+          },
+          "digest_135": {
+            "type": "noul",
+            "noul": 0.08401778071297669,
+            "confidence": 0.9159822192870233
+          },
+          "actionable_135": {
+            "type": "noul",
+            "noul": 0.08485075796212381,
+            "confidence": 0.9151492420378762
+          },
+          "date_129": {
+            "type": "noul",
+            "noul": 0.048360284057673335,
+            "confidence": 0.9516397159423267
+          },
+          "tickets_134": {
+            "type": "noul",
+            "noul": 0.0458554493879238,
+            "confidence": 0.9541445506120763
+          },
+          "focused_130": {
+            "type": "noul",
+            "noul": 0.03815985951164721,
+            "confidence": 0.9618401404883528
+          },
+          "tickets_136": {
+            "type": "noul",
+            "noul": 0.06703169691841401,
+            "confidence": 0.932968303081586
+          },
+          "digest_130": {
+            "type": "noul",
+            "noul": 0.05841663261452045,
+            "confidence": 0.9415833673854795
+          },
+          "date_136": {
+            "type": "noul",
+            "noul": 0.15212314119073098,
+            "confidence": 0.847876858809269
+          },
+          "recap_135": {
+            "type": "noul",
+            "noul": 0.11026644486611362,
+            "confidence": 0.8897335551338864
+          },
+          "focused_131": {
+            "type": "noul",
+            "noul": 0.17143473310068025,
+            "confidence": 0.8285652668993198
+          },
+          "focused_136": {
+            "type": "noul",
+            "noul": 0.1255109032048614,
+            "confidence": 0.8744890967951386
+          },
+          "announcement_137": {
+            "type": "noul",
+            "noul": 0.04767435154005619,
+            "confidence": 0.9523256484599438
+          },
+          "recap_130": {
+            "type": "noul",
+            "noul": 0.8891833632695664,
+            "confidence": 0.8891833632695664
+          },
+          "focused_137": {
+            "type": "noul",
+            "noul": 0.06402606815527967,
+            "confidence": 0.9359739318447203
+          },
+          "date_130": {
+            "type": "noul",
+            "noul": 0.06873840554535947,
+            "confidence": 0.9312615944546405
+          },
+          "announcement_129": {
+            "type": "noul",
+            "noul": 0.12973825680005874,
+            "confidence": 0.8702617431999413
+          },
+          "registration_129": {
+            "type": "noul",
+            "noul": 0.06464984824703447,
+            "confidence": 0.9353501517529655
+          },
+          "recap_131": {
+            "type": "noul",
+            "noul": 0.553793015272137,
+            "confidence": 0.553793015272137
+          },
+          "announcement_136": {
+            "type": "noul",
+            "noul": 0.17631838999209296,
+            "confidence": 0.8236816100079071
+          },
+          "date_137": {
+            "type": "noul",
+            "noul": 0.05271435598518292,
+            "confidence": 0.9472856440148171
+          },
+          "time_136": {
+            "type": "noul",
+            "noul": 0.10353185981764179,
+            "confidence": 0.8964681401823582
+          },
+          "invitation_133": {
+            "type": "noul",
+            "noul": 0.18372702787892933,
+            "confidence": 0.8162729721210706
+          },
+          "registration_134": {
+            "type": "noul",
+            "noul": 0.09349606932289088,
+            "confidence": 0.9065039306771091
+          },
+          "actionable_136": {
+            "type": "noul",
+            "noul": 0.1180521029592315,
+            "confidence": 0.8819478970407685
+          },
+          "date_133": {
+            "type": "noul",
+            "noul": 0.7638840356451443,
+            "confidence": 0.7638840356451443
+          },
+          "registration_133": {
+            "type": "noul",
+            "noul": 0.2482222483851659,
+            "confidence": 0.7517777516148341
+          },
+          "tickets_130": {
+            "type": "noul",
+            "noul": 0.04186412024096865,
+            "confidence": 0.9581358797590314
+          },
+          "tickets_137": {
+            "type": "noul",
+            "noul": 0.05816426324648444,
+            "confidence": 0.9418357367535155
+          },
+          "recap_136": {
+            "type": "noul",
+            "noul": 0.09779642826285283,
+            "confidence": 0.9022035717371472
+          },
+          "announcement_133": {
+            "type": "noul",
+            "noul": 0.21491323987657063,
+            "confidence": 0.7850867601234294
+          },
+          "invitation_134": {
+            "type": "noul",
+            "noul": 0.1628639344492532,
+            "confidence": 0.8371360655507468
+          },
+          "digest_133": {
+            "type": "noul",
+            "noul": 0.08068681212444129,
+            "confidence": 0.9193131878755587
+          },
+          "tickets_132": {
+            "type": "noul",
+            "noul": 0.03486324721058494,
+            "confidence": 0.965136752789415
+          },
+          "digest_138": {
+            "type": "noul",
+            "noul": 0.0694262786213445,
+            "confidence": 0.9305737213786555
+          },
+          "date_135": {
+            "type": "noul",
+            "noul": 0.19293375272198218,
+            "confidence": 0.8070662472780178
+          },
+          "time_129": {
+            "type": "noul",
+            "noul": 0.0630397827602459,
+            "confidence": 0.9369602172397541
+          },
+          "actionable_129": {
+            "type": "noul",
+            "noul": 0.06062915900302862,
+            "confidence": 0.9393708409969714
+          },
+          "registration_132": {
+            "type": "noul",
+            "noul": 0.11026032421313048,
+            "confidence": 0.8897396757868695
+          },
+          "registration_131": {
+            "type": "noul",
+            "noul": 0.10617470727779653,
+            "confidence": 0.8938252927222035
+          },
+          "invitation_129": {
+            "type": "noul",
+            "noul": 0.04577539393994125,
+            "confidence": 0.9542246060600588
+          },
+          "actionable_131": {
+            "type": "noul",
+            "noul": 0.0693617656858813,
+            "confidence": 0.9306382343141187
+          },
+          "registration_135": {
+            "type": "noul",
+            "noul": 0.47251638400154605,
+            "confidence": 0.527483615998454
+          },
+          "announcement_135": {
+            "type": "noul",
+            "noul": 0.15449653524759455,
+            "confidence": 0.8455034647524055
+          },
+          "actionable_133": {
+            "type": "noul",
+            "noul": 0.09457082991935623,
+            "confidence": 0.9054291700806438
+          },
+          "focused_129": {
+            "type": "noul",
+            "noul": 0.05864161219033708,
+            "confidence": 0.941358387809663
+          },
+          "recap_138": {
+            "type": "noul",
+            "noul": 0.09478811983629352,
+            "confidence": 0.9052118801637065
+          },
+          "invitation_136": {
+            "type": "noul",
+            "noul": 0.6386850616607089,
+            "confidence": 0.6386850616607089
+          },
+          "recap_134": {
+            "type": "noul",
+            "noul": 0.11278108154911325,
+            "confidence": 0.8872189184508867
+          },
+          "tickets_131": {
+            "type": "noul",
+            "noul": 0.05490356174248672,
+            "confidence": 0.9450964382575133
+          },
+          "time_134": {
+            "type": "noul",
+            "noul": 0.06272702606218505,
+            "confidence": 0.937272973937815
+          },
+          "digest_136": {
+            "type": "noul",
+            "noul": 0.13090895667360924,
+            "confidence": 0.8690910433263908
+          },
+          "tickets_133": {
+            "type": "noul",
+            "noul": 0.05781484070575207,
+            "confidence": 0.942185159294248
+          },
+          "actionable_137": {
+            "type": "noul",
+            "noul": 0.09929382589545387,
+            "confidence": 0.9007061741045461
+          },
+          "focused_135": {
+            "type": "noul",
+            "noul": 0.09913820570530243,
+            "confidence": 0.9008617942946976
+          },
+          "digest_129": {
+            "type": "noul",
+            "noul": 0.07597467757146831,
+            "confidence": 0.9240253224285317
+          },
+          "announcement_132": {
+            "type": "noul",
+            "noul": 0.2827837771702227,
+            "confidence": 0.7172162228297774
+          },
+          "digest_131": {
+            "type": "noul",
+            "noul": 0.07686722940688867,
+            "confidence": 0.9231327705931114
+          },
+          "invitation_135": {
+            "type": "noul",
+            "noul": 0.3327325803367886,
+            "confidence": 0.6672674196632113
+          },
+          "invitation_138": {
+            "type": "noul",
+            "noul": 0.5923309176439627,
+            "confidence": 0.5923309176439627
+          },
+          "announcement_138": {
+            "type": "noul",
+            "noul": 0.14530763903120106,
+            "confidence": 0.854692360968799
+          },
+          "actionable_134": {
+            "type": "noul",
+            "noul": 0.056237556655668194,
+            "confidence": 0.9437624433443318
+          },
+          "registration_137": {
+            "type": "noul",
+            "noul": 0.619343431870345,
+            "confidence": 0.619343431870345
+          },
+          "focused_138": {
+            "type": "noul",
+            "noul": 0.08054133138703418,
+            "confidence": 0.9194586686129658
+          },
+          "tickets_129": {
+            "type": "noul",
+            "noul": 0.03279942786141244,
+            "confidence": 0.9672005721385876
+          },
+          "announcement_131": {
+            "type": "noul",
+            "noul": 0.3590234866952282,
+            "confidence": 0.6409765133047718
+          },
+          "time_137": {
+            "type": "noul",
+            "noul": 0.06969884025252676,
+            "confidence": 0.9303011597474733
+          },
+          "time_131": {
+            "type": "noul",
+            "noul": 0.11415366116558492,
+            "confidence": 0.8858463388344151
+          },
+          "date_134": {
+            "type": "noul",
+            "noul": 0.6309505111038335,
+            "confidence": 0.6309505111038335
+          },
+          "actionable_130": {
+            "type": "noul",
+            "noul": 0.04688143742133084,
+            "confidence": 0.9531185625786691
+          },
+          "date_131": {
+            "type": "noul",
+            "noul": 0.14457243139252118,
+            "confidence": 0.8554275686074788
+          },
+          "digest_132": {
+            "type": "noul",
+            "noul": 0.08248288985336874,
+            "confidence": 0.9175171101466313
+          },
+          "digest_134": {
+            "type": "noul",
+            "noul": 0.0898019394777959,
+            "confidence": 0.9101980605222041
+          },
+          "recap_132": {
+            "type": "noul",
+            "noul": 0.7270152790622032,
+            "confidence": 0.7270152790622032
+          },
+          "invitation_132": {
+            "type": "noul",
+            "noul": 0.15318475806844573,
+            "confidence": 0.8468152419315542
+          },
+          "registration_136": {
+            "type": "noul",
+            "noul": 0.520165064608943,
+            "confidence": 0.520165064608943
+          },
+          "focused_134": {
+            "type": "noul",
+            "noul": 0.09258388484508813,
+            "confidence": 0.9074161151549118
+          },
+          "actionable_132": {
+            "type": "noul",
+            "noul": 0.09360724462646411,
+            "confidence": 0.9063927553735359
+          },
+          "date_132": {
+            "type": "noul",
+            "noul": 0.15265613072250356,
+            "confidence": 0.8473438692774964
+          },
+          "time_135": {
+            "type": "noul",
+            "noul": 0.0816840288769215,
+            "confidence": 0.9183159711230785
+          }
+        },
+        "usage": {
+          "input_tokens": 8074,
+          "output_tokens": 0,
+          "cost": 0.0008074,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008074,
+            "upstream_inference_prompt_cost": 0.0008074,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 471
+    },
+    {
+      "ids": [
+        139,
+        140,
+        141,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "time_146": {
+            "type": "noul",
+            "noul": 0.08862646240465691,
+            "confidence": 0.9113735375953431
+          },
+          "time_147": {
+            "type": "noul",
+            "noul": 0.07963127171899972,
+            "confidence": 0.9203687282810002
+          },
+          "recap_139": {
+            "type": "noul",
+            "noul": 0.08126798542721375,
+            "confidence": 0.9187320145727862
+          },
+          "time_140": {
+            "type": "noul",
+            "noul": 0.07169150335077433,
+            "confidence": 0.9283084966492257
+          },
+          "actionable_143": {
+            "type": "noul",
+            "noul": 0.2387516606726908,
+            "confidence": 0.7612483393273092
+          },
+          "date_143": {
+            "type": "noul",
+            "noul": 0.3199294040033256,
+            "confidence": 0.6800705959966744
+          },
+          "time_141": {
+            "type": "noul",
+            "noul": 0.9483643139447333,
+            "confidence": 0.9483643139447333
+          },
+          "recap_141": {
+            "type": "noul",
+            "noul": 0.260148809200407,
+            "confidence": 0.739851190799593
+          },
+          "announcement_148": {
+            "type": "noul",
+            "noul": 0.1783557068866688,
+            "confidence": 0.8216442931133312
+          },
+          "registration_143": {
+            "type": "noul",
+            "noul": 0.08243481567692215,
+            "confidence": 0.9175651843230779
+          },
+          "announcement_140": {
+            "type": "noul",
+            "noul": 0.03525486831309327,
+            "confidence": 0.9647451316869067
+          },
+          "registration_146": {
+            "type": "noul",
+            "noul": 0.08221757785720776,
+            "confidence": 0.9177824221427923
+          },
+          "registration_148": {
+            "type": "noul",
+            "noul": 0.10317522787120481,
+            "confidence": 0.8968247721287952
+          },
+          "registration_140": {
+            "type": "noul",
+            "noul": 0.18397390632709895,
+            "confidence": 0.816026093672901
+          },
+          "invitation_148": {
+            "type": "noul",
+            "noul": 0.1179956253462785,
+            "confidence": 0.8820043746537215
+          },
+          "actionable_146": {
+            "type": "noul",
+            "noul": 0.2748406473476837,
+            "confidence": 0.7251593526523163
+          },
+          "recap_146": {
+            "type": "noul",
+            "noul": 0.07197377117125639,
+            "confidence": 0.9280262288287436
+          },
+          "digest_145": {
+            "type": "noul",
+            "noul": 0.5342225259712174,
+            "confidence": 0.5342225259712174
+          },
+          "registration_141": {
+            "type": "noul",
+            "noul": 0.09961456561108148,
+            "confidence": 0.9003854343889185
+          },
+          "digest_144": {
+            "type": "noul",
+            "noul": 0.34391503599841516,
+            "confidence": 0.6560849640015849
+          },
+          "digest_141": {
+            "type": "noul",
+            "noul": 0.18541530938046302,
+            "confidence": 0.814584690619537
+          },
+          "invitation_143": {
+            "type": "noul",
+            "noul": 0.18186441670668774,
+            "confidence": 0.8181355832933123
+          },
+          "focused_141": {
+            "type": "noul",
+            "noul": 0.0682498667829043,
+            "confidence": 0.9317501332170957
+          },
+          "time_145": {
+            "type": "noul",
+            "noul": 0.11083808284198546,
+            "confidence": 0.8891619171580145
+          },
+          "actionable_141": {
+            "type": "noul",
+            "noul": 0.6831679240887072,
+            "confidence": 0.6831679240887072
+          },
+          "digest_148": {
+            "type": "noul",
+            "noul": 0.41444496318290835,
+            "confidence": 0.5855550368170916
+          },
+          "time_139": {
+            "type": "noul",
+            "noul": 0.040236660686374826,
+            "confidence": 0.9597633393136251
+          },
+          "registration_142": {
+            "type": "noul",
+            "noul": 0.17659394981030657,
+            "confidence": 0.8234060501896934
+          },
+          "focused_147": {
+            "type": "noul",
+            "noul": 0.059161622593692925,
+            "confidence": 0.940838377406307
+          },
+          "registration_145": {
+            "type": "noul",
+            "noul": 0.07758920759132804,
+            "confidence": 0.922410792408672
+          },
+          "announcement_145": {
+            "type": "noul",
+            "noul": 0.27167996146072665,
+            "confidence": 0.7283200385392734
+          },
+          "announcement_147": {
+            "type": "noul",
+            "noul": 0.2653741963065378,
+            "confidence": 0.7346258036934622
+          },
+          "registration_147": {
+            "type": "noul",
+            "noul": 0.08043000692271347,
+            "confidence": 0.9195699930772865
+          },
+          "actionable_140": {
+            "type": "noul",
+            "noul": 0.060574326405481764,
+            "confidence": 0.9394256735945182
+          },
+          "digest_140": {
+            "type": "noul",
+            "noul": 0.17380414056691937,
+            "confidence": 0.8261958594330806
+          },
+          "actionable_147": {
+            "type": "noul",
+            "noul": 0.22461934733390368,
+            "confidence": 0.7753806526660963
+          },
+          "focused_142": {
+            "type": "noul",
+            "noul": 0.13880431888332082,
+            "confidence": 0.8611956811166792
+          },
+          "tickets_142": {
+            "type": "noul",
+            "noul": 0.13247464832547962,
+            "confidence": 0.8675253516745204
+          },
+          "focused_145": {
+            "type": "noul",
+            "noul": 0.11582276245062606,
+            "confidence": 0.8841772375493739
+          },
+          "actionable_145": {
+            "type": "noul",
+            "noul": 0.2900343009768827,
+            "confidence": 0.7099656990231173
+          },
+          "tickets_141": {
+            "type": "noul",
+            "noul": 0.06707697248200394,
+            "confidence": 0.932923027517996
+          },
+          "announcement_143": {
+            "type": "noul",
+            "noul": 0.38283002296177004,
+            "confidence": 0.61716997703823
+          },
+          "announcement_146": {
+            "type": "noul",
+            "noul": 0.29708053163189807,
+            "confidence": 0.7029194683681019
+          },
+          "focused_140": {
+            "type": "noul",
+            "noul": 0.03208032538536696,
+            "confidence": 0.967919674614633
+          },
+          "tickets_144": {
+            "type": "noul",
+            "noul": 0.07994564820910613,
+            "confidence": 0.9200543517908939
+          },
+          "recap_144": {
+            "type": "noul",
+            "noul": 0.19592537278300126,
+            "confidence": 0.8040746272169987
+          },
+          "recap_143": {
+            "type": "noul",
+            "noul": 0.13235816544174614,
+            "confidence": 0.8676418345582538
+          },
+          "announcement_139": {
+            "type": "noul",
+            "noul": 0.04425863102370714,
+            "confidence": 0.9557413689762928
+          },
+          "actionable_148": {
+            "type": "noul",
+            "noul": 0.2233781822872826,
+            "confidence": 0.7766218177127174
+          },
+          "focused_143": {
+            "type": "noul",
+            "noul": 0.1124304079805033,
+            "confidence": 0.8875695920194967
+          },
+          "time_144": {
+            "type": "noul",
+            "noul": 0.40505539643020977,
+            "confidence": 0.5949446035697903
+          },
+          "actionable_144": {
+            "type": "noul",
+            "noul": 0.2885954722367442,
+            "confidence": 0.7114045277632558
+          },
+          "invitation_145": {
+            "type": "noul",
+            "noul": 0.1666828582074415,
+            "confidence": 0.8333171417925584
+          },
+          "invitation_144": {
+            "type": "noul",
+            "noul": 0.23379845973017543,
+            "confidence": 0.7662015402698246
+          },
+          "tickets_140": {
+            "type": "noul",
+            "noul": 0.04413811943299851,
+            "confidence": 0.9558618805670015
+          },
+          "digest_142": {
+            "type": "noul",
+            "noul": 0.32248609689308383,
+            "confidence": 0.6775139031069162
+          },
+          "time_143": {
+            "type": "noul",
+            "noul": 0.18538900759492818,
+            "confidence": 0.8146109924050718
+          },
+          "date_146": {
+            "type": "noul",
+            "noul": 0.31403361798418156,
+            "confidence": 0.6859663820158184
+          },
+          "date_142": {
+            "type": "noul",
+            "noul": 0.44220195164371384,
+            "confidence": 0.5577980483562861
+          },
+          "invitation_146": {
+            "type": "noul",
+            "noul": 0.17116843777666893,
+            "confidence": 0.8288315622233311
+          },
+          "recap_145": {
+            "type": "noul",
+            "noul": 0.1810361911515167,
+            "confidence": 0.8189638088484833
+          },
+          "registration_144": {
+            "type": "noul",
+            "noul": 0.1997829395831425,
+            "confidence": 0.8002170604168575
+          },
+          "invitation_139": {
+            "type": "noul",
+            "noul": 0.17719210488551088,
+            "confidence": 0.8228078951144892
+          },
+          "tickets_146": {
+            "type": "noul",
+            "noul": 0.07004876593842509,
+            "confidence": 0.9299512340615749
+          },
+          "invitation_147": {
+            "type": "noul",
+            "noul": 0.14341421203317986,
+            "confidence": 0.8565857879668202
+          },
+          "focused_146": {
+            "type": "noul",
+            "noul": 0.07700382961533296,
+            "confidence": 0.9229961703846671
+          },
+          "recap_142": {
+            "type": "noul",
+            "noul": 0.17424836628215457,
+            "confidence": 0.8257516337178454
+          },
+          "digest_143": {
+            "type": "noul",
+            "noul": 0.4385805341709308,
+            "confidence": 0.5614194658290692
+          },
+          "announcement_144": {
+            "type": "noul",
+            "noul": 0.3349658939215666,
+            "confidence": 0.6650341060784334
+          },
+          "digest_146": {
+            "type": "noul",
+            "noul": 0.4149639566173077,
+            "confidence": 0.5850360433826922
+          },
+          "recap_140": {
+            "type": "noul",
+            "noul": 0.16290174127057927,
+            "confidence": 0.8370982587294207
+          },
+          "focused_148": {
+            "type": "noul",
+            "noul": 0.08580871301352933,
+            "confidence": 0.9141912869864707
+          },
+          "announcement_141": {
+            "type": "noul",
+            "noul": 0.23047067744332603,
+            "confidence": 0.769529322556674
+          },
+          "tickets_143": {
+            "type": "noul",
+            "noul": 0.12538319616439852,
+            "confidence": 0.8746168038356015
+          },
+          "digest_147": {
+            "type": "noul",
+            "noul": 0.4919959589312555,
+            "confidence": 0.5080040410687445
+          },
+          "focused_139": {
+            "type": "noul",
+            "noul": 0.03164666260532823,
+            "confidence": 0.9683533373946718
+          },
+          "date_139": {
+            "type": "noul",
+            "noul": 0.02999055701655167,
+            "confidence": 0.9700094429834484
+          },
+          "tickets_147": {
+            "type": "noul",
+            "noul": 0.04550415784743314,
+            "confidence": 0.9544958421525669
+          },
+          "invitation_140": {
+            "type": "noul",
+            "noul": 0.3276974136327741,
+            "confidence": 0.6723025863672258
+          },
+          "recap_148": {
+            "type": "noul",
+            "noul": 0.1422544208279853,
+            "confidence": 0.8577455791720147
+          },
+          "actionable_142": {
+            "type": "noul",
+            "noul": 0.3468996421270633,
+            "confidence": 0.6531003578729366
+          },
+          "date_140": {
+            "type": "noul",
+            "noul": 0.051927459709327765,
+            "confidence": 0.9480725402906722
+          },
+          "actionable_139": {
+            "type": "noul",
+            "noul": 0.07961590046919864,
+            "confidence": 0.9203840995308014
+          },
+          "date_144": {
+            "type": "noul",
+            "noul": 0.534558909264132,
+            "confidence": 0.534558909264132
+          },
+          "registration_139": {
+            "type": "noul",
+            "noul": 0.5795014840493257,
+            "confidence": 0.5795014840493257
+          },
+          "recap_147": {
+            "type": "noul",
+            "noul": 0.12101488275214566,
+            "confidence": 0.8789851172478543
+          },
+          "date_147": {
+            "type": "noul",
+            "noul": 0.3072224258177854,
+            "confidence": 0.6927775741822146
+          },
+          "tickets_145": {
+            "type": "noul",
+            "noul": 0.06855523795156303,
+            "confidence": 0.931444762048437
+          },
+          "focused_144": {
+            "type": "noul",
+            "noul": 0.12990757201107447,
+            "confidence": 0.8700924279889255
+          },
+          "time_142": {
+            "type": "noul",
+            "noul": 0.4487663986065611,
+            "confidence": 0.5512336013934389
+          },
+          "invitation_141": {
+            "type": "noul",
+            "noul": 0.04766411600624855,
+            "confidence": 0.9523358839937515
+          },
+          "announcement_142": {
+            "type": "noul",
+            "noul": 0.3190221435484604,
+            "confidence": 0.6809778564515396
+          },
+          "digest_139": {
+            "type": "noul",
+            "noul": 0.1030738783387337,
+            "confidence": 0.8969261216612663
+          },
+          "time_148": {
+            "type": "noul",
+            "noul": 0.08560885866639595,
+            "confidence": 0.9143911413336041
+          },
+          "date_148": {
+            "type": "noul",
+            "noul": 0.3043921096954183,
+            "confidence": 0.6956078903045817
+          },
+          "date_141": {
+            "type": "noul",
+            "noul": 0.8861574724477121,
+            "confidence": 0.8861574724477121
+          },
+          "tickets_139": {
+            "type": "noul",
+            "noul": 0.06149709518337992,
+            "confidence": 0.9385029048166201
+          },
+          "date_145": {
+            "type": "noul",
+            "noul": 0.3297274405995344,
+            "confidence": 0.6702725594004656
+          },
+          "tickets_148": {
+            "type": "noul",
+            "noul": 0.051859216262354034,
+            "confidence": 0.948140783737646
+          },
+          "invitation_142": {
+            "type": "noul",
+            "noul": 0.16934485640123179,
+            "confidence": 0.8306551435987682
+          }
+        },
+        "usage": {
+          "input_tokens": 8187,
+          "output_tokens": 0,
+          "cost": 0.0008187,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008187,
+            "upstream_inference_prompt_cost": 0.0008187,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 420
+    },
+    {
+      "ids": [
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "digest_157": {
+            "type": "noul",
+            "noul": 0.07778771558899367,
+            "confidence": 0.9222122844110063
+          },
+          "tickets_158": {
+            "type": "noul",
+            "noul": 0.06842764860591112,
+            "confidence": 0.9315723513940889
+          },
+          "time_150": {
+            "type": "noul",
+            "noul": 0.06305006951201897,
+            "confidence": 0.936949930487981
+          },
+          "invitation_157": {
+            "type": "noul",
+            "noul": 0.08525391562212851,
+            "confidence": 0.9147460843778715
+          },
+          "recap_150": {
+            "type": "noul",
+            "noul": 0.04110470532874494,
+            "confidence": 0.958895294671255
+          },
+          "actionable_150": {
+            "type": "noul",
+            "noul": 0.03878602690548518,
+            "confidence": 0.9612139730945148
+          },
+          "time_154": {
+            "type": "noul",
+            "noul": 0.09807039994454775,
+            "confidence": 0.9019296000554522
+          },
+          "actionable_149": {
+            "type": "noul",
+            "noul": 0.02615555728056778,
+            "confidence": 0.9738444427194323
+          },
+          "registration_158": {
+            "type": "noul",
+            "noul": 0.08188869598951254,
+            "confidence": 0.9181113040104875
+          },
+          "invitation_154": {
+            "type": "noul",
+            "noul": 0.06075966564448258,
+            "confidence": 0.9392403343555175
+          },
+          "focused_157": {
+            "type": "noul",
+            "noul": 0.12198843619629011,
+            "confidence": 0.8780115638037099
+          },
+          "digest_151": {
+            "type": "noul",
+            "noul": 0.0945986544820081,
+            "confidence": 0.9054013455179919
+          },
+          "tickets_156": {
+            "type": "noul",
+            "noul": 0.045070419084675975,
+            "confidence": 0.954929580915324
+          },
+          "tickets_152": {
+            "type": "noul",
+            "noul": 0.05382171542195806,
+            "confidence": 0.946178284578042
+          },
+          "registration_150": {
+            "type": "noul",
+            "noul": 0.07360334526199909,
+            "confidence": 0.9263966547380009
+          },
+          "time_155": {
+            "type": "noul",
+            "noul": 0.14456288062001918,
+            "confidence": 0.8554371193799808
+          },
+          "recap_156": {
+            "type": "noul",
+            "noul": 0.03877778577002259,
+            "confidence": 0.9612222142299774
+          },
+          "focused_153": {
+            "type": "noul",
+            "noul": 0.1638403762953399,
+            "confidence": 0.8361596237046601
+          },
+          "recap_158": {
+            "type": "noul",
+            "noul": 0.07382326734598879,
+            "confidence": 0.9261767326540112
+          },
+          "time_149": {
+            "type": "noul",
+            "noul": 0.06976137352426084,
+            "confidence": 0.9302386264757392
+          },
+          "recap_152": {
+            "type": "noul",
+            "noul": 0.05695435155498897,
+            "confidence": 0.943045648445011
+          },
+          "recap_155": {
+            "type": "noul",
+            "noul": 0.04367604053901408,
+            "confidence": 0.9563239594609859
+          },
+          "digest_154": {
+            "type": "noul",
+            "noul": 0.07061937373130227,
+            "confidence": 0.9293806262686978
+          },
+          "recap_153": {
+            "type": "noul",
+            "noul": 0.07077649164050286,
+            "confidence": 0.9292235083594972
+          },
+          "invitation_150": {
+            "type": "noul",
+            "noul": 0.06536350327797391,
+            "confidence": 0.9346364967220261
+          },
+          "tickets_151": {
+            "type": "noul",
+            "noul": 0.06282767836570192,
+            "confidence": 0.9371723216342981
+          },
+          "focused_152": {
+            "type": "noul",
+            "noul": 0.1948481900802741,
+            "confidence": 0.8051518099197259
+          },
+          "invitation_153": {
+            "type": "noul",
+            "noul": 0.07235479577609251,
+            "confidence": 0.9276452042239075
+          },
+          "registration_155": {
+            "type": "noul",
+            "noul": 0.0857649638386908,
+            "confidence": 0.9142350361613092
+          },
+          "invitation_151": {
+            "type": "noul",
+            "noul": 0.07129806412263331,
+            "confidence": 0.9287019358773667
+          },
+          "date_151": {
+            "type": "noul",
+            "noul": 0.4373417208551549,
+            "confidence": 0.5626582791448451
+          },
+          "announcement_158": {
+            "type": "noul",
+            "noul": 0.13297845947592835,
+            "confidence": 0.8670215405240717
+          },
+          "actionable_153": {
+            "type": "noul",
+            "noul": 0.06190349885144832,
+            "confidence": 0.9380965011485517
+          },
+          "focused_149": {
+            "type": "noul",
+            "noul": 0.18438748529366136,
+            "confidence": 0.8156125147063387
+          },
+          "announcement_152": {
+            "type": "noul",
+            "noul": 0.07980567412816028,
+            "confidence": 0.9201943258718397
+          },
+          "actionable_154": {
+            "type": "noul",
+            "noul": 0.06264822151144633,
+            "confidence": 0.9373517784885537
+          },
+          "focused_158": {
+            "type": "noul",
+            "noul": 0.1431681644646234,
+            "confidence": 0.8568318355353766
+          },
+          "announcement_155": {
+            "type": "noul",
+            "noul": 0.14923230730634765,
+            "confidence": 0.8507676926936524
+          },
+          "tickets_153": {
+            "type": "noul",
+            "noul": 0.08082515552749316,
+            "confidence": 0.9191748444725069
+          },
+          "tickets_150": {
+            "type": "noul",
+            "noul": 0.02672296401370436,
+            "confidence": 0.9732770359862957
+          },
+          "time_157": {
+            "type": "noul",
+            "noul": 0.08716464677354417,
+            "confidence": 0.9128353532264558
+          },
+          "date_155": {
+            "type": "noul",
+            "noul": 0.19951271947419724,
+            "confidence": 0.8004872805258028
+          },
+          "digest_150": {
+            "type": "noul",
+            "noul": 0.10253096527579758,
+            "confidence": 0.8974690347242025
+          },
+          "digest_155": {
+            "type": "noul",
+            "noul": 0.15210903006629842,
+            "confidence": 0.8478909699337016
+          },
+          "date_152": {
+            "type": "noul",
+            "noul": 0.21893819774413215,
+            "confidence": 0.7810618022558679
+          },
+          "tickets_157": {
+            "type": "noul",
+            "noul": 0.041957583393717635,
+            "confidence": 0.9580424166062824
+          },
+          "registration_151": {
+            "type": "noul",
+            "noul": 0.06977203503204236,
+            "confidence": 0.9302279649679577
+          },
+          "recap_157": {
+            "type": "noul",
+            "noul": 0.05799029529858575,
+            "confidence": 0.9420097047014142
+          },
+          "invitation_149": {
+            "type": "noul",
+            "noul": 0.048437992415729825,
+            "confidence": 0.9515620075842701
+          },
+          "date_153": {
+            "type": "noul",
+            "noul": 0.14764843675463488,
+            "confidence": 0.8523515632453651
+          },
+          "actionable_155": {
+            "type": "noul",
+            "noul": 0.09061351174064279,
+            "confidence": 0.9093864882593572
+          },
+          "focused_151": {
+            "type": "noul",
+            "noul": 0.19251918878573634,
+            "confidence": 0.8074808112142636
+          },
+          "focused_150": {
+            "type": "noul",
+            "noul": 0.2265243844024897,
+            "confidence": 0.7734756155975103
+          },
+          "date_157": {
+            "type": "noul",
+            "noul": 0.0828742792173339,
+            "confidence": 0.9171257207826661
+          },
+          "announcement_156": {
+            "type": "noul",
+            "noul": 0.17905606279578415,
+            "confidence": 0.8209439372042159
+          },
+          "time_151": {
+            "type": "noul",
+            "noul": 0.1661638506754715,
+            "confidence": 0.8338361493245285
+          },
+          "date_149": {
+            "type": "noul",
+            "noul": 0.7138771375792313,
+            "confidence": 0.7138771375792313
+          },
+          "tickets_149": {
+            "type": "noul",
+            "noul": 0.04027675083246031,
+            "confidence": 0.9597232491675397
+          },
+          "digest_153": {
+            "type": "noul",
+            "noul": 0.15995106255546274,
+            "confidence": 0.8400489374445372
+          },
+          "digest_158": {
+            "type": "noul",
+            "noul": 0.11663697135589571,
+            "confidence": 0.8833630286441043
+          },
+          "actionable_158": {
+            "type": "noul",
+            "noul": 0.05172655663830868,
+            "confidence": 0.9482734433616913
+          },
+          "digest_149": {
+            "type": "noul",
+            "noul": 0.10369413591989261,
+            "confidence": 0.8963058640801074
+          },
+          "recap_149": {
+            "type": "noul",
+            "noul": 0.03755653036651592,
+            "confidence": 0.962443469633484
+          },
+          "registration_153": {
+            "type": "noul",
+            "noul": 0.07361269883247512,
+            "confidence": 0.9263873011675249
+          },
+          "invitation_158": {
+            "type": "noul",
+            "noul": 0.10074949249369884,
+            "confidence": 0.8992505075063012
+          },
+          "time_152": {
+            "type": "noul",
+            "noul": 0.12553814938118776,
+            "confidence": 0.8744618506188122
+          },
+          "time_153": {
+            "type": "noul",
+            "noul": 0.11513125735685126,
+            "confidence": 0.8848687426431487
+          },
+          "tickets_155": {
+            "type": "noul",
+            "noul": 0.09843377933973665,
+            "confidence": 0.9015662206602634
+          },
+          "digest_156": {
+            "type": "noul",
+            "noul": 0.13344435476787775,
+            "confidence": 0.8665556452321223
+          },
+          "registration_154": {
+            "type": "noul",
+            "noul": 0.07758478961679081,
+            "confidence": 0.9224152103832092
+          },
+          "invitation_155": {
+            "type": "noul",
+            "noul": 0.09375659283966403,
+            "confidence": 0.906243407160336
+          },
+          "recap_151": {
+            "type": "noul",
+            "noul": 0.04940896368768559,
+            "confidence": 0.9505910363123145
+          },
+          "actionable_157": {
+            "type": "noul",
+            "noul": 0.06408144014255397,
+            "confidence": 0.935918559857446
+          },
+          "tickets_154": {
+            "type": "noul",
+            "noul": 0.05579079219075911,
+            "confidence": 0.9442092078092409
+          },
+          "focused_156": {
+            "type": "noul",
+            "noul": 0.12421322770248697,
+            "confidence": 0.875786772297513
+          },
+          "date_154": {
+            "type": "noul",
+            "noul": 0.14922237151067827,
+            "confidence": 0.8507776284893217
+          },
+          "announcement_150": {
+            "type": "noul",
+            "noul": 0.109696443626699,
+            "confidence": 0.890303556373301
+          },
+          "announcement_149": {
+            "type": "noul",
+            "noul": 0.14164378563762026,
+            "confidence": 0.8583562143623797
+          },
+          "invitation_156": {
+            "type": "noul",
+            "noul": 0.10887046537221493,
+            "confidence": 0.8911295346277851
+          },
+          "digest_152": {
+            "type": "noul",
+            "noul": 0.12452418860521235,
+            "confidence": 0.8754758113947877
+          },
+          "registration_157": {
+            "type": "noul",
+            "noul": 0.09260243833450155,
+            "confidence": 0.9073975616654985
+          },
+          "registration_156": {
+            "type": "noul",
+            "noul": 0.0936157310532331,
+            "confidence": 0.9063842689467669
+          },
+          "actionable_151": {
+            "type": "noul",
+            "noul": 0.038761469968088144,
+            "confidence": 0.9612385300319118
+          },
+          "focused_155": {
+            "type": "noul",
+            "noul": 0.15748391435683354,
+            "confidence": 0.8425160856431665
+          },
+          "registration_152": {
+            "type": "noul",
+            "noul": 0.0693119271301668,
+            "confidence": 0.9306880728698332
+          },
+          "announcement_151": {
+            "type": "noul",
+            "noul": 0.0680056304869237,
+            "confidence": 0.9319943695130763
+          },
+          "date_158": {
+            "type": "noul",
+            "noul": 0.1476975443051205,
+            "confidence": 0.8523024556948795
+          },
+          "time_158": {
+            "type": "noul",
+            "noul": 0.07150504936569403,
+            "confidence": 0.928494950634306
+          },
+          "time_156": {
+            "type": "noul",
+            "noul": 0.09192373501118828,
+            "confidence": 0.9080762649888117
+          },
+          "actionable_156": {
+            "type": "noul",
+            "noul": 0.08953529374094965,
+            "confidence": 0.9104647062590503
+          },
+          "announcement_157": {
+            "type": "noul",
+            "noul": 0.11400753891107343,
+            "confidence": 0.8859924610889266
+          },
+          "focused_154": {
+            "type": "noul",
+            "noul": 0.11807290997708601,
+            "confidence": 0.881927090022914
+          },
+          "invitation_152": {
+            "type": "noul",
+            "noul": 0.0592412115756412,
+            "confidence": 0.9407587884243588
+          },
+          "date_150": {
+            "type": "noul",
+            "noul": 0.6346313803014139,
+            "confidence": 0.6346313803014139
+          },
+          "recap_154": {
+            "type": "noul",
+            "noul": 0.08924784254835552,
+            "confidence": 0.9107521574516445
+          },
+          "announcement_153": {
+            "type": "noul",
+            "noul": 0.1327160391466737,
+            "confidence": 0.8672839608533263
+          },
+          "registration_149": {
+            "type": "noul",
+            "noul": 0.03500704438649191,
+            "confidence": 0.9649929556135081
+          },
+          "actionable_152": {
+            "type": "noul",
+            "noul": 0.06644428177117885,
+            "confidence": 0.9335557182288211
+          },
+          "date_156": {
+            "type": "noul",
+            "noul": 0.11700020195737368,
+            "confidence": 0.8829997980426263
+          },
+          "announcement_154": {
+            "type": "noul",
+            "noul": 0.1101899475665318,
+            "confidence": 0.8898100524334682
+          }
+        },
+        "usage": {
+          "input_tokens": 8088,
+          "output_tokens": 0,
+          "cost": 0.0008088,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008088,
+            "upstream_inference_prompt_cost": 0.0008088,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 389
+    },
+    {
+      "ids": [
+        159,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "digest_165": {
+            "type": "noul",
+            "noul": 0.08774694362078073,
+            "confidence": 0.9122530563792193
+          },
+          "recap_163": {
+            "type": "noul",
+            "noul": 0.3105485223138352,
+            "confidence": 0.6894514776861649
+          },
+          "actionable_163": {
+            "type": "noul",
+            "noul": 0.12143761283886675,
+            "confidence": 0.8785623871611332
+          },
+          "digest_159": {
+            "type": "noul",
+            "noul": 0.0723223841782948,
+            "confidence": 0.9276776158217052
+          },
+          "actionable_160": {
+            "type": "noul",
+            "noul": 0.0580887858752453,
+            "confidence": 0.9419112141247548
+          },
+          "digest_163": {
+            "type": "noul",
+            "noul": 0.17357528146422793,
+            "confidence": 0.826424718535772
+          },
+          "recap_168": {
+            "type": "noul",
+            "noul": 0.1490002599068014,
+            "confidence": 0.8509997400931986
+          },
+          "date_159": {
+            "type": "noul",
+            "noul": 0.046870657579452746,
+            "confidence": 0.9531293424205473
+          },
+          "time_159": {
+            "type": "noul",
+            "noul": 0.040502077532269955,
+            "confidence": 0.95949792246773
+          },
+          "digest_164": {
+            "type": "noul",
+            "noul": 0.14666724962280311,
+            "confidence": 0.8533327503771969
+          },
+          "focused_164": {
+            "type": "noul",
+            "noul": 0.16076192047057322,
+            "confidence": 0.8392380795294268
+          },
+          "tickets_162": {
+            "type": "noul",
+            "noul": 0.08934445688405591,
+            "confidence": 0.9106555431159441
+          },
+          "time_162": {
+            "type": "noul",
+            "noul": 0.15236593847758773,
+            "confidence": 0.8476340615224123
+          },
+          "date_160": {
+            "type": "noul",
+            "noul": 0.17100615901123786,
+            "confidence": 0.8289938409887622
+          },
+          "invitation_166": {
+            "type": "noul",
+            "noul": 0.07538540904896428,
+            "confidence": 0.9246145909510357
+          },
+          "recap_159": {
+            "type": "noul",
+            "noul": 0.038578776910915706,
+            "confidence": 0.9614212230890843
+          },
+          "recap_167": {
+            "type": "noul",
+            "noul": 0.10505859250122762,
+            "confidence": 0.8949414074987724
+          },
+          "time_160": {
+            "type": "noul",
+            "noul": 0.04490380156761052,
+            "confidence": 0.9550961984323895
+          },
+          "focused_160": {
+            "type": "noul",
+            "noul": 0.07929922203922198,
+            "confidence": 0.920700777960778
+          },
+          "invitation_159": {
+            "type": "noul",
+            "noul": 0.04008959288695647,
+            "confidence": 0.9599104071130435
+          },
+          "time_168": {
+            "type": "noul",
+            "noul": 0.15217920941811386,
+            "confidence": 0.8478207905818862
+          },
+          "tickets_161": {
+            "type": "noul",
+            "noul": 0.06764234012798517,
+            "confidence": 0.9323576598720148
+          },
+          "announcement_160": {
+            "type": "noul",
+            "noul": 0.11265486372463887,
+            "confidence": 0.8873451362753612
+          },
+          "date_168": {
+            "type": "noul",
+            "noul": 0.5245420377803627,
+            "confidence": 0.5245420377803627
+          },
+          "announcement_161": {
+            "type": "noul",
+            "noul": 0.1199333667963368,
+            "confidence": 0.8800666332036632
+          },
+          "time_167": {
+            "type": "noul",
+            "noul": 0.10421617879168614,
+            "confidence": 0.8957838212083139
+          },
+          "tickets_163": {
+            "type": "noul",
+            "noul": 0.08385384601530291,
+            "confidence": 0.9161461539846971
+          },
+          "time_161": {
+            "type": "noul",
+            "noul": 0.06573277157486665,
+            "confidence": 0.9342672284251333
+          },
+          "tickets_168": {
+            "type": "noul",
+            "noul": 0.07178482610397467,
+            "confidence": 0.9282151738960254
+          },
+          "recap_165": {
+            "type": "noul",
+            "noul": 0.1338409253173256,
+            "confidence": 0.8661590746826744
+          },
+          "actionable_167": {
+            "type": "noul",
+            "noul": 0.06222101206489038,
+            "confidence": 0.9377789879351096
+          },
+          "time_163": {
+            "type": "noul",
+            "noul": 0.11861528707308502,
+            "confidence": 0.881384712926915
+          },
+          "invitation_168": {
+            "type": "noul",
+            "noul": 0.0944349665070923,
+            "confidence": 0.9055650334929077
+          },
+          "tickets_159": {
+            "type": "noul",
+            "noul": 0.03918681881845643,
+            "confidence": 0.9608131811815436
+          },
+          "registration_161": {
+            "type": "noul",
+            "noul": 0.09716819901280394,
+            "confidence": 0.9028318009871961
+          },
+          "announcement_166": {
+            "type": "noul",
+            "noul": 0.2950438555216006,
+            "confidence": 0.7049561444783994
+          },
+          "registration_168": {
+            "type": "noul",
+            "noul": 0.061855695477797665,
+            "confidence": 0.9381443045222023
+          },
+          "date_163": {
+            "type": "noul",
+            "noul": 0.3741897918947459,
+            "confidence": 0.6258102081052541
+          },
+          "invitation_167": {
+            "type": "noul",
+            "noul": 0.08159784030719314,
+            "confidence": 0.9184021596928069
+          },
+          "focused_166": {
+            "type": "noul",
+            "noul": 0.09175534014898223,
+            "confidence": 0.9082446598510178
+          },
+          "time_164": {
+            "type": "noul",
+            "noul": 0.14415700463671297,
+            "confidence": 0.855842995363287
+          },
+          "actionable_165": {
+            "type": "noul",
+            "noul": 0.12930118222521725,
+            "confidence": 0.8706988177747828
+          },
+          "focused_159": {
+            "type": "noul",
+            "noul": 0.06267792811948873,
+            "confidence": 0.9373220718805113
+          },
+          "tickets_160": {
+            "type": "noul",
+            "noul": 0.04438641706596146,
+            "confidence": 0.9556135829340385
+          },
+          "date_166": {
+            "type": "noul",
+            "noul": 0.935917074266224,
+            "confidence": 0.935917074266224
+          },
+          "invitation_160": {
+            "type": "noul",
+            "noul": 0.07031151891017692,
+            "confidence": 0.929688481089823
+          },
+          "date_165": {
+            "type": "noul",
+            "noul": 0.8826954995528583,
+            "confidence": 0.8826954995528583
+          },
+          "announcement_168": {
+            "type": "noul",
+            "noul": 0.1909320953811696,
+            "confidence": 0.8090679046188304
+          },
+          "registration_166": {
+            "type": "noul",
+            "noul": 0.05980948273341842,
+            "confidence": 0.9401905172665815
+          },
+          "announcement_162": {
+            "type": "noul",
+            "noul": 0.26304957438614,
+            "confidence": 0.7369504256138599
+          },
+          "digest_166": {
+            "type": "noul",
+            "noul": 0.0971950363790357,
+            "confidence": 0.9028049636209643
+          },
+          "recap_160": {
+            "type": "noul",
+            "noul": 0.08908918088111438,
+            "confidence": 0.9109108191188856
+          },
+          "registration_159": {
+            "type": "noul",
+            "noul": 0.0716016151760912,
+            "confidence": 0.9283983848239088
+          },
+          "invitation_165": {
+            "type": "noul",
+            "noul": 0.08800293945654804,
+            "confidence": 0.911997060543452
+          },
+          "recap_164": {
+            "type": "noul",
+            "noul": 0.3008703735558907,
+            "confidence": 0.6991296264441094
+          },
+          "time_165": {
+            "type": "noul",
+            "noul": 0.10761751504056742,
+            "confidence": 0.8923824849594326
+          },
+          "date_162": {
+            "type": "noul",
+            "noul": 0.2518552360997379,
+            "confidence": 0.7481447639002621
+          },
+          "tickets_164": {
+            "type": "noul",
+            "noul": 0.0626736176090114,
+            "confidence": 0.9373263823909886
+          },
+          "actionable_168": {
+            "type": "noul",
+            "noul": 0.09123750293226185,
+            "confidence": 0.9087624970677382
+          },
+          "registration_167": {
+            "type": "noul",
+            "noul": 0.05951007233889915,
+            "confidence": 0.9404899276611008
+          },
+          "focused_167": {
+            "type": "noul",
+            "noul": 0.06536241690686044,
+            "confidence": 0.9346375830931396
+          },
+          "invitation_164": {
+            "type": "noul",
+            "noul": 0.10916421225605269,
+            "confidence": 0.8908357877439473
+          },
+          "digest_168": {
+            "type": "noul",
+            "noul": 0.14760099380547362,
+            "confidence": 0.8523990061945264
+          },
+          "digest_161": {
+            "type": "noul",
+            "noul": 0.11269500882759798,
+            "confidence": 0.887304991172402
+          },
+          "announcement_163": {
+            "type": "noul",
+            "noul": 0.30290783842626706,
+            "confidence": 0.6970921615737329
+          },
+          "registration_162": {
+            "type": "noul",
+            "noul": 0.08120292864783751,
+            "confidence": 0.9187970713521625
+          },
+          "invitation_162": {
+            "type": "noul",
+            "noul": 0.1449152094302162,
+            "confidence": 0.8550847905697838
+          },
+          "date_167": {
+            "type": "noul",
+            "noul": 0.9247664779642281,
+            "confidence": 0.9247664779642281
+          },
+          "focused_163": {
+            "type": "noul",
+            "noul": 0.12547029346222216,
+            "confidence": 0.8745297065377778
+          },
+          "tickets_167": {
+            "type": "noul",
+            "noul": 0.04608323692586308,
+            "confidence": 0.953916763074137
+          },
+          "invitation_161": {
+            "type": "noul",
+            "noul": 0.1598430729919165,
+            "confidence": 0.8401569270080835
+          },
+          "digest_160": {
+            "type": "noul",
+            "noul": 0.068680242246096,
+            "confidence": 0.931319757753904
+          },
+          "invitation_163": {
+            "type": "noul",
+            "noul": 0.1346438478169574,
+            "confidence": 0.8653561521830426
+          },
+          "digest_167": {
+            "type": "noul",
+            "noul": 0.14283165549150334,
+            "confidence": 0.8571683445084967
+          },
+          "announcement_167": {
+            "type": "noul",
+            "noul": 0.23284601264913887,
+            "confidence": 0.7671539873508612
+          },
+          "registration_163": {
+            "type": "noul",
+            "noul": 0.13891048191373562,
+            "confidence": 0.8610895180862643
+          },
+          "actionable_159": {
+            "type": "noul",
+            "noul": 0.07223034601924279,
+            "confidence": 0.9277696539807572
+          },
+          "actionable_164": {
+            "type": "noul",
+            "noul": 0.1462339898730174,
+            "confidence": 0.8537660101269826
+          },
+          "announcement_165": {
+            "type": "noul",
+            "noul": 0.23115355972654508,
+            "confidence": 0.768846440273455
+          },
+          "time_166": {
+            "type": "noul",
+            "noul": 0.11720613643607619,
+            "confidence": 0.8827938635639239
+          },
+          "focused_161": {
+            "type": "noul",
+            "noul": 0.1301797460940859,
+            "confidence": 0.8698202539059141
+          },
+          "recap_166": {
+            "type": "noul",
+            "noul": 0.16197891860253258,
+            "confidence": 0.8380210813974674
+          },
+          "recap_162": {
+            "type": "noul",
+            "noul": 0.3055854792168626,
+            "confidence": 0.6944145207831374
+          },
+          "focused_165": {
+            "type": "noul",
+            "noul": 0.0940154420724466,
+            "confidence": 0.9059845579275534
+          },
+          "date_161": {
+            "type": "noul",
+            "noul": 0.19069276016753955,
+            "confidence": 0.8093072398324604
+          },
+          "registration_164": {
+            "type": "noul",
+            "noul": 0.06826121842723713,
+            "confidence": 0.9317387815727629
+          },
+          "tickets_165": {
+            "type": "noul",
+            "noul": 0.06637802689706136,
+            "confidence": 0.9336219731029386
+          },
+          "focused_162": {
+            "type": "noul",
+            "noul": 0.16524158099071423,
+            "confidence": 0.8347584190092858
+          },
+          "actionable_162": {
+            "type": "noul",
+            "noul": 0.16395955326194148,
+            "confidence": 0.8360404467380586
+          },
+          "recap_161": {
+            "type": "noul",
+            "noul": 0.7876252396914337,
+            "confidence": 0.7876252396914337
+          },
+          "registration_165": {
+            "type": "noul",
+            "noul": 0.06269244954719395,
+            "confidence": 0.937307550452806
+          },
+          "digest_162": {
+            "type": "noul",
+            "noul": 0.14453344653329633,
+            "confidence": 0.8554665534667036
+          },
+          "date_164": {
+            "type": "noul",
+            "noul": 0.33865951401241134,
+            "confidence": 0.6613404859875887
+          },
+          "actionable_161": {
+            "type": "noul",
+            "noul": 0.1354717113866565,
+            "confidence": 0.8645282886133435
+          },
+          "announcement_164": {
+            "type": "noul",
+            "noul": 0.39477192730657235,
+            "confidence": 0.6052280726934276
+          },
+          "announcement_159": {
+            "type": "noul",
+            "noul": 0.06024040401205304,
+            "confidence": 0.939759595987947
+          },
+          "tickets_166": {
+            "type": "noul",
+            "noul": 0.05416673982717074,
+            "confidence": 0.9458332601728292
+          },
+          "focused_168": {
+            "type": "noul",
+            "noul": 0.10289755154852404,
+            "confidence": 0.897102448451476
+          },
+          "registration_160": {
+            "type": "noul",
+            "noul": 0.13444660862866936,
+            "confidence": 0.8655533913713307
+          },
+          "actionable_166": {
+            "type": "noul",
+            "noul": 0.08703423205227256,
+            "confidence": 0.9129657679477274
+          }
+        },
+        "usage": {
+          "input_tokens": 8099,
+          "output_tokens": 0,
+          "cost": 0.0008099,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008099,
+            "upstream_inference_prompt_cost": 0.0008099,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 374
+    },
+    {
+      "ids": [
+        169,
+        170,
+        171,
+        172,
+        173,
+        174,
+        175,
+        176,
+        177,
+        178
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "time_172": {
+            "type": "noul",
+            "noul": 0.151543840559515,
+            "confidence": 0.848456159440485
+          },
+          "focused_176": {
+            "type": "noul",
+            "noul": 0.12683849987321966,
+            "confidence": 0.8731615001267803
+          },
+          "invitation_177": {
+            "type": "noul",
+            "noul": 0.22410801432003058,
+            "confidence": 0.7758919856799694
+          },
+          "invitation_171": {
+            "type": "noul",
+            "noul": 0.1857852994632925,
+            "confidence": 0.8142147005367075
+          },
+          "announcement_170": {
+            "type": "noul",
+            "noul": 0.037857456176820216,
+            "confidence": 0.9621425438231798
+          },
+          "digest_172": {
+            "type": "noul",
+            "noul": 0.25590234461113937,
+            "confidence": 0.7440976553888606
+          },
+          "focused_178": {
+            "type": "noul",
+            "noul": 0.0938924612645195,
+            "confidence": 0.9061075387354804
+          },
+          "registration_176": {
+            "type": "noul",
+            "noul": 0.1675414866199117,
+            "confidence": 0.8324585133800884
+          },
+          "registration_177": {
+            "type": "noul",
+            "noul": 0.11316007924409416,
+            "confidence": 0.8868399207559059
+          },
+          "date_177": {
+            "type": "noul",
+            "noul": 0.7125739589158152,
+            "confidence": 0.7125739589158152
+          },
+          "tickets_173": {
+            "type": "noul",
+            "noul": 0.12362444146175404,
+            "confidence": 0.876375558538246
+          },
+          "announcement_169": {
+            "type": "noul",
+            "noul": 0.032812098919815756,
+            "confidence": 0.9671879010801843
+          },
+          "time_176": {
+            "type": "noul",
+            "noul": 0.14998452411323393,
+            "confidence": 0.8500154758867661
+          },
+          "registration_175": {
+            "type": "noul",
+            "noul": 0.15183660226965465,
+            "confidence": 0.8481633977303453
+          },
+          "announcement_177": {
+            "type": "noul",
+            "noul": 0.7211377926873846,
+            "confidence": 0.7211377926873846
+          },
+          "focused_174": {
+            "type": "noul",
+            "noul": 0.09355747644248463,
+            "confidence": 0.9064425235575153
+          },
+          "recap_178": {
+            "type": "noul",
+            "noul": 0.10069923256770519,
+            "confidence": 0.8993007674322948
+          },
+          "actionable_176": {
+            "type": "noul",
+            "noul": 0.3471471904659417,
+            "confidence": 0.6528528095340582
+          },
+          "announcement_172": {
+            "type": "noul",
+            "noul": 0.1855924084789541,
+            "confidence": 0.8144075915210459
+          },
+          "tickets_177": {
+            "type": "noul",
+            "noul": 0.06823645937081617,
+            "confidence": 0.9317635406291839
+          },
+          "invitation_173": {
+            "type": "noul",
+            "noul": 0.20353451493579053,
+            "confidence": 0.7964654850642094
+          },
+          "date_172": {
+            "type": "noul",
+            "noul": 0.14730553991213677,
+            "confidence": 0.8526944600878632
+          },
+          "focused_173": {
+            "type": "noul",
+            "noul": 0.07805709097004244,
+            "confidence": 0.9219429090299576
+          },
+          "tickets_170": {
+            "type": "noul",
+            "noul": 0.058335588039680544,
+            "confidence": 0.9416644119603195
+          },
+          "tickets_169": {
+            "type": "noul",
+            "noul": 0.05809349551543046,
+            "confidence": 0.9419065044845696
+          },
+          "actionable_177": {
+            "type": "noul",
+            "noul": 0.39221454268278233,
+            "confidence": 0.6077854573172177
+          },
+          "recap_170": {
+            "type": "noul",
+            "noul": 0.17596781343261844,
+            "confidence": 0.8240321865673815
+          },
+          "invitation_178": {
+            "type": "noul",
+            "noul": 0.2727829568679582,
+            "confidence": 0.7272170431320417
+          },
+          "tickets_176": {
+            "type": "noul",
+            "noul": 0.09726035536102853,
+            "confidence": 0.9027396446389715
+          },
+          "invitation_175": {
+            "type": "noul",
+            "noul": 0.3731917833672534,
+            "confidence": 0.6268082166327467
+          },
+          "recap_175": {
+            "type": "noul",
+            "noul": 0.24282171380094755,
+            "confidence": 0.7571782861990525
+          },
+          "digest_170": {
+            "type": "noul",
+            "noul": 0.20047064886038,
+            "confidence": 0.79952935113962
+          },
+          "time_169": {
+            "type": "noul",
+            "noul": 0.05536364810703764,
+            "confidence": 0.9446363518929624
+          },
+          "actionable_170": {
+            "type": "noul",
+            "noul": 0.06831693422092165,
+            "confidence": 0.9316830657790783
+          },
+          "digest_176": {
+            "type": "noul",
+            "noul": 0.7309688029705648,
+            "confidence": 0.7309688029705648
+          },
+          "invitation_169": {
+            "type": "noul",
+            "noul": 0.13812224662910924,
+            "confidence": 0.8618777533708908
+          },
+          "date_176": {
+            "type": "noul",
+            "noul": 0.5425540916027315,
+            "confidence": 0.5425540916027315
+          },
+          "actionable_175": {
+            "type": "noul",
+            "noul": 0.3619199612533092,
+            "confidence": 0.6380800387466907
+          },
+          "focused_177": {
+            "type": "noul",
+            "noul": 0.0768884608023525,
+            "confidence": 0.9231115391976475
+          },
+          "invitation_172": {
+            "type": "noul",
+            "noul": 0.1914777462633042,
+            "confidence": 0.8085222537366958
+          },
+          "digest_173": {
+            "type": "noul",
+            "noul": 0.43877231207963335,
+            "confidence": 0.5612276879203666
+          },
+          "focused_170": {
+            "type": "noul",
+            "noul": 0.042564159532513385,
+            "confidence": 0.9574358404674866
+          },
+          "recap_169": {
+            "type": "noul",
+            "noul": 0.0916571338160419,
+            "confidence": 0.9083428661839581
+          },
+          "time_171": {
+            "type": "noul",
+            "noul": 0.20963686196871564,
+            "confidence": 0.7903631380312843
+          },
+          "focused_171": {
+            "type": "noul",
+            "noul": 0.2004844277635173,
+            "confidence": 0.7995155722364827
+          },
+          "focused_169": {
+            "type": "noul",
+            "noul": 0.034722982699430874,
+            "confidence": 0.9652770173005691
+          },
+          "tickets_171": {
+            "type": "noul",
+            "noul": 0.15161871130447616,
+            "confidence": 0.8483812886955239
+          },
+          "digest_178": {
+            "type": "noul",
+            "noul": 0.6365244667982729,
+            "confidence": 0.6365244667982729
+          },
+          "registration_174": {
+            "type": "noul",
+            "noul": 0.0876815844652599,
+            "confidence": 0.9123184155347401
+          },
+          "tickets_174": {
+            "type": "noul",
+            "noul": 0.11070861806130797,
+            "confidence": 0.8892913819386921
+          },
+          "date_169": {
+            "type": "noul",
+            "noul": 0.05620114160142585,
+            "confidence": 0.9437988583985741
+          },
+          "date_174": {
+            "type": "noul",
+            "noul": 0.2129959360261697,
+            "confidence": 0.7870040639738303
+          },
+          "recap_177": {
+            "type": "noul",
+            "noul": 0.10935992021368418,
+            "confidence": 0.8906400797863159
+          },
+          "time_178": {
+            "type": "noul",
+            "noul": 0.167271081252399,
+            "confidence": 0.832728918747601
+          },
+          "date_175": {
+            "type": "noul",
+            "noul": 0.664366503893263,
+            "confidence": 0.664366503893263
+          },
+          "announcement_174": {
+            "type": "noul",
+            "noul": 0.20209530851487503,
+            "confidence": 0.797904691485125
+          },
+          "time_175": {
+            "type": "noul",
+            "noul": 0.1044242258741111,
+            "confidence": 0.895575774125889
+          },
+          "time_177": {
+            "type": "noul",
+            "noul": 0.15651431710142902,
+            "confidence": 0.843485682898571
+          },
+          "announcement_178": {
+            "type": "noul",
+            "noul": 0.5766150665000408,
+            "confidence": 0.5766150665000408
+          },
+          "announcement_176": {
+            "type": "noul",
+            "noul": 0.4278784120129844,
+            "confidence": 0.5721215879870156
+          },
+          "invitation_170": {
+            "type": "noul",
+            "noul": 0.15122301763662568,
+            "confidence": 0.8487769823633743
+          },
+          "time_173": {
+            "type": "noul",
+            "noul": 0.17350755217562328,
+            "confidence": 0.8264924478243767
+          },
+          "digest_169": {
+            "type": "noul",
+            "noul": 0.0743024078792291,
+            "confidence": 0.9256975921207709
+          },
+          "registration_178": {
+            "type": "noul",
+            "noul": 0.13639093599084148,
+            "confidence": 0.8636090640091585
+          },
+          "recap_172": {
+            "type": "noul",
+            "noul": 0.2523083939695246,
+            "confidence": 0.7476916060304755
+          },
+          "date_178": {
+            "type": "noul",
+            "noul": 0.5211072845215263,
+            "confidence": 0.5211072845215263
+          },
+          "announcement_175": {
+            "type": "noul",
+            "noul": 0.7392376914019498,
+            "confidence": 0.7392376914019498
+          },
+          "date_173": {
+            "type": "noul",
+            "noul": 0.21343561146294812,
+            "confidence": 0.7865643885370519
+          },
+          "recap_171": {
+            "type": "noul",
+            "noul": 0.2768376883745832,
+            "confidence": 0.7231623116254168
+          },
+          "focused_175": {
+            "type": "noul",
+            "noul": 0.09543267964566227,
+            "confidence": 0.9045673203543377
+          },
+          "actionable_174": {
+            "type": "noul",
+            "noul": 0.15261157507695325,
+            "confidence": 0.8473884249230468
+          },
+          "announcement_173": {
+            "type": "noul",
+            "noul": 0.21421644510763452,
+            "confidence": 0.7857835548923655
+          },
+          "recap_176": {
+            "type": "noul",
+            "noul": 0.1321103831703422,
+            "confidence": 0.8678896168296578
+          },
+          "digest_171": {
+            "type": "noul",
+            "noul": 0.2082510938694512,
+            "confidence": 0.7917489061305488
+          },
+          "actionable_171": {
+            "type": "noul",
+            "noul": 0.23723818926557205,
+            "confidence": 0.762761810734428
+          },
+          "actionable_169": {
+            "type": "noul",
+            "noul": 0.10619346049766297,
+            "confidence": 0.893806539502337
+          },
+          "time_174": {
+            "type": "noul",
+            "noul": 0.20324321436684967,
+            "confidence": 0.7967567856331503
+          },
+          "focused_172": {
+            "type": "noul",
+            "noul": 0.1008466845990851,
+            "confidence": 0.8991533154009149
+          },
+          "announcement_171": {
+            "type": "noul",
+            "noul": 0.2053816249187318,
+            "confidence": 0.7946183750812682
+          },
+          "date_171": {
+            "type": "noul",
+            "noul": 0.20501203436091187,
+            "confidence": 0.7949879656390881
+          },
+          "registration_171": {
+            "type": "noul",
+            "noul": 0.2867783828139247,
+            "confidence": 0.7132216171860752
+          },
+          "registration_172": {
+            "type": "noul",
+            "noul": 0.12136366392758212,
+            "confidence": 0.8786363360724179
+          },
+          "digest_177": {
+            "type": "noul",
+            "noul": 0.7063233792830387,
+            "confidence": 0.7063233792830387
+          },
+          "recap_174": {
+            "type": "noul",
+            "noul": 0.19440090180630334,
+            "confidence": 0.8055990981936967
+          },
+          "tickets_178": {
+            "type": "noul",
+            "noul": 0.10730260047115242,
+            "confidence": 0.8926973995288476
+          },
+          "tickets_172": {
+            "type": "noul",
+            "noul": 0.09601061954958594,
+            "confidence": 0.9039893804504141
+          },
+          "invitation_174": {
+            "type": "noul",
+            "noul": 0.20520423725008097,
+            "confidence": 0.794795762749919
+          },
+          "digest_174": {
+            "type": "noul",
+            "noul": 0.28037628837130374,
+            "confidence": 0.7196237116286963
+          },
+          "digest_175": {
+            "type": "noul",
+            "noul": 0.7504411906959315,
+            "confidence": 0.7504411906959315
+          },
+          "actionable_173": {
+            "type": "noul",
+            "noul": 0.23497593124772828,
+            "confidence": 0.7650240687522717
+          },
+          "registration_170": {
+            "type": "noul",
+            "noul": 0.2847162751887646,
+            "confidence": 0.7152837248112354
+          },
+          "actionable_172": {
+            "type": "noul",
+            "noul": 0.21471501970615806,
+            "confidence": 0.785284980293842
+          },
+          "date_170": {
+            "type": "noul",
+            "noul": 0.10867971506397489,
+            "confidence": 0.8913202849360251
+          },
+          "tickets_175": {
+            "type": "noul",
+            "noul": 0.07656790191955126,
+            "confidence": 0.9234320980804487
+          },
+          "time_170": {
+            "type": "noul",
+            "noul": 0.061068402648897284,
+            "confidence": 0.9389315973511028
+          },
+          "registration_169": {
+            "type": "noul",
+            "noul": 0.2666985554992531,
+            "confidence": 0.7333014445007469
+          },
+          "invitation_176": {
+            "type": "noul",
+            "noul": 0.2485565421004662,
+            "confidence": 0.7514434578995338
+          },
+          "actionable_178": {
+            "type": "noul",
+            "noul": 0.28847871955110127,
+            "confidence": 0.7115212804488987
+          },
+          "recap_173": {
+            "type": "noul",
+            "noul": 0.31151319297764224,
+            "confidence": 0.6884868070223578
+          },
+          "registration_173": {
+            "type": "noul",
+            "noul": 0.17235088538766427,
+            "confidence": 0.8276491146123357
+          }
+        },
+        "usage": {
+          "input_tokens": 8134,
+          "output_tokens": 0,
+          "cost": 0.0008134,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008134,
+            "upstream_inference_prompt_cost": 0.0008134,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 381
+    },
+    {
+      "ids": [
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186,
+        187,
+        188
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "digest_184": {
+            "type": "noul",
+            "noul": 0.19642621018163373,
+            "confidence": 0.8035737898183662
+          },
+          "registration_179": {
+            "type": "noul",
+            "noul": 0.11106612860840917,
+            "confidence": 0.8889338713915909
+          },
+          "actionable_180": {
+            "type": "noul",
+            "noul": 0.3236835055553843,
+            "confidence": 0.6763164944446157
+          },
+          "digest_188": {
+            "type": "noul",
+            "noul": 0.23210094055859656,
+            "confidence": 0.7678990594414035
+          },
+          "date_187": {
+            "type": "noul",
+            "noul": 0.125204956405719,
+            "confidence": 0.8747950435942811
+          },
+          "digest_186": {
+            "type": "noul",
+            "noul": 0.15596393026758634,
+            "confidence": 0.8440360697324136
+          },
+          "announcement_181": {
+            "type": "noul",
+            "noul": 0.19056835556185636,
+            "confidence": 0.8094316444381436
+          },
+          "recap_184": {
+            "type": "noul",
+            "noul": 0.0964904148992953,
+            "confidence": 0.9035095851007047
+          },
+          "invitation_188": {
+            "type": "noul",
+            "noul": 0.22944479126161058,
+            "confidence": 0.7705552087383895
+          },
+          "time_181": {
+            "type": "noul",
+            "noul": 0.1270286208725971,
+            "confidence": 0.872971379127403
+          },
+          "time_186": {
+            "type": "noul",
+            "noul": 0.14234579300521646,
+            "confidence": 0.8576542069947836
+          },
+          "focused_188": {
+            "type": "noul",
+            "noul": 0.15654406258895576,
+            "confidence": 0.8434559374110442
+          },
+          "invitation_185": {
+            "type": "noul",
+            "noul": 0.17475915329784497,
+            "confidence": 0.825240846702155
+          },
+          "invitation_184": {
+            "type": "noul",
+            "noul": 0.22416701520656734,
+            "confidence": 0.7758329847934327
+          },
+          "invitation_187": {
+            "type": "noul",
+            "noul": 0.09487102283670884,
+            "confidence": 0.9051289771632911
+          },
+          "date_184": {
+            "type": "noul",
+            "noul": 0.15300854992650098,
+            "confidence": 0.846991450073499
+          },
+          "recap_179": {
+            "type": "noul",
+            "noul": 0.07955225614466807,
+            "confidence": 0.9204477438553319
+          },
+          "digest_187": {
+            "type": "noul",
+            "noul": 0.14027151983580294,
+            "confidence": 0.8597284801641971
+          },
+          "date_183": {
+            "type": "noul",
+            "noul": 0.1653764953699471,
+            "confidence": 0.8346235046300529
+          },
+          "time_183": {
+            "type": "noul",
+            "noul": 0.09353991358739376,
+            "confidence": 0.9064600864126062
+          },
+          "date_181": {
+            "type": "noul",
+            "noul": 0.12814745378205208,
+            "confidence": 0.8718525462179479
+          },
+          "registration_180": {
+            "type": "noul",
+            "noul": 0.10043814155887074,
+            "confidence": 0.8995618584411292
+          },
+          "recap_181": {
+            "type": "noul",
+            "noul": 0.07003464285185353,
+            "confidence": 0.9299653571481464
+          },
+          "date_186": {
+            "type": "noul",
+            "noul": 0.08841366060275516,
+            "confidence": 0.9115863393972449
+          },
+          "invitation_182": {
+            "type": "noul",
+            "noul": 0.1784991286328124,
+            "confidence": 0.8215008713671876
+          },
+          "focused_186": {
+            "type": "noul",
+            "noul": 0.1180334766949827,
+            "confidence": 0.8819665233050173
+          },
+          "invitation_183": {
+            "type": "noul",
+            "noul": 0.13651743383744575,
+            "confidence": 0.8634825661625543
+          },
+          "registration_187": {
+            "type": "noul",
+            "noul": 0.07542308599604514,
+            "confidence": 0.9245769140039548
+          },
+          "invitation_186": {
+            "type": "noul",
+            "noul": 0.17995905144090887,
+            "confidence": 0.8200409485590912
+          },
+          "date_180": {
+            "type": "noul",
+            "noul": 0.7794002121991086,
+            "confidence": 0.7794002121991086
+          },
+          "actionable_185": {
+            "type": "noul",
+            "noul": 0.18307822891405431,
+            "confidence": 0.8169217710859457
+          },
+          "actionable_179": {
+            "type": "noul",
+            "noul": 0.31071454052105424,
+            "confidence": 0.6892854594789457
+          },
+          "actionable_184": {
+            "type": "noul",
+            "noul": 0.24525330461825826,
+            "confidence": 0.7547466953817418
+          },
+          "announcement_188": {
+            "type": "noul",
+            "noul": 0.180720743514321,
+            "confidence": 0.819279256485679
+          },
+          "tickets_188": {
+            "type": "noul",
+            "noul": 0.10751875624888745,
+            "confidence": 0.8924812437511126
+          },
+          "tickets_182": {
+            "type": "noul",
+            "noul": 0.0764579989876882,
+            "confidence": 0.9235420010123118
+          },
+          "recap_183": {
+            "type": "noul",
+            "noul": 0.0822354544364298,
+            "confidence": 0.9177645455635702
+          },
+          "registration_184": {
+            "type": "noul",
+            "noul": 0.0789851617473873,
+            "confidence": 0.9210148382526127
+          },
+          "actionable_182": {
+            "type": "noul",
+            "noul": 0.24630747048694168,
+            "confidence": 0.7536925295130583
+          },
+          "registration_181": {
+            "type": "noul",
+            "noul": 0.16066598376408206,
+            "confidence": 0.839334016235918
+          },
+          "invitation_180": {
+            "type": "noul",
+            "noul": 0.30706426469353193,
+            "confidence": 0.692935735306468
+          },
+          "registration_183": {
+            "type": "noul",
+            "noul": 0.14270572467336165,
+            "confidence": 0.8572942753266384
+          },
+          "focused_184": {
+            "type": "noul",
+            "noul": 0.1464681523591682,
+            "confidence": 0.8535318476408318
+          },
+          "registration_185": {
+            "type": "noul",
+            "noul": 0.09323767500272863,
+            "confidence": 0.9067623249972714
+          },
+          "tickets_180": {
+            "type": "noul",
+            "noul": 0.06529305351875585,
+            "confidence": 0.9347069464812442
+          },
+          "digest_183": {
+            "type": "noul",
+            "noul": 0.20290465002200817,
+            "confidence": 0.7970953499779918
+          },
+          "digest_185": {
+            "type": "noul",
+            "noul": 0.19626080255768907,
+            "confidence": 0.8037391974423109
+          },
+          "actionable_186": {
+            "type": "noul",
+            "noul": 0.19503030288686854,
+            "confidence": 0.8049696971131315
+          },
+          "recap_182": {
+            "type": "noul",
+            "noul": 0.15800033319152423,
+            "confidence": 0.8419996668084757
+          },
+          "registration_188": {
+            "type": "noul",
+            "noul": 0.06653354168352975,
+            "confidence": 0.9334664583164702
+          },
+          "focused_179": {
+            "type": "noul",
+            "noul": 0.05718079042879298,
+            "confidence": 0.942819209571207
+          },
+          "announcement_184": {
+            "type": "noul",
+            "noul": 0.22233779462090833,
+            "confidence": 0.7776622053790917
+          },
+          "announcement_180": {
+            "type": "noul",
+            "noul": 0.5753172755661357,
+            "confidence": 0.5753172755661357
+          },
+          "announcement_185": {
+            "type": "noul",
+            "noul": 0.21870355226490104,
+            "confidence": 0.781296447735099
+          },
+          "focused_181": {
+            "type": "noul",
+            "noul": 0.12197115317201676,
+            "confidence": 0.8780288468279832
+          },
+          "actionable_183": {
+            "type": "noul",
+            "noul": 0.2491614957407917,
+            "confidence": 0.7508385042592083
+          },
+          "digest_181": {
+            "type": "noul",
+            "noul": 0.15181204595516173,
+            "confidence": 0.8481879540448383
+          },
+          "time_179": {
+            "type": "noul",
+            "noul": 0.1102402364179471,
+            "confidence": 0.8897597635820529
+          },
+          "tickets_187": {
+            "type": "noul",
+            "noul": 0.06363729719663967,
+            "confidence": 0.9363627028033603
+          },
+          "digest_179": {
+            "type": "noul",
+            "noul": 0.8503104308744801,
+            "confidence": 0.8503104308744801
+          },
+          "announcement_182": {
+            "type": "noul",
+            "noul": 0.21656308551258618,
+            "confidence": 0.7834369144874138
+          },
+          "recap_180": {
+            "type": "noul",
+            "noul": 0.05343314914101863,
+            "confidence": 0.9465668508589814
+          },
+          "recap_187": {
+            "type": "noul",
+            "noul": 0.0789480328788604,
+            "confidence": 0.9210519671211396
+          },
+          "time_184": {
+            "type": "noul",
+            "noul": 0.18132158397476303,
+            "confidence": 0.8186784160252369
+          },
+          "date_179": {
+            "type": "noul",
+            "noul": 0.7693219903158154,
+            "confidence": 0.7693219903158154
+          },
+          "tickets_185": {
+            "type": "noul",
+            "noul": 0.11195149954985638,
+            "confidence": 0.8880485004501436
+          },
+          "time_185": {
+            "type": "noul",
+            "noul": 0.18711793924318162,
+            "confidence": 0.8128820607568183
+          },
+          "recap_188": {
+            "type": "noul",
+            "noul": 0.1024944173147113,
+            "confidence": 0.8975055826852887
+          },
+          "time_188": {
+            "type": "noul",
+            "noul": 0.1571290978588005,
+            "confidence": 0.8428709021411995
+          },
+          "announcement_186": {
+            "type": "noul",
+            "noul": 0.18722184652664267,
+            "confidence": 0.8127781534733574
+          },
+          "registration_182": {
+            "type": "noul",
+            "noul": 0.12285304258003481,
+            "confidence": 0.8771469574199652
+          },
+          "actionable_187": {
+            "type": "noul",
+            "noul": 0.1505314340952269,
+            "confidence": 0.8494685659047732
+          },
+          "date_185": {
+            "type": "noul",
+            "noul": 0.2266659483850587,
+            "confidence": 0.7733340516149413
+          },
+          "invitation_179": {
+            "type": "noul",
+            "noul": 0.4328117994900565,
+            "confidence": 0.5671882005099436
+          },
+          "focused_187": {
+            "type": "noul",
+            "noul": 0.11166955784436816,
+            "confidence": 0.8883304421556318
+          },
+          "actionable_181": {
+            "type": "noul",
+            "noul": 0.10499798898014666,
+            "confidence": 0.8950020110198533
+          },
+          "time_187": {
+            "type": "noul",
+            "noul": 0.1372149350761259,
+            "confidence": 0.8627850649238741
+          },
+          "tickets_184": {
+            "type": "noul",
+            "noul": 0.09702288899815259,
+            "confidence": 0.9029771110018474
+          },
+          "digest_180": {
+            "type": "noul",
+            "noul": 0.6858005488557218,
+            "confidence": 0.6858005488557218
+          },
+          "focused_185": {
+            "type": "noul",
+            "noul": 0.17629356699420357,
+            "confidence": 0.8237064330057964
+          },
+          "actionable_188": {
+            "type": "noul",
+            "noul": 0.207625504567402,
+            "confidence": 0.792374495432598
+          },
+          "announcement_187": {
+            "type": "noul",
+            "noul": 0.17676522062321884,
+            "confidence": 0.8232347793767811
+          },
+          "tickets_183": {
+            "type": "noul",
+            "noul": 0.06562392024347273,
+            "confidence": 0.9343760797565273
+          },
+          "date_182": {
+            "type": "noul",
+            "noul": 0.19616930025729998,
+            "confidence": 0.8038306997427
+          },
+          "invitation_181": {
+            "type": "noul",
+            "noul": 0.1594724586837998,
+            "confidence": 0.8405275413162002
+          },
+          "tickets_179": {
+            "type": "noul",
+            "noul": 0.04636043021918983,
+            "confidence": 0.9536395697808102
+          },
+          "tickets_186": {
+            "type": "noul",
+            "noul": 0.056936584817281435,
+            "confidence": 0.9430634151827185
+          },
+          "time_180": {
+            "type": "noul",
+            "noul": 0.12822545066241925,
+            "confidence": 0.8717745493375808
+          },
+          "recap_185": {
+            "type": "noul",
+            "noul": 0.08320472862231082,
+            "confidence": 0.9167952713776892
+          },
+          "announcement_183": {
+            "type": "noul",
+            "noul": 0.20030469867152204,
+            "confidence": 0.799695301328478
+          },
+          "registration_186": {
+            "type": "noul",
+            "noul": 0.05543562012199188,
+            "confidence": 0.9445643798780081
+          },
+          "announcement_179": {
+            "type": "noul",
+            "noul": 0.7254279824159887,
+            "confidence": 0.7254279824159887
+          },
+          "digest_182": {
+            "type": "noul",
+            "noul": 0.2051959645127972,
+            "confidence": 0.7948040354872028
+          },
+          "focused_183": {
+            "type": "noul",
+            "noul": 0.16468378623582647,
+            "confidence": 0.8353162137641735
+          },
+          "date_188": {
+            "type": "noul",
+            "noul": 0.19184244971726738,
+            "confidence": 0.8081575502827326
+          },
+          "recap_186": {
+            "type": "noul",
+            "noul": 0.09270101927349184,
+            "confidence": 0.9072989807265082
+          },
+          "focused_182": {
+            "type": "noul",
+            "noul": 0.13551665923758108,
+            "confidence": 0.864483340762419
+          },
+          "focused_180": {
+            "type": "noul",
+            "noul": 0.12948024133837102,
+            "confidence": 0.870519758661629
+          },
+          "tickets_181": {
+            "type": "noul",
+            "noul": 0.06524924931285249,
+            "confidence": 0.9347507506871475
+          },
+          "time_182": {
+            "type": "noul",
+            "noul": 0.1790916254920847,
+            "confidence": 0.8209083745079153
+          }
+        },
+        "usage": {
+          "input_tokens": 8117,
+          "output_tokens": 0,
+          "cost": 0.0008117,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008117,
+            "upstream_inference_prompt_cost": 0.0008117,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 504
+    },
+    {
+      "ids": [
+        189,
+        190,
+        191,
+        192,
+        193,
+        194,
+        195,
+        196,
+        197,
+        198
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "registration_193": {
+            "type": "noul",
+            "noul": 0.1780603473415758,
+            "confidence": 0.8219396526584242
+          },
+          "invitation_195": {
+            "type": "noul",
+            "noul": 0.13695162976366387,
+            "confidence": 0.8630483702363361
+          },
+          "actionable_193": {
+            "type": "noul",
+            "noul": 0.17172075068986878,
+            "confidence": 0.8282792493101312
+          },
+          "focused_198": {
+            "type": "noul",
+            "noul": 0.1531415064262004,
+            "confidence": 0.8468584935737996
+          },
+          "focused_193": {
+            "type": "noul",
+            "noul": 0.12209808754871591,
+            "confidence": 0.8779019124512841
+          },
+          "announcement_190": {
+            "type": "noul",
+            "noul": 0.1478569626657585,
+            "confidence": 0.8521430373342415
+          },
+          "recap_192": {
+            "type": "noul",
+            "noul": 0.17136591950754512,
+            "confidence": 0.8286340804924549
+          },
+          "invitation_193": {
+            "type": "noul",
+            "noul": 0.23456666911686688,
+            "confidence": 0.7654333308831331
+          },
+          "registration_194": {
+            "type": "noul",
+            "noul": 0.14053050869299064,
+            "confidence": 0.8594694913070093
+          },
+          "registration_191": {
+            "type": "noul",
+            "noul": 0.15039856778341915,
+            "confidence": 0.8496014322165808
+          },
+          "actionable_194": {
+            "type": "noul",
+            "noul": 0.14411190735483487,
+            "confidence": 0.8558880926451651
+          },
+          "tickets_195": {
+            "type": "noul",
+            "noul": 0.07507925704877748,
+            "confidence": 0.9249207429512225
+          },
+          "time_192": {
+            "type": "noul",
+            "noul": 0.17996832891217066,
+            "confidence": 0.8200316710878294
+          },
+          "date_195": {
+            "type": "noul",
+            "noul": 0.41357444202850746,
+            "confidence": 0.5864255579714925
+          },
+          "time_196": {
+            "type": "noul",
+            "noul": 0.183320943274632,
+            "confidence": 0.816679056725368
+          },
+          "digest_191": {
+            "type": "noul",
+            "noul": 0.12800959086659514,
+            "confidence": 0.8719904091334049
+          },
+          "date_190": {
+            "type": "noul",
+            "noul": 0.09650522600627313,
+            "confidence": 0.9034947739937269
+          },
+          "date_189": {
+            "type": "noul",
+            "noul": 0.0463526186713413,
+            "confidence": 0.9536473813286587
+          },
+          "tickets_192": {
+            "type": "noul",
+            "noul": 0.06403185158316321,
+            "confidence": 0.9359681484168367
+          },
+          "date_198": {
+            "type": "noul",
+            "noul": 0.8712698340193966,
+            "confidence": 0.8712698340193966
+          },
+          "actionable_190": {
+            "type": "noul",
+            "noul": 0.07687406112889786,
+            "confidence": 0.9231259388711022
+          },
+          "recap_193": {
+            "type": "noul",
+            "noul": 0.285362925772012,
+            "confidence": 0.714637074227988
+          },
+          "invitation_197": {
+            "type": "noul",
+            "noul": 0.1643715412614984,
+            "confidence": 0.8356284587385017
+          },
+          "date_192": {
+            "type": "noul",
+            "noul": 0.13014472639646898,
+            "confidence": 0.869855273603531
+          },
+          "focused_194": {
+            "type": "noul",
+            "noul": 0.14595312549696512,
+            "confidence": 0.8540468745030348
+          },
+          "invitation_192": {
+            "type": "noul",
+            "noul": 0.12777062862002553,
+            "confidence": 0.8722293713799745
+          },
+          "focused_190": {
+            "type": "noul",
+            "noul": 0.061347918769612174,
+            "confidence": 0.9386520812303878
+          },
+          "time_197": {
+            "type": "noul",
+            "noul": 0.12382736287477808,
+            "confidence": 0.8761726371252219
+          },
+          "announcement_194": {
+            "type": "noul",
+            "noul": 0.29948336612482995,
+            "confidence": 0.70051663387517
+          },
+          "actionable_195": {
+            "type": "noul",
+            "noul": 0.13848559302005628,
+            "confidence": 0.8615144069799437
+          },
+          "registration_189": {
+            "type": "noul",
+            "noul": 0.15122060012356428,
+            "confidence": 0.8487793998764357
+          },
+          "digest_189": {
+            "type": "noul",
+            "noul": 0.09803910041761882,
+            "confidence": 0.9019608995823811
+          },
+          "invitation_198": {
+            "type": "noul",
+            "noul": 0.140602748253321,
+            "confidence": 0.859397251746679
+          },
+          "focused_197": {
+            "type": "noul",
+            "noul": 0.14760941123200624,
+            "confidence": 0.8523905887679938
+          },
+          "recap_196": {
+            "type": "noul",
+            "noul": 0.1465278261036892,
+            "confidence": 0.8534721738963108
+          },
+          "time_193": {
+            "type": "noul",
+            "noul": 0.15425474657305904,
+            "confidence": 0.845745253426941
+          },
+          "date_193": {
+            "type": "noul",
+            "noul": 0.14064270508414642,
+            "confidence": 0.8593572949158536
+          },
+          "digest_196": {
+            "type": "noul",
+            "noul": 0.14303165727993442,
+            "confidence": 0.8569683427200656
+          },
+          "recap_191": {
+            "type": "noul",
+            "noul": 0.11381130881585524,
+            "confidence": 0.8861886911841448
+          },
+          "recap_195": {
+            "type": "noul",
+            "noul": 0.17765165825422788,
+            "confidence": 0.8223483417457721
+          },
+          "digest_198": {
+            "type": "noul",
+            "noul": 0.12138108788125318,
+            "confidence": 0.8786189121187469
+          },
+          "recap_190": {
+            "type": "noul",
+            "noul": 0.12109324991347681,
+            "confidence": 0.8789067500865232
+          },
+          "invitation_191": {
+            "type": "noul",
+            "noul": 0.14552820241170908,
+            "confidence": 0.854471797588291
+          },
+          "actionable_198": {
+            "type": "noul",
+            "noul": 0.15772647275618012,
+            "confidence": 0.8422735272438199
+          },
+          "invitation_189": {
+            "type": "noul",
+            "noul": 0.10262463732565211,
+            "confidence": 0.8973753626743479
+          },
+          "focused_196": {
+            "type": "noul",
+            "noul": 0.14140406929325122,
+            "confidence": 0.8585959307067488
+          },
+          "actionable_197": {
+            "type": "noul",
+            "noul": 0.126952313682048,
+            "confidence": 0.8730476863179519
+          },
+          "date_191": {
+            "type": "noul",
+            "noul": 0.1260133431364676,
+            "confidence": 0.8739866568635324
+          },
+          "time_194": {
+            "type": "noul",
+            "noul": 0.20565083450393776,
+            "confidence": 0.7943491654960623
+          },
+          "recap_197": {
+            "type": "noul",
+            "noul": 0.19843139391877576,
+            "confidence": 0.8015686060812243
+          },
+          "time_189": {
+            "type": "noul",
+            "noul": 0.07503546576664355,
+            "confidence": 0.9249645342333565
+          },
+          "announcement_191": {
+            "type": "noul",
+            "noul": 0.16609657749427514,
+            "confidence": 0.8339034225057249
+          },
+          "digest_190": {
+            "type": "noul",
+            "noul": 0.07060963855696879,
+            "confidence": 0.9293903614430312
+          },
+          "announcement_193": {
+            "type": "noul",
+            "noul": 0.1879911283656156,
+            "confidence": 0.8120088716343844
+          },
+          "invitation_190": {
+            "type": "noul",
+            "noul": 0.08819709202855197,
+            "confidence": 0.911802907971448
+          },
+          "tickets_197": {
+            "type": "noul",
+            "noul": 0.05842822848276394,
+            "confidence": 0.941571771517236
+          },
+          "actionable_196": {
+            "type": "noul",
+            "noul": 0.17045968124285027,
+            "confidence": 0.8295403187571497
+          },
+          "digest_194": {
+            "type": "noul",
+            "noul": 0.09089173862825964,
+            "confidence": 0.9091082613717404
+          },
+          "tickets_198": {
+            "type": "noul",
+            "noul": 0.05724281216949807,
+            "confidence": 0.9427571878305019
+          },
+          "digest_195": {
+            "type": "noul",
+            "noul": 0.11537217564659634,
+            "confidence": 0.8846278243534037
+          },
+          "digest_192": {
+            "type": "noul",
+            "noul": 0.06807518561923537,
+            "confidence": 0.9319248143807646
+          },
+          "recap_198": {
+            "type": "noul",
+            "noul": 0.14959790611608328,
+            "confidence": 0.8504020938839167
+          },
+          "announcement_192": {
+            "type": "noul",
+            "noul": 0.18243804144312795,
+            "confidence": 0.8175619585568721
+          },
+          "announcement_189": {
+            "type": "noul",
+            "noul": 0.13970617206919303,
+            "confidence": 0.860293827930807
+          },
+          "tickets_191": {
+            "type": "noul",
+            "noul": 0.05251894509411972,
+            "confidence": 0.9474810549058803
+          },
+          "date_196": {
+            "type": "noul",
+            "noul": 0.6466858561629031,
+            "confidence": 0.6466858561629031
+          },
+          "focused_191": {
+            "type": "noul",
+            "noul": 0.14653541219948263,
+            "confidence": 0.8534645878005174
+          },
+          "time_190": {
+            "type": "noul",
+            "noul": 0.07261817630370805,
+            "confidence": 0.927381823696292
+          },
+          "actionable_192": {
+            "type": "noul",
+            "noul": 0.10962415604593098,
+            "confidence": 0.890375843954069
+          },
+          "tickets_190": {
+            "type": "noul",
+            "noul": 0.06838644526445549,
+            "confidence": 0.9316135547355445
+          },
+          "date_194": {
+            "type": "noul",
+            "noul": 0.18366878473854006,
+            "confidence": 0.8163312152614599
+          },
+          "actionable_191": {
+            "type": "noul",
+            "noul": 0.08826835989966254,
+            "confidence": 0.9117316401003375
+          },
+          "focused_192": {
+            "type": "noul",
+            "noul": 0.11009312786194761,
+            "confidence": 0.8899068721380524
+          },
+          "registration_197": {
+            "type": "noul",
+            "noul": 0.14359170812320246,
+            "confidence": 0.8564082918767976
+          },
+          "recap_194": {
+            "type": "noul",
+            "noul": 0.3637693745236991,
+            "confidence": 0.6362306254763008
+          },
+          "tickets_189": {
+            "type": "noul",
+            "noul": 0.056615802707092815,
+            "confidence": 0.9433841972929072
+          },
+          "time_191": {
+            "type": "noul",
+            "noul": 0.08427079531764425,
+            "confidence": 0.9157292046823557
+          },
+          "focused_189": {
+            "type": "noul",
+            "noul": 0.07299140064705864,
+            "confidence": 0.9270085993529413
+          },
+          "tickets_196": {
+            "type": "noul",
+            "noul": 0.08908525979044013,
+            "confidence": 0.9109147402095599
+          },
+          "announcement_195": {
+            "type": "noul",
+            "noul": 0.2733435068656915,
+            "confidence": 0.7266564931343085
+          },
+          "digest_193": {
+            "type": "noul",
+            "noul": 0.12223919050819507,
+            "confidence": 0.8777608094918049
+          },
+          "digest_197": {
+            "type": "noul",
+            "noul": 0.12289748503586162,
+            "confidence": 0.8771025149641384
+          },
+          "recap_189": {
+            "type": "noul",
+            "noul": 0.062220651721688246,
+            "confidence": 0.9377793482783118
+          },
+          "announcement_196": {
+            "type": "noul",
+            "noul": 0.3128146041930767,
+            "confidence": 0.6871853958069233
+          },
+          "tickets_193": {
+            "type": "noul",
+            "noul": 0.058760578438599234,
+            "confidence": 0.9412394215614007
+          },
+          "registration_196": {
+            "type": "noul",
+            "noul": 0.15442030067470378,
+            "confidence": 0.8455796993252962
+          },
+          "date_197": {
+            "type": "noul",
+            "noul": 0.8989328876175321,
+            "confidence": 0.8989328876175321
+          },
+          "announcement_198": {
+            "type": "noul",
+            "noul": 0.4134233089370587,
+            "confidence": 0.5865766910629413
+          },
+          "invitation_196": {
+            "type": "noul",
+            "noul": 0.15380433298828103,
+            "confidence": 0.846195667011719
+          },
+          "tickets_194": {
+            "type": "noul",
+            "noul": 0.13156876291961694,
+            "confidence": 0.8684312370803831
+          },
+          "registration_190": {
+            "type": "noul",
+            "noul": 0.10293974640639031,
+            "confidence": 0.8970602535936096
+          },
+          "registration_192": {
+            "type": "noul",
+            "noul": 0.21447565923454492,
+            "confidence": 0.7855243407654551
+          },
+          "registration_195": {
+            "type": "noul",
+            "noul": 0.20585598401385155,
+            "confidence": 0.7941440159861485
+          },
+          "actionable_189": {
+            "type": "noul",
+            "noul": 0.08737963051681902,
+            "confidence": 0.9126203694831809
+          },
+          "focused_195": {
+            "type": "noul",
+            "noul": 0.1312558330897128,
+            "confidence": 0.8687441669102872
+          },
+          "registration_198": {
+            "type": "noul",
+            "noul": 0.17002785092687825,
+            "confidence": 0.8299721490731218
+          },
+          "time_198": {
+            "type": "noul",
+            "noul": 0.19238144068615884,
+            "confidence": 0.8076185593138412
+          },
+          "invitation_194": {
+            "type": "noul",
+            "noul": 0.15332282900444597,
+            "confidence": 0.8466771709955541
+          },
+          "announcement_197": {
+            "type": "noul",
+            "noul": 0.4820412600590642,
+            "confidence": 0.5179587399409358
+          },
+          "time_195": {
+            "type": "noul",
+            "noul": 0.19275093589701173,
+            "confidence": 0.8072490641029882
+          }
+        },
+        "usage": {
+          "input_tokens": 8094,
+          "output_tokens": 0,
+          "cost": 0.0008094,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0008094,
+            "upstream_inference_prompt_cost": 0.0008094,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 421
+    },
+    {
+      "ids": [
+        199,
+        200
+      ],
+      "response": {
+        "model": "google/gemini-decision-1-20261111",
+        "answers": {
+          "invitation_200": {
+            "type": "noul",
+            "noul": 0.027633003171817175,
+            "confidence": 0.9723669968281828
+          },
+          "tickets_200": {
+            "type": "noul",
+            "noul": 0.03974550204587707,
+            "confidence": 0.960254497954123
+          },
+          "digest_200": {
+            "type": "noul",
+            "noul": 0.033298657810205926,
+            "confidence": 0.9667013421897941
+          },
+          "actionable_200": {
+            "type": "noul",
+            "noul": 0.1163737410656217,
+            "confidence": 0.8836262589343783
+          },
+          "focused_200": {
+            "type": "noul",
+            "noul": 0.052378884453292335,
+            "confidence": 0.9476211155467077
+          },
+          "digest_199": {
+            "type": "noul",
+            "noul": 0.027156198886764675,
+            "confidence": 0.9728438011132353
+          },
+          "time_199": {
+            "type": "noul",
+            "noul": 0.029025409078191337,
+            "confidence": 0.9709745909218087
+          },
+          "recap_200": {
+            "type": "noul",
+            "noul": 0.04899348825383246,
+            "confidence": 0.9510065117461676
+          },
+          "announcement_200": {
+            "type": "noul",
+            "noul": 0.34320997942642534,
+            "confidence": 0.6567900205735746
+          },
+          "focused_199": {
+            "type": "noul",
+            "noul": 0.05591099801318786,
+            "confidence": 0.9440890019868121
+          },
+          "registration_199": {
+            "type": "noul",
+            "noul": 0.04967210916545775,
+            "confidence": 0.9503278908345423
+          },
+          "date_200": {
+            "type": "noul",
+            "noul": 0.9600101989086199,
+            "confidence": 0.9600101989086199
+          },
+          "invitation_199": {
+            "type": "noul",
+            "noul": 0.03061763483341553,
+            "confidence": 0.9693823651665845
+          },
+          "time_200": {
+            "type": "noul",
+            "noul": 0.04916549824366543,
+            "confidence": 0.9508345017563345
+          },
+          "recap_199": {
+            "type": "noul",
+            "noul": 0.04367006234113541,
+            "confidence": 0.9563299376588645
+          },
+          "tickets_199": {
+            "type": "noul",
+            "noul": 0.039568589651222015,
+            "confidence": 0.960431410348778
+          },
+          "actionable_199": {
+            "type": "noul",
+            "noul": 0.1454109764520377,
+            "confidence": 0.8545890235479623
+          },
+          "registration_200": {
+            "type": "noul",
+            "noul": 0.050125128818508856,
+            "confidence": 0.9498748711814912
+          },
+          "announcement_199": {
+            "type": "noul",
+            "noul": 0.48542381828038045,
+            "confidence": 0.5145761817196195
+          },
+          "date_199": {
+            "type": "noul",
+            "noul": 0.9754338649950188,
+            "confidence": 0.9754338649950188
+          }
+        },
+        "usage": {
+          "input_tokens": 1683,
+          "output_tokens": 0,
+          "cost": 0.0001683,
+          "is_byok": false,
+          "cost_details": {
+            "upstream_inference_cost": 0.0001683,
+            "upstream_inference_prompt_cost": 0.0001683,
+            "upstream_inference_completions_cost": 0
+          }
+        },
+        "provider": "Google AI Studio"
+      },
+      "durationMs": 308
+    }
+  ]
+}
