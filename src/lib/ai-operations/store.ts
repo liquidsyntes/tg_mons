@@ -1,3 +1,4 @@
+import { budgetSnapshot, recordBudgetNotices } from './budget';
 import { logger } from '../logger';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash } from 'node:crypto';
@@ -34,6 +35,8 @@ export async function reserveOperation(actor: string, userId: number | null, kin
       return {operation:active,created:false};
     }
     const settings = await tx.systemSetting.findUnique({where:{id:'global'}});
+    const budget = await budgetSnapshot(tx, now);
+    if (settings?.aiBudgetMode === 'BLOCK' && budget.periods.some(p => p.reached)) throw new AiOperationError('Достигнут бюджет AI в USD (UTC). Новые операции заблокированы',429);
     const hourly = settings?.aiHourlyLimit ?? 0, concurrent = settings?.aiConcurrentLimit ?? 0;
     if (hourly > 0 && await tx.aiOperation.count({where:{actor,createdAt:{gte:new Date(now.getTime()-3600000)}}}) >= hourly) throw new AiOperationError('Достигнут часовой лимит AI-операций',429,3600);
     if (concurrent > 0 && await tx.aiOperation.count({where:{actor,status:'RUNNING'}}) >= concurrent) throw new AiOperationError('Достигнут лимит одновременных AI-операций',429,10);
@@ -71,7 +74,15 @@ export async function trackedProviderFetch(model: string, stage: string, url: st
     const text = await response.text();
     let body: unknown = null;
     try { body=JSON.parse(text); } catch { /* Non-JSON error response has no confirmed usage. */ }
-    await prisma.aiProviderCall.update({where:{id:call.id},data:{status:response.ok?'SUCCEEDED':'FAILED',endedAt:new Date(),durationMs:Date.now()-started,...parseUsage(body),model:body && typeof body==='object' && 'model' in body && typeof body.model==='string' ? body.model.slice(0,200) : model,errorCode:response.ok?null:`HTTP_${response.status}`}});
+    await prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(870001)`;
+      await tx.aiProviderCall.update({where:{id:call.id},data:{status:response.ok?'SUCCEEDED':'FAILED',endedAt:new Date(),durationMs:Date.now()-started,...parseUsage(body),model:body && typeof body==='object' && 'model' in body && typeof body.model==='string' ? body.model.slice(0,200) : model,errorCode:response.ok?null:`HTTP_${response.status}`}});
+    });
+    await prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(870001)`;
+      await recordBudgetNotices(tx);
+      if (call.startedAt.toISOString().slice(0,10) !== new Date().toISOString().slice(0,10)) await recordBudgetNotices(tx,call.startedAt);
+    }).catch(() => logger.error('AI budget notification evaluation failed',{callId:call.id}));
     return new Response(text,{status:response.status,headers:response.headers});
   } catch (error) {
     await prisma.aiProviderCall.updateMany({where:{id:call.id,status:'RUNNING'},data:{status:'UNKNOWN',endedAt:new Date(),durationMs:Date.now()-started,errorCode:'OUTCOME_UNKNOWN'}}).catch(()=>logger.error('AI provider journal finalization unavailable',{callId:call.id}));

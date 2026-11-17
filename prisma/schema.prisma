@@ -363,7 +363,30 @@ model AudienceDemographics {
   @@map("audience_demographics")
 }
 
+enum AiBudgetMode {
+  WARN
+  BLOCK
+}
+
+model AiBudgetNotice {
+  id String @id @default(cuid())
+  period String
+  periodStart DateTime
+  configuration String
+  threshold Int
+  cost Decimal @db.Decimal(20, 10)
+  createdAt DateTime @default(now())
+  delivery String @default("PENDING")
+  @@unique([period, periodStart, configuration, threshold])
+  @@map("ai_budget_notices")
+}
+
 model SystemSetting {
+  aiDailyBudget Decimal? @db.Decimal(20, 10)
+  aiMonthlyBudget Decimal? @db.Decimal(20, 10)
+  aiBudgetMode AiBudgetMode @default(WARN)
+  aiBudgetWarning Int @default(80)
+  aiBudgetTelegram Boolean @default(false)
   aiHourlyLimit Int @default(0) @map("ai_hourly_limit")
   aiConcurrentLimit Int @default(0) @map("ai_concurrent_limit")
   aiProviderConcurrency Int @default(4) @map("ai_provider_concurrency")

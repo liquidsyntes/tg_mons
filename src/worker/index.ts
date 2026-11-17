@@ -1,3 +1,4 @@
+import { deliverBudgetNotices } from '@/lib/ai-operations/budget';
 import { runPublicationPerformanceCycle } from './publication-performance';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
@@ -219,6 +220,10 @@ async function startWorker(): Promise<void> {
     }, { timezone: 'UTC' }));
     logger.info('Daily digest check scheduled (every 5 minutes, UTC)');
   }
+
+  if (!localMode) scheduled.push(cron.schedule('*/5 * * * *', () => {
+    void deliverBudgetNotices().catch(error => logger.error('AI budget delivery failed', undefined, error));
+  }, { timezone: 'UTC' }));
 
   const eventsScanCron = process.env.EVENTS_SCAN_CRON?.trim();
   if (!localMode && eventsScanCron) {

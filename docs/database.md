@@ -829,3 +829,28 @@ flowchart LR
     Runs --> Admin[API ops: только ADMIN]
     Checkpoints --> Coverage[Сводка доступных публикаций]
 ```
+
+## Бюджеты AI (#93)
+
+Миграция `20261117090000_ai_budgets` добавляет nullable Decimal(20,10) `aiDailyBudget`/`aiMonthlyBudget`, enum `AiBudgetMode` WARN/BLOCK, процент `aiBudgetWarning` и выключенный по умолчанию `aiBudgetTelegram` в SystemSetting. Данные журнала не изменяются. `AiBudgetNotice` хранит факт пересечения порога и состояние доставки; расходы по-прежнему хранятся только в AiProviderCall. Уникальная комбинация периода, его UTC-начала, конфигурации и порога защищает уведомления от дублей через INSERT ON CONFLICT DO NOTHING. История автоматически не удаляется.
+
+```mermaid
+erDiagram
+    SystemSetting {
+        string id PK
+        decimal aiDailyBudget "nullable USD"
+        decimal aiMonthlyBudget "nullable USD"
+        AiBudgetMode aiBudgetMode
+        int aiBudgetWarning
+        boolean aiBudgetTelegram
+    }
+    AiBudgetNotice {
+        string id PK
+        string period
+        datetime periodStart
+        string configuration
+        int threshold
+        decimal cost
+        string delivery
+    }
+```

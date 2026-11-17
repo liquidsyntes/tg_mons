@@ -3,16 +3,39 @@ import { promisify } from 'node:util';
 import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { prisma } from '@/lib/prisma';
+import { budgetSnapshot, recordBudgetNotices } from '../budget';
 import { reserveOperation, canonicalHash, operationContext, trackedProviderFetch } from '../store';
 const enabled=process.env.AI_OPERATIONS_INTEGRATION==='1';
 if (enabled && !new URL(process.env.DATABASE_URL ?? '').pathname.endsWith('_ai87_test')) throw new Error('Dedicated test database required');
 describe.skipIf(!enabled)('AI admission with real PostgreSQL',()=>{
   beforeEach(async()=>{
-    await prisma.aiProviderCall.deleteMany();await prisma.aiOperation.deleteMany();
-    await prisma.systemSetting.upsert({where:{id:'global'},create:{id:'global'},update:{aiHourlyLimit:0,aiConcurrentLimit:0,aiProviderConcurrency:4}});
+    await prisma.aiBudgetNotice.deleteMany();await prisma.aiProviderCall.deleteMany();await prisma.aiOperation.deleteMany();
+    await prisma.systemSetting.upsert({where:{id:'global'},create:{id:'global'},update:{aiDailyBudget:null,aiMonthlyBudget:null,aiBudgetMode:'WARN',aiBudgetTelegram:false,aiBudgetWarning:80,aiHourlyLimit:0,aiConcurrentLimit:0,aiProviderConcurrency:4}});
     vi.restoreAllMocks();
   });
   afterAll(async()=>{if(enabled)await prisma.$disconnect();});
+  it('blocks new work at exact budget, preserves replay and deduplicates notices across clients',async()=>{
+    const original=await reserveOperation('user:1',1,'summary','budget-original','a');
+    await prisma.aiOperation.update({where:{id:original.operation.id},data:{status:'SUCCEEDED',response:{saved:true}}});
+    await prisma.aiProviderCall.create({data:{operationId:original.operation.id,model:'synthetic',stage:'chat',status:'SUCCEEDED',cost:'0.3',currency:'USD',expiresAt:new Date()}});
+    await prisma.systemSetting.update({where:{id:'global'},data:{aiDailyBudget:'0.3',aiBudgetMode:'BLOCK'}});
+    const results=await Promise.allSettled([reserveOperation('user:1',1,'summary','budget-new-a','b'),reserveOperation('user:2',2,'summary','budget-new-b','c')]);
+    expect(results.every(r=>r.status==='rejected')).toBe(true);
+    expect((await reserveOperation('user:1',1,'summary','budget-original','a')).created).toBe(false);
+    await Promise.all(Array.from({length:4},()=>prisma.$transaction(tx=>recordBudgetNotices(tx))));
+    expect(await prisma.aiBudgetNotice.count()).toBe(2);
+    await prisma.systemSetting.update({where:{id:'global'},data:{aiBudgetMode:'WARN'}});
+    expect((await reserveOperation('user:2',2,'summary','budget-warn','c')).created).toBe(true);
+  });
+  it('attributes late confirmed costs to call start rather than parent creation or completion',async()=>{
+    const op=await reserveOperation('user:1',1,'summary','late-call','a');
+    await prisma.systemSetting.update({where:{id:'global'},data:{aiDailyBudget:'0.1',aiMonthlyBudget:'0.2'}});
+    await prisma.aiProviderCall.create({data:{operationId:op.operation.id,model:'synthetic',stage:'chat',status:'SUCCEEDED',startedAt:new Date('2026-12-31T23:59:59Z'),endedAt:new Date('2027-01-01T00:01:00Z'),cost:'0.2',currency:'USD',expiresAt:new Date()}});
+    const previous=await prisma.$transaction(tx=>budgetSnapshot(tx,new Date('2026-12-31T23:59:59Z')));
+    const next=await prisma.$transaction(tx=>budgetSnapshot(tx,new Date('2027-01-01T00:01:00Z')));
+    expect(previous.periods.every(p=>p.reached)).toBe(true);
+    expect(next.periods.every(p=>!p.reached && p.knownCostUsd.isZero())).toBe(true);
+  });
   it('reserves exactly once from independent Node processes',async()=>{
     const run=promisify(execFile);
     const args=[resolve('node_modules/tsx/dist/cli.mjs'),resolve('src/lib/ai-operations/__tests__/admit-process.ts')];
