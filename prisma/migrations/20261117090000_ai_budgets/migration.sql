@@ -24,3 +24,4 @@ CREATE TABLE "ai_budget_notices" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ai_budget_notices_period_periodStart_configuration_threshol_key" ON "ai_budget_notices"("period", "periodStart", "configuration", "threshold");
+
