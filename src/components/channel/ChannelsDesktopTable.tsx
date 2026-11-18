@@ -236,7 +236,7 @@ export function ChannelsDesktopTable({
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-1 text-center font-mono font-semibold tabular-nums text-[#6cd733]">
+                  <td className="py-3.5 px-1 text-center font-mono font-semibold tabular-nums text-emerald-400">
                     <MetricCell 
                       value={channel.lastPostViews} 
                       {...getMetricReason('lastFact', channel)} 

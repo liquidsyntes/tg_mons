@@ -87,7 +87,7 @@ export function ChannelsMobileList({
               <div className="text-right">
                 <div className="flex items-center justify-end gap-4">
                   <div className="text-right">
-                    <div className="text-base font-extrabold font-mono text-[lime] tabular-nums">
+                    <div className="text-base font-extrabold font-mono text-emerald-400 tabular-nums">
                       <MetricCell 
                         value={channel.lastPostViews} 
                         formattedValue={channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : undefined} 

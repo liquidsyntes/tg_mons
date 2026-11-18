@@ -143,11 +143,41 @@ export function OperationsMonitorSettings() {
             <div className="border-t border-border pt-5 space-y-3">
               <h3 className="font-semibold text-white">Замеры публикаций</h3>
               <p className="text-xs text-slate-400">Последние 20 проходов, хранение 30 дней. Незавершённая запись не доказывает причину остановки.</p>
-              {data.publicationRuns?.length ? data.publicationRuns.map(run=><div key={run.id} className="rounded border border-border p-3 text-xs space-y-1">
-                <p>{formatDate(run.startedAt)} · {run.endedAt ? run.status : 'Нет итога прохода'} · обновлено {formatDate(run.updatedAt)}</p>
-                <p>Кандидаты: {run.candidates}; обработано: {run.processed}; новых точек: {run.saved}; ошибок: {run.errors}; за лимитом: {run.limited}</p>
-                <p>Удалены: {run.deleted}; нет ответа: {run.noResponse}; нет валидных просмотров: {run.invalidViews}</p>
-              </div>) : <p className="text-sm text-slate-400">Диагностики новых проходов пока нет.</p>}
+              {data.publicationRuns?.length ? (
+                <div className="space-y-2">
+                  {data.publicationRuns.map((run) => {
+                    const resolvedStatus = run.status as OpsSyncStatus;
+                    const statusLabel = run.endedAt
+                      ? (statusLabels[resolvedStatus] ?? run.status)
+                      : 'Нет итога прохода';
+                    const statusColor = run.endedAt
+                      ? (statusColors[resolvedStatus] ?? 'text-slate-300')
+                      : 'text-amber-300';
+                    return (
+                      <div
+                        key={run.id}
+                        className="rounded-xl border border-border bg-slate-900/40 p-3.5 text-xs space-y-1.5"
+                      >
+                        <p className="text-slate-300">
+                          <span className="font-mono">{formatDate(run.startedAt)}</span> ·{' '}
+                          <span className={`font-semibold ${statusColor}`}>{statusLabel}</span> · обновлено{' '}
+                          <span className="font-mono text-slate-400">{formatDate(run.updatedAt)}</span>
+                        </p>
+                        <p className="text-slate-300 font-mono tabular-nums">
+                          Кандидаты: {run.candidates}; обработано: {run.processed}; новых точек: {run.saved};
+                          ошибок: {run.errors}; за лимитом: {run.limited}
+                        </p>
+                        <p className="text-slate-400 font-mono tabular-nums">
+                          Удалены: {run.deleted}; нет ответа: {run.noResponse}; нет валидных просмотров:{' '}
+                          {run.invalidViews}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">Диагностики новых проходов пока нет.</p>
+              )}
               <h3 className="font-semibold text-white">Последние запуски</h3>
               {data.jobs.length === 0 ? <p className="text-sm text-slate-400">Запусков пока нет.</p> :
                 <div className="overflow-x-auto">

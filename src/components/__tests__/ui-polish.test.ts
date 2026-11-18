@@ -9,6 +9,10 @@ import { MyChannelCard } from '../MyChannelCard';
 import { WatchlistWidget } from '../WatchlistWidget';
 import { TrendSpotterWidget } from '../TrendSpotterWidget';
 import { ChannelsDesktopTable } from '../channel/ChannelsDesktopTable';
+import { ChannelsMobileList } from '../channel/ChannelsMobileList';
+import { ChannelHeader } from '../channel/ChannelHeader';
+import { DataEvidenceDetails } from '../DataEvidenceDetails';
+import { OperationsMonitorSettings } from '../settings/OperationsMonitorSettings';
 import { CitationIndexCell } from '../channel/cells/CitationIndexCell';
 import { MetricCell, AdShareCell, getRateMetricColorClass } from '../channel/cells/MetricCell';
 import { buildChannelsExportCsv, formatChannelTelegramUrl } from '../ChannelsTable';
@@ -302,5 +306,118 @@ describe('CitationIndexCell and metric cell helpers', () => {
 
     rerender(React.createElement(AdShareCell, { adShare: { percent: 0, level: 'none' }, variant: 'mobile' }));
     expect(screen.getByText('-').className).toContain('text-white');
+  });
+});
+
+describe('unified Last Fact accent and disclosure blocks', () => {
+  it('uses unified text-emerald-400 accent for Last Fact across desktop table, mobile list, and channel header', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      json: async () => ({ estimatedPricePerPost: 375, cpm: 0, confidence: 'high' }),
+    }));
+    const targetChannel: ChannelMetrics = { ...channel, lastPostViews: 4321, sparkline7d: [] };
+
+    const { container, rerender } = render(React.createElement(ChannelsDesktopTable, {
+      channels: [targetChannel],
+      sortField: 'members',
+      sortOrder: 'desc',
+      onSort: vi.fn(),
+      localFavorites: {},
+      onToggleFavorite: vi.fn(),
+    }));
+    const desktopCell = screen.getByText('4321').closest('td');
+    expect(desktopCell?.className).toContain('text-emerald-400');
+    expect(container.innerHTML).not.toContain('text-[#6cd733]');
+
+    rerender(React.createElement(ChannelsMobileList, {
+      channels: [targetChannel],
+      localFavorites: {},
+      onToggleFavorite: vi.fn(),
+    }));
+    const mobileVal = screen.getByText('4 321').closest('div');
+    expect(mobileVal?.className).toContain('text-emerald-400');
+    expect(container.innerHTML).not.toContain('text-[lime]');
+
+    rerender(React.createElement(ChannelHeader, {
+      channel: targetChannel,
+      period: '7d',
+      onPeriodChange: vi.fn(),
+      onMineChanged: vi.fn(),
+    }));
+    await screen.findByText('375 ₴');
+    const headerVal = screen.getByText('4 321');
+    expect(headerVal.className).toContain('text-emerald-400');
+  });
+
+  it('renders styled DataEvidenceDetails with labels for sufficient, partial, and fallback evidence', () => {
+    const baseEvidence = {
+      status: 'sufficient' as const,
+      sampleSize: 18,
+      source: 'Посты конкурентов',
+      reason: 'Достаточная выборка за 30 дней',
+      updatedAt: '2026-11-18T10:00:00.000Z',
+      periodStart: '2026-10-19',
+      periodEnd: '2026-11-18',
+    };
+
+    const { rerender } = render(React.createElement(DataEvidenceDetails, { evidence: baseEvidence }));
+    expect(screen.getByText('Основания рекомендации · 18 публикаций')).toBeDefined();
+    expect(screen.getByText(/Достаточная выборка за 30 дней/)).toBeDefined();
+
+    rerender(React.createElement(DataEvidenceDetails, {
+      evidence: { ...baseEvidence, status: 'partial', sampleSize: 4 },
+    }));
+    expect(screen.getByText('Ограниченные данные · 4 публикаций')).toBeDefined();
+
+    rerender(React.createElement(DataEvidenceDetails, { evidence: baseEvidence, fallback: true }));
+    expect(screen.getByText('Резервный ориентир · 18 публикаций')).toBeDefined();
+  });
+
+  it('renders publicationRuns in OperationsMonitorSettings with localized status labels', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        latestJob: null,
+        jobs: [],
+        summary: { lastSuccessfulAt: null, successRate7dPercent: null, activeChannels: 2, disabledWithErrors: 0 },
+        problemChannels: [],
+        publicationRuns: [
+          {
+            id: 'run-1',
+            startedAt: '2026-11-18T08:00:00.000Z',
+            updatedAt: '2026-11-18T08:02:00.000Z',
+            endedAt: '2026-11-18T08:02:00.000Z',
+            status: 'PARTIAL',
+            candidates: 5,
+            processed: 5,
+            saved: 4,
+            errors: 1,
+            limited: 0,
+            deleted: 0,
+            noResponse: 0,
+            invalidViews: 0,
+          },
+          {
+            id: 'run-2',
+            startedAt: '2026-11-18T09:00:00.000Z',
+            updatedAt: '2026-11-18T09:00:10.000Z',
+            endedAt: null,
+            status: 'RUNNING',
+            candidates: 2,
+            processed: 0,
+            saved: 0,
+            errors: 0,
+            limited: 0,
+            deleted: 0,
+            noResponse: 0,
+            invalidViews: 0,
+          },
+        ],
+      }),
+    }));
+
+    render(React.createElement(OperationsMonitorSettings));
+    expect(await screen.findByText('Частично')).toBeDefined();
+    expect(screen.getByText('Нет итога прохода')).toBeDefined();
+    expect(screen.getByText(/Кандидаты: 5; обработано: 5; новых точек: 4/)).toBeDefined();
   });
 });
