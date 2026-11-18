@@ -3,6 +3,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ContentPlanBoard } from '../ContentPlanBoard';
+import { PublicationCoverage } from '../PublicationCoverage';
 import type { ContentPlanRecommendations, SearchPost } from '@/lib/types';
 
 afterEach(() => {
@@ -158,4 +159,69 @@ it('keeps the publication picker open when saving a link fails',async()=>{
   await waitFor(()=>expect(screen.getAllByText('Связь отклонена').length).toBeGreaterThan(0));
   expect(screen.getByLabelText('Поиск публикации')).toBeDefined();
  }finally{vi.unstubAllGlobals();}
+});
+
+describe('PublicationCoverage', () => {
+  it('renders coverage window cards, median table, switches period, and shows errors', async () => {
+    const summaryPayload = {
+      summary: {
+        coverage: {
+          periodStart: '2026-10-19T00:00:00.000Z',
+          periodEnd: '2026-11-18T00:00:00.000Z',
+          calculatedAt: '2026-11-18T00:00:00.000Z',
+          publications: 4,
+          deletedPublications: 1,
+          windows: [
+            { hours: 24, pending: 0, measured: 3, missed: 0, deleted: 1, denominator: 3, completenessPercent: 100 },
+            { hours: 48, pending: 1, measured: 2, missed: 1, deleted: 0, denominator: 3, completenessPercent: 66.7 },
+          ],
+        },
+        timeZone: 'Europe/Moscow',
+        unavailable: 0,
+        removedLinks: 1,
+        groups: [
+          {
+            contentType: 'text',
+            isAd: false,
+            publications: 4,
+            windows: [
+              { hours: 24, measured: 3, comparable: 2, above: 1, equal: 1, below: 0, withoutBaseline: 1 },
+              { hours: 48, measured: 2, comparable: 2, above: 2, equal: 0, below: 0, withoutBaseline: 0 },
+            ],
+          },
+        ],
+      },
+    };
+
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => summaryPayload })
+      .mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'Ошибка' }) });
+    vi.stubGlobal('fetch', fetcher);
+
+    try {
+      render(React.createElement(PublicationCoverage, { revision: [] }));
+
+      expect(await screen.findByText('Окно 24 ч')).toBeDefined();
+      expect(screen.getByText('Окно 48 ч')).toBeDefined();
+      expect(screen.getByText('100%')).toBeDefined();
+      expect(screen.getByText('66.7%')).toBeDefined();
+      expect(screen.getByText('Сравнение с индивидуальной исторической медианой')).toBeDefined();
+      expect(screen.getAllByText('text (обычные), 4 публ.')).toHaveLength(2);
+      expect(screen.getByText('Как считается сравнение')).toBeDefined();
+
+      fireEvent.change(screen.getByLabelText('Эффективность публикаций за'), { target: { value: '7' } });
+
+      await waitFor(() =>
+        expect(fetcher).toHaveBeenCalledWith(
+          '/api/posts/saved?coverageDays=7&summaryOnly=true',
+          expect.any(Object),
+        ),
+      );
+      const alert = await screen.findByRole('alert');
+      expect(alert.textContent).toContain('Не удалось загрузить полноту замеров');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
