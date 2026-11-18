@@ -21,8 +21,8 @@ export interface CompareTopBarProps {
 
 export function CompareTopBar({ period, onPeriodChange }: CompareTopBarProps) {
   return (
-    <div className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-30">
-      <div className="site-shell mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="border-b border-border bg-surface/80 backdrop-blur sticky top-16 z-20">
+      <div className="site-shell mx-auto px-3 sm:px-6 lg:px-8 min-h-16 py-2 gap-3 flex flex-wrap items-center justify-between">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
@@ -31,8 +31,8 @@ export function CompareTopBar({ period, onPeriodChange }: CompareTopBarProps) {
           <span>Назад</span>
         </Link>
 
-        <div className="flex items-center gap-3">
-          <GitCompareArrows className="w-5 h-5 text-accent" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <GitCompareArrows className="w-5 h-5 text-accent shrink-0" />
           <h1 className="text-sm font-bold text-white">Сравнение каналов</h1>
         </div>
 
@@ -41,6 +41,7 @@ export function CompareTopBar({ period, onPeriodChange }: CompareTopBarProps) {
             <button
               key={item.id}
               type="button"
+              aria-pressed={period === item.id}
               onClick={() => onPeriodChange(item.id)}
               className={`px-3 py-1 text-xs font-mono font-medium rounded-lg transition-all ${
                 period === item.id

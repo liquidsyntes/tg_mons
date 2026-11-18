@@ -173,6 +173,9 @@ describe('ComparePage', () => {
     expect(screen.getByText('@beta_ch')).toBeDefined();
     expect(screen.getByText('52.4%')).toBeDefined();
     expect(screen.getByText('31.2%')).toBeDefined();
+    expect(screen.getByText('VR (7д)')).toBeDefined();
+    expect(screen.queryByText('ERR (7д)')).toBeNull();
+    expect(screen.getByRole('button', { name: '7 дней' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByText('Динамика подписчиков')).toBeDefined();
     expect(screen.getByText('Активность публикаций')).toBeDefined();
     expect(screen.getByText('Средние просмотры')).toBeDefined();
@@ -182,6 +185,40 @@ describe('ComparePage', () => {
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/stats/compare?a=1&b=2&period=30d');
     });
+  });
+
+  it('renders coverage warnings disclosure when comparison returns coverageWarnings', async () => {
+    navigationState.params = new URLSearchParams('a=1&b=2');
+    const channelA = buildChannelMetrics({ id: 1, title: 'Альфа Канал' });
+    const channelB = buildChannelMetrics({ id: 2, title: 'Бета Канал' });
+    const comparePayload = {
+      a: buildDetailStats(channelA),
+      b: buildDetailStats(channelB),
+      period: '7d',
+      comparison: {
+        period: '7d',
+        kpiRows: [],
+        subscriberSeries: [],
+        postsSeries: [],
+        sharedAdvertisers: [],
+        citationMatrix: [],
+        coverageWarnings: ['У канала Бета Канал недостаточно снимков за период 7 дней'],
+      },
+    };
+
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url === '/api/channels') {
+        return Promise.resolve({ ok: true, json: async () => [channelA, channelB] });
+      }
+      return Promise.resolve({ ok: true, json: async () => comparePayload });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(ComparePageWrapper));
+
+    expect(await screen.findByText('Ограничения сравнения')).toBeDefined();
+    expect(screen.getByText('У канала Бета Канал недостаточно снимков за период 7 дней')).toBeDefined();
   });
 
   it('displays error message when comparison request fails', async () => {

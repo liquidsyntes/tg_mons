@@ -113,7 +113,18 @@ export function CompareSummarySection({
 
   return (
     <>
-      {!!comparison?.coverageWarnings?.length && <details className="text-xs text-amber-300 border border-amber-500/30 rounded p-3"><summary>Ограничения сравнения</summary>{comparison.coverageWarnings.map(w => <p key={w}>{w}</p>)}</details>}
+      {!!comparison?.coverageWarnings?.length && (
+        <details className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-200 space-y-1.5">
+          <summary className="cursor-pointer font-semibold text-amber-300">
+            Ограничения сравнения
+          </summary>
+          <div className="pt-1 space-y-1 text-amber-200/90">
+            {comparison.coverageWarnings.map((w) => (
+              <p key={w}>{w}</p>
+            ))}
+          </div>
+        </details>
+      )}
       <div className={`grid grid-cols-1 ${gridColsClass} gap-3`}>
         {participants.map((participant, index) => {
           const ch = participant.channel;
@@ -180,7 +191,7 @@ export function CompareSummarySection({
             highlight
           />
           <CompareMetricCard
-            label="ERR (7д)"
+            label="VR (7д)"
             valueA={chA.vr7d}
             valueB={chB.vr7d}
             formatFn={(v) => (v !== null ? `${v}%` : '-')}
