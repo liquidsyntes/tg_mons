@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import {
   AlertCircle,
   Bookmark,
@@ -114,6 +115,60 @@ export function Header({
     lastUpdate: string | null;
   } | null>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const rawPathname = usePathname();
+  const pathname =
+    rawPathname || (typeof window !== 'undefined' ? window.location.pathname : '/');
+  const [currentSearch, setCurrentSearch] = useState<string>(() =>
+    typeof window !== 'undefined' ? window.location.search : '',
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const syncSearch = (event?: Event) => {
+      const detail = (event as CustomEvent<string> | undefined)?.detail;
+      if (typeof detail === 'string') {
+        const qIdx = detail.indexOf('?');
+        setCurrentSearch(qIdx >= 0 ? detail.slice(qIdx) : '');
+        return;
+      }
+      setCurrentSearch(window.location.search);
+    };
+    syncSearch();
+    window.addEventListener('popstate', syncSearch);
+    window.addEventListener('tgmon:posts-navigate', syncSearch);
+    return () => {
+      window.removeEventListener('popstate', syncSearch);
+      window.removeEventListener('tgmon:posts-navigate', syncSearch);
+    };
+  }, [pathname]);
+
+  const isChannelsActive = pathname === '/' || pathname.startsWith('/channel/');
+  const isPostsActive = pathname === '/posts' || pathname.startsWith('/posts/');
+  const isReportsActive = pathname === '/reports' || pathname.startsWith('/reports/');
+  const isEventsActive = pathname === '/events' || pathname.startsWith('/events/');
+  const isCompareActive = pathname === '/compare' || pathname.startsWith('/compare/');
+  const isAnalyticsActive = isReportsActive || isEventsActive || isCompareActive;
+  const isSettingsActive = pathname === '/settings' || pathname.startsWith('/settings/');
+
+  const isPostsHrefActive = (href: string): boolean => {
+    if (!isPostsActive) return false;
+    const params = new URLSearchParams(currentSearch);
+    const isSaved = params.get('saved') === '1' || params.get('saved') === 'true';
+    const isBoard = params.get('view') === 'board';
+    const isOnlyAds = params.get('onlyAds') === 'true' || params.get('onlyAds') === '1';
+    if (href === '/posts?saved=1&view=board') return isSaved && isBoard;
+    if (href === '/posts?saved=1') return isSaved && !isBoard;
+    if (href === '/posts?onlyAds=true') return isOnlyAds && !isSaved;
+    if (href === '/posts') return !isSaved && !isOnlyAds;
+    return false;
+  };
+
+  const isAnalyticsHrefActive = (href: string): boolean => {
+    if (href === '/reports') return isReportsActive;
+    if (href === '/events') return isEventsActive;
+    if (href === '/compare') return isCompareActive;
+    return false;
+  };
 
   const fetchStats = async () => {
     try {
@@ -270,10 +325,15 @@ export function Header({
             <nav aria-label="Основная навигация" className="hidden md:flex items-center gap-1">
               <Link
                 href="/"
+                aria-current={isChannelsActive ? 'page' : undefined}
                 onClick={() => setOpenMenu(null)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium border transition-colors ${
+                  isChannelsActive
+                    ? 'bg-slate-800 text-white border-accent/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                }`}
               >
-                <Radio className="w-3.5 h-3.5 text-accent" />
+                <Radio className={`w-3.5 h-3.5 ${isChannelsActive ? 'text-accent' : 'text-slate-400'}`} />
                 <span>Каналы</span>
               </Link>
 
@@ -283,16 +343,18 @@ export function Header({
                   aria-haspopup="menu"
                   aria-expanded={openMenu === 'posts'}
                   onClick={() => toggleMenu('posts')}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    openMenu === 'posts'
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium border transition-colors ${
+                    isPostsActive
+                      ? 'bg-slate-800 text-white border-accent/30'
+                      : openMenu === 'posts'
+                        ? 'bg-slate-800 text-white border-transparent'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                   }`}
                 >
-                  <Search className="w-3.5 h-3.5 text-slate-400" />
+                  <Search className={`w-3.5 h-3.5 ${isPostsActive ? 'text-accent' : 'text-slate-400'}`} />
                   <span>Публикации</span>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                    className={`w-3.5 h-3.5 ${isPostsActive ? 'text-accent' : 'text-slate-400'} transition-transform ${
                       openMenu === 'posts' ? 'rotate-180' : ''
                     }`}
                   />
@@ -306,13 +368,19 @@ export function Header({
                   >
                     {POSTS_MENU_ITEMS.map((item) => {
                       const Icon = item.icon;
+                      const isItemActive = isPostsHrefActive(item.href);
                       return (
                         <Link
                           key={item.href}
                           role="menuitem"
                           href={item.href}
+                          aria-current={isItemActive ? 'page' : undefined}
                           onClick={() => handleLinkClick(item.href)}
-                          className="flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-slate-800 transition-colors"
+                          className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-left border transition-colors ${
+                            isItemActive
+                              ? 'bg-slate-800/90 text-white border-accent/30'
+                              : 'hover:bg-slate-800 border-transparent'
+                          }`}
                         >
                           <Icon className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                           <span className="min-w-0">
@@ -336,16 +404,18 @@ export function Header({
                   aria-haspopup="menu"
                   aria-expanded={openMenu === 'analytics'}
                   onClick={() => toggleMenu('analytics')}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    openMenu === 'analytics'
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium border transition-colors ${
+                    isAnalyticsActive
+                      ? 'bg-slate-800 text-white border-accent/30'
+                      : openMenu === 'analytics'
+                        ? 'bg-slate-800 text-white border-transparent'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
                   }`}
                 >
-                  <FileText className="w-3.5 h-3.5 text-slate-400" />
+                  <FileText className={`w-3.5 h-3.5 ${isAnalyticsActive ? 'text-accent' : 'text-slate-400'}`} />
                   <span>Аналитика</span>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                    className={`w-3.5 h-3.5 ${isAnalyticsActive ? 'text-accent' : 'text-slate-400'} transition-transform ${
                       openMenu === 'analytics' ? 'rotate-180' : ''
                     }`}
                   />
@@ -359,13 +429,19 @@ export function Header({
                   >
                     {ANALYTICS_MENU_ITEMS.map((item) => {
                       const Icon = item.icon;
+                      const isItemActive = isAnalyticsHrefActive(item.href);
                       return (
                         <Link
                           key={item.href}
                           role="menuitem"
                           href={item.href}
+                          aria-current={isItemActive ? 'page' : undefined}
                           onClick={() => handleLinkClick(item.href)}
-                          className="flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-slate-800 transition-colors"
+                          className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-left border transition-colors ${
+                            isItemActive
+                              ? 'bg-slate-800/90 text-white border-accent/30'
+                              : 'hover:bg-slate-800 border-transparent'
+                          }`}
                         >
                           <Icon className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                           <span className="min-w-0">
@@ -439,10 +515,12 @@ export function Header({
                 className={`inline-flex min-h-9 items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   openMenu === 'manage'
                     ? 'bg-slate-700 text-white border-slate-500'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-border'
+                    : isSettingsActive
+                      ? 'bg-slate-800 text-white border-accent/40'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-border'
                 }`}
               >
-                <Settings className={`w-4 h-4 ${isCollecting ? 'animate-spin text-accent' : ''}`} />
+                <Settings className={`w-4 h-4 ${isCollecting ? 'animate-spin text-accent' : isSettingsActive ? 'text-accent' : ''}`} />
                 <span className="hidden sm:inline">Управление</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
@@ -472,21 +550,34 @@ export function Header({
                     <Link
                       role="menuitem"
                       href="/"
+                      aria-current={isChannelsActive ? 'page' : undefined}
                       onClick={() => handleLinkClick('/')}
-                      className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 hover:bg-slate-800"
+                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs border transition-colors ${
+                        isChannelsActive
+                          ? 'bg-slate-800 text-white border-accent/30'
+                          : 'text-slate-200 hover:bg-slate-800 border-transparent'
+                      }`}
                     >
                       <Radio className="w-3.5 h-3.5 text-accent" />
                       <span>Каналы</span>
                     </Link>
                     {[...POSTS_MENU_ITEMS, ...ANALYTICS_MENU_ITEMS].map((item) => {
                       const Icon = item.icon;
+                      const isItemActive = item.href.startsWith('/posts')
+                        ? isPostsHrefActive(item.href)
+                        : isAnalyticsHrefActive(item.href);
                       return (
                         <Link
                           key={item.href}
                           role="menuitem"
                           href={item.href}
+                          aria-current={isItemActive ? 'page' : undefined}
                           onClick={() => handleLinkClick(item.href)}
-                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 hover:bg-slate-800"
+                          className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs border transition-colors ${
+                            isItemActive
+                              ? 'bg-slate-800 text-white border-accent/30'
+                              : 'text-slate-200 hover:bg-slate-800 border-transparent'
+                          }`}
                         >
                           <Icon className="w-3.5 h-3.5 text-accent" />
                           <span>{item.label}</span>
@@ -513,10 +604,15 @@ export function Header({
                     <Link
                       role="menuitem"
                       href="/settings"
+                      aria-current={isSettingsActive ? 'page' : undefined}
                       onClick={() => setOpenMenu(null)}
-                      className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-200 hover:bg-slate-800 transition-colors"
+                      className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium border transition-colors ${
+                        isSettingsActive
+                          ? 'bg-slate-800/90 text-white border-accent/30'
+                          : 'text-slate-200 hover:bg-slate-800 border-transparent'
+                      }`}
                     >
-                      <Settings className="w-3.5 h-3.5 text-slate-400" />
+                      <Settings className={`w-3.5 h-3.5 ${isSettingsActive ? 'text-accent' : 'text-slate-400'}`} />
                       <span>Настройки</span>
                     </Link>
 

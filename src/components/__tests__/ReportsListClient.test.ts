@@ -48,4 +48,27 @@ describe('ReportsListClient deletion', () => {
     expect(screen.getByText('Канал один')).toBeDefined();
     expect(router.refresh).not.toHaveBeenCalled();
   });
+
+  it('selects reports via accessible checkbox buttons and toggles aria-checked', () => {
+    render(React.createElement(ReportsListClient, { reports }));
+
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes).toHaveLength(2);
+    expect(checkboxes[0].getAttribute('aria-checked')).toBe('false');
+    expect(checkboxes[1].getAttribute('aria-checked')).toBe('false');
+
+    fireEvent.click(checkboxes[0]);
+    expect(checkboxes[0].getAttribute('aria-checked')).toBe('true');
+    const compareBtn = screen.getByRole('button', { name: /Сравнить прогресс/ });
+    expect(compareBtn.hasAttribute('disabled')).toBe(true);
+
+    fireEvent.click(checkboxes[1]);
+    expect(checkboxes[1].getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByText('2 / 2')).toBeDefined();
+    expect(compareBtn.hasAttribute('disabled')).toBe(false);
+
+    fireEvent.click(checkboxes[0]);
+    expect(checkboxes[0].getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByText('1 / 2')).toBeDefined();
+  });
 });

@@ -420,4 +420,28 @@ describe('unified Last Fact accent and disclosure blocks', () => {
     expect(screen.getByText('Нет итога прохода')).toBeDefined();
     expect(screen.getByText(/Кандидаты: 5; обработано: 5; новых точек: 4/)).toBeDefined();
   });
+
+  it('renders accessible favorite toggle buttons in ChannelsMobileList with aria-label and aria-pressed', () => {
+    const onToggleFavorite = vi.fn();
+    const unfavoritedChannel: ChannelMetrics = { ...channel, id: 101, isMine: false, isFavorite: false };
+    const { rerender } = render(React.createElement(ChannelsMobileList, {
+      channels: [unfavoritedChannel],
+      localFavorites: {},
+      onToggleFavorite,
+    }));
+
+    const addFavBtn = screen.getByRole('button', { name: 'Добавить в избранное' });
+    expect(addFavBtn.getAttribute('aria-pressed')).toBe('false');
+    expect(addFavBtn.getAttribute('type')).toBe('button');
+    fireEvent.click(addFavBtn);
+    expect(onToggleFavorite).toHaveBeenCalledWith(expect.anything(), 101, false);
+
+    rerender(React.createElement(ChannelsMobileList, {
+      channels: [unfavoritedChannel],
+      localFavorites: { 101: true },
+      onToggleFavorite,
+    }));
+    const removeFavBtn = screen.getByRole('button', { name: 'Убрать из избранного' });
+    expect(removeFavBtn.getAttribute('aria-pressed')).toBe('true');
+  });
 });

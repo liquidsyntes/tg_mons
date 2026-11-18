@@ -1,14 +1,19 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 vi.mock('../AddChannelModal', () => ({ AddChannelModal: () => null }));
 
 import { Header } from '../Header';
 
+beforeEach(() => {
+  window.history.pushState({}, '', '/');
+});
+
 afterEach(() => {
   cleanup();
+  window.history.pushState({}, '', '/');
   vi.unstubAllGlobals();
 });
 
@@ -59,5 +64,39 @@ describe('Header', () => {
     expect(screen.getByRole('menuitem', { name: 'Собрать сейчас' })).toBeDefined();
     expect(screen.getByRole('menuitem', { name: 'Настройки' }).getAttribute('href')).toBe('/settings');
     expect(screen.getByRole('menuitem', { name: 'Выйти' })).toBeDefined();
+  });
+
+  it('highlights active section and marks active items with aria-current="page"', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ version: '280762e' }) }));
+
+    const { rerender } = render(React.createElement(Header, { totalChannels: 10, activeChannels: 10 }));
+    await screen.findByText('v. 280762e');
+    const channelsLink = screen.getByRole('link', { name: 'Каналы' });
+    expect(channelsLink.getAttribute('aria-current')).toBe('page');
+    expect(channelsLink.className).toContain('border-accent/30');
+
+    window.history.pushState({}, '', '/posts?saved=1&view=board');
+    rerender(React.createElement(Header, { totalChannels: 10, activeChannels: 10 }));
+    expect(screen.getByRole('link', { name: 'Каналы' }).getAttribute('aria-current')).toBeNull();
+    const postsBtn = screen.getByRole('button', { name: 'Публикации' });
+    expect(postsBtn.className).toContain('border-accent/30');
+    fireEvent.click(postsBtn);
+    expect(screen.getByRole('menuitem', { name: /Контент-план \(Доска\)/ }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('menuitem', { name: /Поиск постов/ }).getAttribute('aria-current')).toBeNull();
+
+    window.history.pushState({}, '', '/compare');
+    rerender(React.createElement(Header, { totalChannels: 10, activeChannels: 10 }));
+    const analyticsBtn = screen.getByRole('button', { name: 'Аналитика' });
+    expect(analyticsBtn.className).toContain('border-accent/30');
+    fireEvent.click(analyticsBtn);
+    expect(screen.getByRole('menuitem', { name: /Сравнение каналов/ }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('menuitem', { name: /AI Отчёты/ }).getAttribute('aria-current')).toBeNull();
+
+    window.history.pushState({}, '', '/settings');
+    rerender(React.createElement(Header, { totalChannels: 10, activeChannels: 10 }));
+    const manageBtn = screen.getByRole('button', { name: 'Управление' });
+    expect(manageBtn.className).toContain('border-accent/40');
+    fireEvent.click(manageBtn);
+    expect(screen.getByRole('menuitem', { name: 'Настройки' }).getAttribute('aria-current')).toBe('page');
   });
 });

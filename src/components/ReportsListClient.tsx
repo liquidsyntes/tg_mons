@@ -4,7 +4,7 @@ import { aiRequest } from '@/lib/ai-request';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users, Trash2, Target, BarChart3 } from 'lucide-react';
+import { Sparkles, Layers, Calendar, ChevronRight, FileText, Zap, Loader2, ListTodo, Users, Trash2, Target, BarChart3, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -124,12 +124,16 @@ export function ReportsListClient({ reports }: Props) {
               key={report.id} 
               className={`bg-surface border rounded-2xl p-4 sm:p-5 transition-all flex items-center gap-4 ${isSelected ? 'border-accent ring-1 ring-accent/30' : 'border-border hover:border-slate-700'}`}
             >
-              <div 
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={isSelected}
+                aria-label={`Выбрать отчет ${report.id} для сравнения`}
                 onClick={() => toggleSelect(report.id)}
                 className={`w-6 h-6 rounded-md border flex items-center justify-center shrink-0 cursor-pointer transition-colors ${isSelected ? 'bg-accent border-accent text-slate-900' : 'border-slate-600 hover:border-slate-400'}`}
               >
-                {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-              </div>
+                {isSelected && <Check className="w-4 h-4 stroke-[3]" />}
+              </button>
 
               <div className="flex-1 flex items-center justify-between group min-w-0 relative">
                 <Link href={`/reports/${report.id}`} className="absolute inset-0 z-0" />

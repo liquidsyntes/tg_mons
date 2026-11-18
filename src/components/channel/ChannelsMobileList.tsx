@@ -45,14 +45,17 @@ export function ChannelsMobileList({
                   {isMineRow && <Crown className="w-3.5 h-3.5 text-accent" />}
                   {!isMineRow && (
                     <button
+                      type="button"
+                      aria-label={(localFavorites[channel.id] ?? channel.isFavorite) ? 'Убрать из избранного' : 'Добавить в избранное'}
+                      aria-pressed={Boolean(localFavorites[channel.id] ?? channel.isFavorite)}
                       onClick={(e) => onToggleFavorite(e, channel.id, localFavorites[channel.id] ?? channel.isFavorite)}
-                      className={`flex-shrink-0 transition-colors p-0.5 ${
-                        (localFavorites[channel.id] ?? channel.isFavorite) 
-                          ? 'text-amber-400 hover:text-amber-500' 
-                          : 'text-slate-600 hover:text-amber-400/70'
+                      className={`flex-shrink-0 transition-colors p-1.5 -m-1 rounded-lg ${
+                        (localFavorites[channel.id] ?? channel.isFavorite)
+                          ? 'text-yellow-500 hover:text-yellow-400'
+                          : 'text-slate-600 hover:text-yellow-500'
                       }`}
                     >
-                      <Star className={`w-3.5 h-3.5 ${(localFavorites[channel.id] ?? channel.isFavorite) ? 'fill-amber-400' : ''}`} />
+                      <Star className={`w-4 h-4 ${(localFavorites[channel.id] ?? channel.isFavorite) ? 'fill-yellow-500' : ''}`} />
                     </button>
                   )}
                   <Link
