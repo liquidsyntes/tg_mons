@@ -1,26 +1,25 @@
 # Current State
 
 Дата снимка: 2026-11-19
-Базовая ревизия: `8d810aa`, main. Задача #101: синхронизация фильтров поиска публикаций с URL и быстрый сброс на странице `/posts`.
+Базовая ревизия: `f6cc3e8`, main. Задача #102: панель быстрой навигации по секциям на странице детального анализа канала `/channel/[id]`.
 
 ## Реализовано
 
-- В `src/app/posts/page.tsx` расширена функция `syncFiltersFromSearch`: восстанавливаются и валидируются `q`, `niche`, `tag`, `channelId`, `days` (`7 | 14 | 30 | 90`), `sortBy` (`publishedAt | views | er | err | forwards`), `onlyViral`, `onlyAds`, `saved`/`onlySaved`, `view` (`list | board`) и `advertiser` (с согласованием `advertiserDays`).
-- Добавлена начальная гидратация URL (`isUrlHydrated`) до первого запроса `/api/posts/search` и обратная синхронизация активных фильтров в query-строку через `window.history.replaceState` без засорения URL значениями по умолчанию и с сохранением навигации `popstate` и `tgmon:posts-navigate`.
-- В панель фильтров добавлена кнопка «Сбросить фильтры» (`handleResetFilters`), отображаемая при любом активном уточняющем фильтре (`hasActiveFilters`) и сбрасывающая фильтры к исходным значениям без потери активного режима раздела.
-- В `src/app/posts/__tests__/page.test.ts` добавлены 2 unit-теста: восстановление фильтров и первого поискового запроса из URL, а также запись изменений фильтров в URL и их сброс кнопкой «Сбросить фильтры». Схема БД, миграции и API не менялись.
+- В `src/components/channel/ChannelHeader.tsx` экспортирована константа разделов `CHANNEL_DETAIL_SECTIONS` (`Обзор`, `Реклама`, `Графики и метрики`, `AI-отчёты`, `Сеть и LTV`, `Публикации`) и добавлена горизонтальная якорная панель `<nav aria-label="Разделы анализа канала" data-pdf-hide>` с `overflow-x-auto` и `whitespace-nowrap` внутри липкого верхнего бара (`sticky top-16 z-20`). На карточку обзора добавлены `id="section-overview"` и `scroll-mt-36`.
+- В `src/components/channel/ChannelDetailClient.tsx` основные группы виджетов размечены якорями `section-ads`, `section-charts`, `section-ai`, `section-network`, `section-posts` с классом `scroll-mt-36`; `catch (err: any)` заменён на `unknown`.
+- В `src/components/__tests__/channel-detail-ui.test.ts` добавлен unit-тест проверки панели якорной навигации, атрибута `data-pdf-hide`, ссылок разделов и `scroll-mt-36` у `section-overview`. Схема БД, миграции и API не менялись.
 
 ## Проверки
 
 - В `tgmon-web` прошли `npx tsc --noEmit` и `npx eslint src`.
-- Целевой Vitest (`src/app/posts/__tests__/page.test.ts`): 1 файл прошёл, 8 тестов прошли.
-- Полный Vitest в `tgmon-web`: 170 файлов прошли, 2 пропущены (PostgreSQL integration без test DB); 1104 теста прошли, 9 пропущены.
+- Целевой Vitest (`channel-detail-ui.test.ts` и `ui-polish.test.ts`): 2 файла прошли, 35 тестов прошли.
+- Полный Vitest в `tgmon-web`: 170 файлов прошли, 2 пропущены (PostgreSQL integration без test DB); 1105 тестов прошли, 9 пропущены.
 - Production-сборка `prisma generate && next build` (21/21 статических маршрутов) прошла при пересборке `tgmon-web`; сервис пересоздан и запущен с bind mount; `/api/health` вернул HTTP 200 (`status: ok`).
 - На хосте Vitest не запускается из-за отсутствующей native optional dependency rolldown; проверки выполнены в Docker.
 
 ## Ограничения и следующий шаг
 
-- Интерактивная проверка навигации «Назад» и копирования ссылки со страницы `/posts` в авторизованном браузере после правки не выполнялась.
+- Интерактивная проверка переходов по якорям, узкого экрана `375px` и PDF-экспорта страницы `/channel/[id]` в авторизованном браузере после правки не выполнялась.
 - Сохраняются прежние ограничения #93 и статус #90 (ожидание реальных контрольных точек в окнах `[24,26]` и `[48,50]` часов). Production не обновлялся.
 
-Следующий шаг: приступить к задаче #102 (панель быстрой навигации по секциям на странице детального анализа канала `/channel/[id]`).
+Следующий шаг: приступить к задаче #103 (полировка мобильной адаптивности публичной страницы `/about` на узком экране `375px`).

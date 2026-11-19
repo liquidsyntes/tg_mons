@@ -4,7 +4,7 @@ import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { channel } from '@/lib/__tests__/fixtures/channel-metrics';
 import { AIReportsSection } from '../channel/AIReportsSection';
-import { ChannelHeader } from '../channel/ChannelHeader';
+import { CHANNEL_DETAIL_SECTIONS, ChannelHeader } from '../channel/ChannelHeader';
 import { SubscriberChart } from '../channel/SubscriberChart';
 import CitationNetworkWidget from '../CitationNetworkWidget';
 
@@ -236,4 +236,29 @@ it('displays hourly fraud signal explanations inside ChannelHeader when triggere
   const block = await screen.findByTestId('channel-fraud-signals');
   expect(block.textContent).toContain('71% просмотров после 24ч');
   expect(block.textContent).toContain('Аномальная ночная активность');
+});
+
+it('renders sticky section anchor navigation with data-pdf-hide and scroll-mt-36 overview card', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    json: async () => ({ estimatedPricePerPost: 375, cpm: 0, confidence: 'high' }),
+  }));
+
+  render(React.createElement(ChannelHeader, {
+    channel, period: '7d', onPeriodChange: vi.fn(), onMineChanged: vi.fn(),
+  }));
+
+  await screen.findByText('375 ₴');
+  const nav = screen.getByRole('navigation', { name: 'Разделы анализа канала' });
+  expect(nav.hasAttribute('data-pdf-hide')).toBe(true);
+  expect(nav.className).toContain('overflow-x-auto');
+
+  for (const section of CHANNEL_DETAIL_SECTIONS) {
+    const link = screen.getByRole('link', { name: section.label });
+    expect(link.getAttribute('href')).toBe(`#${section.id}`);
+    expect(link.className).toContain('whitespace-nowrap');
+  }
+
+  const overviewSection = document.getElementById('section-overview');
+  expect(overviewSection).not.toBeNull();
+  expect(overviewSection?.className).toContain('scroll-mt-36');
 });

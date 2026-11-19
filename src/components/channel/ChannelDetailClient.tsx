@@ -60,9 +60,9 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
       const json: ChannelDetailStats = await res.json();
       setData(json);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'Ошибка загрузки');
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки');
     } finally {
       setLoading(false);
     }
@@ -93,28 +93,38 @@ export function ChannelDetailClient({ channelId }: ChannelDetailClientProps) {
             <div id="report-content" className="flex flex-col gap-[6px]">
               <ChannelHeader channel={channel} period={period} onPeriodChange={setPeriod} onMineChanged={fetchChannelData} priceRevision={priceRevision} stats={data} />
               {data!.nicheBenchmark && <NicheBenchmarkWidget benchmark={data!.nicheBenchmark} />}
-              <ChannelAdReachWidget channelId={channel.id} />
-              <AdAttributionWidget channelId={channel.id} onPriceSaved={() => setPriceRevision(value => value + 1)} />
-              {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
-              <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
-              <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
-              <ChannelActivityTimeline channelId={channel.id} username={channel.username} tgId={channel.tgId} />
-              <ContentTypePerformance data={data!.contentTypePerformance || []} leaders={data!.contentFormatLeaders} period={period} />
-              <PostLengthPerformance analytics={data!.postLengthAnalytics} period={period} />
-              <PopularReactionsWidget summary={data!.popularReactions} />
-              <ErrChart vrHistory={data!.vrHistory || []} period={period} />
-              <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />
-              <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} recentPosts={data!.recentPosts} isAdmin={isAdmin} />
-              <CitationNetworkWidget channelId={Number(channelId)} />
-              <ContentLTVChart channelId={Number(channelId)} />
-              <RecentPosts 
-                initialPosts={data!.recentPosts || []} 
-                channelId={channelId} 
-                channelUsername={channel.username} 
-                channelTgId={channel.tgId} 
-              />
-              <WrappedCard channel={channel} stats={data!} />
-              <ChannelDangerZone channelId={channel.id} channelTitle={channel.title} />
+              <div id="section-ads" className="scroll-mt-36 flex flex-col gap-[6px]">
+                <ChannelAdReachWidget channelId={channel.id} />
+                <AdAttributionWidget channelId={channel.id} onPriceSaved={() => setPriceRevision(value => value + 1)} />
+              </div>
+              <div id="section-charts" className="scroll-mt-36 flex flex-col gap-[6px]">
+                {data!.scoreBreakdown && <ScoreGauge breakdown={data!.scoreBreakdown} />}
+                <SubscriberChart data={data!} channel={channel} myChannel={myChannel} isMine={!!isMine} period={period} />
+                <PostsActivity postsDistribution={data!.postsDistribution} channel={channel} period={period} />
+                <ChannelActivityTimeline channelId={channel.id} username={channel.username} tgId={channel.tgId} />
+                <ContentTypePerformance data={data!.contentTypePerformance || []} leaders={data!.contentFormatLeaders} period={period} />
+                <PostLengthPerformance analytics={data!.postLengthAnalytics} period={period} />
+                <PopularReactionsWidget summary={data!.popularReactions} />
+                <ErrChart vrHistory={data!.vrHistory || []} period={period} />
+                <ChannelHeatmap heatmapData={data!.heatmapData} myHeatmapData={data!.myHeatmapData} isMine={!!isMine} hasMyChannel={!!myChannel} />
+              </div>
+              <div id="section-ai" className="scroll-mt-36 flex flex-col gap-[6px]">
+                <AIReportsSection channelId={channelId} channel={channel} myChannel={myChannel} period={period} recentPosts={data!.recentPosts} isAdmin={isAdmin} />
+              </div>
+              <div id="section-network" className="scroll-mt-36 flex flex-col gap-[6px]">
+                <CitationNetworkWidget channelId={Number(channelId)} />
+                <ContentLTVChart channelId={Number(channelId)} />
+              </div>
+              <div id="section-posts" className="scroll-mt-36 flex flex-col gap-[6px]">
+                <RecentPosts 
+                  initialPosts={data!.recentPosts || []} 
+                  channelId={channelId} 
+                  channelUsername={channel.username} 
+                  channelTgId={channel.tgId} 
+                />
+                <WrappedCard channel={channel} stats={data!} />
+                <ChannelDangerZone channelId={channel.id} channelTitle={channel.title} />
+              </div>
             </div>
           </>
         )}

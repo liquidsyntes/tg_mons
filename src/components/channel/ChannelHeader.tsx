@@ -13,6 +13,15 @@ import { ExportWrappedButton } from '@/components/channel/ExportWrappedButton';
 import { ChannelTagsEditor } from '@/components/channel/ChannelTagsEditor';
 import { formatNumber } from '@/lib/utils';
 
+export const CHANNEL_DETAIL_SECTIONS = [
+  { id: 'section-overview', label: 'Обзор' },
+  { id: 'section-ads', label: 'Реклама' },
+  { id: 'section-charts', label: 'Графики и метрики' },
+  { id: 'section-ai', label: 'AI-отчёты' },
+  { id: 'section-network', label: 'Сеть и LTV' },
+  { id: 'section-posts', label: 'Публикации' },
+] as const;
+
 interface ChannelHeaderProps {
   channel: ChannelMetrics;
   period: '24h' | '7d' | '30d';
@@ -117,10 +126,28 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
             ))}
           </div>
         </div>
+
+        <nav
+          aria-label="Разделы анализа канала"
+          data-pdf-hide
+          className="site-shell mx-auto px-3 sm:px-6 lg:px-8 pb-2.5 pt-1 border-t border-border/50 overflow-x-auto"
+        >
+          <div className="flex items-center gap-1.5 min-w-max">
+            {CHANNEL_DETAIL_SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                className="px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap text-slate-300 hover:text-white hover:bg-slate-800 border border-transparent hover:border-border transition-colors"
+              >
+                {section.label}
+              </a>
+            ))}
+          </div>
+        </nav>
       </div>
 
       {/* Channel Hero */}
-      <div className="bg-surface border border-border rounded-2xl p-6 relative overflow-hidden shadow-sm">
+      <div id="section-overview" className="scroll-mt-36 bg-surface border border-border rounded-2xl p-6 relative overflow-hidden shadow-sm">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-6 lg:gap-x-10">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
