@@ -1,13 +1,18 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import PostsPage from '../page';
 
 vi.mock('@/components/Header', () => ({ Header: () => React.createElement('div') }));
 
+beforeEach(() => {
+  window.history.replaceState(null, '', '/posts');
+});
+
 afterEach(() => {
   cleanup();
+  window.history.replaceState(null, '', '/posts');
   vi.unstubAllGlobals();
 });
 
@@ -330,5 +335,79 @@ describe('global post filters', () => {
 
     window.dispatchEvent(new CustomEvent('tgmon:posts-navigate', { detail: '/posts?saved=1&view=board' }));
     await waitFor(() => expect(screen.getByRole('region', { name: 'Доска контент-плана' })).toBeDefined());
+  });
+
+  it('restores search, filters, and sort order from URL query params on mount', async () => {
+    window.history.replaceState(null, '', '/posts?q=ai&days=7&sortBy=err&onlyViral=true&niche=tech');
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => ({
+      ok: true,
+      json: async () => url.includes('/api/analytics/newsjacking')
+        ? { topics: [], generatedAt: null }
+        : { posts: [], total: 0, niches: ['tech', 'marketing'], channels: [] },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(PostsPage));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) => {
+          const text = String(url);
+          return (
+            text.includes('/api/posts/search') &&
+            text.includes('q=ai') &&
+            text.includes('days=7') &&
+            text.includes('sortBy=err') &&
+            text.includes('onlyViral=true') &&
+            text.includes('niche=tech')
+          );
+        }),
+      ).toBe(true),
+    );
+
+    expect((screen.getByLabelText('Поиск по тексту') as HTMLInputElement).value).toBe('ai');
+    expect((screen.getByLabelText('Период') as HTMLSelectElement).value).toBe('7');
+    expect((screen.getByLabelText('Сортировка') as HTMLSelectElement).value).toBe('err');
+    expect((screen.getByLabelText('Ниша') as HTMLSelectElement).value).toBe('tech');
+    expect(screen.getByRole('button', { name: 'Только вирусные' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Сбросить фильтры' })).toBeDefined();
+  });
+
+  it('syncs filter changes into URL and resets them via Сбросить фильтры', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => ({
+      ok: true,
+      json: async () => url.includes('/api/analytics/newsjacking')
+        ? { topics: [], generatedAt: null }
+        : { posts: [], total: 0, niches: ['tech'], channels: [] },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(PostsPage));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/posts/search'))).toBe(true),
+    );
+    expect(screen.queryByRole('button', { name: 'Сбросить фильтры' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Только вирусные' }));
+    fireEvent.change(screen.getByLabelText('Период'), { target: { value: '14' } });
+    fireEvent.change(screen.getByLabelText('Сортировка'), { target: { value: 'views' } });
+
+    await waitFor(() => {
+      const searchParams = new URLSearchParams(window.location.search);
+      expect(searchParams.get('onlyViral')).toBe('true');
+      expect(searchParams.get('days')).toBe('14');
+      expect(searchParams.get('sortBy')).toBe('views');
+    });
+
+    const resetButton = screen.getByRole('button', { name: 'Сбросить фильтры' });
+    fireEvent.click(resetButton);
+
+    await waitFor(() => {
+      expect(window.location.search).toBe('');
+      expect(screen.queryByRole('button', { name: 'Сбросить фильтры' })).toBeNull();
+    });
+    expect((screen.getByLabelText('Период') as HTMLSelectElement).value).toBe('30');
+    expect((screen.getByLabelText('Сортировка') as HTMLSelectElement).value).toBe('publishedAt');
+    expect(screen.getByRole('button', { name: 'Только вирусные' }).getAttribute('aria-pressed')).toBe('false');
   });
 });

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FileSearch } from 'lucide-react';
+import { FileSearch, RotateCcw } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { formatNumber } from '@/lib/utils';
 import type {
@@ -26,6 +26,9 @@ import { NewsjackingWidget } from '@/components/NewsjackingWidget';
 import { isDeletedRetentionFormat } from '@/lib/adReach';
 
 type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
+
+const VALID_DAYS = new Set([7, 14, 30, 90]);
+const VALID_SORT_BY = new Set<SortBy>(['publishedAt', 'views', 'er', 'err', 'forwards']);
 
 function formatPercent(value: number | null): string {
   return value === null ? 'н/д' : `${value.toFixed(1)}%`;
@@ -99,6 +102,7 @@ export default function PostsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<SearchPost | null>(null);
+  const [isUrlHydrated, setIsUrlHydrated] = useState(false);
   const requestVersion = useRef(0);
 
   useEffect(() => {
@@ -108,6 +112,16 @@ export default function PostsPage() {
 
   const syncFiltersFromSearch = useCallback((searchString: string) => {
     const params = new URLSearchParams(searchString);
+    const nextQ = (params.get('q') ?? '').slice(0, 200);
+    const nextNiche = params.get('niche') ?? '';
+    const nextTag = params.get('tag') ?? '';
+    const nextChannelId = params.get('channelId') ?? '';
+    const rawDays = Number(params.get('days'));
+    const nextDays = VALID_DAYS.has(rawDays) ? rawDays : 30;
+    const rawSortBy = params.get('sortBy') as SortBy | null;
+    const nextSortBy: SortBy = rawSortBy && VALID_SORT_BY.has(rawSortBy) ? rawSortBy : 'publishedAt';
+    const viralParam = params.get('onlyViral');
+    const nextOnlyViral = viralParam === 'true' || viralParam === '1';
     const adsParam = params.get('onlyAds');
     const savedParam = params.get('saved') ?? params.get('onlySaved');
     const viewParam = params.get('view');
@@ -115,12 +129,25 @@ export default function PostsPage() {
     const nextOnlyAds = adsParam === 'true' || adsParam === '1';
     const nextViewMode: 'list' | 'board' = viewParam === 'board' ? 'board' : 'list';
     const nextOnlySaved = savedParam === '1' || savedParam === 'true' || nextViewMode === 'board';
+    const rawAdvertiser = (params.get('advertiser') ?? '').trim().replace(/^@/, '');
+    const nextAdvertiser = nextOnlyAds ? rawAdvertiser : '';
 
+    setQ(nextQ);
+    setSearch(nextQ.trim());
+    setNiche(nextNiche);
+    setTag(nextTag);
+    setChannelId(nextChannelId);
+    setDays(nextDays);
+    setSortBy(nextSortBy);
+    setOnlyViral(nextOnlyViral);
     setOnlyAds(nextOnlyAds);
     setOnlySaved(nextOnlySaved);
     setViewMode(nextViewMode);
+    setAdvertiserUsername(nextAdvertiser);
+    if (nextAdvertiser && (nextDays === 7 || nextDays === 30)) {
+      setAdvertiserDays(nextDays);
+    }
     if (!nextOnlyAds) {
-      setAdvertiserUsername('');
       setActiveClusterId(null);
     }
   }, []);
@@ -128,6 +155,7 @@ export default function PostsPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     syncFiltersFromSearch(window.location.search);
+    setIsUrlHydrated(true);
 
     const handlePopState = () => {
       syncFiltersFromSearch(window.location.search);
@@ -148,6 +176,42 @@ export default function PostsPage() {
     };
   }, [syncFiltersFromSearch]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isUrlHydrated) return;
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    if (niche) params.set('niche', niche);
+    if (tag) params.set('tag', tag);
+    if (channelId) params.set('channelId', channelId);
+    if (days !== 30) params.set('days', String(days));
+    if (sortBy !== 'publishedAt') params.set('sortBy', sortBy);
+    if (onlyViral) params.set('onlyViral', 'true');
+    if (onlyAds) params.set('onlyAds', 'true');
+    if (onlySaved) params.set('saved', '1');
+    if (onlySaved && viewMode === 'board') params.set('view', 'board');
+    if (onlyAds && advertiserUsername) params.set('advertiser', advertiserUsername);
+
+    const nextQuery = params.toString();
+    const nextUrl = nextQuery ? `${window.location.pathname}?${nextQuery}` : window.location.pathname;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (nextUrl !== currentUrl) {
+      window.history.replaceState(null, '', nextUrl);
+    }
+  }, [
+    isUrlHydrated,
+    search,
+    niche,
+    tag,
+    channelId,
+    days,
+    sortBy,
+    onlyViral,
+    onlyAds,
+    onlySaved,
+    viewMode,
+    advertiserUsername,
+  ]);
+
   const searchUrl = useCallback((offset: number): string => {
     const params = new URLSearchParams({
       days: String(days), sortBy, onlyAds: String(onlyAds), onlyViral: String(onlyViral), limit: '20', offset: String(offset),
@@ -163,6 +227,7 @@ export default function PostsPage() {
   }, [days, sortBy, onlyAds, onlyViral, onlySaved, search, niche, tag, channelId, advertiserUsername]);
 
   useEffect(() => {
+    if (!isUrlHydrated) return;
     const version = ++requestVersion.current;
     const controller = new AbortController();
     setLoading(true);
@@ -192,7 +257,34 @@ export default function PostsPage() {
       })
       .finally(() => { if (version === requestVersion.current) setLoading(false); });
     return () => controller.abort();
-  }, [searchUrl]);
+  }, [searchUrl, isUrlHydrated]);
+
+  const hasActiveFilters = Boolean(
+    q.trim() ||
+      search ||
+      niche ||
+      tag ||
+      channelId ||
+      days !== 30 ||
+      sortBy !== 'publishedAt' ||
+      onlyViral ||
+      advertiserUsername ||
+      activeClusterId,
+  );
+
+  const handleResetFilters = () => {
+    setQ('');
+    setSearch('');
+    setNiche('');
+    setTag('');
+    setChannelId('');
+    setDays(30);
+    setAdvertiserDays(30);
+    setSortBy('publishedAt');
+    setOnlyViral(false);
+    setAdvertiserUsername('');
+    setActiveClusterId(null);
+  };
 
   const activeCluster = useMemo(
     () => (onlyAds && activeClusterId
@@ -393,7 +485,7 @@ export default function PostsPage() {
               Контент-план (Доска)
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => setOnlyViral(value => !value)} aria-pressed={onlyViral}
               className={`rounded-xl border px-3 py-2 text-sm ${onlyViral ? 'border-rose-400 bg-rose-500/15 text-rose-300' : 'border-border text-slate-300'}`}>
               Только вирусные
@@ -408,6 +500,16 @@ export default function PostsPage() {
               className={`rounded-xl border px-3 py-2 text-sm ${onlySaved ? 'border-amber-400 bg-amber-500/15 text-amber-300' : 'border-border text-slate-300'}`}>
               В закладках
             </button>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-300 hover:border-slate-500 hover:text-white transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Сбросить фильтры
+              </button>
+            )}
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <label className="space-y-1.5 text-xs text-slate-300"><span>Ниша</span>
