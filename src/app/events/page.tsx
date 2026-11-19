@@ -2,7 +2,7 @@
 import { aiRequest } from '@/lib/ai-request';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Calendar as CalendarIcon, Loader2, ScanSearch, Search, X } from 'lucide-react';
+import { AlertCircle, Calendar as CalendarIcon, CheckCircle2, Loader2, RefreshCw, ScanSearch, Search, X } from 'lucide-react';
 import { ru } from 'date-fns/locale';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -23,6 +23,8 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [dismissingId, setDismissingId] = useState<number | null>(null);
+  const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [datePreset, setDatePreset] = useState<EventDatePreset>('month');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,14 +32,17 @@ export default function EventsPage() {
   
   const fetchEvents = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch('/api/events');
-      if (res.ok) {
-        const data = await res.json();
-        setEvents(data.events || []);
+      if (!res.ok) {
+        throw new Error('Не удалось загрузить список событий');
       }
-    } catch (err) {
-      console.error(err);
+      const data = await res.json();
+      setEvents(data.events || []);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Не удалось загрузить список событий';
+      setLoadError(message);
     } finally {
       setLoading(false);
     }
@@ -50,20 +55,29 @@ export default function EventsPage() {
   const handleScan = async () => {
     if (!confirm('Запустить глубокое сканирование постов? Это может занять несколько минут.')) return;
     setScanning(true);
+    setStatusBanner(null);
     try {
       const res = await aiRequest('/api/events/scan', { method: 'POST' });
       const data = await res.json();
-      if (data.success) {
-        const screeningNote = data.selectionMode === 'keyword_fallback'
-          ? '\nJev недоступен: использован прежний отбор по ключевым словам.'
-          : '';
-        alert(`Сканирование завершено. Найдено новых событий: ${data.savedCount}${screeningNote}`);
-        fetchEvents();
+      if (res.ok && data.success) {
+        const screeningNote =
+          data.selectionMode === 'keyword_fallback'
+            ? ' Jev недоступен: использован прежний отбор по ключевым словам.'
+            : '';
+        setStatusBanner({
+          type: 'success',
+          text: `Сканирование завершено. Найдено новых событий: ${data.savedCount}${screeningNote}`,
+        });
+        await fetchEvents();
       } else {
-        alert(`Ошибка: ${data.error || data.message}`);
+        setStatusBanner({
+          type: 'error',
+          text: `Ошибка: ${data.error || data.message || 'Не удалось выполнить сканирование'}`,
+        });
       }
-    } catch (err: any) {
-      alert(`Ошибка: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Не удалось выполнить сканирование';
+      setStatusBanner({ type: 'error', text: `Ошибка: ${message}` });
     } finally {
       setScanning(false);
     }
@@ -72,12 +86,16 @@ export default function EventsPage() {
   const handleDismiss = async (eventId: number) => {
     if (!confirm('Убрать событие из афиши? Оно останется скрытым после повторного сканирования.')) return;
     setDismissingId(eventId);
+    setStatusBanner(null);
     try {
       const response = await fetch(`/api/events/${eventId}/dismiss`, { method: 'PATCH' });
       if (!response.ok) throw new Error('Не удалось убрать событие из афиши');
       setEvents(current => current.filter(event => event.id !== eventId));
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Не удалось убрать событие из афиши');
+    } catch (error: unknown) {
+      setStatusBanner({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Не удалось убрать событие из афиши',
+      });
     } finally {
       setDismissingId(null);
     }
@@ -122,6 +140,34 @@ export default function EventsPage() {
             </strong>
           </div>
         </div>
+
+        {statusBanner && (
+          <div
+            role={statusBanner.type === 'error' ? 'alert' : 'status'}
+            className={`rounded-2xl border p-4 flex items-start justify-between gap-3 text-sm ${
+              statusBanner.type === 'error'
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+            }`}
+          >
+            <div className="flex items-start gap-2.5 min-w-0">
+              {statusBanner.type === 'error' ? (
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+              )}
+              <span className="break-words">{statusBanner.text}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStatusBanner(null)}
+              aria-label="Закрыть уведомление"
+              className="text-slate-400 hover:text-white transition-colors shrink-0 p-0.5 rounded-lg"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-[6px] items-start lg:grid-cols-12">
         {/* Left Col: Calendar */}
@@ -250,6 +296,27 @@ export default function EventsPage() {
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-accent" />
               <p className="text-sm">Загрузка событий...</p>
+            </div>
+          ) : loadError && events.length === 0 ? (
+            <div
+              role="alert"
+              className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-8 text-center space-y-3"
+            >
+              <div className="w-12 h-12 rounded-full bg-rose-500/15 flex items-center justify-center mx-auto">
+                <AlertCircle className="w-6 h-6 text-rose-400" />
+              </div>
+              <h3 className="text-base font-bold text-white">{loadError}</h3>
+              <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                Проверьте соединение с сервером и попробуйте загрузить афишу повторно.
+              </p>
+              <button
+                type="button"
+                onClick={() => void fetchEvents()}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white border border-rose-500/30 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Повторить загрузку
+              </button>
             </div>
           ) : selectedEvents.length === 0 ? (
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-10 text-center">

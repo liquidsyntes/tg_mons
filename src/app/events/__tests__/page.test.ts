@@ -9,6 +9,7 @@ import EventsPage from '../page';
 
 afterEach(() => {
   cleanup();
+  sessionStorage.clear();
   vi.unstubAllGlobals();
 });
 
@@ -84,5 +85,123 @@ describe('events page dismissal', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Поиск событий' }), { target: { value: 'Arena' } });
     expect(screen.queryByText('Бесплатный митап')).toBeNull();
     expect(screen.getByText('Платный концерт')).toBeDefined();
+  });
+});
+
+describe('events page inline status banners and error handling', () => {
+  it('shows a dismissible role="status" banner after successful scan without calling alert()', async () => {
+    const alertMock = vi.fn();
+    vi.stubGlobal('alert', alertMock);
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/events') {
+        return Promise.resolve(new Response(JSON.stringify({ events: [] }), { status: 200 }));
+      }
+      if (url === '/api/events/scan') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ success: true, savedCount: 3, selectionMode: 'keyword_fallback' }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({}), { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(EventsPage));
+    expect(await screen.findByText('Событий не найдено')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /Сканировать события/ }));
+
+    const statusText = await screen.findByText(/Сканирование завершено\. Найдено новых событий: 3/);
+    const statusBanner = statusText.closest('[role="status"]');
+    expect(statusBanner).not.toBeNull();
+    expect(statusBanner?.textContent).toContain('Jev недоступен: использован прежний отбор по ключевым словам.');
+    expect(alertMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Закрыть уведомление' }));
+    expect(screen.queryByText(/Сканирование завершено/)).toBeNull();
+  });
+
+  it('shows role="alert" banners when scan or dismiss fails without calling alert()', async () => {
+    const alertMock = vi.fn();
+    vi.stubGlobal('alert', alertMock);
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+
+    const event = {
+      id: 42,
+      title: 'Тестовый митап',
+      date: new Date().toISOString(),
+      timeStr: '18:00',
+      organizer: 'Сообщество',
+      prices: ['Бесплатно'],
+      mentions: [],
+    };
+
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/events') {
+        return Promise.resolve(new Response(JSON.stringify({ events: [event] }), { status: 200 }));
+      }
+      if (url === '/api/events/scan') {
+        return Promise.resolve(new Response(JSON.stringify({ error: 'Сбой провайдера' }), { status: 500 }));
+      }
+      if (url === '/api/events/42/dismiss') {
+        return Promise.resolve(new Response(JSON.stringify({ error: 'DB error' }), { status: 500 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({}), { status: 404 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(EventsPage));
+    expect(await screen.findByText('Тестовый митап')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /Сканировать события/ }));
+    const scanAlert = await screen.findByRole('alert');
+    expect(scanAlert.textContent).toContain('Ошибка: Сбой провайдера');
+    expect(alertMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Закрыть уведомление' }));
+    fireEvent.click(screen.getByRole('button', { name: `Убрать событие «${event.title}» из афиши` }));
+
+    const dismissAlert = await screen.findByRole('alert');
+    expect(dismissAlert.textContent).toContain('Не удалось убрать событие из афиши');
+    expect(screen.getByText('Тестовый митап')).toBeDefined();
+    expect(alertMock).not.toHaveBeenCalled();
+  });
+
+  it('shows an error card with retry action instead of empty state when initial load fails', async () => {
+    const todayIso = new Date().toISOString();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          events: [
+            {
+              id: 77,
+              title: 'Восстановленное событие',
+              date: todayIso,
+              timeStr: null,
+              organizer: null,
+              prices: [],
+              mentions: [],
+            },
+          ],
+        }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(EventsPage));
+
+    const loadAlert = await screen.findByRole('alert');
+    expect(loadAlert.textContent).toContain('Не удалось загрузить список событий');
+    expect(screen.queryByText('Событий не найдено')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Повторить загрузку/ }));
+
+    expect(await screen.findByText('Восстановленное событие')).toBeDefined();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });
