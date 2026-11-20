@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { AdRetentionFormat, AdRetentionSummary } from '@/lib/types';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 export interface AdReachDataPoint {
   hoursAfterPost: number;
@@ -51,7 +52,10 @@ export function AdReachChart({ data, retentionSummary, className = '' }: AdReach
     <div className={`p-4 bg-surface rounded-xl shadow-sm border border-border space-y-4 ${className}`}>
       {hasChart && (
         <div>
-          <h3 className="text-sm font-semibold text-white mb-4">Динамика охвата</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-sm font-semibold text-white">Динамика охвата</h3>
+            <HelpPopover sectionId="ad-reach" />
+          </div>
           <div className="h-[200px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>

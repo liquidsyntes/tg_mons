@@ -23,6 +23,7 @@ import {
 import Link from 'next/link';
 import { formatNumber, formatPercent } from '@/lib/utils';
 import { DeltaBadge } from './DeltaBadge';
+import { HelpPopover } from './help/HelpPopover';
 import type { DashboardStats } from '@/lib/dashboard';
 
 export function Dashboard() {
@@ -117,7 +118,8 @@ export function Dashboard() {
         <div className="bg-surface border border-border rounded-2xl p-5">
           <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-accent" />
-            Динамика аудитории ниши (30д)
+            <span>Динамика аудитории ниши (30д)</span>
+            <HelpPopover sectionId="dashboard-overview" />
           </h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">

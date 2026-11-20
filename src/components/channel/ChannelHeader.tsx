@@ -11,6 +11,7 @@ import { ExportPdfButton } from '@/components/ExportPdfButton';
 import { ExportMenu } from '@/components/ExportMenu';
 import { ExportWrappedButton } from '@/components/channel/ExportWrappedButton';
 import { ChannelTagsEditor } from '@/components/channel/ChannelTagsEditor';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 
 export const CHANNEL_DETAIL_SECTIONS = [
@@ -174,11 +175,15 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
                 lastPostAt={channel.lastPostAt}
               />
               <RiskBadge lastCollectedAt={channel?.lastCollectedAt} collectionStatus={channel?.status} coverage={channel?.fraudCoverage} score={fraudScore} signals={fraudSignals} />
+              <HelpPopover sectionId="antifraud-score" />
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {channel.title}
-            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {channel.title}
+              </h1>
+              <HelpPopover sectionId="channel-overview" />
+            </div>
 
             {channel.username && (
               <a
@@ -202,7 +207,7 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
             {fraudSignals.length > 0 && (
               <div
                 data-testid="channel-fraud-signals"
-                className="pt-1.5 flex flex-wrap gap-1.5"
+                className="pt-1.5 flex flex-wrap items-center gap-1.5"
               >
                 {fraudSignals.map((sig, idx) => {
                   const text =
@@ -220,6 +225,7 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
                     </span>
                   );
                 })}
+                <HelpPopover sectionId="antifraud-heuristics" />
               </div>
             )}
           </div>
@@ -239,14 +245,17 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
             </div>
           </div>
           <div className="flex flex-col items-start lg:items-stretch gap-2 lg:shrink-0">
-            <ExportPdfButton
-              reportContainerId="report-content"
-              channelTitle={channel.title}
-              period={period}
-              channelId={channel.id}
-              stats={stats}
-              adPrice={adPrice}
-            />
+            <div className="flex items-center gap-1.5">
+              <ExportPdfButton
+                reportContainerId="report-content"
+                channelTitle={channel.title}
+                period={period}
+                channelId={channel.id}
+                stats={stats}
+                adPrice={adPrice}
+              />
+              <HelpPopover sectionId="channel-exports" align="right" />
+            </div>
             <ExportMenu items={(['daily', 'snapshots', 'posts'] as const).flatMap(dataset => {
               const label = dataset === 'daily' ? 'Дневные метрики' : dataset === 'snapshots' ? 'Снимки аудитории' : 'Последние посты';
               return (['csv', 'json'] as const).map(format => ({

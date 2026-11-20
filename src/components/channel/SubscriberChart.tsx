@@ -26,6 +26,7 @@ import {
   getDominantEventType,
 } from '@/lib/metrics/subscriber-events';
 import { CustomSubscriberTooltip } from '@/components/CustomSubscriberTooltip';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 
 interface SubscriberChartProps {
@@ -293,7 +294,8 @@ export function SubscriberChart({
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-accent" />
-            Динамика участников
+            <span>Динамика участников</span>
+            <HelpPopover sectionId="subscriber-chart" />
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
             История изменения числа подписчиков по снапшотам и ключевым событиям

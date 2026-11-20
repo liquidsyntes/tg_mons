@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { AiUsageSettings } from '@/components/settings/AiUsageSettings';
 import { Header } from '@/components/Header';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { AlertRulesSettings } from '@/components/settings/AlertRulesSettings';
 import { TelegramRegistrationsSettings } from '@/components/settings/TelegramRegistrationsSettings';
 import { TelegramAccountLink } from '@/components/settings/TelegramAccountLink';
@@ -254,6 +255,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <Clock3 className="w-5 h-5 text-indigo-400" />
                 <h2 className="text-lg font-semibold text-white">Ежедневный Telegram-дайджест</h2>
+                <HelpPopover sectionId="daily-digest" />
               </div>
               <label className="flex items-center gap-3 text-sm text-slate-300">
                 <input type="checkbox" checked={digestEnabled} onChange={e => setDigestEnabled(e.target.checked)}

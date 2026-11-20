@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
+import { HelpPopover } from './help/HelpPopover';
 
 export function ChannelListTransfer({ onImported }: { onImported: () => Promise<void> }) {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -65,6 +66,7 @@ export function ChannelListTransfer({ onImported }: { onImported: () => Promise<
       <button type="button" disabled={busy} onClick={() => fileInput.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-slate-800 px-3 py-2 font-semibold text-slate-200 hover:border-accent disabled:opacity-50">
         <Upload className="h-3.5 w-3.5" /> {busy ? 'Импорт...' : 'Импортировать список'}
       </button>
+      <HelpPopover sectionId="list-transfer" />
       {message && <span role="status" className="text-emerald-400">{message}</span>}
       {error && <span role="alert" className="text-rose-400">{error}</span>}
     </div>

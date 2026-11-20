@@ -5,6 +5,7 @@ import type { ComparePeriod } from '@/lib/compare';
 import type { ChannelMetrics } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 import { COMPARE_BENCHMARK_STYLE, getParticipantStyle } from './compareTheme';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 const COMPARE_PERIODS: ReadonlyArray<{ id: ComparePeriod; label: string }> = [
   { id: '24h', label: '24ч' },
@@ -34,6 +35,7 @@ export function CompareTopBar({ period, onPeriodChange }: CompareTopBarProps) {
         <div className="flex items-center gap-2 sm:gap-3">
           <GitCompareArrows className="w-5 h-5 text-accent shrink-0" />
           <h1 className="text-sm font-bold text-white">Сравнение каналов</h1>
+          <HelpPopover sectionId="channels-compare" />
         </div>
 
         <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-border">

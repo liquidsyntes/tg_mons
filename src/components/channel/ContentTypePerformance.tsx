@@ -13,6 +13,7 @@ import {
   Cell,
 } from 'recharts';
 import type { ContentFormatLeaders, ContentType, ContentTypePerformanceItem } from '@/lib/types';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 
 interface ContentTypePerformanceProps {
@@ -80,7 +81,8 @@ export function ContentTypePerformance({ data, leaders, period = '7d' }: Content
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Layers className="w-4 h-4 text-accent" />
-            Аналитика по форматам контента
+            <span>Аналитика по форматам контента</span>
+            <HelpPopover sectionId="content-formats" />
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
             Охват и вовлечённость публикаций за {periodLabel}

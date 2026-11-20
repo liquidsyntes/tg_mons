@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Award, ChevronDown, Clock, ExternalLink, Flame, RefreshCw, Trophy } from 'lucide-react';
 import { buildTelegramPostUrl } from '@/components/channel/PostReaderModal';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import type {
   NewsReactionItem,
   NewsTopicCluster,
@@ -228,21 +229,24 @@ export function NewsjackingWidget({
             <Flame className="w-5 h-5 text-amber-400" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-white tracking-tight">
-              <button
-                type="button"
-                aria-expanded={expanded}
-                aria-controls="newsjacking-widget-body"
-                onClick={() => setExpanded((value) => !value)}
-                className="inline-flex items-center gap-2 rounded hover:text-accent transition-colors text-left"
-              >
-                Скорость реакции на инфоповоды
-                <ChevronDown
-                  aria-hidden="true"
-                  className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`}
-                />
-              </button>
-            </h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-base font-bold text-white tracking-tight">
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  aria-controls="newsjacking-widget-body"
+                  onClick={() => setExpanded((value) => !value)}
+                  className="inline-flex items-center gap-2 rounded hover:text-accent transition-colors text-left"
+                >
+                  Скорость реакции на инфоповоды
+                  <ChevronDown
+                    aria-hidden="true"
+                    className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`}
+                  />
+                </button>
+              </h2>
+              <HelpPopover sectionId="newsjacking" />
+            </div>
             <p className="text-xs text-slate-400 mt-0.5">
               Сквозные темы ниши, первоисточники и задержка реакции каналов (Newsjacking Speed).
             </p>

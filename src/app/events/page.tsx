@@ -8,6 +8,7 @@ import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { EventCard, type EventCardData } from '@/components/events/EventCard';
 import { Header } from '@/components/Header';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { filterEvents, type EventDatePreset } from '@/lib/events/calendar';
 
 const DATE_PRESETS: Array<{ id: EventDatePreset; label: string }> = [
@@ -125,7 +126,8 @@ export default function EventsPage() {
           <div className="min-w-0">
             <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
               <CalendarIcon className="w-6 h-6 shrink-0 text-accent" />
-              Календарь событий
+              <span>Календарь событий</span>
+              <HelpPopover sectionId="events-calendar" />
             </h1>
             <p className="text-sm text-slate-400 mt-1">
               Анонсы мероприятий, автоматически найденные в постах каналов.
@@ -195,17 +197,20 @@ export default function EventsPage() {
             </div>
           </div>
 
-          <button
-            onClick={handleScan}
-            disabled={scanning}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-accent hover:bg-accent-hover text-slate-950 font-bold rounded-xl transition-colors disabled:opacity-50"
-          >
-            {scanning ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Сканирование...</>
-            ) : (
-              <><ScanSearch className="w-4 h-4" /> Сканировать события</>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleScan}
+              disabled={scanning}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-accent hover:bg-accent-hover text-slate-950 font-bold rounded-xl transition-colors disabled:opacity-50"
+            >
+              {scanning ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Сканирование...</>
+              ) : (
+                <><ScanSearch className="w-4 h-4" /> Сканировать события</>
+              )}
+            </button>
+            <HelpPopover sectionId="events-scanner" align="right" />
+          </div>
           
           <style dangerouslySetInnerHTML={{__html: `
             .custom-calendar .rdp-day_selected, 

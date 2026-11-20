@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { TopAdvertiser, TopAdvertisersResponse } from '@/lib/types';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 
 interface TopAdvertisersPanelProps {
@@ -77,7 +78,10 @@ export function TopAdvertisersPanel({ niche, days, selectedUsername, onDaysChang
   return <section className="rounded-2xl border border-border bg-surface p-5 space-y-4" aria-label="Топ рекламодателей">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h2 className="text-base font-bold text-white">Топ рекламодателей</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-bold text-white">Топ рекламодателей</h2>
+          <HelpPopover sectionId="ad-spy-advertisers" />
+        </div>
         <p className="text-xs text-slate-400">По рекламным постам отслеживаемых каналов</p>
       </div>
       <label className="text-xs text-slate-300">Период рейтинга{' '}

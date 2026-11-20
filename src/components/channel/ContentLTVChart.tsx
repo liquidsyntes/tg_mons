@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine } from 'recharts';
 import { TrendingUp, Clock } from 'lucide-react';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface LTVData {
   hour: number;
@@ -36,7 +37,10 @@ export default function ContentLTVChart({ channelId }: { channelId: number }) {
     return (
       <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-4 h-[300px] flex flex-col items-center justify-center text-center">
         <Clock className="w-8 h-8 text-slate-600 mb-2" />
-        <h3 className="text-base font-bold text-white">Срок жизни контента (LTV)</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-bold text-white">Срок жизни контента (LTV)</h3>
+          <HelpPopover sectionId="content-ltv" />
+        </div>
         <p className="text-sm text-slate-400 max-w-sm">
           Недостаточно исторических данных. График появится после того, как сборщик соберет несколько снапшотов для новых постов.
         </p>
@@ -51,7 +55,9 @@ export default function ContentLTVChart({ channelId }: { channelId: number }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-400" /> Срок жизни контента (LTV)
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span>Срок жизни контента (LTV)</span>
+            <HelpPopover sectionId="content-ltv" />
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">Как быстро пост набирает просмотры после публикации (усреднено)</p>
         </div>

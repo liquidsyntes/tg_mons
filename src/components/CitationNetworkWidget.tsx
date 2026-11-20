@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Network, ChevronDown } from 'lucide-react';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import type { CitationNetworkData, CitationNetworkNode, OriginRole, PropagationData } from '@/lib/types';
 
 const WIDTH = 900;
@@ -204,7 +205,11 @@ export default function CitationNetworkWidget({ channelId }: { channelId: number
 
   return <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 space-y-4">
     <div className="flex items-center justify-between gap-3">
-      <h2 className="flex items-center gap-2 text-base font-semibold text-white"><Network className="h-5 w-5 text-blue-400" />Карта связей и инфополе</h2>
+      <h2 className="flex items-center gap-2 text-base font-semibold text-white">
+        <Network className="h-5 w-5 text-blue-400" />
+        <span>Карта связей и инфополе</span>
+        <HelpPopover sectionId="citation-network" />
+      </h2>
       <button type="button" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}
         aria-controls={`network-content-${channelId}`}
         className="flex items-center gap-1 rounded-xl border border-border px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">

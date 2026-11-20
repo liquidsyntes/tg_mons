@@ -27,6 +27,7 @@ import type {
   PostStructureSignal,
 } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface PostLengthPerformanceProps {
   analytics?: PostLengthAnalytics;
@@ -122,7 +123,8 @@ export function PostLengthPerformance({
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <AlignLeft className="w-4 h-4 text-accent" />
-            Аналитика длины и структуры постов
+            <span>Аналитика длины и структуры постов</span>
+            <HelpPopover sectionId="post-length" />
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
             Эффективность объёма текста и приёмов оформления за {periodLabel}

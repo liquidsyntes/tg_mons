@@ -6,6 +6,7 @@ import { cn, formatNumber } from '@/lib/utils';
 import { DeltaBadge } from './DeltaBadge';
 import { StatusBadge } from './StatusBadge';
 import { MetricCell, getMetricReason } from './channel/cells/MetricCell';
+import { HelpPopover } from './help/HelpPopover';
 
 interface WatchlistWidgetProps {
   channels: ChannelMetrics[];
@@ -21,6 +22,7 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
       <div className="flex items-center gap-2">
         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
         <h3 className="text-base font-bold text-white tracking-tight">Избранное</h3>
+        <HelpPopover sectionId="watchlist-widget" />
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[6px]">

@@ -1,4 +1,5 @@
 import { DataEvidenceDetails } from './DataEvidenceDetails';
+import { HelpPopover } from './help/HelpPopover';
 import React, { useEffect, useState } from 'react';
 import { BestTimeRecommendation } from '@/lib/types';
 import { Sparkles, TrendingUp } from 'lucide-react';
@@ -78,7 +79,10 @@ export function BestTimeWidget() {
   if (error || !data || upcomingSlots.length === 0) {
     return (
       <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 space-y-3">
-        <h3 className="text-base font-bold text-white">Лучшее время для поста</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-bold text-white">Лучшее время для поста</h3>
+          <HelpPopover sectionId="best-time-widget" />
+        </div>
         <p className="text-sm text-slate-400" role={error ? 'alert' : undefined}>
           {error ? 'Не удалось загрузить рекомендации. Попробуйте обновить страницу.' : 'Недостаточно публикаций для рекомендации времени.'}
         </p>
@@ -102,6 +106,7 @@ export function BestTimeWidget() {
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-emerald-400" />
         <h3 className="text-base font-bold text-white">Лучшее время для поста</h3>
+        <HelpPopover sectionId="best-time-widget" />
       </div>
       
       <DataEvidenceDetails evidence={data.evidence} fallback={data.isFallback} />

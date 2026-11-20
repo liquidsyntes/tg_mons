@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Cpu, Save } from 'lucide-react';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface Limits {
   aiHourlyLimit: number;
@@ -231,7 +232,10 @@ export function AiUsageSettings() {
       <div className="p-6 border-b border-border/50 bg-slate-900/40 flex items-center gap-3">
         <Cpu className="w-5 h-5 text-accent shrink-0" />
         <div>
-          <h2 className="text-lg font-semibold text-white">Использование AI</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">Использование AI</h2>
+            <HelpPopover sectionId="ai-usage-budget" />
+          </div>
           <p className="text-xs text-slate-400 mt-1">
             Лимиты запросов, общие UTC-бюджеты, уведомления о порогах и журнал операций
           </p>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { Clock3, Save, Send } from 'lucide-react';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface PersonalDigestView {
   id: number;
@@ -97,7 +98,10 @@ export function PersonalDigestSettings() {
       <div className="p-6 border-b border-border/50 bg-slate-900/40 flex items-center gap-3">
         <Send className="w-5 h-5 text-accent" />
         <div>
-          <h2 className="text-lg font-semibold text-white">Персональный Telegram-дайджест</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">Персональный Telegram-дайджест</h2>
+            <HelpPopover sectionId="daily-digest" />
+          </div>
           <p className="text-xs text-slate-400 mt-1">
             Ежедневная сводка только по вашим активным каналам («Мой канал», лидеры роста и падения) в личный Telegram-чат.
           </p>

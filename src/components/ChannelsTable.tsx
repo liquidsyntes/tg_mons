@@ -9,6 +9,7 @@ import { ExportMenu } from './ExportMenu';
 import { useChannelsData, FAVORITES_FOLDER_KEY } from './channel/useChannelsData';
 import { ChannelsDesktopTable } from './channel/ChannelsDesktopTable';
 import { ChannelsMobileList } from './channel/ChannelsMobileList';
+import { HelpPopover } from './help/HelpPopover';
 
 interface ChannelsTableProps {
   channels: ChannelMetrics[];
@@ -57,9 +58,12 @@ export function ChannelsTable({ channels }: ChannelsTableProps) {
     <div className="space-y-[6px]">
       <div className="bg-slate-800/40 border border-border rounded-2xl p-4 sm:p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="text-base font-bold text-white tracking-tight">
-            Сравнительный мониторинг каналов
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Сравнительный мониторинг каналов
+            </h3>
+            <HelpPopover sectionId="channels-table" />
+          </div>
           <Link
             href="/compare"
             className="inline-flex min-h-9 items-center justify-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 border border-border hover:border-accent hover:bg-slate-700 text-slate-200 transition-colors"

@@ -1,4 +1,5 @@
 import type { NicheBenchmarkMetric, NicheBenchmarkMetricKey, NicheBenchmarkResult } from '@/lib/types';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 const labels: Array<{ key: NicheBenchmarkMetricKey; label: string; suffix: string }> = [
   { key: 'er7d', label: 'ER 7д', suffix: '%' },
@@ -63,7 +64,10 @@ export function NicheBenchmarkWidget({ benchmark }: { benchmark: NicheBenchmarkR
   return (
     <section className="bg-surface border border-border rounded-2xl p-4 sm:p-5 space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-base font-bold text-white">Позиция в нише: {benchmark.niche}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-bold text-white">Позиция в нише: {benchmark.niche}</h2>
+          <HelpPopover sectionId="niche-benchmark" />
+        </div>
         <span className="text-xs text-slate-400">Активных каналов: {benchmark.cohortSize}</span>
       </div>
       {benchmark.status === 'insufficient_cohort' ? (

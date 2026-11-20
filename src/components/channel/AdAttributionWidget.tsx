@@ -22,6 +22,7 @@ import type {
 import { isDeletedRetentionFormat } from '@/lib/adReach';
 import { AdRetentionBadge } from '@/components/AdRetentionBadge';
 import { AdPriceSettings } from './AdPriceSettings';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 /** Направление атрибуции: inbound — закупки (входящие упоминания), outbound — отдача рекламы */
 type Direction = 'inbound' | 'outbound';
@@ -716,7 +717,8 @@ export function AdAttributionWidget({ channelId, onPriceSaved }: { channelId: nu
         <div>
           <h2 className="flex items-center gap-2 text-base font-semibold text-white">
             <Megaphone className="h-4 w-4 text-accent" />
-            Эффективность размещений
+            <span>Эффективность размещений</span>
+            <HelpPopover sectionId="ad-attribution" />
           </h2>
           <p className="mt-1 text-xs text-slate-400">
             Фактический учёт закупок (CPM, CPF) и автоматическая атрибуция прироста аудитории.

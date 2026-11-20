@@ -1,9 +1,13 @@
 import type { ChannelReactionSummary } from '@/lib/types';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 
 export function PopularReactionsWidget({ summary }: { summary: ChannelReactionSummary | undefined }) {
   return <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6" aria-label="Популярные реакции за 30 дней">
-    <h3 className="text-base font-bold text-white">Популярные реакции за 30 дней</h3>
+    <div className="flex items-center gap-2">
+      <h3 className="text-base font-bold text-white">Популярные реакции за 30 дней</h3>
+      <HelpPopover sectionId="popular-reactions" />
+    </div>
     {!summary || summary.top.length === 0 ? (
       <p className="mt-3 text-xs text-slate-400">Разбивка реакций пока недоступна</p>
     ) : (

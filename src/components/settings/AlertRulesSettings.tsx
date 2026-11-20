@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { Bell, Plus, Trash2 } from 'lucide-react';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface AlertRuleView {
   id: number;
@@ -157,7 +158,10 @@ export function AlertRulesSettings() {
       <div className="p-6 border-b border-border/50 bg-slate-900/40 flex items-center gap-3">
         <Bell className="w-5 h-5 text-accent" />
         <div>
-          <h2 className="text-lg font-semibold text-white">Правила уведомлений</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">Правила уведомлений</h2>
+            <HelpPopover sectionId="alerts-rules" />
+          </div>
           <p className="text-xs text-slate-400 mt-1">
             Пороги метрик проверяются не чаще раза в 24 часа на канал; ключевые слова и виральные посты — по каждому новому совпавшему посту.
           </p>

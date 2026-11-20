@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { FileText } from 'lucide-react';
 import { Header } from '@/components/Header';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { ReportsListClient } from '@/components/ReportsListClient';
 import { cookies } from 'next/headers';
 import { parseSessionCookieValue, SESSION_COOKIE_NAME } from '@/lib/auth';
@@ -41,7 +42,8 @@ export default async function ReportsPage() {
         <div className="bg-surface border border-border rounded-2xl p-4 sm:p-6 shadow-sm">
           <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
             <FileText className="w-6 h-6 text-accent" />
-            Архив AI-отчетов
+            <span>Архив AI-отчетов</span>
+            <HelpPopover sectionId="ai-reports-compare" />
           </h1>
           <p className="text-sm text-slate-400">
             Все сгенерированные контент-анализы и сравнения. Выберите два отчета галочками, чтобы проанализировать динамику изменений.

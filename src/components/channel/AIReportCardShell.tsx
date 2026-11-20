@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { AILoadingStatus } from '@/components/AILoadingStatus';
+import { HelpPopover } from '@/components/help/HelpPopover';
+import type { HelpSectionId } from '@/lib/help/help-content';
 
 interface AIReportCardShellProps {
   containerClassName: string;
@@ -11,6 +13,7 @@ interface AIReportCardShellProps {
   icon: ReactNode;
   title: ReactNode;
   description: ReactNode;
+  helpSectionId?: HelpSectionId;
   buttonLabel: string;
   loadingLabel: string;
   loading: boolean;
@@ -24,7 +27,7 @@ interface AIReportCardShellProps {
 }
 
 export function AIReportCardShell({
-  containerClassName, buttonClassName, accentClassName, icon, title, description,
+  containerClassName, buttonClassName, accentClassName, icon, title, description, helpSectionId,
   buttonLabel, loadingLabel, loading, success, onSuccessClear, onGenerate,
   messages, error, result, onDownload,
 }: AIReportCardShellProps) {
@@ -33,7 +36,9 @@ export function AIReportCardShell({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            {icon}{title}
+            {icon}
+            <span>{title}</span>
+            {helpSectionId && <HelpPopover sectionId={helpSectionId} />}
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">{description}</p>
         </div>

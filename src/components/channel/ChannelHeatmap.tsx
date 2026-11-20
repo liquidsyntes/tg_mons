@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Flame } from 'lucide-react';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface ChannelHeatmapProps {
   heatmapData: { day: number; hour: number; count: number }[];
@@ -20,7 +21,8 @@ export function ChannelHeatmap({ heatmapData, myHeatmapData, isMine, hasMyChanne
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Flame className="w-4 h-4 text-orange-500" />
-            Тепловая карта публикаций
+            <span>Тепловая карта публикаций</span>
+            <HelpPopover sectionId="channel-heatmap" />
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
             В какие дни недели и часы выходит больше всего постов (за выбранный период)

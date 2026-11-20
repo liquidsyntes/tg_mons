@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Activity, ChevronDown, RotateCw } from 'lucide-react';
 import type { HourlyActivityRow } from '@/lib/channel-activity';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 
 interface ActivityResponse {
@@ -62,7 +63,9 @@ export function ChannelActivityTimeline({ channelId, username, tgId }: ChannelAc
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-base font-semibold text-white">
-            <Activity className="h-5 w-5 text-accent" /> Активность по часам
+            <Activity className="h-5 w-5 text-accent" />
+            <span>Активность по часам</span>
+            <HelpPopover sectionId="hourly-timeline" />
           </h2>
           <p className="mt-1 text-xs text-slate-400">48 последних часов: аудитория, публикации, реакции и пересылки</p>
         </div>

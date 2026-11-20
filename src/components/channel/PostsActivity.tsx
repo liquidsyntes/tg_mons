@@ -11,6 +11,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { ChannelMetrics } from '@/lib/types';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface PostsActivityProps {
   postsDistribution: { date: string; postsCount: number; viewsAvg?: number | null }[];
@@ -40,7 +41,8 @@ export function PostsActivity({ postsDistribution, channel, period }: PostsActiv
       <div>
         <h3 className="text-base font-bold text-white flex items-center gap-2">
           <BarChart2 className="w-4 h-4 text-emerald-400" />
-          Публикационная активность
+          <span>Публикационная активность</span>
+          <HelpPopover sectionId="posts-activity" />
         </h3>
         <p className="text-xs text-slate-400 mt-0.5">
           Распределение опубликованных постов по дням / часам

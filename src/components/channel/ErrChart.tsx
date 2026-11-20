@@ -14,6 +14,7 @@ import {
   ReferenceLine
 } from 'recharts';
 import { formatNumber } from '@/lib/utils';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface ErrChartProps {
   vrHistory: { date: string; vr: number; avgViews: number; membersCount: number }[];
@@ -59,7 +60,8 @@ export function ErrChart({ vrHistory, period, benchmarkErr: initialBenchmarkErr 
       <div>
         <h3 className="text-base font-bold text-white flex items-center gap-2">
           <Eye className="w-4 h-4 text-amber-400" />
-          Вовлеченность (Просмотры & исторический ERR)
+          <span>Вовлеченность (Просмотры & исторический ERR)</span>
+          <HelpPopover sectionId="err-chart" />
         </h3>
         <p className="text-xs text-slate-400 mt-0.5">
           Средние просмотры на пост по дням и динамика уровня вовлеченности (ERR)

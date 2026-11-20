@@ -207,6 +207,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         icon={<BarChart3 className="w-4 h-4 text-amber-400" />}
         title="Разбор показателей канала простыми словами"
         description="Опытный SMM-специалист объяснит каждую метрику (ERR, VR, ER, CR и др.): что делают и чего не делают ваши подписчики"
+        helpSectionId="ai-reports-types"
         buttonLabel="Разобрать показатели"
         loadingLabel="Разбираю метрики..."
         loading={aiExplainerLoading}
@@ -234,6 +235,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         icon={<Bot className="w-4 h-4 text-accent" />}
         title="Экспресс-отчёт на основе контента"
         description="Нейросеть проанализирует посты канала и сделает выжимку"
+        helpSectionId="ai-reports-types"
         buttonLabel="Сгенерировать саммари"
         loadingLabel="Формирую..."
         loading={aiLoading}
@@ -253,6 +255,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         icon={<Sparkles className="w-4 h-4 text-orange-500" />}
         title="Супер Отчет (50 постов)"
         description="Глубокий анализ контента по последним 50 постам"
+        helpSectionId="ai-reports-types"
         buttonLabel="Супер Отчет"
         loadingLabel="Формирую..."
         loading={aiSuperLoading}
@@ -273,6 +276,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
           icon={<Layers className="w-4 h-4 text-violet-400" />}
           title="Сравнительный AI-анализ"
           description={<>Сравнить контент этого канала с вашим («{myChannel.title}»)</>}
+          helpSectionId="ai-reports-compare"
           buttonLabel="Сравнить каналы"
           loadingLabel="Сравниваю..."
           loading={aiCompareLoading}
@@ -294,6 +298,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
           icon={<Target className="w-4 h-4 text-cyan-400" />}
           title="Упущенные темы конкурентов (AI Content Gap)"
           description={<>Темы и форматы с высоким охватом у конкурентов, которые ещё не выходили в канале «{isMine ? channel.title : myChannel?.title}»</>}
+          helpSectionId="ai-reports-types"
           buttonLabel="Найти упущенные темы"
           loadingLabel="Ищу темы..."
           loading={aiContentGapLoading}
@@ -322,6 +327,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
         icon={<Users className="w-4 h-4 text-emerald-400" />}
         title="Анализ предполагаемой целевой аудитории"
         description="Предполагаемая аудитория на основе контента канала"
+        helpSectionId="ai-reports-types"
         buttonLabel="Сгенерировать отчет"
         loadingLabel="Анализирую..."
         loading={aiAudienceLoading}
@@ -342,6 +348,7 @@ export function AIReportsSection({ channelId, channel, myChannel, period, recent
           icon={<Brain className="w-4 h-4 text-rose-500" />}
           title="Психологический портрет"
           description="Глубокий психологический профиль автора на основе текстов"
+          helpSectionId="ai-reports-types"
           buttonLabel="Сгенерировать портрет"
           loadingLabel="Анализирую..."
           loading={aiPersonaLoading}

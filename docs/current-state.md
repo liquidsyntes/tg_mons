@@ -1,30 +1,34 @@
 # Current State
 
 Дата снимка: 2026-11-20
-Базовая ревизия: `bee5072`, main. Задача #105 (Этап 2): наполнение справочного центра `/help` главами 5–8 и интерактивными шпаргалками.
+Базовая ревизия: `8ef9260`, main. Задача #106 (Этап 3): контекстные всплывающие подсказки `?` (`HelpPopover`) во всех аналитических блоках и закрытие серии #104-#106.
 
 ## Реализовано
 
-- В `src/lib/help/help-content.ts` добавлены главы 5–8 (всего 8 глав и 46 структурированных разделов):
-  - **Глава 5**: глобальный поиск постов и синхронизация с URL, критерии `ViralBadge`, рейтинг рекламодателей и кластеры креативов `Ad Spy`, доска контент-плана, привязка поста и полнота замеров `24ч` / `48ч`.
-  - **Глава 6**: мульти-сравнение до 4 каналов (+ профиль папки/тега), матрица KPI, пересечения рекламодателей и предупреждения покрытия.
-  - **Глава 7**: 7 видов AI-отчётов, сравнение прогресса в `/reports`, HTML-экспорт, афиша событий `/events`, `.ics` / Google Календарь и двухэтапное сканирование `Jev` + `keyword_fallback`.
-  - **Глава 8**: пороговые алерты, ежедневный/персональный дайджест в UTC, все команды Telegram-бота (включая пересылку постов и `/events`/`/event`/`/dismiss`), мониторинг операций сбора (Admin), импорт/экспорт списка каналов и UTC-бюджеты AI (Admin).
-- Добавлены типизированные справочники `PUBLICATION_COVERAGE_GUIDE`, `AI_REPORTS_TYPES_GUIDE` и `TELEGRAM_BOT_COMMANDS_GUIDE`.
-- В `src/components/help/HelpCenterClient.tsx` добавлены встроенные таблицы-шпаргалки (статусы замеров 24ч/48ч, матрица типов AI-отчётов, таблица команд Telegram-бота с алиасами и примерами) внутри `overflow-x-auto`.
-- Расширен `src/app/help/__tests__/page.test.ts`: проверка всех 8 глав, уникальности ID 46 секций, встроенных шпаргалок и поиска по ключевым словам из глав 5–8. Схема БД, миграции и API не менялись.
+- В `src/lib/help/help-content.ts` экспортирован строгий union-тип `HelpSectionId` (все 46 разделов глав 1-8); поля `HelpSectionItem.id` и параметр `getHelpSectionById` типизированы под `HelpSectionId`.
+- Создан клиентский компонент `src/components/help/HelpPopover.tsx`:
+  - кнопка-триггер `?` (`HelpCircle`, `type="button"`, `aria-label`, `aria-expanded`, `aria-haspopup="dialog"`, `data-pdf-hide="true"`, `stopPropagation()`);
+  - диалог подсказки через `createPortal(..., document.body)` с фиксированным позиционированием, зажимом в границах viewport и `useIsomorphicLayoutEffect` для SSR-совместимости;
+  - открытие по клику и наведению (таймер скрытия 150 мс с отменой при переводе курсора на диалог), закрытие по `Escape`, внешнему клику или повторному клику;
+  - вывод `shortSummary` раздела, ссылки `<Link href="/help#<sectionId>">Подробнее в справке</Link>` и атрибута `data-pdf-hide="true"` (скрыто при PDF-экспорте).
+- Интегрированы 55 точек вызова (48 прямых `<HelpPopover sectionId="..." />` и 7 карточек через опциональный проп `helpSectionId` в `AIReportCardShell.tsx`), охватывающих 45 из 46 разделов справочника (кроме вводного `quick-start`, доступного на `/help`):
+  - Дашборд (`/`): `MyChannelCard`, `BestTimeWidget`, `WatchlistWidget`, `TrendSpotterWidget`, `NewsjackingWidget`, `Dashboard`, `ChannelsTable`, `ChannelListTransfer`.
+  - Карточка канала (`/channel/[id]`): `ChannelHeader` (`channel-overview`, `antifraud-score`, `antifraud-heuristics`, `channel-exports`), `NicheBenchmarkWidget`, `AdReachChart`, `AdAttributionWidget`, `ScoreGauge`, `SubscriberChart`, `PostsActivity`, `ChannelActivityTimeline`, `ContentTypePerformance`, `PostLengthPerformance`, `PopularReactionsWidget`, `ErrChart`, `ChannelHeatmap`, `CitationNetworkWidget`, `ContentLTVChart`, `RecentPostCard`, `AIReportCardShell` + `AIReportsSection`.
+  - Посты (`/posts`), сравнение (`/compare`), отчёты (`/reports`), события (`/events`) и настройки (`/settings`): `src/app/posts/page.tsx`, `TopAdvertisersPanel`, `AdCreativesPanel`, `ContentPlanBoard`, `PublicationCoverage`, `CompareControls`, `CompareChartsSection`, `src/app/reports/page.tsx`, `src/app/events/page.tsx`, `src/app/settings/page.tsx`, `OperationsMonitorSettings`, `PersonalDigestSettings`, `AiUsageSettings`, `AlertRulesSettings`, `TelegramAccountLink`.
+- Добавлены модульные тесты `src/components/help/__tests__/HelpPopover.test.ts` (5 тестов: атрибуты и `data-pdf-hide`, открытие по клику и ссылка, закрытие по `Escape` и внешнему клику, hover + задержка скрытия, `stopPropagation`). Обновлена карта в `docs/project-map.md`. Схема БД, миграции и API не менялись.
 
 ## Проверки
 
-- В `tgmon-web` прошли `npx tsc --noEmit` и `npx eslint src`.
-- Целевой Vitest (`src/app/help/__tests__/page.test.ts`): 1 файл прошёл, 3 теста прошли.
-- Полный Vitest в `tgmon-web`: 172 файла прошли, 2 пропущены (PostgreSQL integration без test DB); 1109 тестов прошли, 9 пропущены.
-- Production-сборка `prisma generate && next build` (22/22 статических маршрутов) прошла при пересборке `tgmon-web`; сервис пересоздан и запущен с bind mount; `/api/health` вернул HTTP 200 (`status: ok`).
+- В `tgmon-web` прошли `npx tsc --noEmit` и `npx eslint src` без ошибок.
+- Целевой Vitest (7 файлов, вкл. `HelpPopover.test.ts` и затронутые экраны) в `tgmon-web`: 7 файлов пройдены, 32 теста пройдены; отдельно также пройдены 2 файла дашборда (`29` тестов) и 4 файла карточки канала (`15` тестов).
+- Полный Vitest в `tgmon-web`: 173 файла пройдены, 2 пропущены (PostgreSQL integration без test DB); 1114 тестов пройдены, 9 пропущены.
+- Проверка на запрещённый символ `U+2014` в добавленных строках `git diff` и новых файлах: совпадений не найдено.
+- Production-сборка `prisma generate && next build` (22/22 статических маршрутов) прошла при пересборке `tgmon-web`; сервис пересоздан и запущен с bind mount; `http://127.0.0.1:4000/api/health` вернул HTTP 200 (`status: ok`).
 - На хосте Vitest не запускается из-за отсутствующей native optional dependency rolldown; проверки выполнены в Docker.
 
 ## Ограничения и следующий шаг
 
-- Интерактивная и визуальная проверка новых таблиц-шпаргалок на `/help` в авторизованном браузере после правки не проводилась.
-- Сохраняются прежние ограничения #93 и статус #90 (ожидание реальных контрольных точек в окнах `[24,26]` и `[48,50]` часов). Production не обновлялся.
+- Интерактивная и визуальная проверка всплывающих поповеров `?` во всех блоках в живом авторизованном браузере после правки не проводилась.
+- Сохраняются прежние ограничения #93 и статус #90 (ожидание реальных контрольных точек постов в окнах `[24,26]` и `[48,50]` часов). Production не обновлялся.
 
-Следующий шаг: приступить к задаче #106 (Этап 3: контекстные всплывающие подсказки `?` (`HelpPopover`) во всех аналитических блоках с переходом в нужный якорь `/help#<id>`).
+Следующий шаг: дождаться наступления реальных окон замеров постов `[24,26]` и `[48,50]` часов и проверить сбор контрольных точек в рамках открытой задачи #90.

@@ -1,7 +1,55 @@
 export type HelpUserRole = 'owner' | 'buyer' | 'editor';
 
+export type HelpSectionId =
+  | 'quick-start'
+  | 'my-channel'
+  | 'collection-cycle'
+  | 'dashboard-overview'
+  | 'watchlist-widget'
+  | 'best-time-widget'
+  | 'trend-spotter'
+  | 'newsjacking'
+  | 'channels-table'
+  | 'channel-overview'
+  | 'niche-benchmark'
+  | 'ad-reach'
+  | 'ad-attribution'
+  | 'score-gauge'
+  | 'subscriber-chart'
+  | 'posts-activity'
+  | 'hourly-timeline'
+  | 'content-formats'
+  | 'post-length'
+  | 'popular-reactions'
+  | 'err-chart'
+  | 'channel-heatmap'
+  | 'citation-network'
+  | 'content-ltv'
+  | 'recent-posts'
+  | 'channel-exports'
+  | 'antifraud-score'
+  | 'antifraud-heuristics'
+  | 'posts-search'
+  | 'viral-posts'
+  | 'ad-spy-advertisers'
+  | 'ad-spy-creatives'
+  | 'content-plan-board'
+  | 'publication-coverage'
+  | 'channels-compare'
+  | 'compare-charts'
+  | 'ai-reports-types'
+  | 'ai-reports-compare'
+  | 'events-calendar'
+  | 'events-scanner'
+  | 'alerts-rules'
+  | 'daily-digest'
+  | 'telegram-bot-commands'
+  | 'operations-monitor'
+  | 'list-transfer'
+  | 'ai-usage-budget';
+
 export interface HelpSectionItem {
-  id: string;
+  id: HelpSectionId;
   chapterId: string;
   chapterNumber: number;
   chapterTitle: string;
@@ -1402,7 +1450,7 @@ export function getAllHelpSections(): HelpSectionItem[] {
   return HELP_CHAPTERS.flatMap((chapter) => chapter.sections);
 }
 
-export function getHelpSectionById(id: string): HelpSectionItem | undefined {
+export function getHelpSectionById(id: HelpSectionId | string): HelpSectionItem | undefined {
   return getAllHelpSections().find((section) => section.id === id);
 }
 

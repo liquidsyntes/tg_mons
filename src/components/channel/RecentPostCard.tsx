@@ -11,6 +11,7 @@ import { AdRetentionBadge } from '@/components/AdRetentionBadge';
 import { ViralBadge } from './ViralBadge';
 import { ReactionBreakdownInline } from './ReactionBreakdownInline';
 import { PostBookmarkButton } from './PostBookmarkButton';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { highlightSearchText } from './PostReaderModal';
 
 export type RecentPostContentType = 'all' | 'ads' | 'partners';
@@ -74,7 +75,8 @@ export function RecentPostsFilterBar({
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <FileText className="w-4 h-4 text-emerald-400" />
-            Публикации
+            <span>Публикации</span>
+            <HelpPopover sectionId="recent-posts" />
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
             Найдено {formatNumber(total)} постов из {formatNumber(absoluteTotal)}

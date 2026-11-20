@@ -11,6 +11,7 @@ import { SummaryMetric, GrowthMetric } from './SummaryMetric';
 import { StatusBadge } from './StatusBadge';
 import { RiskBadge } from './RiskBadge';
 import { MetricCell, getMetricReason } from './channel/cells/MetricCell';
+import { HelpPopover } from './help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 
 interface MyChannelCardProps {
@@ -46,9 +47,12 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
     return (
       <div className="bg-surface border border-dashed border-border-subtle rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
         <div className="space-y-2 text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-accent/10 text-accent font-medium">
-            <Crown className="w-3.5 h-3.5" />
-            <span>Базовый канал не выбран</span>
+          <div className="flex items-center justify-center sm:justify-start gap-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-accent/10 text-accent font-medium">
+              <Crown className="w-3.5 h-3.5" />
+              <span>Базовый канал не выбран</span>
+            </div>
+            <HelpPopover sectionId="my-channel" />
           </div>
           <h3 className="text-lg font-semibold text-white">
             Назначьте «Мой канал» для сравнительного анализа
@@ -85,6 +89,7 @@ export function MyChannelCard({ channel, onOpenAddModal }: MyChannelCardProps) {
               <Crown className="w-3.5 h-3.5" />
               Мой канал
             </span>
+            <HelpPopover sectionId="my-channel" />
             <StatusBadge
               status={channel.status}
               lastCollectedAt={channel.lastCollectedAt}

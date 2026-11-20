@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { BarChart3 } from 'lucide-react';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import type { PublicationSummary } from '@/lib/metrics/publication-summary';
 
 export function PublicationCoverage({ revision }: { revision: unknown }) {
@@ -36,6 +37,7 @@ export function PublicationCoverage({ revision }: { revision: unknown }) {
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-accent shrink-0" />
           <h3 className="text-sm font-semibold text-white">Полнота замеров публикаций</h3>
+          <HelpPopover sectionId="publication-coverage" />
         </div>
 
         <label className="inline-flex items-center gap-2 text-xs text-slate-300">

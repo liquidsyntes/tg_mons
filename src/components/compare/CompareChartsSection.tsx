@@ -22,6 +22,7 @@ import type {
 } from '@/lib/compare';
 import { formatNumber } from '@/lib/utils';
 import { getParticipantStyle } from './compareTheme';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 const TOOLTIP_CONTENT_STYLE: React.CSSProperties = {
   backgroundColor: '#1e293b',
@@ -106,7 +107,8 @@ export function CompareChartsSection({
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-accent" />
-              Динамика подписчиков
+              <span>Динамика подписчиков</span>
+              <HelpPopover sectionId="compare-charts" />
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
               {scaleMode === 'relative'

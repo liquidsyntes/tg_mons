@@ -6,6 +6,7 @@ import { Radar, RefreshCw, TrendingUp, AlertCircle, ChevronDown, Target } from '
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { AIContentGapReport, type AIContentGapData } from './AIContentGapReport';
+import { HelpPopover } from './help/HelpPopover';
 
 interface TrendItem {
   topic: string;
@@ -108,18 +109,21 @@ export function TrendSpotterWidget() {
             <Radar className="w-5 h-5 text-purple-400" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white tracking-tight">
-              <button
-                type="button"
-                aria-expanded={expanded}
-                aria-controls="trend-radar-content"
-                onClick={() => setExpanded(value => !value)}
-                className="inline-flex items-center gap-2 rounded hover:text-accent transition-colors"
-              >
-                Радар трендов
-                <ChevronDown aria-hidden="true" className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-              </button>
-            </h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-base font-bold text-white tracking-tight">
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  aria-controls="trend-radar-content"
+                  onClick={() => setExpanded(value => !value)}
+                  className="inline-flex items-center gap-2 rounded hover:text-accent transition-colors"
+                >
+                  Радар трендов
+                  <ChevronDown aria-hidden="true" className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                </button>
+              </h3>
+              <HelpPopover sectionId="trend-spotter" />
+            </div>
             <p className="text-xs text-slate-400">
               {loading ? 'Загрузка радара трендов…' : report
                 ? `Обновлено ${formatDistanceToNow(new Date(report.createdAt), { addSuffix: true, locale: ru })}`

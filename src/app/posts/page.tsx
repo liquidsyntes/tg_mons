@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FileSearch, RotateCcw } from 'lucide-react';
 import { Header } from '@/components/Header';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 import type {
   AdCreativeCluster,
@@ -421,7 +422,7 @@ export default function PostsPage() {
       <Header />
       <main className="site-shell mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2"><FileSearch className="w-6 h-6 text-accent" />Поиск и креативы</h1>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2"><FileSearch className="w-6 h-6 text-accent" /><span>Поиск и креативы</span><HelpPopover sectionId="posts-search" /></h1>
           <p className="mt-1 text-sm text-slate-400">Публикации из отслеживаемых вами каналов.</p>
         </div>
 
@@ -490,6 +491,7 @@ export default function PostsPage() {
               className={`rounded-xl border px-3 py-2 text-sm ${onlyViral ? 'border-rose-400 bg-rose-500/15 text-rose-300' : 'border-border text-slate-300'}`}>
               Только вирусные
             </button>
+            <HelpPopover sectionId="viral-posts" />
             <button type="button" onClick={() => {
               setOnlySaved(value => {
                 const next = !value;

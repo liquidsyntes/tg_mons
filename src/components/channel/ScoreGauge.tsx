@@ -2,6 +2,7 @@
 
 import { Activity } from 'lucide-react';
 import { ScoreBreakdown } from '@/lib/scoring';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 interface ScoreGaugeProps {
   breakdown: ScoreBreakdown;
@@ -64,7 +65,8 @@ export function ScoreGauge({ breakdown }: ScoreGaugeProps) {
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <Activity className="w-4 h-4 text-emerald-400" />
-            Content Score
+            <span>Content Score</span>
+            <HelpPopover sectionId="score-gauge" />
           </h3>
           <p className="text-sm text-slate-300 mt-1">{recommendation}</p>
         </div>

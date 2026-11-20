@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp, Filter, Layers, Sparkles } from 'lucide-react';
 import { sortAdCreativeClusters } from '@/lib/metrics/ad-creatives';
 import type { AdCreativeCluster, AdCreativeSortBy } from '@/lib/types';
+import { HelpPopover } from '@/components/help/HelpPopover';
 import { formatNumber } from '@/lib/utils';
 
 interface AdCreativesPanelProps {
@@ -92,7 +93,8 @@ export function AdCreativesPanel({
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <Layers className="w-4 h-4 text-accent" />
-              Аналитика креативов (Ad Spy)
+              <span>Аналитика креативов (Ad Spy)</span>
+              <HelpPopover sectionId="ad-spy-creatives" />
             </h2>
             {!loading && clusters.length > 0 && (
               <span className="rounded bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent">

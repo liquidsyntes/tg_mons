@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 export function TelegramAccountLink({ linked, name }: { linked: boolean; name: string | null }) {
   const started = useRef(false);
@@ -27,7 +28,10 @@ export function TelegramAccountLink({ linked, name }: { linked: boolean; name: s
   }, []);
 
   return <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 space-y-3">
-    <h2 className="text-base font-bold text-white">Вход через Telegram</h2>
+    <div className="flex items-center gap-2">
+      <h2 className="text-base font-bold text-white">Вход через Telegram</h2>
+      <HelpPopover sectionId="telegram-bot-commands" />
+    </div>
     {linked ? <p className="text-xs text-emerald-400">Привязан аккаунт {name || 'Telegram'}</p> : <>
       <p className="text-xs text-slate-400">Привяжите Telegram к этой учётной записи. Ваши каналы и права сохранятся.</p>
       <form action="/api/auth/telegram/start" method="post">

@@ -2,6 +2,7 @@
 import { PublicationCoverage } from './PublicationCoverage';
 import { PublicationResultCard } from './PublicationResultCard';
 import { DataEvidenceDetails } from '@/components/DataEvidenceDetails';
+import { HelpPopover } from '@/components/help/HelpPopover';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -121,6 +122,7 @@ export function ContentPlanBoard({
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
               <Sparkles className="w-4 h-4" />
               <span>Рекомендации для контент-плана</span>
+              <HelpPopover sectionId="content-plan-board" />
             </div>
             {recommendationsLoading ? (
               <p className="text-sm text-slate-300">Подбираю лучшие окна и формат для вашего канала...</p>
