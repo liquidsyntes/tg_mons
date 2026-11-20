@@ -11,7 +11,7 @@
 <!-- Announcement Tag -->
 <div class="flex justify-center mb-6">
 <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-surface-card/90 shadow-sm">
-<span class="relative flex h-2 w-2">
+<span class="relative flex h-2 w-2 shrink-0">
 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-container opacity-75"></span>
 <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-container"></span>
 </span>
@@ -51,15 +51,15 @@
 <!-- Mockup Top Bar -->
 <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 mb-6 bg-surface-container-low/70 -mx-4 -mt-4 p-4 rounded-t-xl sm:-mx-6 sm:-mt-6 sm:p-5">
 <div class="flex items-center gap-3 w-full lg:w-auto">
-<div class="flex items-center gap-2 bg-surface-elevated px-3 py-1.5 rounded-lg text-primary text-body-sm font-badge-label">
-<span class="w-2 h-2 rounded-full bg-metric-positive"></span>
+<div class="flex items-center gap-2 shrink-0 whitespace-nowrap bg-surface-elevated px-3 py-1.5 rounded-lg text-primary text-body-sm font-badge-label">
+<span class="w-2 h-2 shrink-0 rounded-full bg-metric-positive"></span>
 <span>live-telemetry</span>
 </div>
 <!-- Channel Selector Tabs -->
 <div class="flex items-center gap-1.5 overflow-x-auto py-1">
-<button class="px-3 py-1.5 rounded-md bg-surface-card text-primary font-badge-label text-badge-label shadow-sm flex items-center gap-1.5">
+<button class="px-3 py-1.5 rounded-md bg-surface-card text-primary font-badge-label text-badge-label shadow-sm flex items-center gap-1.5 shrink-0">
 <span class="text-on-surface-variant font-sans">@</span>tech_insider
-                  <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                  <span class="w-1.5 h-1.5 shrink-0 rounded-full bg-primary-container"></span>
 </button>
 <button class="px-3 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface font-badge-label text-badge-label transition-colors">
                   @crypto_pulse
@@ -245,18 +245,21 @@
 <div class="h-6 rounded bg-primary-container/30"></div>
 <div class="h-6 rounded bg-primary-container/15"></div>
 </div>
-<div class="pt-3 flex items-center justify-between text-outline font-badge-label text-badge-label">
-<span>Мин. вовлечение</span>
-<div class="flex items-center gap-1">
+<div class="pt-3 flex flex-wrap items-center justify-between gap-2 text-outline font-badge-label text-badge-label">
+<span class="whitespace-nowrap">Мин. вовлечение</span>
+<div class="flex items-center gap-1 shrink-0">
 <span class="w-3 h-2 rounded-xs bg-primary-container/20"></span>
 <span class="w-3 h-2 rounded-xs bg-primary-container/50"></span>
 <span class="w-3 h-2 rounded-xs bg-primary-container/90"></span>
 </div>
-<span class="text-primary-container">Пик (18:00–20:00)</span>
+<span class="text-primary-container whitespace-nowrap">Пик (18:00–20:00)</span>
 </div>
 </div>
 </div>
 <!-- Channel Posts Table -->
+<div class="sm:hidden mb-2 flex items-center justify-end gap-1 text-outline font-badge-label text-badge-label">
+<span>Прокрутите таблицу по горизонтали -></span>
+</div>
 <div class="overflow-x-auto rounded-xl bg-surface-container-low shadow-sm">
 <table class="w-full text-left font-body-sm text-body-sm">
 <thead class="bg-surface-elevated/50 text-outline font-badge-label text-badge-label uppercase tracking-wider">
@@ -515,7 +518,7 @@
 <!-- Mini Technical Widget -->
 <div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
 <div class="flex items-center gap-2">
-<span class="w-2.5 h-2.5 rounded-full bg-metric-positive"></span>
+<span class="w-2.5 h-2.5 shrink-0 rounded-full bg-metric-positive"></span>
 <span class="font-badge-label text-badge-label text-on-surface">Индекс чистоты</span>
 </div>
 <span class="font-metric-num-md text-metric-num-md text-metric-positive">92 / 100</span>
@@ -979,7 +982,7 @@
 </a>
 </div>
 <div class="mt-5 flex items-center justify-center gap-2 text-outline font-body-sm text-body-sm">
-<span class="w-2 h-2 rounded-full bg-metric-positive"></span>
+<span class="w-2 h-2 shrink-0 rounded-full bg-metric-positive"></span>
 <span>Без спама. Решение администратора в течение 15 минут.</span>
 </div>
 </div>
@@ -1026,4 +1029,4 @@
       }
     }
   </script>
-</div></main><footer class="relative z-10 w-full bg-surface-container-lowest border-t border-border-glass py-space-xl"><div class="max-w-[1280px] mx-auto px-margin"><div class="grid grid-cols-1 md:grid-cols-12 gap-space-xl pb-space-xl border-b border-border-glass"><div class="md:col-span-5 flex flex-col gap-space-sm"><div class="flex items-center gap-space-sm"><img alt="TgMon Logo" class="h-7 w-auto object-contain" src="/tg_mon_logo.png"/><span class="font-headline-sm text-headline-sm text-on-surface font-bold">TgMon</span></div><p class="font-body-md text-body-md text-on-surface-variant max-w-sm">Прозрачная аналитика Telegram-каналов без накруток и догадок.</p></div><div class="md:col-span-7 flex flex-wrap gap-space-xl justify-start md:justify-end"><div class="flex flex-col gap-space-xs"><span class="font-badge-label text-badge-label text-outline uppercase tracking-wider">Ресурсы</span><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="https://github.com/liquidsyntes/tg_mons/blob/main/docs/analytics-formulas.md">Документация</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="https://github.com/liquidsyntes/tg_mons" rel="noreferrer" target="_blank">GitHub репозиторий</a></div><div class="flex flex-col gap-space-xs"><span class="font-badge-label text-badge-label text-outline uppercase tracking-wider">Поддержка</span><span class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-telegram-brand">send</span>@tgmon_admin</span><span class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-metric-positive"></span>Статус сервиса</span></div></div></div><div class="pt-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-sm text-outline font-badge-label text-badge-label"><div>Build commit 7f4c9a · Node 20 · tgmons.online</div><div>© 2026 TgMon. Все права защищены.</div></div></div></footer></body></html>
+</div></main><footer class="relative z-10 w-full bg-surface-container-lowest border-t border-border-glass py-space-xl"><div class="max-w-[1280px] mx-auto px-margin"><div class="grid grid-cols-1 md:grid-cols-12 gap-space-xl pb-space-xl border-b border-border-glass"><div class="md:col-span-5 flex flex-col gap-space-sm"><div class="flex items-center gap-space-sm"><img alt="TgMon Logo" class="h-7 w-auto object-contain" src="/tg_mon_logo.png"/><span class="font-headline-sm text-headline-sm text-on-surface font-bold">TgMon</span></div><p class="font-body-md text-body-md text-on-surface-variant max-w-sm">Прозрачная аналитика Telegram-каналов без накруток и догадок.</p></div><div class="md:col-span-7 flex flex-wrap gap-space-xl justify-start md:justify-end"><div class="flex flex-col gap-space-xs"><span class="font-badge-label text-badge-label text-outline uppercase tracking-wider">Ресурсы</span><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="https://github.com/liquidsyntes/tg_mons/blob/main/docs/analytics-formulas.md">Документация</a><a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors" href="https://github.com/liquidsyntes/tg_mons" rel="noreferrer" target="_blank">GitHub репозиторий</a></div><div class="flex flex-col gap-space-xs"><span class="font-badge-label text-badge-label text-outline uppercase tracking-wider">Поддержка</span><span class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-telegram-brand">send</span>@tgmon_admin</span><span class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5"><span class="w-2 h-2 shrink-0 rounded-full bg-metric-positive"></span>Статус сервиса</span></div></div></div><div class="pt-space-lg flex flex-col sm:flex-row items-center justify-between gap-space-sm text-outline font-badge-label text-badge-label"><div>Build commit 7f4c9a · Node 20 · tgmons.online</div><div>© 2026 TgMon. Все права защищены.</div></div></div></footer></body></html>
