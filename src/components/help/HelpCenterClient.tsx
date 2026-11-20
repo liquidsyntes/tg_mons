@@ -19,10 +19,13 @@ import {
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import {
+  AI_REPORTS_TYPES_GUIDE,
   ANTIFRAUD_HEURISTICS_GUIDE,
   CHANNELS_TABLE_COLUMNS_GUIDE,
   HELP_CHAPTERS,
   HELP_ROLE_LABELS,
+  PUBLICATION_COVERAGE_GUIDE,
+  TELEGRAM_BOT_COMMANDS_GUIDE,
   filterHelpChapters,
   getAllHelpSections,
   type HelpUserRole,
@@ -562,6 +565,108 @@ export function HelpCenterClient() {
                                     </p>
                                   </div>
                                 ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Встроенная шпаргалка статусов замеров контент-плана 24ч/48ч */}
+                          {section.id === 'publication-coverage' && (
+                            <div className="space-y-2.5 pt-1">
+                              <div className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                                Расшифровка статусов замеров 24ч и 48ч
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {PUBLICATION_COVERAGE_GUIDE.map((item) => (
+                                  <div
+                                    key={item.statusKey}
+                                    className="rounded-xl border border-border bg-slate-900/60 p-3.5 space-y-1.5 text-xs"
+                                  >
+                                    <div className="font-bold text-white">{item.label}</div>
+                                    <p className="text-slate-300">{item.meaning}</p>
+                                    <p className="text-slate-400">
+                                      <strong className="text-slate-200">В проценте полноты:</strong>{' '}
+                                      {item.inCompleteness}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Встроенная шпаргалка по 7 видам AI-отчётов */}
+                          {section.id === 'ai-reports-types' && (
+                            <div className="space-y-2.5 pt-1">
+                              <div className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                                Сводная матрица видов AI-отчётов
+                              </div>
+                              <div className="overflow-x-auto rounded-xl border border-border">
+                                <table className="w-full min-w-[680px] text-left text-xs">
+                                  <thead className="bg-slate-900/90 text-slate-400 uppercase font-mono">
+                                    <tr>
+                                      <th className="py-2.5 px-3">Тип отчёта</th>
+                                      <th className="py-2.5 px-3">Условие запуска</th>
+                                      <th className="py-2.5 px-3">Что анализирует</th>
+                                      <th className="py-2.5 px-3">Когда выбирать</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-border/70 bg-slate-950/40">
+                                    {AI_REPORTS_TYPES_GUIDE.map((item) => (
+                                      <tr key={item.typeKey}>
+                                        <td className="py-2.5 px-3 font-semibold text-white">
+                                          {item.title}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-amber-300 whitespace-nowrap">
+                                          {item.requirement}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-slate-300">
+                                          {item.purpose}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-slate-400">
+                                          {item.bestFor}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Встроенная шпаргалка команд Telegram-бота */}
+                          {section.id === 'telegram-bot-commands' && (
+                            <div className="space-y-2.5 pt-1">
+                              <div className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                                Справочник команд Telegram-бота
+                              </div>
+                              <div className="overflow-x-auto rounded-xl border border-border">
+                                <table className="w-full min-w-[680px] text-left text-xs">
+                                  <thead className="bg-slate-900/90 text-slate-400 uppercase font-mono">
+                                    <tr>
+                                      <th className="py-2.5 px-3">Команда</th>
+                                      <th className="py-2.5 px-3">Алиасы</th>
+                                      <th className="py-2.5 px-3">Что делает</th>
+                                      <th className="py-2.5 px-3">Пример</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-border/70 bg-slate-950/40">
+                                    {TELEGRAM_BOT_COMMANDS_GUIDE.map((item) => (
+                                      <tr key={item.command}>
+                                        <td className="py-2.5 px-3 font-mono font-bold text-accent whitespace-nowrap">
+                                          {item.command}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-slate-400">
+                                          {item.aliases}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-slate-300">
+                                          {item.description}
+                                        </td>
+                                        <td className="py-2.5 px-3 font-mono text-emerald-300 whitespace-nowrap">
+                                          {item.example}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
                           )}

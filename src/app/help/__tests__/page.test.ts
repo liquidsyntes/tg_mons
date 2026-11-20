@@ -7,9 +7,13 @@ vi.mock('@/components/Header', () => ({ Header: () => null }));
 
 import HelpPage from '../page';
 import {
+  AI_REPORTS_TYPES_GUIDE,
   ANTIFRAUD_HEURISTICS_GUIDE,
   CHANNELS_TABLE_COLUMNS_GUIDE,
   HELP_CHAPTERS,
+  PUBLICATION_COVERAGE_GUIDE,
+  TELEGRAM_BOT_COMMANDS_GUIDE,
+  getAllHelpSections,
 } from '@/lib/help/help-content';
 
 afterEach(() => {
@@ -19,12 +23,17 @@ afterEach(() => {
 });
 
 describe('/help page', () => {
-  it('renders table of contents, all 4 chapters, 12 dashboard columns guide, and 7 antifraud heuristics', () => {
+  it('renders table of contents, all 8 chapters with unique section ids, and embedded guides', () => {
     render(React.createElement(HelpPage));
 
     expect(screen.getByRole('heading', { name: /Справка по блокам и метрикам сервиса/ })).toBeDefined();
     expect(screen.getByRole('navigation', { name: 'Оглавление справочника' })).toBeDefined();
     expect(screen.getByRole('navigation', { name: 'Быстрый переход по главам' })).toBeDefined();
+    expect(HELP_CHAPTERS).toHaveLength(8);
+
+    const allSections = getAllHelpSections();
+    const uniqueIds = new Set(allSections.map((section) => section.id));
+    expect(uniqueIds.size).toBe(allSections.length);
 
     for (const chapter of HELP_CHAPTERS) {
       expect(screen.getByRole('heading', { name: chapter.title })).toBeDefined();
@@ -44,9 +53,23 @@ describe('/help page', () => {
       expect(screen.getByRole('heading', { name: heuristic.title })).toBeDefined();
     }
     expect(ANTIFRAUD_HEURISTICS_GUIDE).toHaveLength(7);
+
+    for (const statusItem of PUBLICATION_COVERAGE_GUIDE) {
+      expect(screen.getByText(statusItem.label)).toBeDefined();
+    }
+
+    for (const aiItem of AI_REPORTS_TYPES_GUIDE) {
+      expect(screen.getByRole('cell', { name: aiItem.title })).toBeDefined();
+    }
+    expect(AI_REPORTS_TYPES_GUIDE).toHaveLength(7);
+
+    for (const cmdItem of TELEGRAM_BOT_COMMANDS_GUIDE) {
+      expect(screen.getAllByRole('cell', { name: cmdItem.command }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('cell', { name: cmdItem.example }).length).toBeGreaterThan(0);
+    }
   });
 
-  it('filters sections by search query and resets empty state', () => {
+  it('filters sections across chapters 5-8 by search query and resets empty state', () => {
     render(React.createElement(HelpPage));
 
     const searchInput = screen.getByRole('textbox', { name: 'Поиск по справочнику' });
@@ -54,6 +77,12 @@ describe('/help page', () => {
 
     expect(screen.getByRole('heading', { name: 'Подробный разбор всех 7 эвристик антифрода' })).toBeDefined();
     expect(screen.queryByRole('heading', { name: 'Виджет «Избранное» (Watchlist)' })).toBeNull();
+
+    fireEvent.change(searchInput, { target: { value: 'keyword_fallback' } });
+    expect(screen.getByRole('heading', { name: /Глубокое сканирование афиши/ })).toBeDefined();
+
+    fireEvent.change(searchInput, { target: { value: '/digest' } });
+    expect(screen.getByRole('heading', { name: 'Интерактивные команды Telegram-бота' })).toBeDefined();
 
     fireEvent.change(searchInput, { target: { value: 'несуществующий_запрос_xyz' } });
     expect(screen.getByText('Ничего не найдено')).toBeDefined();
