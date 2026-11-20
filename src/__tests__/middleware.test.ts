@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 const findSessionUser = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/prisma', () => ({ prisma: { user: { findUnique: findSessionUser } } }));
-import { middleware } from '../middleware';
+import { middleware, config as middlewareConfig } from '../middleware';
 import { createSessionCookieValue, SESSION_COOKIE_NAME } from '../lib/auth';
 
 describe('middleware access boundary', () => {
@@ -13,9 +13,16 @@ describe('middleware access boundary', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it('redirects pages and blocks API mutations without credentials', async () => {
+    expect(middlewareConfig.matcher).toContain('/help');
+    expect(middlewareConfig.matcher).toContain('/help/:path*');
+
     const page = await middleware(new NextRequest('http://localhost:4000/reports'));
     expect(page.status).toBe(307);
     expect(page.headers.get('location')).toBe('http://localhost:4000/login');
+
+    const helpPage = await middleware(new NextRequest('http://localhost:4000/help'));
+    expect(helpPage.status).toBe(307);
+    expect(helpPage.headers.get('location')).toBe('http://localhost:4000/login');
 
     const api = await middleware(new NextRequest('http://localhost:4000/api/channels', { method: 'POST' }));
     expect(api.status).toBe(401);

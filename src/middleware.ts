@@ -56,6 +56,8 @@ export const config = {
     '/events',
     '/settings',
     '/posts',
+    '/help',
+    '/help/:path*',
     '/pending',
     '/api/:path*',
   ],

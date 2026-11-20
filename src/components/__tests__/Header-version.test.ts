@@ -98,5 +98,13 @@ describe('Header', () => {
     expect(manageBtn.className).toContain('border-accent/40');
     fireEvent.click(manageBtn);
     expect(screen.getByRole('menuitem', { name: 'Настройки' }).getAttribute('aria-current')).toBe('page');
+
+    window.history.pushState({}, '', '/help');
+    rerender(React.createElement(Header, { totalChannels: 10, activeChannels: 10 }));
+    const helpLink = screen.getByRole('link', { name: 'Справка' });
+    expect(helpLink.getAttribute('href')).toBe('/help');
+    expect(helpLink.getAttribute('aria-current')).toBe('page');
+    expect(helpLink.className).toContain('border-accent/30');
+    expect(screen.getByRole('menuitem', { name: 'Справка' }).getAttribute('aria-current')).toBe('page');
   });
 });

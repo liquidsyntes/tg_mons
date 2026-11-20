@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   AlertCircle,
+  BookOpen,
   Bookmark,
   Calendar,
   Check,
@@ -148,6 +149,7 @@ export function Header({
   const isEventsActive = pathname === '/events' || pathname.startsWith('/events/');
   const isCompareActive = pathname === '/compare' || pathname.startsWith('/compare/');
   const isAnalyticsActive = isReportsActive || isEventsActive || isCompareActive;
+  const isHelpActive = pathname === '/help' || pathname.startsWith('/help/');
   const isSettingsActive = pathname === '/settings' || pathname.startsWith('/settings/');
 
   const isPostsHrefActive = (href: string): boolean => {
@@ -458,6 +460,20 @@ export function Header({
                   </div>
                 )}
               </div>
+
+              <Link
+                href="/help"
+                aria-current={isHelpActive ? 'page' : undefined}
+                onClick={() => setOpenMenu(null)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium border transition-colors ${
+                  isHelpActive
+                    ? 'bg-slate-800 text-white border-accent/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800 border-transparent'
+                }`}
+              >
+                <BookOpen className={`w-3.5 h-3.5 ${isHelpActive ? 'text-accent' : 'text-slate-400'}`} />
+                <span>Справка</span>
+              </Link>
             </nav>
           </div>
 
@@ -584,6 +600,20 @@ export function Header({
                         </Link>
                       );
                     })}
+                    <Link
+                      role="menuitem"
+                      href="/help"
+                      aria-current={isHelpActive ? 'page' : undefined}
+                      onClick={() => handleLinkClick('/help')}
+                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs border transition-colors ${
+                        isHelpActive
+                          ? 'bg-slate-800 text-white border-accent/30'
+                          : 'text-slate-200 hover:bg-slate-800 border-transparent'
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-accent" />
+                      <span>Справка</span>
+                    </Link>
                   </div>
 
                   <div className="border-t border-border/80 pt-1.5 space-y-1">
