@@ -3,9 +3,9 @@
  */
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NewsjackingWidget } from '../NewsjackingWidget';
-import type { NewsjackingApiResponse } from '@/lib/types';
+import type { ChannelReactionSpeedSummary, NewsjackingApiResponse } from '@/lib/types';
 
 function makeApiResponse(hours: 24 | 48 | 72 = 48): NewsjackingApiResponse {
   return {
@@ -46,7 +46,7 @@ function makeApiResponse(hours: 24 | 48 | 72 = 48): NewsjackingApiResponse {
           reactions: 300,
           comments: 50,
           forwards: 100,
-          excerpt: 'Банк России поднял ключевую ставку',
+          excerpt: 'Регулятор повысил ставку сразу на два процентных пункта',
         },
         peakPost: {
           postId: 12,
@@ -64,7 +64,7 @@ function makeApiResponse(hours: 24 | 48 | 72 = 48): NewsjackingApiResponse {
           reactions: 1800,
           comments: 400,
           forwards: 640,
-          excerpt: 'Подробный разбор влияния ставки на рынки',
+          excerpt: 'Подробный разбор влияния ставки на рынки и ипотеку',
         },
         timeline: [
           {
@@ -83,7 +83,7 @@ function makeApiResponse(hours: 24 | 48 | 72 = 48): NewsjackingApiResponse {
             reactions: 300,
             comments: 50,
             forwards: 100,
-            excerpt: 'Банк России поднял ключевую ставку',
+            excerpt: 'Регулятор повысил ставку сразу на два процентных пункта',
           },
           {
             postId: 11,
@@ -119,7 +119,7 @@ function makeApiResponse(hours: 24 | 48 | 72 = 48): NewsjackingApiResponse {
             reactions: 1800,
             comments: 400,
             forwards: 640,
-            excerpt: 'Подробный разбор влияния ставки на рынки',
+            excerpt: 'Подробный разбор влияния ставки на рынки и ипотеку',
           },
         ],
       },
@@ -151,7 +151,7 @@ function makeApiResponse(hours: 24 | 48 | 72 = 48): NewsjackingApiResponse {
           reactions: 600,
           comments: 100,
           forwards: 350,
-          excerpt: 'OpenAI представила GPT-5',
+          excerpt: 'OpenAI представила GPT-5 с длинным контекстом',
         },
         peakPost: {
           postId: 20,
@@ -169,7 +169,7 @@ function makeApiResponse(hours: 24 | 48 | 72 = 48): NewsjackingApiResponse {
           reactions: 600,
           comments: 100,
           forwards: 350,
-          excerpt: 'OpenAI представила GPT-5',
+          excerpt: 'OpenAI представила GPT-5 с длинным контекстом',
         },
         timeline: [
           {
@@ -188,7 +188,7 @@ function makeApiResponse(hours: 24 | 48 | 72 = 48): NewsjackingApiResponse {
             reactions: 600,
             comments: 100,
             forwards: 350,
-            excerpt: 'OpenAI представила GPT-5',
+            excerpt: 'OpenAI представила GPT-5 с длинным контекстом',
           },
           {
             postId: 21,
@@ -244,7 +244,7 @@ describe('NewsjackingWidget', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders news topic clusters, timeline delays, ERR leader badge, and speed leaderboard', async () => {
+  it('renders compact topic cards with anchor roles, excerpt, expandable chronology, and quote toggle', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => makeApiResponse(48),
@@ -257,13 +257,134 @@ describe('NewsjackingWidget', () => {
       expect(screen.getByText('Банк России поднял ключевую ставку до 21%')).toBeDefined(),
     );
 
-    expect(screen.getByText('Не освещено в вашем канале')).toBeDefined();
-    expect(screen.getByText('Освещено (задержка +45 мин)')).toBeDefined();
+    expect(
+      screen.getByText('Регулятор повысил ставку сразу на два процентных пункта'),
+    ).toBeDefined();
+    expect(screen.getByText('Пропущено вами')).toBeDefined();
+    expect(screen.getByText('Вы: +45 мин')).toBeDefined();
+    expect(screen.getByText(/Лучший отклик · ERR 14\.2%/)).toBeDefined();
+    expect(screen.getByText('Тема ещё не освещена')).toBeDefined();
+
+    // Chronology is collapsed by default
+    expect(screen.queryByText('+18 мин')).toBeNull();
+
+    const expandButton = screen.getByRole('button', { name: 'Хронология (3 поста)' });
+    expect(expandButton.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(expandButton);
+
+    expect(expandButton.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText('+18 мин')).toBeDefined();
     expect(screen.getByText('+1ч 20м')).toBeDefined();
-    expect(screen.getByText('Лидер по ERR: 14.2%')).toBeDefined();
+    expect(screen.getByText('Пик ERR 14.2%')).toBeDefined();
+
+    const quoteButtons = screen.getAllByRole('button', { name: 'Цитата' });
+    fireEvent.click(quoteButtons[2]);
+
+    expect(
+      screen.getByText('Подробный разбор влияния ставки на рынки и ипотеку'),
+    ).toBeDefined();
+    expect(screen.getByText('Пересылки: 640')).toBeDefined();
+  });
+
+  it('renders each repeated post of the same channel on its own row with linked topic badges', async () => {
+    const response = makeApiResponse(48);
+    response.clusters = [
+      {
+        ...response.clusters[0],
+        postsCount: 3,
+        channelsCount: 2,
+        timeline: [
+          response.clusters[0].timeline[0],
+          response.clusters[0].timeline[1],
+          {
+            postId: 13,
+            messageId: '103',
+            channelId: 1,
+            channelTitle: 'Канал А',
+            channelUsername: 'chan_a',
+            isMine: false,
+            publishedAt: '2026-11-15T12:00:00.000Z',
+            delayMinutes: 55,
+            isFirst: false,
+            isPeak: true,
+            views: 25000,
+            err: 11.4,
+            reactions: 900,
+            comments: 150,
+            forwards: 310,
+            excerpt: 'Дополнение Канала А по решению регулятора',
+          },
+        ],
+      },
+    ];
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => response,
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(NewsjackingWidget));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Хронология (3 поста)' })).toBeDefined(),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Хронология (3 поста)' }));
+
+    const chronology = screen.getByLabelText(
+      'Хронология реакции: Банк России поднял ключевую ставку до 21%',
+    );
+    expect(
+      within(chronology).getByText(
+        'Повторные посты одного канала отмечены общим цветным маркером',
+      ),
+    ).toBeDefined();
+
+    const rows = within(chronology).getAllByRole('listitem');
+    expect(rows).toHaveLength(3);
+
+    expect(within(chronology).getByText('Пост 1 из 2 по теме')).toBeDefined();
+    expect(within(chronology).getByText('По теме · пост 2 из 2')).toBeDefined();
+    expect(within(chronology).getByText('(+55 мин к пред.)')).toBeDefined();
+  });
+
+  it('switches to speed leaderboard tab and pins my channel when ranked outside top 10', async () => {
+    const response = makeApiResponse(48);
+    const manyEntries: ChannelReactionSpeedSummary[] = Array.from({ length: 12 }, (_, idx) => ({
+      channelId: idx + 100,
+      channelTitle: idx === 11 ? 'Мой Канал в нише' : `Канал ${idx + 1}`,
+      channelUsername: `chan_${idx + 1}`,
+      isMine: idx === 11,
+      topicsCovered: 1,
+      firstCount: idx === 0 ? 2 : 0,
+      peakCount: idx === 1 ? 1 : 0,
+      medianDelayMinutes: idx * 10,
+      avgDelayMinutes: idx * 10,
+    }));
+    response.speedLeaderboard = manyEntries;
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => response,
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(NewsjackingWidget));
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: /Рейтинг скорости/ })).toBeDefined(),
+    );
+
+    expect(screen.queryByText('Лидеры оперативности')).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Рейтинг скорости/ }));
+
     expect(screen.getByText('Лидеры оперативности')).toBeDefined();
     expect(screen.getByText('Первым: 2')).toBeDefined();
+    expect(screen.getByText('Ваш канал · #12')).toBeDefined();
+    expect(screen.getByText('Мой Канал в нише')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Показать все каналы (12)' })).toBeDefined();
   });
 
   it('switches window period and filters uncovered topics', async () => {
@@ -279,7 +400,7 @@ describe('NewsjackingWidget', () => {
       expect(screen.getByText('Запуск новой модели GPT-5 для разработчиков')).toBeDefined(),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Не освещено мной (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Пропущено мной (1)' }));
     expect(screen.queryByText('Запуск новой модели GPT-5 для разработчиков')).toBeNull();
     expect(screen.getByText('Банк России поднял ключевую ставку до 21%')).toBeDefined();
 
