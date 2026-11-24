@@ -155,4 +155,95 @@ describe('AdAttributionWidget', () => {
       expect(screen.getByText('Размещений за выбранный период нет.')).toBeDefined();
     });
   });
+
+  it('switches between inbound and outbound tabs and displays outbound placements', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        periodDays: 30,
+        inbound: [],
+        outbound: [
+          {
+            postId: 22,
+            tgPostId: '902',
+            publishedAt: '2026-11-12T10:00:00.000Z',
+            views: 3400,
+            lastCapturedViews: 3400,
+            deletedAt: null,
+            retentionFormat: '24ч',
+            isAd: true,
+            sourceChannel: { id: 2, title: 'Донор', username: 'donor_ch' },
+            targetChannel: { id: 88, title: 'Рекламодатель', username: 'adv_target' },
+            deltaSubscribers24h: 15,
+            deltaSubscribers48h: 22,
+            conversionPercent: 0.65,
+            estimatedPricePerPost: 1000,
+            estimatedCpf: 45,
+            priceSource: 'custom_price',
+            deal: null,
+          },
+        ],
+        manualPlacements: [],
+        accessibleChannels: [{ id: 88, title: 'Рекламодатель', username: 'adv_target' }],
+      }),
+    }));
+
+    render(React.createElement(AdAttributionWidget, { channelId: 2 }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Размещений за выбранный период нет.')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Отдача рекламы (Исходящие размещения)' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Рекламодатель (@adv_target)')).toBeDefined();
+    });
+    expect(screen.getByText('Конверсия просмотров: 0.65%')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Закупки (Входящие упоминания)' }));
+    await waitFor(() => {
+      expect(screen.getByText('Размещений за выбранный период нет.')).toBeDefined();
+    });
+  });
+
+  it('closes DealEditorForm on cancel without submitting POST request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        periodDays: 30,
+        inbound: [],
+        outbound: [],
+        manualPlacements: [],
+        accessibleChannels: [{ id: 9, title: 'Донор Тест', username: 'donor_test' }],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(React.createElement(AdAttributionWidget, { channelId: 2 }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Добавить закупку')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Добавить закупку' }));
+    expect(screen.getByRole('form', { name: 'Форма условий рекламной закупки' })).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+    expect(screen.queryByRole('form', { name: 'Форма условий рекламной закупки' })).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders an alert error banner when loading fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({}),
+    }));
+
+    render(React.createElement(AdAttributionWidget, { channelId: 2 }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('Не удалось загрузить эффективность размещений');
+    });
+  });
 });
