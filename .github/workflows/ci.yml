@@ -49,6 +49,31 @@ jobs:
       - name: ESLint
         run: npx eslint src
 
+      # Scope to src/ until docs/ and scripts/ are cleaned up in issue #108.
+      - name: Check forbidden U+2014 in src
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const bad = [];
+            function walk(dir) {
+              for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) { walk(full); continue; }
+                const lines = fs.readFileSync(full, "utf8").split(/\r?\n/);
+                lines.forEach((line, idx) => {
+                  if (line.includes("\u2014")) bad.push(`${full}:${idx + 1}`);
+                });
+              }
+            }
+            walk("src");
+            if (bad.length > 0) {
+              console.error("Forbidden U+2014 found:\n" + bad.join("\n"));
+              process.exit(1);
+            }
+            console.log("OK: 0 occurrences of U+2014 in src/");
+          '
+
       - name: Unit tests (vitest)
         run: npm test
 
