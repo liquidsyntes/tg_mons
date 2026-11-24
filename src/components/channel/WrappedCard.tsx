@@ -257,7 +257,7 @@ export function WrappedCard({ channel, stats }: WrappedCardProps) {
 
           {/* Best Post Wide Card - Compacted & Left-aligned Pill */}
           {bestPost && (
-            <div className="bg-gradient-to-br from-[#1c1a17] to-[#0f1118] border border-white/5 rounded-[2rem] p-10 shadow-2xl mt-8 flex-1 relative overflow-hidden flex flex-col justify-start">
+            <div className="bg-gradient-to-br from-[#1c1a17] to-[#0f1118] border border-white/5 rounded-3xl p-10 shadow-2xl mt-8 flex-1 relative overflow-hidden flex flex-col justify-start">
               <div className="absolute right-0 bottom-0 opacity-5 w-48 h-48 pointer-events-none">
                 <svg width="100%" height="100%" viewBox="0 0 100 100">
                   <pattern id="dots" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
