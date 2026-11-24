@@ -1,6 +1,6 @@
 # База данных и схема Prisma
 
-Сверено с [schema.prisma](../prisma/schema.prisma) **15 ноября 2026 года** (`v1.56`). СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
+Сверено с [schema.prisma](../prisma/schema.prisma) **24 ноября 2026 года**. СУБД проекта: **PostgreSQL 15** с расширением `pg_trgm`. SQLite кодовой базой не поддерживается.
 
 ## Общие сведения и требования к СУБД
 
@@ -28,7 +28,13 @@
 | `PARTIAL` | Цикл сбора завершён, но сбор для одного или нескольких каналов завершился с ошибкой |
 | `FAILED` | Критический сбой всего цикла сбора (например, потеря связи с Telegram MTProto или ошибка БД) |
 
-## ER-диаграмма схемы базы данных (28 моделей)
+### `AiBudgetMode`
+Режим реагирования на превышение суточного или месячного бюджета AI в `SystemSetting`: `WARN` (предупреждение без блокировки) или `BLOCK` (ограничение новых платных вызовов).
+
+### `AiOperationStatus`
+Состояние идемпотентной AI-операции (`AiOperation`) и попытки провайдера (`AiProviderCall`): `RUNNING`, `SUCCEEDED`, `FAILED`, `UNKNOWN`.
+
+## ER-диаграмма схемы базы данных (30 моделей)
 
 ```mermaid
 erDiagram
@@ -151,17 +157,40 @@ erDiagram
         int price_amount
         string status "planned | active | completed | cancelled"
     }
+    SyncJob {
+        int id PK
+        SyncStatus status
+        datetime started_at
+    }
+    SystemSetting {
+        string id PK
+        AiBudgetMode aiBudgetMode
+        string aiModel
+    }
+    AiBudgetNotice {
+        string id PK
+        string period
+        datetime periodStart
+        int threshold
+    }
+    PublicationCollectionRun {
+        string id PK
+        string status
+        datetime startedAt
+    }
 ```
 
 ## Сводная таблица моделей
 
-Схема содержит **28 моделей**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
+Схема содержит **30 моделей**, сопоставленные с таблицами PostgreSQL через атрибут `@@map`:
 
 | Модель | Таблица (`@@map`) | Первичный ключ | Уникальные ключи / Индексы | Связи и каскады | Назначение |
 |---|---|---|---|---|---|
 | `PostPerformanceCheckpoint` | `post_performance_checkpoints` | Int autoincrement | unique postId/hoursAfterPost | Post Cascade | Долговременные контрольные точки 24/48 ч |
+| `PublicationCollectionRun` | `publication_collection_runs` | `id` (String, uuid) | `@@index([startedAt])` | Нет внешних связей | Диагностика проходов адресных замеров публикаций; хранение 30 дней |
 | `AiOperation` | `ai_operations` | `id` (String, cuid) | unique actor/kind/key; actor/createdAt; status/expiresAt | 1:N AiProviderCall | Идемпотентность, состояние и временный результат операции |
 | `AiProviderCall` | `ai_provider_calls` | `id` (String, cuid) | operationId/startedAt; startedAt/model; status/expiresAt | operation -> AiOperation (Cascade) | Попытки провайдера, токены и подтверждённая стоимость |
+| `AiBudgetNotice` | `ai_budget_notices` | `id` (String, cuid) | `@@unique([period, periodStart, configuration, threshold])` | Нет внешних связей | Уведомления о достижении порогов суточного/месячного бюджета AI |
 | `User` | `users` | `id` (Int, autoincrement) | `@unique username`<br>`@unique telegramSub` | Связи 1:N с `UserChannel`, `AiReport`, `AlertRule`, `UserDismissedEvent`, `UserSavedPost`, `AdPlacement`, `InviteCode` | Учётные записи с ролями `ADMIN`/`USER`, статусом доступа и необязательной привязкой Telegram; пароль может отсутствовать |
 | `InviteCode` | `invite_codes` | `id` (Int, autoincrement) | `@unique code`<br>`@unique usedById`<br>`@@index([createdById])` | `createdBy` -> `User` (`Cascade`)<br>`usedBy` -> `User?` (`SetNull`) | Исторические инвайты сохранены; новая регистрация их не использует |
 | `UserChannel` | `user_channels` | `id` (Int, autoincrement) | `@@unique([userId, channelId])`<br>`@@index([userId])`<br>`@@index([channelId])` | `user` -> `User` (`Cascade`)<br>`channel` -> `Channel` (`Cascade`) | Персональная подписка пользователя на канал из общего пула (`isMine`, `isFavorite`, `niche`, `tags`, `isActive`), необязательные `customAdPriceUah` и `customCpmUah` в гривнах |
@@ -200,19 +229,19 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `username` | `String` | `username` | Нет | — | Уникальный внутренний логин; для Telegram-аккаунта формируется из `sub` |
-| `passwordHash` | `String` | `password_hash` | Да | — | PBKDF2-SHA256 хеш для прежних парольных аккаунтов |
+| `username` | `String` | `username` | Нет | – | Уникальный внутренний логин; для Telegram-аккаунта формируется из `sub` |
+| `passwordHash` | `String` | `password_hash` | Да | – | PBKDF2-SHA256 хеш для прежних парольных аккаунтов |
 | `role` | `String` | `role` | Нет | `"USER"` | Роль доступа: `"ADMIN"` или `"USER"` |
 | `accessStatus` | `UserAccessStatus` | `access_status` | Нет | `ACTIVE` | Ожидание, активный доступ или блокировка |
-| `telegramSub` | `String` | `telegram_sub` | Да | — | Уникальный постоянный идентификатор Telegram OIDC |
-| `telegramName` | `String` | `telegram_name` | Да | — | Имя профиля на момент последнего входа |
-| `telegramUsername` | `String` | `telegram_username` | Да | — | Публичный Telegram username, может измениться |
-| `telegramPhotoUrl` | `String` | `telegram_photo_url` | Да | — | Адрес фото профиля, если предоставлен |
-| `reviewedAt` | `DateTime` | `reviewed_at` | Да | — | Время решения администратора |
-| `telegramChatId` | `String` | `telegram_chat_id` | Да | — | Персональный Telegram Chat ID для алертов и личного дайджеста |
+| `telegramSub` | `String` | `telegram_sub` | Да | – | Уникальный постоянный идентификатор Telegram OIDC |
+| `telegramName` | `String` | `telegram_name` | Да | – | Имя профиля на момент последнего входа |
+| `telegramUsername` | `String` | `telegram_username` | Да | – | Публичный Telegram username, может измениться |
+| `telegramPhotoUrl` | `String` | `telegram_photo_url` | Да | – | Адрес фото профиля, если предоставлен |
+| `reviewedAt` | `DateTime` | `reviewed_at` | Да | – | Время решения администратора |
+| `telegramChatId` | `String` | `telegram_chat_id` | Да | – | Персональный Telegram Chat ID для алертов и личного дайджеста |
 | `digestEnabled` | `Boolean` | `digest_enabled` | Нет | `false` | Включён ли ежедневный персональный дайджест |
 | `digestHour` | `Int` | `digest_hour` | Нет | `9` | Час отправки персонального дайджеста (0..23 UTC) |
-| `lastDigestAt` | `DateTime` | `last_digest_at` | Да | — | Время последней успешной отправки личного дайджеста |
+| `lastDigestAt` | `DateTime` | `last_digest_at` | Да | – | Время последней успешной отправки личного дайджеста |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время регистрации аккаунта |
 
 #### `InviteCode` (`invite_codes`)
@@ -221,11 +250,11 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `code` | `String` | `code` | Нет | — | Уникальный код приглашения (`TGMON-...`) |
-| `createdById` | `Int` | `created_by_id` | Нет | — | Внешний ключ на создателя `User.id` (`onDelete: Cascade`) |
-| `usedById` | `Int` | `used_by_id` | Да | — | Уникальный внешний ключ на зарегистрированного `User.id` (`onDelete: SetNull`) |
-| `usedAt` | `DateTime` | `used_at` | Да | — | Время погашения инвайт-кода |
-| `expiresAt` | `DateTime` | `expires_at` | Да | — | Необязательный срок действия инвайта |
+| `code` | `String` | `code` | Нет | – | Уникальный код приглашения (`TGMON-...`) |
+| `createdById` | `Int` | `created_by_id` | Нет | – | Внешний ключ на создателя `User.id` (`onDelete: Cascade`) |
+| `usedById` | `Int` | `used_by_id` | Да | – | Уникальный внешний ключ на зарегистрированного `User.id` (`onDelete: SetNull`) |
+| `usedAt` | `DateTime` | `used_at` | Да | – | Время погашения инвайт-кода |
+| `expiresAt` | `DateTime` | `expires_at` | Да | – | Необязательный срок действия инвайта |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время генерации кода |
 
 #### `UserChannel` (`user_channels`)
@@ -234,14 +263,14 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `userId` | `Int` | `user_id` | Нет | — | Внешний ключ на `User.id` (`onDelete: Cascade`) |
-| `channelId` | `Int` | `channel_id` | Нет | — | Внешний ключ на `Channel.id` (`onDelete: Cascade`) |
+| `userId` | `Int` | `user_id` | Нет | – | Внешний ключ на `User.id` (`onDelete: Cascade`) |
+| `channelId` | `Int` | `channel_id` | Нет | – | Внешний ключ на `Channel.id` (`onDelete: Cascade`) |
 | `isMine` | `Boolean` | `is_mine` | Нет | `false` | Персональный флаг «Мой канал» пользователя |
 | `isFavorite` | `Boolean` | `is_favorite` | Нет | `false` | Персональный флаг «Избранное» (Watchlist) |
 | `niche` | `String` | `niche` | Нет | `"general"` | Выбранная пользователем тематическая ниша канала |
 | `tags` | `String[]` | `tags` | Нет | `[]` | Персональные теги/папки канала (до 10 тегов по 30 символов) |
-| `customAdPriceUah` | `Int` | `custom_ad_price_uah` | Да | — | Персональная фиксированная цена рекламного поста (₴) |
-| `customCpmUah` | `Int` | `custom_cpm_uah` | Да | — | Персональный CPM канала (₴ за 1000 просмотров) |
+| `customAdPriceUah` | `Int` | `custom_ad_price_uah` | Да | – | Персональная фиксированная цена рекламного поста (₴) |
+| `customCpmUah` | `Int` | `custom_cpm_uah` | Да | – | Персональный CPM канала (₴ за 1000 просмотров) |
 | `isActive` | `Boolean` | `is_active` | Нет | `true` | Активна ли подписка в личном списке пользователя |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время добавления канала в список пользователя |
 
@@ -271,18 +300,18 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `username` | `String` | `username` | Да | — | Уникальный юзернейм канала в Telegram (без `@`) |
-| `tgId` | `BigInt` | `tgId` | Да | — | Уникальный числовой Telegram ID чата/канала |
-| `title` | `String` | `title` | Нет | — | Отображаемое название канала |
-| `type` | `String` | `type` | Нет | — | Тип Telegram-сущности: `"channel"` или `"group"` |
+| `username` | `String` | `username` | Да | – | Уникальный юзернейм канала в Telegram (без `@`) |
+| `tgId` | `BigInt` | `tgId` | Да | – | Уникальный числовой Telegram ID чата/канала |
+| `title` | `String` | `title` | Нет | – | Отображаемое название канала |
+| `type` | `String` | `type` | Нет | – | Тип Telegram-сущности: `"channel"` или `"group"` |
 | `niche` | `String` | `niche` | Нет | `"general"` | Категория/ниша канала для сравнительного анализа |
 | `isMine` | `Boolean` | `isMine` | Нет | `false` | Флаг «Мой канал» (определяет доступ к статистике демографии) |
 | `isFavorite` | `Boolean` | `isFavorite` | Нет | `false` | Флаг избранного (Watchlist) |
 | `isActive` | `Boolean` | `isActive` | Нет | `true` | Флаг активности сбора; отключается при превышении лимита ошибок |
 | `consecutiveErrors` | `Int` | `consecutiveErrors` | Нет | `0` | Счётчик последовательных ошибок сбора подряд |
-| `lastMessageId` | `BigInt` | `lastMessageId` | Да | — | Идентификатор последнего обработанного сообщения |
-| `lastError` | `String` | `lastError` | Да | — | Текст последней ошибки при сборе |
-| `lastCollectedAt` | `DateTime` | `lastCollectedAt` | Да | — | Дата и время последнего успешного сбора данных |
+| `lastMessageId` | `BigInt` | `lastMessageId` | Да | – | Идентификатор последнего обработанного сообщения |
+| `lastError` | `String` | `lastError` | Да | – | Текст последней ошибки при сборе |
+| `lastCollectedAt` | `DateTime` | `lastCollectedAt` | Да | – | Дата и время последнего успешного сбора данных |
 | `createdAt` | `DateTime` | `createdAt` | Нет | `now()` | Время добавления канала в мониторинг |
 
 - **Индексы и ограничения:**
@@ -311,8 +340,8 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `channelId` | `Int` | `channel_id` | Нет | — | Внешний ключ на `Channel.id` |
-| `membersCount` | `Int` | `members_count` | Нет | — | Число участников/подписчиков на момент замера |
+| `channelId` | `Int` | `channel_id` | Нет | – | Внешний ключ на `Channel.id` |
+| `membersCount` | `Int` | `members_count` | Нет | – | Число участников/подписчиков на момент замера |
 | `collectedAt` | `DateTime` | `collected_at` | Нет | `now()` | Время фиксации снимка |
 
 - **Индексы:**
@@ -328,16 +357,16 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `channelId` | `Int` | `channel_id` | Нет | — | Внешний ключ на `Channel.id` |
-| `messageId` | `BigInt` | `message_id` | Нет | — | ID сообщения в Telegram |
-| `groupedId` | `BigInt` | `grouped_id` | Да | — | Идентификатор медиагруппы (альбома) для группировки сообщений |
-| `publishedAt` | `DateTime` | `published_at` | Нет | — | Дата и время публикации сообщения в Telegram |
-| `views` | `Int` | `views` | Да | — | Текущее количество просмотров |
-| `reactions` | `Int` | `reactions` | Да | — | Суммарное количество реакций всех эмодзи |
+| `channelId` | `Int` | `channel_id` | Нет | – | Внешний ключ на `Channel.id` |
+| `messageId` | `BigInt` | `message_id` | Нет | – | ID сообщения в Telegram |
+| `groupedId` | `BigInt` | `grouped_id` | Да | – | Идентификатор медиагруппы (альбома) для группировки сообщений |
+| `publishedAt` | `DateTime` | `published_at` | Нет | – | Дата и время публикации сообщения в Telegram |
+| `views` | `Int` | `views` | Да | – | Текущее количество просмотров |
+| `reactions` | `Int` | `reactions` | Да | – | Суммарное количество реакций всех эмодзи |
 | `reactionBreakdown` | `Json` | `reaction_breakdown` | Да | Нет | Топ-10 реакций `{emoji,count}`; старые посты имеют `null` |
-| `comments` | `Int` | `comments` | Да | — | Количество комментариев |
-| `forwards` | `Int` | `forwards` | Да | — | Количество репостов / пересылок |
-| `text` | `String` | `text` | Да | — | Текст публикации |
+| `comments` | `Int` | `comments` | Да | – | Количество комментариев |
+| `forwards` | `Int` | `forwards` | Да | – | Количество репостов / пересылок |
+| `text` | `String` | `text` | Да | – | Текст публикации |
 | `subscribersAtPublish` | `Int` | `subscribers_at_publish` | Да | Нет | Сохранённое число подписчиков при первом обнаружении поста (для расчёта ER) |
 | `isAd` | `Boolean` | `is_ad` | Нет | `false` | Флаг рекламной публикации (помечается эвристиками) |
 | `contentType` | `String` | `content_type` | Нет | `'text'` | Тип контента публикации (`text`, `photo`, `video`, `poll`, `link`) |
@@ -387,8 +416,8 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `postId` | `Int` | `post_id` | Нет | — | Внешний ключ на `Post.id` |
-| `views` | `Int` | `views` | Нет | — | Зафиксированное число просмотров |
+| `postId` | `Int` | `post_id` | Нет | – | Внешний ключ на `Post.id` |
+| `views` | `Int` | `views` | Нет | – | Зафиксированное число просмотров |
 | `collectedAt` | `DateTime` | `collected_at` | Нет | `now()` | Время замера |
 
 - **Индексы:**
@@ -421,9 +450,9 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `postId` | `Int` | `post_id` | Нет | — | Внешний ключ на `Post.id` |
-| `hoursAfterPost` | `Int` | `hours_after_post` | Нет | — | Часовой интервал фиксации: 1, 12, 24 или 48 |
-| `viewsCount` | `Int` | `views_count` | Нет | — | Зафиксированное число просмотров в данной точке |
+| `postId` | `Int` | `post_id` | Нет | – | Внешний ключ на `Post.id` |
+| `hoursAfterPost` | `Int` | `hours_after_post` | Нет | – | Часовой интервал фиксации: 1, 12, 24 или 48 |
+| `viewsCount` | `Int` | `views_count` | Нет | – | Зафиксированное число просмотров в данной точке |
 | `capturedAt` | `DateTime` | `captured_at` | Нет | `now()` | Фактическое время фиксации снимка |
 
 - **Индексы и ограничения:**
@@ -475,12 +504,12 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `sourcePostId` | `Int` | `source_post_id` | Нет | — | Внешний ключ на `Post.id` |
-| `sourceChannelId` | `Int` | `source_channel_id` | Нет | — | Внешний ключ на `Channel.id` канала-автора |
-| `targetUsername` | `String` | `target_username` | Да | — | Юзернейм упомянутого канала |
-| `targetTgId` | `BigInt` | `target_tg_id` | Да | — | Telegram ID упомянутого канала |
+| `sourcePostId` | `Int` | `source_post_id` | Нет | – | Внешний ключ на `Post.id` |
+| `sourceChannelId` | `Int` | `source_channel_id` | Нет | – | Внешний ключ на `Channel.id` канала-автора |
+| `targetUsername` | `String` | `target_username` | Да | – | Юзернейм упомянутого канала |
+| `targetTgId` | `BigInt` | `target_tg_id` | Да | – | Telegram ID упомянутого канала |
 | `targetMessageId` | `BigInt` | `target_message_id` | Да | Нет | ID конкретного поста для пересылки или прямой ссылки, если доступен |
-| `type` | `String` | `type` | Нет | — | Тип упоминания: `"forward"` или `"mention"` |
+| `type` | `String` | `type` | Нет | – | Тип упоминания: `"forward"` или `"mention"` |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время записи упоминания |
 
 - **Индексы:**
@@ -499,15 +528,15 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `startedAt` | `DateTime` | `startedAt` | Нет | — | Время старта цикла |
-| `endedAt` | `DateTime` | `endedAt` | Да | — | Время завершения цикла |
-| `status` | `SyncStatus` | `status` | Нет | — | Статус: `RUNNING`, `COMPLETED`, `PARTIAL`, `FAILED` |
+| `startedAt` | `DateTime` | `startedAt` | Нет | – | Время старта цикла |
+| `endedAt` | `DateTime` | `endedAt` | Да | – | Время завершения цикла |
+| `status` | `SyncStatus` | `status` | Нет | – | Статус: `RUNNING`, `COMPLETED`, `PARTIAL`, `FAILED` |
 | `channelsTotal` | `Int` | `channelsTotal` | Нет | `0` | Общее число каналов в очереди цикла |
 | `channelsSucceeded` | `Int` | `channelsSucceeded` | Нет | `0` | Число успешно обработанных каналов |
 | `channelsFailed` | `Int` | `channelsFailed` | Нет | `0` | Число каналов с ошибками при сборе |
 | `postsAdded` | `Int` | `postsAdded` | Нет | `0` | Число обработанных сообщений (включая обновления) |
-| `durationMs` | `Int` | `durationMs` | Да | — | Длительность выполнения цикла в миллисекундах |
-| `errorSummary` | `String` | `errorSummary` | Да | — | Краткая сводка возникших ошибок |
+| `durationMs` | `Int` | `durationMs` | Да | – | Длительность выполнения цикла в миллисекундах |
+| `errorSummary` | `String` | `errorSummary` | Да | – | Краткая сводка возникших ошибок |
 | `createdAt` | `DateTime` | `createdAt` | Нет | `now()` | Время создания записи |
 
 ---
@@ -518,13 +547,13 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `channelId` | `Int` | `channel_id` | Нет | — | Внешний ключ на `Channel.id` |
-| `date` | `DateTime` (`@db.Date`) | `date` | Нет | — | Календарная дата замера (PostgreSQL DATE, полночь UTC) |
-| `followers` | `Int` | `followers` | Нет | — | Количество подписчиков на конец суток |
-| `avgViews` | `Int` | `avgViews` | Нет | — | Средние просмотры постов за сутки |
-| `vr` | `Float` | `vr` | Нет | — | View Rate (доля просмотров от аудитории) |
-| `err` | `Float` | `err` | Нет | — | Engagement Rate by Reach (вовлечённость по охвату) |
-| `postsCount` | `Int` | `postsCount` | Нет | — | Количество публикаций за эти сутки |
+| `channelId` | `Int` | `channel_id` | Нет | – | Внешний ключ на `Channel.id` |
+| `date` | `DateTime` (`@db.Date`) | `date` | Нет | – | Календарная дата замера (PostgreSQL DATE, полночь UTC) |
+| `followers` | `Int` | `followers` | Нет | – | Количество подписчиков на конец суток |
+| `avgViews` | `Int` | `avgViews` | Нет | – | Средние просмотры постов за сутки |
+| `vr` | `Float` | `vr` | Нет | – | View Rate (доля просмотров от аудитории) |
+| `err` | `Float` | `err` | Нет | – | Engagement Rate by Reach (вовлечённость по охвату) |
+| `postsCount` | `Int` | `postsCount` | Нет | – | Количество публикаций за эти сутки |
 
 - **Индексы и ограничения:**
   - `@@unique([channelId, date])`
@@ -540,11 +569,11 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `channelId` | `Int` | `channel_id` | Нет | — | Внешний ключ на `Channel.id` |
+| `channelId` | `Int` | `channel_id` | Нет | – | Внешний ключ на `Channel.id` |
 | `capturedAt` | `DateTime` | `captured_at` | Нет | `now()` | Время снятия статистики |
-| `languageBreakdown` | `Json` | `language_breakdown` | Нет | — | JSONB-распределение аудитории по языкам |
-| `countryBreakdown` | `Json` | `country_breakdown` | Да | — | JSONB-распределение по странам (добавлено миграцией) |
-| `notificationsEnabledPercent` | `Float` | `notifications_enabled_percent` | Да | — | Доля подписчиков с включёнными уведомлениями в процентах (`0..100`), полученная из `enabledNotifications` Telegram API |
+| `languageBreakdown` | `Json` | `language_breakdown` | Нет | – | JSONB-распределение аудитории по языкам |
+| `countryBreakdown` | `Json` | `country_breakdown` | Да | – | JSONB-распределение по странам (добавлено миграцией) |
+| `notificationsEnabledPercent` | `Float` | `notifications_enabled_percent` | Да | – | Доля подписчиков с включёнными уведомлениями в процентах (`0..100`), полученная из `enabledNotifications` Telegram API |
 
 - **Индексы:**
   - `@@index([channelId, capturedAt])`
@@ -559,10 +588,10 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `userId` | `Int` | `user_id` | Да | — | Внешний ключ на владельца отчёта `User.id` |
-| `channelId` | `Int` | `channel_id` | Да | — | Внешний ключ на `Channel.id` (null для общих трендов и эволюции) |
+| `userId` | `Int` | `user_id` | Да | – | Внешний ключ на владельца отчёта `User.id` |
+| `channelId` | `Int` | `channel_id` | Да | – | Внешний ключ на `Channel.id` (null для общих трендов и эволюции) |
 | `type` | `String` | `type` | Нет | Нет | Строковый тип: `metrics_explainer`, `summary`, `super_report`, `compare`, `trend`, `content-gap`, `audience`, `persona`, `action_plan` или `evolution` |
-| `content` | `String` | `content` | Нет | — | JSON-строка полезной нагрузки отчёта |
+| `content` | `String` | `content` | Нет | – | JSON-строка полезной нагрузки отчёта |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время создания отчёта |
 
 - **Индексы:**
@@ -582,11 +611,11 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `title` | `String` | `title` | Нет | — | Название мероприятия |
-| `date` | `DateTime` | `date` | Нет | — | Дата проведения мероприятия |
-| `timeStr` | `String` | `timeStr` | Да | — | Строка времени проведения (например, `"22:00 - 05:00"`) |
-| `organizer` | `String` | `organizer` | Да | — | Организатор или площадка мероприятия |
-| `prices` | `Json` | `prices` | Да | — | JSONB-структура категорий стоимости билетов |
+| `title` | `String` | `title` | Нет | – | Название мероприятия |
+| `date` | `DateTime` | `date` | Нет | – | Дата проведения мероприятия |
+| `timeStr` | `String` | `timeStr` | Да | – | Строка времени проведения (например, `"22:00 - 05:00"`) |
+| `organizer` | `String` | `organizer` | Да | – | Организатор или площадка мероприятия |
+| `prices` | `Json` | `prices` | Да | – | JSONB-структура категорий стоимости билетов |
 | `createdAt` | `DateTime` | `createdAt` | Нет | `now()` | Время сохранения события |
 | `dismissedAt` | `DateTime` | `dismissed_at` | Да | `null` | Время ручного скрытия из «Афиши»; событие и связи с постами сохраняются |
 
@@ -604,8 +633,8 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `eventId` | `Int` | `event_id` | Нет | — | Внешний ключ на `Event.id` |
-| `postId` | `Int` | `post_id` | Нет | — | Внешний ключ на `Post.id` |
+| `eventId` | `Int` | `event_id` | Нет | – | Внешний ключ на `Event.id` |
+| `postId` | `Int` | `post_id` | Нет | – | Внешний ключ на `Post.id` |
 
 - **Индексы и ограничения:**
   - `@@unique([eventId, postId])`
@@ -625,10 +654,10 @@ erDiagram
 | `id` | `String` | `id` | Нет | `"global"` | Первичный ключ (единственная запись `"global"`) |
 | `aiProvider` | `String` | `ai_provider` | Нет | `"openrouter"` | Имя провайдера нейросети |
 | `aiModel` | `String` | `ai_model` | Нет | `"meta-llama/llama-3.1-8b-instruct:free"` | Идентификатор модели для инференса |
-| `aiToken` | `String` | `ai_token` | Да | — | API-токен для обращения к AI-провайдеру |
+| `aiToken` | `String` | `ai_token` | Да | – | API-токен для обращения к AI-провайдеру |
 | `digestEnabled` | `Boolean` | `digest_enabled` | Нет | `false` | Флаг активности регулярного дайджеста |
 | `digestHour` | `Int` | `digest_hour` | Нет | `9` | Час суток (0..23) для отправки дайджеста |
-| `lastDigestAt` | `DateTime` | `last_digest_at` | Да | — | Время последней успешной отправки дайджеста |
+| `lastDigestAt` | `DateTime` | `last_digest_at` | Да | – | Время последней успешной отправки дайджеста |
 | `updatedAt` | `DateTime` | `updated_at` | Нет | `@updatedAt` | Время последнего изменения настроек |
 
 ---
@@ -641,12 +670,12 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `userId` | `Int` | `user_id` | Да | — | Внешний ключ на владельца правила `User.id` |
-| `channelId` | `Int` | `channel_id` | Да | — | Внешний ключ на `Channel.id` (null для глобального правила) |
-| `metric` | `String` | `metric` | Нет | — | Отслеживаемая метрика (`followers`, `delta24h`, `delta7d`, `er7d`, `err7d`, `vr7d`, `avgViews7d`, `posts7d`, `contentScore`, `keyword`, `viralPostMultiplier`) |
-| `operator` | `String` | `operator` | Нет | — | Оператор сравнения: `"lt"` (меньше) или `"gt"` (больше) |
-| `threshold` | `Float` | `threshold` | Нет | — | Пороговое значение срабатывания правила |
-| `keywordQuery` | `String` | `keyword_query` | Да | — | Нормализованный список ключевых слов/фраз через запятую (для `metric = "keyword"`, до 100 символов) |
+| `userId` | `Int` | `user_id` | Да | – | Внешний ключ на владельца правила `User.id` |
+| `channelId` | `Int` | `channel_id` | Да | – | Внешний ключ на `Channel.id` (null для глобального правила) |
+| `metric` | `String` | `metric` | Нет | – | Отслеживаемая метрика (`followers`, `delta24h`, `delta7d`, `er7d`, `err7d`, `vr7d`, `avgViews7d`, `posts7d`, `contentScore`, `keyword`, `viralPostMultiplier`) |
+| `operator` | `String` | `operator` | Нет | – | Оператор сравнения: `"lt"` (меньше) или `"gt"` (больше) |
+| `threshold` | `Float` | `threshold` | Нет | – | Пороговое значение срабатывания правила |
+| `keywordQuery` | `String` | `keyword_query` | Да | – | Нормализованный список ключевых слов/фраз через запятую (для `metric = "keyword"`, до 100 символов) |
 | `enabled` | `Boolean` | `enabled` | Нет | `true` | Флаг активности правила |
 | `lastFiredAt` | `DateTime` | `last_fired_at` | Да | нет | Время последней успешной отправки по любому каналу |
 | `createdAt` | `DateTime` | `created_at` | Нет | `now()` | Время создания правила |
@@ -693,10 +722,10 @@ erDiagram
 | Поле | Тип Prisma | SQL колонка | Nullable | По умолчанию | Описание |
 |---|---|---|---|---|---|
 | `id` | `Int` | `id` | Нет | `autoincrement()` | Первичный ключ |
-| `channelId` | `Int` | `channel_id` | Нет | — | Внешний ключ на `Channel.id` |
+| `channelId` | `Int` | `channel_id` | Нет | – | Внешний ключ на `Channel.id` |
 | `signalType` | `String` | `signal_type` | Нет | – | Тип детектора (`views_to_subs`, `growth_smoothness`, `uncorrelated_spikes`, `uniform_reaction_ratio`, `unnatural_view_decay`, `night_bot_activity`) |
-| `value` | `Float` | `value` | Нет | — | Числовое значение зафиксированной метрики или CV |
-| `reason` | `String` | `reason` | Нет | — | Текстовое описание причины срабатывания |
+| `value` | `Float` | `value` | Нет | – | Числовое значение зафиксированной метрики или CV |
+| `reason` | `String` | `reason` | Нет | – | Текстовое описание причины срабатывания |
 | `detectedAt` | `DateTime` | `detected_at` | Нет | `now()` | Время регистрации сигнала |
 
 - **Индексы:**
@@ -746,7 +775,11 @@ flowchart TD
 ## Миграции и версионирование схемы
 
 Файлы миграций расположены в каталоге `prisma/migrations/`.
-- На **15 ноября 2026 года** (`v1.56`) в проекте **33 миграции**; последние 10 миграций:
+- На **24 ноября 2026 года** в проекте **37 миграций**; последние миграции (от новых к более ранним):
+  - `20261117090000_ai_budgets` – поля бюджетов AI в `system_settings`, enum `AiBudgetMode` и таблица `ai_budget_notices`;
+  - `20261116100000_publication_collection_runs` – журнал диагностических проходов адресных замеров `publication_collection_runs`;
+  - `20261116050000_publication_performance` – поля привязки фактической публикации в `user_saved_posts` и таблица `post_performance_checkpoints`;
+  - `20261116043000_ai_operations` – таблицы `ai_operations`, `ai_provider_calls`, enum `AiOperationStatus` и лимиты AI в `system_settings`;
   - `20261114063600_add_content_plan_to_saved_posts` – поля контент-плана (`status`, `planned_for`, `draft_text`) и индекс `(user_id, status)` в `user_saved_posts`;
   - `20261114042500_add_post_deletion_tracking` – поля контроля удаления рекламных постов (`deleted_at`, `deleted_after_hours`, `last_checked_at`) в `posts`;
   - `20261113053607_add_ad_placements` – таблица `ad_placements` для учёта рекламных закупок и фактического ROI/CPF;

@@ -111,7 +111,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GHCR_PAT }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "::warning::Секрет GHCR_PAT не задан — пропускаю смену видимости. Пакет останется приватным; добавь секрет или сделай публичным вручную."
+            echo "::warning::Секрет GHCR_PAT не задан - пропускаю смену видимости. Пакет останется приватным; добавь секрет или сделай публичным вручную."
             exit 0
           fi
           for pkg in tg_mons-web tg_mons-worker; do

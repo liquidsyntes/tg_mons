@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Выпуск Let's Encrypt для TgMon. Идемпотентен: пока DNS не готов — просто выходит.
+# Выпуск Let's Encrypt для TgMon. Идемпотентен: пока DNS не готов - просто выходит.
 # После успешного выпуска сам выключает таймер tgmon-cert.timer.
 set -uo pipefail
 DOMAIN="tgmons.online"

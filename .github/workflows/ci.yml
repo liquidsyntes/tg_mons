@@ -46,8 +46,7 @@ jobs:
       - name: ESLint
         run: npm run lint
 
-      # Scope to src/ until docs/ and scripts/ are cleaned up in issue #108.
-      - name: Check forbidden U+2014 in src
+      - name: Check forbidden U+2014 in src, docs, scripts
         run: |
           node -e '
             const fs = require("fs");
@@ -63,12 +62,12 @@ jobs:
                 });
               }
             }
-            walk("src");
+            for (const dir of ["src", "docs", "scripts"]) walk(dir);
             if (bad.length > 0) {
               console.error("Forbidden U+2014 found:\n" + bad.join("\n"));
               process.exit(1);
             }
-            console.log("OK: 0 occurrences of U+2014 in src/");
+            console.log("OK: 0 occurrences of U+2014 in src/, docs/, scripts/");
           '
 
       - name: Unit tests (vitest)

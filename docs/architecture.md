@@ -1,6 +1,6 @@
 # Архитектура TgMon
 
-Состояние реализации сверено **15 ноября 2026 года** (`v1.56`). Источники: [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
+Состояние реализации сверено **24 ноября 2026 года**. Источники: [Prisma-схема](../prisma/schema.prisma), [база данных](database.md), [worker](../src/worker/index.ts), [коллектор](../src/worker/collector.ts), [запросы метрик](../src/lib/metrics/queries.ts) и [Compose](../docker-compose.yml).
 
 ## 1. Контекст и контейнерная архитектура
 
@@ -27,7 +27,7 @@ flowchart TB
             Collector["Сборщик teleproto (collector, fetcher, persister, retry-policy)"]
         end
 
-        DB[("PostgreSQL 15 + pg_trgm (28 таблиц, Advisory Lock)")]
+        DB[("PostgreSQL 15 + pg_trgm (30 таблиц, Advisory Lock)")]
     end
 
     subgraph External["Внешние системы"]
@@ -235,7 +235,7 @@ flowchart TB
 
 Полная спецификация моделей PostgreSQL 15, типов полей, вторичных индексов, перечислений и каскадов приведена в документе [База данных и схема Prisma](database.md).
 
-Схема `prisma/schema.prisma` включает **28 моделей** и три перечисления (включая `AiOperationStatus`): `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок. Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
+Схема `prisma/schema.prisma` включает **30 моделей** и четыре перечисления (`AiOperationStatus`, `AiBudgetMode`, `SyncStatus` для заданий worker и `UserAccessStatus` для заявок и блокировок). Роль пользователя хранится строкой `User.role` (`ADMIN` или `USER`):
 
 | Prisma-модель | Таблица | Назначение |
 | --- | --- | --- |
@@ -259,16 +259,20 @@ flowchart TB
 | `Event` | `events` | Мероприятия и события, извлечённые из публикаций Telegram |
 | `EventMention` | `event_mentions` | Связи M:N событий с исходными постами; unique `(eventId, postId)` |
 | `PostPerformanceCheckpoint` | `post_performance_checkpoints` | Долговременные просмотры в окнах 24/48 ч |
+| `PublicationCollectionRun` | `publication_collection_runs` | Диагностические проходы адресных замеров публикаций (UUID, агрегаты, хранение 30 дней) |
 | `AiOperation` | `ai_operations` | Идемпотентность и состояние AI-операции, временный результат |
 | `AiProviderCall` | `ai_provider_calls` | Журнал попыток провайдера, токены и подтверждённая стоимость |
-| `SystemSetting` | `system_settings` | Запись `global` с общими настройками AI (`aiToken`, `aiModel`) и полями глобального дайджеста |
+| `AiBudgetNotice` | `ai_budget_notices` | Фиксация пересечения порогов суточного/месячного бюджета AI и состояния доставки уведомлений |
+| `SystemSetting` | `system_settings` | Запись `global` с общими настройками AI (`aiToken`, `aiModel`, лимиты, бюджеты) и полями глобального дайджеста |
 | `AlertRule` | `alert_rules` | Глобальные и канальные правила Telegram-уведомлений (метрики, `keyword`, `viralPostMultiplier`) с привязкой `userId` |
 | `AlertRuleFire` | `alert_rule_fires` | Время последней отправки и значение для пары «правило и канал» (24ч cooldown) |
 | `AlertRulePostFire` | `alert_rule_post_fires` | Фиксация отправленных постовых алертов (`keyword` и `viralPostMultiplier`) для пары «правило и пост» |
 | `FraudSignal` | `fraud_signals` | Тип (6 эвристик), значение, причина и время срабатывания эвристики |
 | `AdPlacement` | `ad_placements` | Зафиксированные рекламные сделки пользователя (бюджет, формат, статус, `inviteLink`, `actualJoins`, связка с постом/донором) |
 
-Миграции находятся в `prisma/migrations/` (**35 миграций**). Последние миграции в репозитории:
+Миграции находятся в `prisma/migrations/` (**37 миграций**). Последние миграции в репозитории:
+- `20261117090000_ai_budgets`: бюджеты AI в `system_settings`, enum `AiBudgetMode` и таблица `ai_budget_notices`;
+- `20261116100000_publication_collection_runs`: диагностика проходов адресных замеров `publication_collection_runs`;
 - `20261116050000_publication_performance`: связь контент-плана и контрольные точки;
 - `20261116043000_ai_operations`: журнал AI и лимиты;
 - `20261114063600_add_content_plan_to_saved_posts` – поля контент-плана (`status`, `planned_for`, `draft_text`) в таблице `user_saved_posts`;
@@ -337,7 +341,7 @@ sequenceDiagram
 7. Материализация пересчитывает 30 календарных UTC-дней; её ошибка логируется отдельно. Затем общий `try/catch` обрабатывает блок антифрода: сбой в нём может пропустить оставшиеся проверки канала, но не отменяет сбор. Сигналы обновляются в пределах текущих UTC-суток и удаляются из активного 30-дневного окна, когда соответствующая проверка перестаёт срабатывать.
 8. Для поста с подходящим медиа сборщик сохраняет одно фото или изображение-документ до 1 МБ в `PostImage`; у альбома сохраняется первое доступное изображение связанного поста. Ошибка загрузки изображения логируется без отмены сбора постов.
 
-`fetcher.ts` делает паузу 1000–1299 мс перед попыткой и до трёх попыток при `FLOOD_WAIT`. Ожидание — указанное Telegram время + 2 секунды + jitter до 1499 мс; экспоненциального backoff в этом коде нет. Это задержка на вызов, а не распределённый глобальный rate limiter.
+`fetcher.ts` делает паузу 1000–1299 мс перед попыткой и до трёх попыток при `FLOOD_WAIT`. Ожидание - указанное Telegram время + 2 секунды + jitter до 1499 мс; экспоненциального backoff в этом коде нет. Это задержка на вызов, а не распределённый глобальный rate limiter.
 
 ### Статьи Telegram
 
@@ -383,9 +387,9 @@ sequenceDiagram
     UI-->>User: Отрисовка таблиц, графиков, RiskBadge и индикаторов цитирования
 ```
 
-API предпочитает `ChannelMetricDaily`, если за период есть хотя бы одна строка; иначе использует сырые `Snapshot`/`Post`. Worker рассчитывает дневные агрегаты, web — сводные метрики, EP, Content Score, CI и динамический антифрод. Это не модель «worker только пишет сырые данные».
+API предпочитает `ChannelMetricDaily`, если за период есть хотя бы одна строка; иначе использует сырые `Snapshot`/`Post`. Worker рассчитывает дневные агрегаты, web - сводные метрики, EP, Content Score, CI и динамический антифрод. Это не модель «worker только пишет сырые данные».
 
-`metricsCache` живёт 5 минут, `bestTimeCache` — 30 минут. Кэш находится в памяти одного процесса. API добавления, `PATCH`/`DELETE` канала, ручного сбора и внутренней инвалидации очищают оба кэша. `PUT` избранного их не очищает. Перезапуск процесса очищает кэш; общего кэша между репликами нет.
+`metricsCache` живёт 5 минут, `bestTimeCache` - 30 минут. Кэш находится в памяти одного процесса. API добавления, `PATCH`/`DELETE` канала, ручного сбора и внутренней инвалидации очищают оба кэша. `PUT` избранного их не очищает. Перезапуск процесса очищает кэш; общего кэша между репликами нет.
 
 В `finally` основного цикла worker отправляет запрос на `WEB_INTERNAL_URL` с `COLLECT_API_TOKEN`, если оба заданы. Сетевое исключение логируется; текущий caller не проверяет HTTP-статус ответа.
 
@@ -393,7 +397,7 @@ API предпочитает `ChannelMetricDaily`, если за период е
 
 Worker анализирует до 30 дневных строк и до 30 последних постов, сохраняет только сработавшие сигналы. При чтении `overview`/`detail` web загружает сигналы за 30 дней и вызывает чистую функцию `runFraudAudit`; сама она не читает БД. Сохранённый сигнал соответствующего типа имеет приоритет перед повторным вычислением этого типа.
 
-При отсутствии сохранённых сигналов расчёт использует переданные данные. Overview передаёт посты за 7 дней и дневные метрики за 30 дней; detail — последние 20 постов (либо `recentPosts` при короткой выборке) и сырую историю аудитории выбранного периода. Даты упоминаний эти вызовы не передают, поэтому динамическая проверка скачков не эквивалентна фоновой. [Формулы и ограничения](analytics-formulas.md), [ADR](adr/0001-anti-fraud-detection-architecture.md).
+При отсутствии сохранённых сигналов расчёт использует переданные данные. Overview передаёт посты за 7 дней и дневные метрики за 30 дней; detail - последние 20 постов (либо `recentPosts` при короткой выборке) и сырую историю аудитории выбранного периода. Даты упоминаний эти вызовы не передают, поэтому динамическая проверка скачков не эквивалентна фоновой. [Формулы и ограничения](analytics-formulas.md), [ADR](adr/0001-anti-fraud-detection-architecture.md).
 
 ---
 
@@ -402,8 +406,8 @@ Worker анализирует до 30 дневных строк и до 30 по�
 - **Демография**: `DEMOGRAPHICS_CRON`, default `0 3 * * 0`; только активные `isMine` broadcast-каналы без успешного снимка с начала текущей недели (воскресенье 00:00 по часовому поясу процесса). Проверка `canViewStats`, вызовы `GetBroadcastStats`/`LoadAsyncGraph` в `statsDc`, разбор последней общей точки и доли включённых уведомлений (`notificationsEnabledPercent`). Ошибки изолированы от основного сбора. `countryBreakdown` остаётся SQL `NULL`.
 - **Рекламный охват**: фиксированный cron `15 * * * *`, посты с `isAd: true`, `deletedAt: null` не старше 56 часов. Фильтра `channel.isActive` здесь нет. Проверяются отсутствующие точки 1/12/24/48 часов с допуском 5 минут до срока, обновляется `lastCheckedAt`. Все просроченные точки получают текущие просмотры; фактическое время хранится в `capturedAt`. Если канал ответил на `getMessages` без поста или вернул `Api.MessageEmpty`, пост идемпотентно помечается полями `deletedAt` и `deletedAfterHours`; сетевые ошибки, таймауты и `FLOOD_WAIT` изолируются и не приводят к ложному удалению.
 - **Ежедневные Telegram-дайджесты**: вне локального режима worker каждые 5 минут (`*/5 * * * *`) вызывает:
-  1. `sendDailyDigestIfDue()` — глобальный дайджест из `SystemSetting` (отправляется на системный `TELEGRAM_CHAT_ID` в выбранный час UTC по всем активным каналам);
-  2. `sendUserDigestsIfDue()` — персональные дайджесты для всех пользователей с `User.digestEnabled = true` и непустым `User.telegramChatId` в их `User.digestHour` UTC строго по их активным `UserChannel`. Повторная отправка в те же UTC-сутки блокируется через `lastDigestAt`.
+  1. `sendDailyDigestIfDue()` - глобальный дайджест из `SystemSetting` (отправляется на системный `TELEGRAM_CHAT_ID` в выбранный час UTC по всем активным каналам);
+  2. `sendUserDigestsIfDue()` - персональные дайджесты для всех пользователей с `User.digestEnabled = true` и непустым `User.telegramChatId` в их `User.digestHour` UTC строго по их активным `UserChannel`. Повторная отправка в те же UTC-сутки блокируется через `lastDigestAt`.
 - **Интерактивный поллинг команд бота** (`src/worker/bot-poller.ts` + `src/lib/telegram-bot-commands.ts`): при наличии `TELEGRAM_BOT_TOKEN` и `TELEGRAM_BOT_POLLING_ENABLED !== "false"` worker запускает фоновый long-polling `getUpdates`, авторизует чаты по `User.telegramChatId` (`ACTIVE`) или системному `TELEGRAM_CHAT_ID` и обрабатывает `/start`, `/help`, `/status`, `/digest`, `/channel`, `/add`, `/events` (`/afisha`), `/event <id>` и `/dismiss <id>` (`/hide <id>`). Ошибки сети и `409 Conflict` логируются с маскированием токена и не влияют на сбор MTProto.
 - Дополнительные задания не запускаются автоматически при старте: `COLLECT_ON_STARTUP` относится только к основному циклу.
 
@@ -466,10 +470,10 @@ AI-обработчики формируют промпты из сохранё�
 flowchart TD
     Start["Запуск POST /api/events/scan (кнопка в UI или EVENTS_SCAN_CRON)"] --> Fetch["Выборка до 2000 непроверенных постов за 14 дней (eventsScannedAt IS NULL)"]
     Fetch --> PreFilter["Предварительный отсев явных дайджестов и подборок (isLikelyEventDigestPost)"]
-    PreFilter --> JevStage["Этап 1: OpenRouter Jev (~typesafe/jev-latest) — оценка признаков одного будущего анонса и условий участия"]
+    PreFilter --> JevStage["Этап 1: OpenRouter Jev (~typesafe/jev-latest) - оценка признаков одного будущего анонса и условий участия"]
     JevStage -->|"Успех Jev"| Rank["Отсев score < 0.2 и дайджестов >= 0.8; ранжирование топ-100 кандидатов"]
     JevStage -->|"Ошибка Jev"| Fallback["Fallback: фильтр по ключевым словам (selectionMode = keyword_fallback)"]
-    Rank --> LLMStage["Этап 2: Генеративная модель (z-ai/glm-5.3-flash, timeout 120с) — извлечение title, date, timeStr, organizer, prices"]
+    Rank --> LLMStage["Этап 2: Генеративная модель (z-ai/glm-5.3-flash, timeout 120с) - извлечение title, date, timeStr, organizer, prices"]
     Fallback --> LLMStage
     LLMStage --> Dedup["Сопоставление дублей (isSameEvent) и транзакционное слияние (mergeDuplicateEventsInDb)"]
     Dedup --> Persist["Сохранение Event + EventMention и отметка Post.eventsScannedAt"]

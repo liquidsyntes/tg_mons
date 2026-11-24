@@ -1,6 +1,6 @@
 # Запуск и эксплуатация
 
-Сверено **15 ноября 2026 года** (`v1.56`) с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker), [CI](../.github/workflows/ci.yml) и [GHCR Publish](../.github/workflows/docker-publish.yml).
+Сверено **24 ноября 2026 года** с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker), [CI](../.github/workflows/ci.yml) и [GHCR Publish](../.github/workflows/docker-publish.yml).
 
 ## Среды проекта и изоляция Telegram-авторизации (`AuthKeyDuplicated`)
 
@@ -57,7 +57,7 @@ flowchart TB
 
 ### Почему разделены `TG_SESSION` и `TG_SESSION_LOCAL`
 
-В протоколе Telegram MTProto один аккаунт (номер телефона и пара `TG_API_ID` / `TG_API_HASH`) может иметь сколько угодно параллельных активных сессий — так же, как одновременно работают Telegram на телефоне и ноутбуке. Однако если **одна и та же строка сессии (`auth_key`)** будет одновременно запущена с двух разных IP-адресов (например, на сервере OVH и на локальном ПК), Telegram немедленно выбросит ошибку **`AuthKeyDuplicated`** и принудительно сбросит авторизацию везде.
+В протоколе Telegram MTProto один аккаунт (номер телефона и пара `TG_API_ID` / `TG_API_HASH`) может иметь сколько угодно параллельных активных сессий - так же, как одновременно работают Telegram на телефоне и ноутбуке. Однако если **одна и та же строка сессии (`auth_key`)** будет одновременно запущена с двух разных IP-адресов (например, на сервере OVH и на локальном ПК), Telegram немедленно выбросит ошибку **`AuthKeyDuplicated`** и принудительно сбросит авторизацию везде.
 
 Поэтому действует жёсткое правило:
 1. **Серверная сессия (`TG_SESSION`)** живёт **только на сервере OVH** (в `/opt/tgmon/.env`). Никогда не копируйте её на локальную машину.
@@ -68,9 +68,9 @@ flowchart TB
 
 ## Требования и подготовка
 
-- Node.js 22 и npm — версия Node совпадает с Docker и CI.
+- Node.js 22 и npm - версия Node совпадает с Docker и CI.
 - PostgreSQL 15+ с расширением `pg_trgm`. SQLite не поддерживается.
-- Для сбора — Telegram `TG_API_ID` / `TG_API_HASH` и MTProto-сессия (`TG_SESSION_LOCAL` локально, `TG_SESSION` на сервере).
+- Для сбора - Telegram `TG_API_ID` / `TG_API_HASH` и MTProto-сессия (`TG_SESSION_LOCAL` локально, `TG_SESSION` на сервере).
 - Все команды выполняются из корня проекта (`C:\TgMon` в Windows или `/mnt/c/TgMon` в WSL). Prisma Client генерируется под целевую ОС.
 
 ```bash
@@ -89,7 +89,7 @@ cp .env.example .env
    - Скрипт поднимет временную локальную страницу **`http://localhost:4099`** с графическим QR-кодом (обновляется автоматически каждые 30 секунд).
    - Откройте `http://localhost:4099` в браузере на ПК.
    - На телефоне откройте **Telegram → Настройки → Устройства → Подключить устройство** и наведите камеру телефона на QR-код на мониторе.
-   - **Важный нюанс**: не пытайтесь открывать сырую ссылку `tg://login?token=...` прямым кликом в браузере или терминале — Telegram специально блокирует прямые клики по `tg://login` защитной заглушкой *«Ваша версия Telegram устарела»*. Авторизация проходит именно при сканировании картинки QR-кода камерой из мобильного приложения.
+   - **Важный нюанс**: не пытайтесь открывать сырую ссылку `tg://login?token=...` прямым кликом в браузере или терминале - Telegram специально блокирует прямые клики по `tg://login` защитной заглушкой *«Ваша версия Telegram устарела»*. Авторизация проходит именно при сканировании картинки QR-кода камерой из мобильного приложения.
    - Если на аккаунте включён облачный пароль 2FA, введите его прямо в появившееся поле на странице `http://localhost:4099` (или в терминале).
    - После успеха сессия автоматически запишется в `.env` в переменную `TG_SESSION_LOCAL`.
 
@@ -105,7 +105,7 @@ cp .env.example .env
 
 | Переменная | Потребитель | Default / смысл |
 | --- | --- | --- |
-| DATABASE_URL | Prisma, web, worker | URL PostgreSQL; локально `127.0.0.1:5432/tgmon`, внутри Compose — `postgres:5432/tgmon` |
+| DATABASE_URL | Prisma, web, worker | URL PostgreSQL; локально `127.0.0.1:5432/tgmon`, внутри Compose - `postgres:5432/tgmon` |
 | POSTGRES_PASSWORD | docker-compose.prod.yml | Пароль БД для production-контейнера PostgreSQL (обязателен в `.env` на сервере) |
 | TG_API_ID, TG_API_HASH | auth, MTProto | Ключи приложения Telegram (`my.telegram.org`) |
 | TG_PHONE | auth | Телефон; при отсутствии CLI запросит его |
@@ -219,7 +219,7 @@ curl -i http://localhost:4000/
 curl -i http://localhost:4000/api/health
 ```
 
-Если порт занят или браузер открывает старый процесс: в WSL проверьте `ss -ltnp 'sport = :4000'`, в PowerShell — `Get-NetTCPConnection -State Listen -LocalPort 4000`.
+Если порт занят или браузер открывает старый процесс: в WSL проверьте `ss -ltnp 'sport = :4000'`, в PowerShell - `Get-NetTCPConnection -State Listen -LocalPort 4000`.
 
 ## Миграции и демонстрационные данные
 
@@ -229,7 +229,11 @@ curl -i http://localhost:4000/api/health
 - `npm run seed` удаляет посты, снимки и каналы, затем создаёт демонстрационные данные. Только для отдельной тестовой базы!
 - Для Windows `EPERM` при `prisma generate` проверьте запущенные Node-процессы этого проекта, которые могут удерживать Prisma Query Engine, и остановите их перед генерацией.
 
-Последние миграции включают (всего 33 миграции в `prisma/migrations/`):
+Последние миграции включают (всего 37 миграций в `prisma/migrations/`):
+- `20261117090000_ai_budgets` – поля суточных/месячных бюджетов в `system_settings`, enum `AiBudgetMode` и таблица `ai_budget_notices`;
+- `20261116100000_publication_collection_runs` – журнал диагностических проходов адресных замеров `publication_collection_runs`;
+- `20261116050000_publication_performance` – поля привязки фактической публикации в `user_saved_posts` и таблица `post_performance_checkpoints`;
+- `20261116043000_ai_operations` – таблицы идемпотентности и стоимости AI (`ai_operations`, `ai_provider_calls`), enum `AiOperationStatus` и лимиты в `system_settings`;
 - `20261114063600_add_content_plan_to_saved_posts` – поля контент-плана (`status`, `planned_for`, `draft_text`) в таблице `user_saved_posts`;
 - `20261114042500_add_post_deletion_tracking` – поля отслеживания удалений рекламных постов (`deleted_at`, `deleted_after_hours`, `last_checked_at`) в `posts`;
 - `20261113053607_add_ad_placements` – таблица рекламных сделок `ad_placements`;
@@ -316,7 +320,7 @@ Health проверяет соединение с БД через `SELECT 1`. Б
 
 ## Восстановление ранее пустых статей
 
-После обновления обоих образов утилита читает старые пустые посты по ID, даже если они уже вне последних 200 сообщений. N — внутренний ID канала TgMon. Сначала выполните проверку:
+После обновления обоих образов утилита читает старые пустые посты по ID, даже если они уже вне последних 200 сообщений. N - внутренний ID канала TgMon. Сначала выполните проверку:
 
 ```bash
 docker compose exec worker npx tsx scripts/backfill-articles.ts --channel-id=N
@@ -330,7 +334,7 @@ docker compose exec worker npx tsx scripts/backfill-articles.ts --channel-id=N -
 
 Обновляются только пустые тексты статей, их рекламная классификация и упоминания. Миграций, пересоздания постов и изменения счётчиков нет. Для больших выборок используйте `--limit` и `--after-id` по [инструкции](../scripts/README.md#восстановление-текста-статей). Не все пустые сообщения являются статьями; обычные медиа без подписи не получат вымышленный текст.
 
-Утилита не сбрасывает web-кэш. После записи дождитесь его истечения (метрики — 5 минут), вызовите штатный `POST /api/internal/invalidate-cache` с Bearer-токеном из защищённого окружения либо проверьте после следующего успешного основного сбора. Не вставляйте реальный токен в документацию или общий терминальный лог. Поиск `/api/posts/search` не кэшируется этим кэшем.
+Утилита не сбрасывает web-кэш. После записи дождитесь его истечения (метрики - 5 минут), вызовите штатный `POST /api/internal/invalidate-cache` с Bearer-токеном из защищённого окружения либо проверьте после следующего успешного основного сбора. Не вставляйте реальный токен в документацию или общий терминальный лог. Поиск `/api/posts/search` не кэшируется этим кэшем.
 
 Повторный dry-run не должен вновь предлагать уже восстановленные статьи. Откройте публикацию в TgMon, проверьте полный текст и прокрутку на десктопной и мобильной ширине. Сохранённые AI-отчёты не переписываются; нужные отчёты создайте заново через UI.
 

@@ -1,6 +1,6 @@
 # Справочник API
 
-Основные маршруты сверены с `src/app/api/**/route.ts` **15 ноября 2026 года** (`v1.56`). Базовый URL локального web: `http://localhost:4000`. `:id` обозначает внутренний ID PostgreSQL, а не Telegram ID. Типы сводных ответов: [src/lib/types.ts](../src/lib/types.ts).
+Основные маршруты сверены с `src/app/api/**/route.ts` **24 ноября 2026 года** (58 файлов `route.ts`). Базовый URL локального web: `http://localhost:4000`. `:id` обозначает внутренний ID PostgreSQL, а не Telegram ID. Типы сводных ответов: [src/lib/types.ts](../src/lib/types.ts).
 
 ## Формат и доступ
 
@@ -32,9 +32,9 @@ Middleware больше не добавляет Bearer к запросам бр�
 
 | Метод и путь | Вход | Ответ / поведение | Гард в обработчике |
 | --- | --- | --- | --- |
-| `GET /api/channels` | — | Массив `ChannelMetrics` из overview, включая отключённые каналы | Нет |
+| `GET /api/channels` | – | Массив `ChannelMetrics` из overview, включая отключённые каналы | Нет |
 | `GET /api/channels/compare` | Алиас `GET /api/stats/compare`: `ids` (2-4 ID через запятую) или legacy `a`, `b`, опционально `benchmarkTag`, `period=24h\|7d\|30d` | `{a,b,period,participants,comparison,benchmarkProfile}`; коды 400, 403, 404 | Да |
-| `GET /api/channels/list-transfer` | — | Подписанный JSON-файл всех каналов из списка администратора; доступен только `ADMIN` | Да |
+| `GET /api/channels/list-transfer` | – | Подписанный JSON-файл всех каналов из списка администратора; доступен только `ADMIN` | Да |
 | `POST /api/channels/list-transfer` | JSON-файл экспорта, до 1 МБ и 5000 каналов | `{added,alreadyPresent}`; добавляет существующие каналы в личный список без `isMine`, дубли пропускает; 400 при неверном файле или подписи, 409 при отсутствующем канале | Да |
 | `POST /api/channels` | `{ "input": "@example_channel", "isMine": false, "tags"?: string[] }` | 201, метрики добавленного/повторно активированного канала; worker выполняет resolve и попытку backfill до ответа; при недоступном worker 503 | Да |
 | `GET /api/channels/:id` | ID | `ChannelMetrics`; 400 для нечислового ID, 404 если канала нет | Нет |
@@ -68,13 +68,13 @@ LTV строится по PostSnapshot для постов за 14 дней с �
 
 | Метод и путь | Параметры | Ответ |
 | --- | --- | --- |
-| `GET /api/stats/overview` | — | `{myChannel,channels,totalChannels,activeChannels,lastGlobalUpdate}` |
+| `GET /api/stats/overview` | – | `{myChannel,channels,totalChannels,activeChannels,lastGlobalUpdate}` |
 | `GET /api/stats/dashboard` | Нет тела | KPI, `avgErr`, `avgScore`, topGainers/topLosers, postsTimeline/subscribersTimeline только по активным каналам |
 | `GET /api/stats/channel/:id` | `period=24h`, `7d` или `30d`, default `7d` | `{channel,myChannel,period,scoreBreakdown,membersHistory,postsDistribution,vrHistory,heatmapData,myHeatmapData,recentPosts,popularReactions,contentTypePerformance,contentFormatLeaders,postLengthAnalytics,timelineEvents,silencePeriods}` |
 | `GET /api/stats/channel/:id/activity` | Положительный ID канала | `{timeZone,rows}`: 48 часовых строк с `hourStart`, `sampledAt`, `membersCount`, `membersDelta`, `posts[]`, `reactionsAdded`, `forwardsAdded`; 400 при неверном ID, 404 без доступа к каналу |
 | `GET /api/stats/compare` | `ids` (2-4 ID через запятую) либо `a`, `b`; опционально `benchmarkTag` и `period` (`24h`, `7d`, `30d`) | `{a,b,period,participants,comparison,benchmarkProfile}`; 400 при неверных параметрах, 403 без доступа к существующему каналу, 404 если канал или каналы тега не найдены |
 | `GET /api/stats/best-time` | Нет параметров | `{timeZone,bestDay,bestHour,score,avgViews,avgVr,postCount,heatmap}` или `null`, если нет активных конкурентов |
-| `GET /api/stats/trends` | — | Последний сохранённый trend: `{createdAt,data}`; `null` при отсутствии/невалидном JSON, новую генерацию не запускает |
+| `GET /api/stats/trends` | – | Последний сохранённый trend: `{createdAt,data}`; `null` при отсутствии/невалидном JSON, новую генерацию не запускает |
 | `GET /api/stats/demographics/:id` | Положительный Int ID | Последний языковой снимок; контракт ниже |
 | `GET /api/analytics/newsjacking` | `hours=24\|48\|72` (default `48`), необязательные `tag` (до 30 симв.), `niche` (до 64 симв.), `minChannels` (`2..10`, default `2`) | `{windowHours,analyzedPostsCount,totalClusters,uncoveredByMyChannelCount,clusters,speedLeaderboard,tag,niche,myChannelId,availableTags}`; 400 при неверных параметрах |
 
@@ -128,7 +128,7 @@ Activity группирует последние 48 календарных ча�
 | `includeCreatives` | `true` / `1` включает кластеризацию рекламных креативов по расширенной выборке (до 250 подходящих рекламных постов) независимо от текущей страницы пагинации |
 | `creativesSortBy` | Сортировка `creativeClusters`: `placementsCount` (по умолчанию), `totalViews` или `avgErr` |
 
-`posts[].text` — обычный текст или `null`. Для успешно собранной статьи это текст, извлечённый из `richMessage`, а не HTML и не набор блоков Telegram. Нового поля или отдельного endpoint статей нет. При неудачной догрузке сохраняется прежний текст, если он был; причина отсутствия текста отдельным полем не возвращается.
+`posts[].text` - обычный текст или `null`. Для успешно собранной статьи это текст, извлечённый из `richMessage`, а не HTML и не набор блоков Telegram. Нового поля или отдельного endpoint статей нет. При неудачной догрузке сохраняется прежний текст, если он был; причина отсутствия текста отдельным полем не возвращается.
 
 Ответ: `{posts,total,absoluteTotal}` (и `creativeClusters`, если активен `onlyAds`, `type=ads` или `includeCreatives`). `posts` содержит строковые messageId/groupedId, результат `detectAd` в `ad`, `reactionBreakdown` как массив `{emoji,count}` или `null`, а также `isViral`, `viralReasons`, `viralPrimaryReason` и `viralMultiplier`. Последний равен `null` без вирусной причины. total учитывает фильтры, absoluteTotal учитывает все посты канала. Поиск реализован Prisma `contains`, без полнотекстового ранжирования. Фильтр `ads` использует сохранённый флаг `Post.isAd`, как и `adShare`; при сборе этот флаг выставляется по `detectAd.isAd || detectAd.isPartner`. Поле `ad` описывает маркеры из текущего текста и может отличаться от сохранённого флага, если текст изменился после классификации.
 
@@ -162,7 +162,7 @@ Activity группирует последние 48 календарных ча�
 
 Обозначение `days?: 7` в таблице означает необязательное поле с default 7; пример действительного JSON: `{ "channelId": 1, "days": 7 }`.
 
-Статьи участвуют через `Post.text` наравне с обычными текстовыми публикациями. Дополнительно ограничивается длина контента в промпте: summary и trends — 30 000 символов, super-report — 80 000, compare — по 15 000 на канал. Это лимиты строк в коде, а не лимиты токенов. Audience/persona ограничивают число постов, без отдельного `substring` для всего контента. Восстановление текста не меняет существующие AiReport; новые отчёты запускаются отдельно.
+Статьи участвуют через `Post.text` наравне с обычными текстовыми публикациями. Дополнительно ограничивается длина контента в промпте: summary и trends - 30 000 символов, super-report - 80 000, compare - по 15 000 на канал. Это лимиты строк в коде, а не лимиты токенов. Audience/persona ограничивают число постов, без отдельного `substring` для всего контента. Восстановление текста не меняет существующие AiReport; новые отчёты запускаются отдельно.
 
 Поля summary/audience/persona содержат **строку**, обычно с JSON от LLM; это не уже распарсенный объект. Ошибки обязательных параметров дают 400; отсутствие контента/канала/отчёта даёт 400 или 404 согласно конкретному обработчику. AbortError даёт 504, сбой соединения с OpenRouter даёт 503 с русским сообщением для повторной попытки, остальные сбои дают 500. Запрос генерации не повторяется автоматически, чтобы не создать второй платный запрос, если первый был обработан до обрыва соединения. `saveAiReport` перехватывает ошибку записи, поэтому 200 не гарантирует наличия отчёта в истории.
 

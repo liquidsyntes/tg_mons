@@ -32,7 +32,7 @@ git diff
 git diff --cached
 ```
 
-Не добавляйте `.env`, сессии, ключи, дампы данных, node_modules и артефакты сборки. Одна логическая задача — один связный коммит; используйте Conventional Commits, например `docs(project): document Telegram article recovery`.
+Не добавляйте `.env`, сессии, ключи, дампы данных, node_modules и артефакты сборки. Одна логическая задача - один связный коммит; используйте Conventional Commits, например `docs(project): document Telegram article recovery`.
 
 После push сравните локальный и удалённый коммиты выбранной ветки:
 
