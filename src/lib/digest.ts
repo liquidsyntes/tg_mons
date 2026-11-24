@@ -1,11 +1,11 @@
 import { prisma } from './prisma';
 import { getOverviewStats } from './metrics';
 import { logger } from './logger';
+import { formatLocalePercent, formatNumber as formatRuNumber } from './utils';
 import type { ChannelMetrics, DailyDigestSummary, DigestChannel } from './types';
 import { sendTelegramRuleAlert } from '../worker/retry-policy';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const numberFormat = new Intl.NumberFormat('ru-RU');
 const TELEGRAM_CHAT_ID_PATTERN = /^(-?\d{1,20}|@[a-zA-Z0-9_]{5,32})$/;
 
 export type DigestSender = (message: string, chatId?: string | null) => Promise<boolean>;
@@ -66,38 +66,30 @@ export async function buildDailyDigest(
   };
 }
 
-function formatNumber(value: number | null): string {
-  return value === null ? 'нет данных' : numberFormat.format(value);
-}
-
 function formatDelta(value: number | null): string {
-  return value === null ? 'нет данных' : `${value > 0 ? '+' : ''}${formatNumber(value)}`;
-}
-
-function formatPercent(value: number | null): string {
-  return value === null ? 'нет данных' : `${numberFormat.format(value)}%`;
+  return value === null ? 'нет данных' : `${value > 0 ? '+' : ''}${formatRuNumber(value, 'нет данных')}`;
 }
 
 export function formatDailyDigest(summary: DailyDigestSummary, now: Date): string {
   const lines = [
     `TgMon: ежедневный дайджест за 24 часа (${now.toISOString().slice(0, 10)} UTC)`,
-    `Активных каналов: ${formatNumber(summary.activeChannels)}`,
-    `Суммарная аудитория: ${formatNumber(summary.totalAudience)}${summary.channelsWithoutAudience ? ' (по доступным данным)' : ''}`,
+    `Активных каналов: ${formatRuNumber(summary.activeChannels, 'нет данных')}`,
+    `Суммарная аудитория: ${formatRuNumber(summary.totalAudience, 'нет данных')}${summary.channelsWithoutAudience ? ' (по доступным данным)' : ''}`,
   ];
   if (summary.myChannel) {
     const channel = summary.myChannel;
     lines.push('', `Мой канал: ${channel.title}`,
-      `Подписчики: ${formatNumber(channel.currentMembers)}; за 24 часа: ${formatDelta(channel.delta24h)}`,
-      `ER 7 дней: ${formatPercent(channel.er7d)}; ERR 7 дней: ${formatPercent(channel.err7d)}`,
-      `Постов за 24 часа: ${formatNumber(channel.posts24h)}`);
+      `Подписчики: ${formatRuNumber(channel.currentMembers, 'нет данных')}; за 24 часа: ${formatDelta(channel.delta24h)}`,
+      `ER 7 дней: ${formatLocalePercent(channel.er7d, 'нет данных')}; ERR 7 дней: ${formatLocalePercent(channel.err7d, 'нет данных')}`,
+      `Постов за 24 часа: ${formatRuNumber(channel.posts24h, 'нет данных')}`);
   }
   const formatLeaders = (channels: DigestChannel[]) => channels.length
     ? channels.map((channel, index) => `${index + 1}. ${channel.title}: ${formatDelta(channel.delta24h)}`)
     : ['Нет каналов с изменением подписчиков'];
   lines.push('', 'Лидеры роста:', ...formatLeaders(summary.topGainers),
     '', 'Лидеры падения:', ...formatLeaders(summary.topLosers),
-    '', `Антифрод-сигналов за 24 часа: ${formatNumber(summary.recentFraudSignals)}`,
-    `Каналов с ошибками сейчас: ${formatNumber(summary.problemChannels)}`);
+    '', `Антифрод-сигналов за 24 часа: ${formatRuNumber(summary.recentFraudSignals, 'нет данных')}`,
+    `Каналов с ошибками сейчас: ${formatRuNumber(summary.problemChannels, 'нет данных')}`);
   return lines.join('\n');
 }
 

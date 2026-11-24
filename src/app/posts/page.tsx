@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { FileSearch, RotateCcw } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { HelpPopover } from '@/components/help/HelpPopover';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, formatPercent } from '@/lib/utils';
 import type {
   AdCreativeCluster,
   AdCreativePostItem,
@@ -30,10 +30,6 @@ type SortBy = 'publishedAt' | 'views' | 'er' | 'err' | 'forwards';
 
 const VALID_DAYS = new Set([7, 14, 30, 90]);
 const VALID_SORT_BY = new Set<SortBy>(['publishedAt', 'views', 'er', 'err', 'forwards']);
-
-function formatPercent(value: number | null): string {
-  return value === null ? 'н/д' : `${value.toFixed(1)}%`;
-}
 
 function toSearchPost(item: AdCreativePostItem): SearchPost {
   return {
@@ -659,7 +655,7 @@ export default function PostsPage() {
                       {Boolean(post.deletedAt) || isDeletedRetentionFormat(post.retentionFormat) ? 'Сохран. охват' : 'Просмотры'}:{' '}
                       {(post.lastCapturedViews ?? post.views) === null ? 'н/д' : formatNumber((post.lastCapturedViews ?? post.views)!)}
                     </span>
-                    <span>ER: {formatPercent(post.er)}</span><span>ERR: {formatPercent(post.err)}</span>
+                    <span>ER: {formatPercent(post.er, false, 1)}</span><span>ERR: {formatPercent(post.err, false, 1)}</span>
                     <ReactionBreakdownInline total={post.reactions} breakdown={post.reactionBreakdown} /><span>Комментарии: {post.comments ?? 'н/д'}</span>
                     <span>Пересылки: {post.forwards ?? 'н/д'}</span>
                   </div>

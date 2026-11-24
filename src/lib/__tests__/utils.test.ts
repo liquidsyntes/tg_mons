@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatNumber, formatPercent, formatDelta, serializeBigInt, formatRelativeTime } from '@/lib/utils';
+import { formatNumber, formatPercent, formatLocalePercent, formatDelta, serializeBigInt, formatRelativeTime } from '@/lib/utils';
 
 describe('formatNumber', () => {
   it('formats positive numbers with ru-RU locale', () => {
@@ -14,8 +14,11 @@ describe('formatNumber', () => {
     expect(formatNumber(undefined)).toBe('н/д');
   });
 
-  it('returns н/д for NaN', () => {
+  it('returns н/д for NaN and Infinity, and supports custom fallback', () => {
     expect(formatNumber(NaN)).toBe('н/д');
+    expect(formatNumber(Infinity)).toBe('н/д');
+    expect(formatNumber(-Infinity)).toBe('н/д');
+    expect(formatNumber(null, 'нет данных')).toBe('нет данных');
   });
 
   it('formats zero', () => {
@@ -32,8 +35,10 @@ describe('formatPercent', () => {
     expect(formatPercent(-3.1)).toBe('-3.1%');
   });
 
-  it('returns н/д for null', () => {
+  it('returns н/д for null, Infinity and supports custom fallback', () => {
     expect(formatPercent(null)).toBe('н/д');
+    expect(formatPercent(Infinity)).toBe('н/д');
+    expect(formatPercent(null, false, 1, 'нет данных')).toBe('нет данных');
   });
 
   it('respects decimals parameter', () => {
@@ -42,6 +47,16 @@ describe('formatPercent', () => {
 
   it('hides sign when includeSign=false', () => {
     expect(formatPercent(5, false)).toBe('5.0%');
+  });
+});
+
+describe('formatLocalePercent', () => {
+  it('formats percent using ru-RU locale without trailing zeros', () => {
+    expect(formatLocalePercent(4.5)).toBe('4,5%');
+    expect(formatLocalePercent(5)).toBe('5%');
+    expect(formatLocalePercent(-2.5)).toBe('-2,5%');
+    expect(formatLocalePercent(null)).toBe('нет данных');
+    expect(formatLocalePercent(Infinity)).toBe('нет данных');
   });
 });
 

@@ -15,6 +15,7 @@ import { calculateChannelMetrics } from './metrics';
 import { runFraudAudit } from './fraudDetector';
 import { formatDurationMs } from './ops';
 import { getAppTimezone } from './timezone';
+import { formatLocalePercent, formatNumber as formatRuNumber } from './utils';
 import type { DailyDigestSummary } from './types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -383,14 +384,6 @@ function resolveAppBaseUrl(override?: string): string {
     return internalUrl.replace(/\/+$/, '');
   }
   return 'http://localhost:4000';
-}
-
-function formatNumber(value: number | null): string {
-  return value === null ? 'нет данных' : numberFormat.format(value);
-}
-
-function formatPercent(value: number | null): string {
-  return value === null ? 'нет данных' : `${numberFormat.format(value)}%`;
 }
 
 function formatSignedDelta(abs: number | null, percent: number | null): string {
@@ -1116,7 +1109,7 @@ function formatStatusReply(job: BotLatestSyncJob | null, summary: BotUserStatusS
   if (summary.myChannel) {
     const handle = summary.myChannel.username ? ` (@${summary.myChannel.username})` : '';
     lines.push(
-      `Мой канал: ${summary.myChannel.title}${handle} - ${formatNumber(summary.myChannel.currentMembers)} подп.`,
+      `Мой канал: ${summary.myChannel.title}${handle} - ${formatRuNumber(summary.myChannel.currentMembers, 'нет данных')} подп.`,
     );
   }
   return lines.join('\n');
@@ -1128,10 +1121,10 @@ function formatChannelCardReply(data: BotChannelCardData, appBaseUrl: string): s
   const trustLabel = formatTrustStatus(data.fraudScore);
   const lines = [
     `📊 ${data.title}${handle}`,
-    `Подписчики: ${formatNumber(data.currentMembers)}`,
+    `Подписчики: ${formatRuNumber(data.currentMembers, 'нет данных')}`,
     `Динамика: 7д ${formatSignedDelta(data.delta7dAbs, data.delta7dPercent)} | 30д ${formatSignedDelta(data.delta30dAbs, data.delta30dPercent)}`,
-    `Вовлеченность (7д): ER ${formatPercent(data.er7d)} | ERR ${formatPercent(data.err7d)}`,
-    `Доля рекламы (30д): ${formatPercent(data.adShare30dPercent)}`,
+    `Вовлеченность (7д): ER ${formatLocalePercent(data.er7d, 'нет данных')} | ERR ${formatLocalePercent(data.err7d, 'нет данных')}`,
+    `Доля рекламы (30д): ${formatLocalePercent(data.adShare30dPercent, 'нет данных')}`,
     `Индекс доверия (Trust Score): ${trustScore}/100 (${trustLabel})`,
     `Подробнее: ${appBaseUrl}/channel/${data.id}`,
   ];
@@ -1184,7 +1177,7 @@ export async function handleTelegramBotCommand(
       }
       const postMetric = extras.bestPost.err !== null
         ? `ERR ${extras.bestPost.err.toFixed(2)}%`
-        : `${formatNumber(extras.bestPost.views)} просм.`;
+        : `${formatRuNumber(extras.bestPost.views, 'нет данных')} просм.`;
       const snippet = extras.bestPost.snippet ? ` - "${extras.bestPost.snippet}"` : '';
       return `${baseText}\nЛучший пост за 24ч: ${extras.bestPost.channelTitle} (${postMetric})${snippet}`;
     }

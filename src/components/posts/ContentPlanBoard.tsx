@@ -7,7 +7,7 @@ import { HelpPopover } from '@/components/help/HelpPopover';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Calendar, Check, FileText, Image as ImageIcon, Sparkles, Trash2, X } from 'lucide-react';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, formatPercent } from '@/lib/utils';
 import {
   ALL_CONTENT_PLAN_STATUSES,
   CONTENT_PLAN_STATUS_LABELS,
@@ -44,10 +44,6 @@ const COLUMN_ACCENT_CLASSES: Record<ContentPlanStatus, string> = {
   ready: 'border-t-emerald-400/80',
   published: 'border-t-accent/80',
 };
-
-function formatPercent(value: number | null): string {
-  return value === null ? 'н/д' : `${value.toFixed(1)}%`;
-}
 
 export function ContentPlanBoard({
   posts,
@@ -224,7 +220,7 @@ export function ContentPlanBoard({
 
                           <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
                             <span className="rounded bg-slate-900 px-1.5 py-0.5 font-mono text-slate-300">
-                              ERR {formatPercent(post.err)}
+                              ERR {formatPercent(post.err, false, 1)}
                             </span>
                             <span className="rounded bg-slate-900 px-1.5 py-0.5 font-mono text-slate-300">
                               {formatNumber(charCount)} зн.

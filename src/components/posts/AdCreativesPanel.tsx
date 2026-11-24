@@ -6,7 +6,7 @@ import { ChevronDown, ChevronUp, Filter, Layers, Sparkles } from 'lucide-react';
 import { sortAdCreativeClusters } from '@/lib/metrics/ad-creatives';
 import type { AdCreativeCluster, AdCreativeSortBy } from '@/lib/types';
 import { HelpPopover } from '@/components/help/HelpPopover';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, formatPercent } from '@/lib/utils';
 
 interface AdCreativesPanelProps {
   clusters: AdCreativeCluster[];
@@ -32,10 +32,6 @@ function formatDateRange(firstSeenAt: string, lastSeenAt: string): string {
   const first = formatShortDate(firstSeenAt);
   const last = formatShortDate(lastSeenAt);
   return first === last ? first : `${first} - ${last}`;
-}
-
-function formatPercent(value: number | null): string {
-  return value === null ? 'н/д' : `${value.toFixed(1)}%`;
 }
 
 function pluralizeRu(count: number, one: string, few: string, many: string): string {
@@ -292,7 +288,7 @@ export function AdCreativesPanel({
                             >
                               {cluster.bestPlacement.channel.title}
                             </Link>
-                            {' '}(ERR {formatPercent(cluster.bestPlacement.err)},{' '}
+                            {' '}(ERR {formatPercent(cluster.bestPlacement.err, false, 1)},{' '}
                             {cluster.bestPlacement.views === null
                               ? 'н/д'
                               : `${formatNumber(cluster.bestPlacement.views)} просм.`}
@@ -379,13 +375,13 @@ export function AdCreativesPanel({
                                 <div>
                                   <div className="text-[10px] text-slate-500">ER</div>
                                   <div className="text-slate-200 font-medium">
-                                    {formatPercent(placement.er)}
+                                    {formatPercent(placement.er, false, 1)}
                                   </div>
                                 </div>
                                 <div>
                                   <div className="text-[10px] text-slate-500">ERR</div>
                                   <div className="font-semibold text-emerald-400">
-                                    {formatPercent(placement.err)}
+                                    {formatPercent(placement.err, false, 1)}
                                   </div>
                                 </div>
                               </div>

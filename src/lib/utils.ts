@@ -5,19 +5,31 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatNumber(num: number | null | undefined): string {
-  if (num === null || num === undefined || isNaN(num)) return 'н/д';
+export function formatNumber(
+  num: number | null | undefined,
+  fallback = 'н/д'
+): string {
+  if (num === null || num === undefined || !Number.isFinite(num)) return fallback;
   return new Intl.NumberFormat('ru-RU').format(num);
 }
 
 export function formatPercent(
   num: number | null | undefined,
   includeSign = true,
-  decimals = 1
+  decimals = 1,
+  fallback = 'н/д'
 ): string {
-  if (num === null || num === undefined || isNaN(num)) return 'н/д';
+  if (num === null || num === undefined || !Number.isFinite(num)) return fallback;
   const sign = includeSign && num > 0 ? '+' : '';
   return `${sign}${num.toFixed(decimals)}%`;
+}
+
+export function formatLocalePercent(
+  num: number | null | undefined,
+  fallback = 'нет данных'
+): string {
+  if (num === null || num === undefined || !Number.isFinite(num)) return fallback;
+  return `${new Intl.NumberFormat('ru-RU').format(num)}%`;
 }
 
 export function formatDelta(

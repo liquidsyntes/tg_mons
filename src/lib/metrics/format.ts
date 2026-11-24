@@ -4,10 +4,16 @@ export function parseStatsPeriod(periodParam: string | null): StatsPeriod {
   return periodParam === '24h' || periodParam === '30d' ? periodParam : '7d';
 }
 
-export function formatPercent(value: number | null | undefined): number | null {
+/**
+ * Округляет числовое значение процента до 2 знаков (`number | null`).
+ * Для строкового форматирования с `%` используйте `formatPercent` или `formatLocalePercent` из `@/lib/utils`.
+ */
+export function roundPercent(value: number | null | undefined): number | null {
   if (value === null || value === undefined) return null;
   return Number(value.toFixed(2));
 }
+
+export const formatPercent = roundPercent;
 
 export function formatDelta(
   current: number,
