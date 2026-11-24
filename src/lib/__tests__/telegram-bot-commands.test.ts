@@ -80,6 +80,7 @@ vi.mock('../digest', async () => {
 import {
   handleTelegramBotCommand,
   normalizeChannelTarget,
+  parseEventsCommandFilter,
   parseTelegramBotUpdate,
   type TelegramBotCommandDeps,
 } from '../telegram-bot-commands';
@@ -792,5 +793,121 @@ describe('handleTelegramBotCommand', () => {
       { type: 'dismiss', chatId: '888000', target: '404', rawCommand: '/dismiss' },
     );
     expect(notFoundReply).toContain('Мероприятие #404 не найдено');
+  });
+
+  it('formats /start and /help greeting cleanly when userName is null', async () => {
+    const reply = await handleTelegramBotCommand(
+      { type: 'start', chatId: '777', target: null, rawCommand: '/start' },
+      {
+        resolveAccess: async () => ({
+          authorized: true,
+          userId: null,
+          userName: null,
+          isSystemAdmin: false,
+        }),
+      },
+    );
+
+    expect(reply).toContain('TgMon Бот подключен (Chat ID: 777)');
+    expect(reply).toContain('/help – показать эту справку');
+  });
+
+  it('renders Trust Score label boundaries and respects appBaseUrl precedence', async () => {
+    const baseCard = {
+      id: 15,
+      title: 'Radar',
+      username: 'radar_ch',
+      isTrackedByUser: true,
+      currentMembers: 10_000,
+      delta7dAbs: 100,
+      delta7dPercent: 1,
+      delta30dAbs: 200,
+      delta30dPercent: 2,
+      er7d: 3,
+      err7d: 15,
+      adShare30dPercent: 5,
+    };
+
+    const normReply = await handleTelegramBotCommand(
+      { type: 'channel', chatId: '777', target: '@radar_ch', rawCommand: '/channel' },
+      {
+        resolveAccess: async () => ({ authorized: true, userId: 7, userName: 'Tester', isSystemAdmin: false }),
+        appBaseUrl: 'https://override.tgmon.local///',
+        findChannelCardData: async () => ({ ...baseCard, fraudScore: 0 }),
+      },
+    );
+    expect(normReply).toContain('Индекс доверия (Trust Score): 100/100 (норма)');
+    expect(normReply).toContain('Подробнее: https://override.tgmon.local/channel/15');
+
+    const suspiciousReply = await handleTelegramBotCommand(
+      { type: 'channel', chatId: '777', target: '@radar_ch', rawCommand: '/channel' },
+      {
+        resolveAccess: async () => ({ authorized: true, userId: 7, userName: 'Tester', isSystemAdmin: false }),
+        findChannelCardData: async () => ({ ...baseCard, fraudScore: 25 }),
+      },
+    );
+    expect(suspiciousReply).toContain('Индекс доверия (Trust Score): 75/100 (подозрительный)');
+    expect(suspiciousReply).toContain('Подробнее: https://tgmon.example.com/channel/15');
+
+    vi.stubEnv('APP_PUBLIC_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
+    vi.stubEnv('TELEGRAM_LOGIN_REDIRECT_URI', 'https://auth.tgmon.org/api/auth/telegram/callback');
+    const redirectOriginReply = await handleTelegramBotCommand(
+      { type: 'channel', chatId: '777', target: '@radar_ch', rawCommand: '/channel' },
+      {
+        resolveAccess: async () => ({ authorized: true, userId: 7, userName: 'Tester', isSystemAdmin: false }),
+        findChannelCardData: async () => ({ ...baseCard, fraudScore: 50 }),
+      },
+    );
+    expect(redirectOriginReply).toContain('Индекс доверия (Trust Score): 50/100 (высокий риск)');
+    expect(redirectOriginReply).toContain('Подробнее: https://auth.tgmon.org/channel/15');
+
+    vi.stubEnv('TELEGRAM_LOGIN_REDIRECT_URI', '');
+    vi.stubEnv('WEB_INTERNAL_URL', 'http://web:4000');
+    const fallbackReply = await handleTelegramBotCommand(
+      { type: 'channel', chatId: '777', target: '@radar_ch', rawCommand: '/channel' },
+      {
+        resolveAccess: async () => ({ authorized: true, userId: 7, userName: 'Tester', isSystemAdmin: false }),
+        findChannelCardData: async () => ({ ...baseCard, fraudScore: 50 }),
+      },
+    );
+    expect(fallbackReply).toContain('Подробнее: http://localhost:4000/channel/15');
+  });
+});
+
+describe('parseEventsCommandFilter', () => {
+  it('maps empty values, presets, Russian aliases, and free-text search', () => {
+    expect(parseEventsCommandFilter(null)).toEqual({
+      filterOptions: { datePreset: 'all' },
+      label: 'все предстоящие',
+    });
+    expect(parseEventsCommandFilter('   ')).toEqual({
+      filterOptions: { datePreset: 'all' },
+      label: 'все предстоящие',
+    });
+    expect(parseEventsCommandFilter('сегодня')).toEqual({
+      filterOptions: { datePreset: 'today_tomorrow' },
+      label: 'сегодня и завтра',
+    });
+    expect(parseEventsCommandFilter('weekend')).toEqual({
+      filterOptions: { datePreset: 'weekend' },
+      label: 'на выходные',
+    });
+    expect(parseEventsCommandFilter('неделя')).toEqual({
+      filterOptions: { datePreset: 'week' },
+      label: 'на эту неделю',
+    });
+    expect(parseEventsCommandFilter('месяц')).toEqual({
+      filterOptions: { datePreset: 'month' },
+      label: 'в этом месяце',
+    });
+    expect(parseEventsCommandFilter('бесплатно')).toEqual({
+      filterOptions: { datePreset: 'all', freeOnly: true },
+      label: 'бесплатные (предстоящие)',
+    });
+    expect(parseEventsCommandFilter('  Джаз  ')).toEqual({
+      filterOptions: { datePreset: 'all', query: 'Джаз' },
+      label: 'поиск «Джаз»',
+    });
   });
 });
