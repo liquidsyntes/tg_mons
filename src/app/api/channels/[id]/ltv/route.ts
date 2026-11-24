@@ -92,8 +92,11 @@ export async function GET(
     }
 
     return NextResponse.json({ ltv });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('LTV API error:', undefined, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error && error.message ? error.message : 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }

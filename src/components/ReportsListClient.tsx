@@ -52,9 +52,9 @@ export function ReportsListClient({ reports }: Props) {
       if (json.reportId) {
         router.push(`/reports/${json.reportId}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message);
+      setError(err instanceof Error && err.message ? err.message : 'Ошибка при сравнении отчетов');
     } finally {
       setIsComparing(false);
     }

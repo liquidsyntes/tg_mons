@@ -15,9 +15,12 @@ export async function GET() {
     const session = await getActiveSession();
     const overview = await getOverviewStats(session.userId);
     return NextResponse.json(overview.channels);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('GET /api/channels error:', undefined, error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error && error.message ? error.message : 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
 

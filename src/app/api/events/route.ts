@@ -79,8 +79,11 @@ export async function GET() {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error fetching events:', undefined, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error && error.message ? error.message : 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }

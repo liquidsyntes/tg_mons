@@ -30,9 +30,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
 
     return NextResponse.json(serializeBigInt(metrics));
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('GET /api/channels/[id] error:', undefined, error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error && error.message ? error.message : 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -143,9 +146,12 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     bestTimeCache.invalidate();
     const metrics = await calculateChannelMetrics(updated.id);
     return NextResponse.json(serializeBigInt(metrics));
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('PATCH /api/channels/[id] error:', undefined, error);
-    return NextResponse.json({ error: error.message || 'Ошибка обновления канала' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error && error.message ? error.message : 'Ошибка обновления канала' },
+      { status: 500 }
+    );
   }
 }
 
@@ -235,8 +241,11 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
         channel: serializeBigInt(updated),
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('DELETE /api/channels/[id] error:', undefined, error);
-    return NextResponse.json({ error: error.message || 'Ошибка удаления канала' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error && error.message ? error.message : 'Ошибка удаления канала' },
+      { status: 500 }
+    );
   }
 }

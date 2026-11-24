@@ -83,12 +83,14 @@ function buildDetailStats(channel: ChannelMetrics): ChannelDetailStats {
     myChannel: null,
     period: '7d',
     scoreBreakdown: {
-      errScore: 20,
-      frequencyScore: 20,
-      growthScore: 20,
-      stabilityScore: 18,
+      errScore: { score: 20, max: 30, label: 'ERR' },
+      consistencyScore: { score: 20, max: 20, label: 'Consistency' },
+      growthScore: { score: 20, max: 20, label: 'Growth' },
+      engagementScore: { score: 10, max: 15, label: 'Engagement Div.' },
+      originalityScore: { score: 8, max: 15, label: 'Originality' },
       total: 78,
       grade: 'B',
+      recommendation: 'Хороший результат',
     },
     membersHistory: [
       { collectedAt: '2026-10-30T10:00:00.000Z', membersCount: (channel.currentMembers ?? 1000) - 100, myMembersCount: null },

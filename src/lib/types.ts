@@ -1,4 +1,6 @@
 import type { FraudSignal } from './fraudDetector';
+import type { EPResult } from './ep';
+import type { ScoreBreakdown } from './scoring';
 
 export type ChannelType = 'channel' | 'group';
 export type ChannelStatus = 'success' | 'error' | 'stale';
@@ -52,7 +54,7 @@ export interface ChannelMetrics {
   niche?: string;
   tags?: string[];
   ep?: number;
-  epBreakdown?: any;
+  epBreakdown?: EPResult['breakdown'];
   citationIndex?: number | null;
   fraudCoverage?: import('./fraud/types').FraudCoverage;
   fraudScore?: number | null;
@@ -592,7 +594,7 @@ export interface ChannelDetailStats {
   nicheBenchmark?: NicheBenchmarkResult;
   myChannel: ChannelMetrics | null;
   period: '24h' | '7d' | '30d';
-  scoreBreakdown?: any;
+  scoreBreakdown?: ScoreBreakdown;
   membersHistory: {
     collectedAt: string;
     membersCount: number;

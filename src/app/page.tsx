@@ -31,9 +31,9 @@ export default function OverviewPage() {
       const data: OverviewStats = await res.json();
       setStats(data);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || 'Не удалось загрузить данные');
+      setError(err instanceof Error && err.message ? err.message : 'Не удалось загрузить данные');
     } finally {
       setLoading(false);
     }

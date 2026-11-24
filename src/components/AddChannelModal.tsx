@@ -47,8 +47,8 @@ export function AddChannelModal({
       setIsMine(false);
       await onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Произошла ошибка при обращении к серверу');
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message ? err.message : 'Произошла ошибка при обращении к серверу');
     } finally {
       setLoading(false);
     }

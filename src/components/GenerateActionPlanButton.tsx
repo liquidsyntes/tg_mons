@@ -29,9 +29,9 @@ export function GenerateActionPlanButton({ reportId }: Props) {
       if (json.reportId) {
         router.push(`/reports/${json.reportId}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message);
+      setError(err instanceof Error && err.message ? err.message : 'Не удалось сгенерировать план');
     } finally {
       setLoading(false);
     }

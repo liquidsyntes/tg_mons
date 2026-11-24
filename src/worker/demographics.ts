@@ -46,7 +46,7 @@ export async function collectAudienceDemographics(
     }
     const dcId = full.fullChat.statsDc;
     stage = 'stats';
-    const stats: any = await withRateLimitAndRetry(() => withTimeout(
+    const stats: Api.stats.BroadcastStats = await withRateLimitAndRetry(() => withTimeout(
       () => client.invoke(new Api.stats.GetBroadcastStats({ channel: input, dark: false }), dcId), 'GetBroadcastStats'
     ));
     const notificationsEnabledPercent = parseEnabledNotifications(stats?.enabledNotifications);

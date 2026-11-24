@@ -95,8 +95,8 @@ export function useChannelsData(channels: ChannelMetrics[]) {
     const competitors = list.filter((c) => !c.isMine);
 
     competitors.sort((a, b) => {
-      let valA: any = 0;
-      let valB: any = 0;
+      let valA: number = 0;
+      let valB: number = 0;
 
       switch (sortField) {
         case 'title':
