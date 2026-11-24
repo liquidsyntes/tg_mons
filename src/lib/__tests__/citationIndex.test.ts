@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { calculateCitationIndex } from '../citations/calculate';
 import {
-  calculateCitationIndex,
   getCitationIndexForChannel,
   getCitationIndicesForChannels,
-} from '../citationIndex';
+} from '../citations/queries';
 import { calculateCitationIndex as metricsCalculateCitationIndex } from '../metrics';
 
 const mockPrisma = vi.hoisted(() => ({

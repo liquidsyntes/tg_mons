@@ -1,4 +1,5 @@
-import { calculateCitationIndex, type CitationInput } from '../citationIndex';
+import { calculateCitationIndex } from '../citations/calculate';
+import type { CitationInput } from '../citations/types';
 import { DEFAULT_APP_TIMEZONE, getAppTimezone, getZonedDateParts } from '../timezone';
 import type {
   FraudSignalResult,

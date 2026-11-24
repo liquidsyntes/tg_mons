@@ -21,15 +21,15 @@ vi.mock('../prisma', () => ({ prisma: {
 } }));
 vi.mock('../logger', () => ({ logger: { warn: mocks.warn } }));
 
+import { ALERT_COOLDOWN_MS } from '../alerts/types';
+import { checkChannelAlertRules } from '../alerts/evaluate';
 import {
-  ALERT_COOLDOWN_MS,
-  checkChannelAlertRules,
   evaluateAlertRule,
   evaluateViralPostRule,
   getAlertMetricValue,
   matchKeywordRule,
   normalizeKeywordQuery,
-} from '../alerts';
+} from '../alerts/rules';
 
 const now = new Date('2026-10-17T12:00:00.000Z');
 const metrics = {

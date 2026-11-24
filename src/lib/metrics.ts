@@ -8,4 +8,6 @@ export * from './metrics/subscriber-events';
 export * from './metrics/silence';
 export * from './metrics/viral';
 export * from './metrics/reactions';
-export * from './citationIndex';
+export type { CitationMention, CitationChannelInput, CitationInput } from './citations/types';
+export { calculateCitationIndex } from './citations/calculate';
+export { getCitationIndexForChannel, getCitationIndicesForChannels } from './citations/queries';

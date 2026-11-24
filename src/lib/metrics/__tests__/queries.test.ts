@@ -18,7 +18,7 @@ vi.mock('../aggregate', () => ({
   buildMetricsFromMaterialized: calculations.materialized,
   calculateChannelMetricsFromData: calculations.fallback,
 }));
-vi.mock('../../citationIndex', () => ({
+vi.mock('../../citations/queries', () => ({
   getCitationIndexForChannel: vi.fn().mockResolvedValue(0),
   getCitationIndicesForChannels: vi.fn().mockResolvedValue(new Map()),
 }));

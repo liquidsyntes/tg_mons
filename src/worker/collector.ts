@@ -2,7 +2,7 @@ import { TelegramClient } from 'telegram';
 import { disconnectTelegramClient, getTelegramClient } from './client';
 import { materializeDailyMetrics } from '../lib/materialize';
 import { calculateChannelMetrics } from '../lib/metrics';
-import { checkChannelAlertRules } from '../lib/alerts';
+import { checkChannelAlertRules } from '../lib/alerts/evaluate';
 import { formatSyncJobErrorSummary, type SyncChannelFailure } from '../lib/ops';
 import { logger } from '../lib/logger';
 import {

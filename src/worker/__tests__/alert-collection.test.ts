@@ -38,7 +38,7 @@ vi.mock('../persister', () => ({
 }));
 vi.mock('@/lib/materialize', () => ({ materializeDailyMetrics: mocks.materialize }));
 vi.mock('@/lib/metrics', () => ({ calculateChannelMetrics: mocks.calculateMetrics }));
-vi.mock('@/lib/alerts', () => ({ checkChannelAlertRules: mocks.checkAlerts }));
+vi.mock('@/lib/alerts/evaluate', () => ({ checkChannelAlertRules: mocks.checkAlerts }));
 vi.mock('@/lib/prisma', () => ({ prisma: {
   channelMetricDaily: { findMany: mocks.dailyFindMany },
   post: { findMany: mocks.postFindMany },

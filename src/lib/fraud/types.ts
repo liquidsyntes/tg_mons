@@ -1,4 +1,4 @@
-import type { CitationMention } from '../citationIndex';
+import type { CitationMention } from '../citations/types';
 
 /**
  * Result of the views-to-subscribers ratio anomaly check (`checkViewsToSubsRatio`).

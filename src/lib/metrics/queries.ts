@@ -8,7 +8,7 @@ import { calculateViralBaseline, classifyViralPost } from './viral';
 import { calculatePopularReactions, parseReactionBreakdown } from './reactions';
 import { detectSilencePeriods } from './silence';
 import { calculateContentScore } from '../scoring';
-import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citationIndex';
+import { getCitationIndexForChannel, getCitationIndicesForChannels } from '../citations/queries';
 import { runFraudAudit } from '../fraudDetector';
 import { metricsCache } from '../cache';
 import { computeNicheStats, calculateEP, type ChannelSnapshot } from '../ep';

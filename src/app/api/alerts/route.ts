@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { verifyBearerToken } from '@/lib/auth';
-import { ALERT_METRICS, isAlertMetric, isAlertOperator, normalizeKeywordQuery } from '@/lib/alerts';
+import { ALERT_METRICS } from '@/lib/alerts/types';
+import { isAlertMetric, isAlertOperator, normalizeKeywordQuery } from '@/lib/alerts/rules';
 
 export const dynamic = 'force-dynamic';
 
