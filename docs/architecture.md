@@ -69,13 +69,13 @@ Web и worker работают отдельными Node.js-процессами
 | --- | --- |
 | UI | `src/app/`, `src/components/`: страницы, интерактивные таблицы, графики, отчёты, медиакит PDF (`ChannelPdfTemplate.tsx`), канбан контент-плана (`ContentPlanBoard.tsx`), креативы Ad Spy (`AdCreativesPanel.tsx`) и инфоповоды (`NewsjackingWidget.tsx`); главная и детализация загружают метрики через API |
 | API | `src/app/api/`: чтение и управление каналами, мульти-сравнение, сделки `ad-placements`, статистика, инфоповоды (`/api/analytics/newsjacking`), AI (10 маршрутов), события, закладки/контент-план (`/api/posts/saved`), сохранённые изображения постов, удаление отчётов, настройки, алерты, дайджест, health и экспорт |
-| Метрики и аналитика | `src/lib/metrics/queries.ts`, `aggregate.ts`, `calculate.ts`, `engagement.ts`, `adShare.ts`, `post-length.ts`, `subscriber-events.ts`, `ad-creatives.ts`, `content-plan.ts`, `newsjacking.ts`; публичные реэкспорты в `src/lib/metrics.ts`, `src/lib/compare.ts`, `src/lib/channel-pdf-report.ts` |
-| Производные оценки | `ep.ts`, `scoring.ts`, `fraudDetector.ts` + `src/lib/fraud/*`, `citationIndex.ts` + `src/lib/citations/*`, `adAttribution.ts`, `adReach.ts`, `pricing.ts`, `silenceDetector.ts`, `viralPosts.ts` |
+| Метрики и аналитика | `src/lib/metrics/queries.ts`, `aggregate.ts`, `calculate.ts`, `engagement.ts`, `adShare.ts`, `post-length.ts`, `subscriber-events.ts`, `ad-creatives.ts`, `content-plan.ts`, `newsjacking.ts` + `src/lib/metrics/newsjacking/*`; публичные реэкспорты в `src/lib/metrics.ts`, `src/lib/compare.ts`, `src/lib/channel-pdf-report.ts` |
+| Производные оценки | `ep.ts`, `scoring.ts`, `fraudDetector.ts` + `src/lib/fraud/*`, `src/lib/citations/*`, `adAttribution.ts`, `adReach.ts`, `pricing.ts`, `silenceDetector.ts`, `viralPosts.ts` |
 | События и календарь | `src/lib/events/jev.ts`, `digest.ts`, `matching.ts`, `calendar.ts` (`.ics` и Google Calendar) |
-| Уведомления, дайджест и бот | `src/lib/alerts.ts` + `src/lib/alerts/*`, `src/lib/digest.ts`, `src/lib/telegram.ts`, `src/lib/telegram-bot-commands.ts` |
+| Уведомления, дайджест и бот | `src/lib/alerts/*`, `src/lib/digest.ts`, `src/lib/telegram.ts`, `src/lib/telegram-bot-commands.ts` + `src/lib/telegram-bot/*` |
 | Сбор | `client.ts` -> `fetcher.ts` -> `collector.ts` -> `persister.ts`; текст в `message-content.ts`, реакции в `message-reactions.ts`, упоминания в `post-mentions.ts`, изображения в `post-image.ts`, сигналы в `fraud-evaluator.ts`, жизненный цикл SyncJob в `sync-jobs.ts`, ошибки в `retry-policy.ts` |
 | Дополнительные задания и поллинг | `worker/demographics.ts`, `worker/ad-reach.ts`, `worker/bot-poller.ts` |
-| Хранение и кэш | `prisma.ts`, `materialize.ts`, `cache.ts` |
+| Хранение и кэш | `prisma.ts`, `materialize.ts`, `cache.ts` (`TTLCache` с LRU-лимитом `maxEntries` и `pruneExpired()`) |
 
 ### Компонентная архитектура Web & API
 
