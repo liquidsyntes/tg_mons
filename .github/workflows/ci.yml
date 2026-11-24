@@ -43,11 +43,8 @@ jobs:
       - name: TypeScript typecheck
         run: npx tsc --noEmit
 
-      # Scoped to src/ on purpose: one-off scratch scripts (fix*.js,
-      # export_block.js) in the repo root would fail lint. Widen to
-      # `npx eslint .` once those files are removed.
       - name: ESLint
-        run: npx eslint src
+        run: npm run lint
 
       # Scope to src/ until docs/ and scripts/ are cleaned up in issue #108.
       - name: Check forbidden U+2014 in src

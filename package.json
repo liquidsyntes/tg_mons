@@ -8,7 +8,7 @@
     "dev": "next dev -p 4000",
     "build": "prisma generate && next build",
     "start": "next start -p 4000",
-    "lint": "next lint",
+    "lint": "eslint src",
     "worker": "npx tsx src/worker/index.ts",
     "worker:local": "npx tsx src/worker/index.ts --local --no-cron",
     "auth": "npx tsx src/worker/auth.ts",
@@ -43,6 +43,7 @@
     "telegram": "npm:teleproto@1.229.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.13.9",
@@ -51,8 +52,8 @@
     "@vitest/coverage-v8": "^4.1.12",
     "autoprefixer": "^10.4.20",
     "concurrently": "^10.0.5",
-    "eslint-config-next": "^16.3.2",
-    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.29",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.3",
     "prisma": "^6.19.3",
