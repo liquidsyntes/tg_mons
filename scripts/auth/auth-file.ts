@@ -1,6 +1,6 @@
 /**
  * Неинтерактивная авторизация MTProto: код и 2FA-пароль читаются из файлов.
- * Ожидает /run/auth/code.txt, при запросе 2FA — /run/auth/password.txt.
+ * Ожидает /run/auth/code.txt, при запросе 2FA - /run/auth/password.txt.
  * Результат: /run/auth/session.txt, лог: /run/auth/status.log
  */
 import fs from 'fs';
@@ -30,7 +30,7 @@ function waitFor(name: string, timeoutMs = 20 * 60 * 1000): Promise<string> {
           }
         }
       } catch (e) {
-        // файл может исчезнуть между exists и read — просто ждём дальше
+        // файл может исчезнуть между exists и read - просто ждём дальше
       }
       if (Date.now() - start > timeoutMs) {
         clearInterval(tick);
