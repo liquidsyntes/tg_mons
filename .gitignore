@@ -28,6 +28,10 @@ yarn-error.log*
 
 # build/run logs
 *.log
+*.patch
+
+# local agent artifacts
+.agents/
 
 # local env files
 .env
