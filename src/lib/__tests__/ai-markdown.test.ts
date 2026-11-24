@@ -105,7 +105,7 @@ describe('ai-markdown converters', () => {
       'AI News'
     );
 
-    expect(explainerMd).toContain('# Разбор показателей канала простыми словами — AI News');
+    expect(explainerMd).toContain('# Разбор показателей канала простыми словами - AI News');
     expect(explainerMd).toContain('### ERR 7д: 4.5% (Отлично)');
     expect(explainerMd).toContain('- **Совет SMM-щика:** Добавляйте опросы.');
   });

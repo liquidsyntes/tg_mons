@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'TG Monitor — Мониторинг и сравнение Telegram-каналов',
+  title: 'TG Monitor - Мониторинг и сравнение Telegram-каналов',
   description: 'Дашборд для отслеживания динамики подписчиков, публикационной активности и сравнения Telegram-каналов с конкурентами.',
 };
 

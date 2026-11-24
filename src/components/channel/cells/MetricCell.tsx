@@ -46,7 +46,7 @@ export function MetricCell({ value, suffix = '', reason, reasonTitle, colorClass
     );
   }
 
-  return <span className="text-slate-500">—</span>;
+  return <span className="text-slate-500">–</span>;
 }
 
 export function getMetricReason(

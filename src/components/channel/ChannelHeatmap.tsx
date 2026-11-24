@@ -78,7 +78,7 @@ export function ChannelHeatmap({ heatmapData, myHeatmapData, isMine, hasMyChanne
 
                       const intensity = count > 0 ? Math.max(0.2, count / maxHeatmapCount) : 0;
 
-                      let tooltipText = `${dayNames[dayIdx]}, ${hour}:00 — Конкурент: ${count}`;
+                      let tooltipText = `${dayNames[dayIdx]}, ${hour}:00 - Конкурент: ${count}`;
                       if (!isMine && showMyChannelOverlay) {
                         tooltipText += ` | Мой канал: ${myCount}`;
                         if (count === 0 && myCount > 0) tooltipText += ' (Свободное окно!)';

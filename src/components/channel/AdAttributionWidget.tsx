@@ -24,7 +24,7 @@ import { AdRetentionBadge } from '@/components/AdRetentionBadge';
 import { AdPriceSettings } from './AdPriceSettings';
 import { HelpPopover } from '@/components/help/HelpPopover';
 
-/** Направление атрибуции: inbound — закупки (входящие упоминания), outbound — отдача рекламы */
+/** Направление атрибуции: inbound - закупки (входящие упоминания), outbound - отдача рекламы */
 type Direction = 'inbound' | 'outbound';
 
 const numberFormat = new Intl.NumberFormat('ru-RU');

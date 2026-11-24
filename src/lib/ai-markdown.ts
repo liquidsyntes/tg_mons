@@ -180,7 +180,7 @@ export function aiMetricsExplainerToMarkdown(
   const priorities = data.topPriorities || [];
 
   return `
-# Разбор показателей канала простыми словами${channelTitle ? ` — ${channelTitle}` : ''}
+# Разбор показателей канала простыми словами${channelTitle ? ` - ${channelTitle}` : ''}
 
 ${verdict?.healthBadge ? `**Статус:** ${verdict.healthBadge}\n` : ''}${verdict?.headline ? `## ${verdict.headline}\n` : ''}${verdict?.plainExplanation ? `${verdict.plainExplanation}\n` : ''}
 

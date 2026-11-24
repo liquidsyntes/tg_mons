@@ -91,7 +91,7 @@ async function main() {
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <title>TgMon — Вход по QR-коду</title>
+  <title>TgMon - Вход по QR-коду</title>
   <style>
     body { font-family: system-ui, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
     .card { background: #1e293b; padding: 32px; border-radius: 8px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
@@ -114,7 +114,7 @@ async function main() {
         <li>Перейдите в <b>Настройки → Устройства → Подключить устройство</b></li>
         <li>Наведите камеру телефона на этот QR-код</li>
       </ol>
-      <div class="warn">Не открывайте ссылку кликом в браузере/ПК — сканируйте именно камерой из приложения Telegram на телефоне!</div>
+      <div class="warn">Не открывайте ссылку кликом в браузере/ПК - сканируйте именно камерой из приложения Telegram на телефоне!</div>
     </div>
     <div id="pwd-section" style="display:none;">
       <p>Введите облачный пароль 2FA от Telegram:</p>
@@ -163,7 +163,7 @@ async function main() {
     console.log(`👉  http://localhost:${qrPort}`);
     console.log('И отсканируйте QR-код КАМЕРОЙ телефона в Telegram:');
     console.log('Настройки -> Устройства -> Подключить устройство');
-    console.log('(Не нажимайте на tg:// ссылку кликом — Telegram блокирует клики по ним!)');
+    console.log('(Не нажимайте на tg:// ссылку кликом - Telegram блокирует клики по ним!)');
     console.log('========================================================\n');
 
     await client.connect();

@@ -233,7 +233,7 @@ export function ChannelHeader({ channel, period, onPeriodChange, onMineChanged, 
           <div className="flex flex-wrap items-center gap-6">
             <div className="text-left lg:text-right border-r border-border/70 pr-6">
               <div className="text-3xl sm:text-4xl font-extrabold font-mono tabular-nums text-emerald-400">
-                {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '—'}
+                {channel.lastPostViews !== null ? formatNumber(channel.lastPostViews) : '–'}
               </div>
               <div className="text-xs text-slate-400 uppercase tracking-widest font-bold mt-1">Last Fact</div>
             </div>

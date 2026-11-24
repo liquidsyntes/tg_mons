@@ -91,7 +91,7 @@ export function WatchlistWidget({ channels }: WatchlistWidgetProps) {
                       Просмотры 7д
                     </div>
                     <div className="text-xs font-mono text-slate-300">
-                      {channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : '—'}
+                      {channel.avgViews7d !== null ? formatNumber(channel.avgViews7d) : '–'}
                     </div>
                   </div>
                   <div>

@@ -133,7 +133,7 @@ export function AIContentGapReport({ data }: { data: AIContentGapData | null }) 
         <div className="space-y-3">
           <h4 className="text-base font-bold text-white flex items-center gap-2">
             <Lightbulb className="w-5 h-5 text-amber-400" />
-            Быстрые победы — готовые идеи публикаций
+            Быстрые победы - готовые идеи публикаций
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {data.quickWins.map((win, idx) => (

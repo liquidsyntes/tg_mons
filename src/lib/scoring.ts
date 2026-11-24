@@ -108,7 +108,7 @@ export function calculateContentScore(
     }
   }
 
-  let recommendation = `Ниже всего ${lowest.key} (${lowest.val}/${lowest.max}) — ${lowest.text}`;
+  let recommendation = `Ниже всего ${lowest.key} (${lowest.val}/${lowest.max}) - ${lowest.text}`;
   if (total >= 90) {
     recommendation = 'Отличные показатели! Продолжайте в том же духе.';
   }

@@ -166,7 +166,7 @@ export function computeNicheStats(channels: ChannelSnapshot[]): Map<string, Nich
  * Вычисляет итоговый Effective Point (EP) канала.
  * 
  * @description
- * EP — это нормализованный Z-score рейтинг канала относительно его ниши.
+ * EP - это нормализованный Z-score рейтинг канала относительно его ниши.
  * Формула:
  * 1. Считаются Z-score для CEI, VR, ERR: (X - Mean) / StdDev.
  * 2. Composite Score = w_growth * Z_growth + w_vr * Z_vr + w_err * Z_err.

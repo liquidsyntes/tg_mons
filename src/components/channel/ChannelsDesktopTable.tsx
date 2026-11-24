@@ -156,7 +156,7 @@ export function ChannelsDesktopTable({
 
   return (
     <div className="hidden md:block bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
-      <div className="overflow-x-auto focus-visible:outline-offset-[-2px]" tabIndex={0} role="region" aria-label="Channel metrics — прокрутка таблицы">
+      <div className="overflow-x-auto focus-visible:outline-offset-[-2px]" tabIndex={0} role="region" aria-label="Channel metrics - прокрутка таблицы">
         <table className="w-full text-left border-separate border-spacing-0 text-xs [&_th]:whitespace-nowrap [&_th]:align-middle [&_td]:border-b [&_td]:border-border/60">
           <thead>
             <tr className="border-b border-border bg-slate-900/70 text-slate-400 font-medium select-none">
