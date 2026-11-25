@@ -1,6 +1,6 @@
 # Запуск и эксплуатация
 
-Сверено **24 ноября 2026 года** с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker), [CI](../.github/workflows/ci.yml) и [GHCR Publish](../.github/workflows/docker-publish.yml).
+Сверено **25 ноября 2026 года** с [package.json](../package.json), [dev-web.sh](../dev-web.sh), [update.sh](../update.sh), [Compose](../docker-compose.yml), [prod override](../docker-compose.prod.yml), [dev override](../docker-compose.dev.yml), [Dockerfile.web](../Dockerfile.web), [Dockerfile.worker](../Dockerfile.worker), [CI](../.github/workflows/ci.yml) и [GHCR Publish](../.github/workflows/docker-publish.yml).
 
 ## Среды проекта и изоляция Telegram-авторизации (`AuthKeyDuplicated`)
 
@@ -138,7 +138,7 @@ cp .env.example .env
 
 ## Режим 1: Локальный Docker-стек (`dev-web.sh`)
 
-Штатный локальный запуск использует `docker-compose.yml` вместе с `docker-compose.dev.yml`: PostgreSQL, web с Hot Reload и worker с `TG_SESSION_LOCAL`. Перед первым запуском соберите образы:
+Штатный локальный запуск использует `docker-compose.yml` вместе с `docker-compose.dev.yml`: PostgreSQL, web с Hot Reload и worker с `TG_SESSION_LOCAL`. `docker-compose.dev.yml` собирает стадию `target: dev` в multi-stage [Dockerfile.web](../Dockerfile.web) и [Dockerfile.worker](../Dockerfile.worker) (со всеми `devDependencies` для `tsc`, `eslint` и `vitest`), тогда как целевая production-стадия по умолчанию (`runner`) запускает процессы под непривилегированным пользователем `USER node` без `devDependencies` и со встроенным `HEALTHCHECK` (`GET /api/health?scope=web` для `web` и `GET http://127.0.0.1:4001/health` на внутреннем API `worker`). Перед первым запуском соберите образы:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
@@ -308,7 +308,7 @@ flowchart TD
 
 Логи нужного сервиса можно изучить локально через `docker compose logs --tail=100 worker` или `web`; они могут содержать данные каналов, поэтому перед публикацией их нужно обезличить.
 
-Health проверяет соединение с БД через `SELECT 1`. Без активных каналов он возвращает 200 `idle`. Если активные каналы есть, но SyncJob ещё нет, в пределах 720 минут с запуска web или создания самого раннего активного канала возвращается 200 `initializing`; после этого 503 `sync job stale`. Перезапуск web начинает это окно ожидания заново. Зависший незавершённый цикл старше 120 минут и завершённый старше 720 минут при активных каналах дают 503. Недоступная БД также даёт 503. **Свежий FAILED/PARTIAL может вернуть 200**: проверяйте lastSyncStatus и channelsFailed в теле. UI отдельно считает канал stale после 3 часов.
+Health проверяет соединение с БД через `SELECT 1` (`GET /api/health?scope=web` возвращает 200 `{ status: 'ok', scope: 'web' }` или 503 при отказе БД и используется встроенным `HEALTHCHECK` Docker-образа `web`, чтобы сбой цикла MTProto не помечал сам `web` как `unhealthy`). Без `?scope=web` без активных каналов health возвращает 200 `idle`. Если активные каналы есть, но SyncJob ещё нет, в пределах 720 минут с запуска web или создания самого раннего активного канала возвращается 200 `initializing`; после этого 503 `sync job stale`. Перезапуск web начинает это окно ожидания заново. Зависший незавершённый цикл старше 120 минут и завершённый старше 720 минут при активных каналах дают 503. Недоступная БД также даёт 503. **Свежий FAILED/PARTIAL может вернуть 200**: проверяйте lastSyncStatus и channelsFailed в теле. UI отдельно считает канал stale после 3 часов. Внутренний сервер worker (`:4001`) дополнительно отдаёт неаутентифицированный `GET /health -> 200` для встроенного Docker `HEALTHCHECK` (все маршруты `/internal/*` по-прежнему требуют Bearer-токен).
 
 При `COLLECT_ON_STARTUP=false` worker проверяет последний SyncJob. Если активные каналы есть, а задание устарело по настроенному порогу health (по умолчанию 720 минут после завершения или 120 минут для незавершённого задания), он запускает один восстановительный сбор. При свежем задании worker ждёт следующего cron или ручного запроса кнопкой в UI / `POST /api/collect/run`; второй одновременный запуск получит 409. Проверяйте `result.successCount/errorCount`, затем `lastSyncStatus=COMPLETED` и `channelsFailed=0`. Сам ответ `success:true` не гарантирует успех всех каналов.
 
@@ -368,7 +368,7 @@ curl -i http://localhost:4000/api/health
 
 Используйте `npm ci` с зафиксированным lockfile. package.json содержит overrides: next → postcss 8.5.26 и sharp 0.35.4; @prisma/config → deepmerge-ts 8.0.2. Пересматривайте их при обновлении родительских пакетов; наличие override само по себе не подтверждает отсутствие уязвимостей.
 
-CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npx eslint src`, `npm test`, затем `npm run build`. Скрипт `npm run lint` вызывает работающий в Next.js 15, но устаревающий `next lint`; CI использует прямой вызов ESLint. При ограничениях запуска тестовых процессов можно проверить `npm test -- --maxWorkers=2`; это не меняет набор тестов. Workflow `ci.yml` срабатывает на push `main`/`VPS_Ready`, PR в `main` и вручную; отдельный workflow `.github/workflows/docker-publish.yml` на push `main`, тегах `v*` и ручном запуске собирает и публикует Docker-образы `ghcr.io/liquidsyntes/tg_mons-web` и `ghcr.io/liquidsyntes/tg_mons-worker` в GHCR (без автоматического деплоя на OVH). Совместимость cron и Prisma config проверяется отдельными unit-тестами; результаты нужно получать текущим запуском, а не брать из старых отчётов.
+CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npm run lint` (`eslint src`), `npm test` (unit-тесты), затем отдельный job `integration-postgres` с сервисным контейнером `postgres:15` (БД `tgmon_ai87_test`, `npx prisma migrate deploy`, прогон PostgreSQL интеграционных тестов с `RUN_DB_INTEGRATION_TESTS=true` и `--fileParallelism=false`) и финальный job `npm run build`. При ограничениях запуска тестовых процессов можно проверить `npm test -- --maxWorkers=2`; это не меняет набор тестов. Workflow `ci.yml` срабатывает на push `main`/`VPS_Ready`, PR в `main` и вручную; отдельный workflow `.github/workflows/docker-publish.yml` на push `main`, тегах `v*` и ручном запуске собирает и публикует multi-stage `runner` Docker-образы `ghcr.io/liquidsyntes/tg_mons-web` и `ghcr.io/liquidsyntes/tg_mons-worker` в GHCR (без автоматического деплоя на OVH). Совместимость cron и Prisma config проверяется отдельными unit-тестами; результаты нужно получать текущим запуском, а не брать из старых отчётов.
 
 ### Модель предварительного отбора событий
 
@@ -378,7 +378,7 @@ CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npx eslin
 
 Перед запуском кода #87 применить `npm run prisma:migrate` и сгенерировать Prisma-клиенты web/worker. В dev Compose код подключён bind mount, но Prisma-клиенты находятся в отдельных volumes node_modules: выполнить generate в обоих сервисах. Перезапуск БД не требуется. Новые лимиты доступны ADMIN в настройках использования AI, production-переменные окружения не добавлены.
 
-Интеграционные тесты admission запускаются только с `AI_OPERATIONS_INTEGRATION=1` и отдельной БД, имя которой заканчивается `_ai87_test`. Сначала применить миграции к этой тестовой БД, затем `npm test -- --maxWorkers=2 src/lib/ai-operations/__tests__/store.integration.test.ts`. Тесты очищают только журнал и настройки тестовой БД, обращение к рабочей БД запрещено проверкой имени. Они проверяют конкурентные транзакции и два отдельных Node-процесса, провайдер замокан. В обычном CI эти тесты пропускаются; unit/API-тесты выполняются без сети.
+Интеграционные тесты admission запускаются при `AI_OPERATIONS_INTEGRATION=1` или `RUN_DB_INTEGRATION_TESTS=true` и отдельной БД, имя которой заканчивается `_ai87_test`. Сначала применить миграции к этой тестовой БД, затем `npx vitest run src/lib/ai-operations/__tests__/store.integration.test.ts --fileParallelism=false`. Тесты очищают только журнал и настройки тестовой БД, обращение к рабочей БД запрещено проверкой имени. Они проверяют конкурентные транзакции и два отдельных Node-процесса, провайдер замокан. В `ci.yml` прогон выполняется автоматически в job `integration-postgres`; в обычных unit-прогонах без флагов тесты пропускаются.
 
 ### Сбор результатов контент-плана
 
@@ -386,7 +386,7 @@ CI использует Node 22: Prisma generate, `npx tsc --noEmit`, `npx eslin
 
 Адресный сбор подтверждает удаление только по явному MessageEmpty; отсутствие сообщения/сетевая ошибка сами по себе не помечают пост удалённым. Ошибки контрольных точек изолированы от основного сбора. Исторические замеры остаются после 30-дневной очистки PostSnapshot.
 
-Интеграционный тест `publication-performance.integration.test.ts` запускается с `PUBLICATION_PERFORMANCE_INTEGRATION=1` только на выделенной БД с суффиксом `_ai87_test` после применения миграций. Проверяет уникальность контрольной точки и SetNull без удаления референса/черновика. В обычном тестовом запуске пропускается.
+Интеграционный тест `publication-performance.integration.test.ts` запускается при `PUBLICATION_PERFORMANCE_INTEGRATION=1` или `RUN_DB_INTEGRATION_TESTS=true` только на выделенной БД с суффиксом `_ai87_test` после применения миграций. Проверяет уникальность контрольной точки и SetNull без удаления референса/черновика. В `ci.yml` прогон выполняется автоматически в job `integration-postgres`; без флагов в обычном тестовом запуске тест пропускается.
 
 ### Наблюдаемость замеров публикаций (#90)
 
