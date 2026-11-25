@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { prisma } from '@/lib/prisma';
 import { budgetSnapshot, recordBudgetNotices } from '../budget';
 import { reserveOperation, canonicalHash, operationContext, trackedProviderFetch } from '../store';
-const enabled=process.env.AI_OPERATIONS_INTEGRATION==='1';
+const enabled = process.env.AI_OPERATIONS_INTEGRATION === '1' || process.env.RUN_DB_INTEGRATION_TESTS === 'true';
 if (enabled && !new URL(process.env.DATABASE_URL ?? '').pathname.endsWith('_ai87_test')) throw new Error('Dedicated test database required');
 describe.skipIf(!enabled)('AI admission with real PostgreSQL',()=>{
   beforeEach(async()=>{

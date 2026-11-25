@@ -1,6 +1,6 @@
 import {it,expect} from 'vitest';
 import {prisma} from '@/lib/prisma';
-const enabled=process.env.PUBLICATION_PERFORMANCE_INTEGRATION==='1';
+const enabled = process.env.PUBLICATION_PERFORMANCE_INTEGRATION === '1' || process.env.RUN_DB_INTEGRATION_TESTS === 'true';
 if(enabled&&!new URL(process.env.DATABASE_URL??'').pathname.endsWith('_ai87_test'))throw new Error('Dedicated test database required');
 it.skipIf(!enabled)('keeps one checkpoint and preserves reference after linked publication deletion',async()=>{
  const channel=await prisma.channel.create({data:{type:'channel',title:'Publication integration',tgId:BigInt(Date.now()),username:'integration_'+Date.now()}});
