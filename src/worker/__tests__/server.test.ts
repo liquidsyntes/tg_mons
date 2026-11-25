@@ -45,4 +45,21 @@ describe('worker internal API', () => {
       await new Promise<void>(resolve => server.close(() => resolve()));
     }
   });
+
+  it('responds 200 to unauthenticated GET /health while protecting other routes', async () => {
+    const server = createWorkerServer(new TaskCoordinator());
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address() as AddressInfo;
+    const baseUrl = `http://127.0.0.1:${address.port}`;
+    try {
+      const healthRes = await fetch(`${baseUrl}/health`, { method: 'GET' });
+      expect(healthRes.status).toBe(200);
+      expect(await healthRes.json()).toEqual({ status: 'ok' });
+
+      const postHealth = await fetch(`${baseUrl}/health`, { method: 'POST' });
+      expect(postHealth.status).toBe(401);
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  });
 });

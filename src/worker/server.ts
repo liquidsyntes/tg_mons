@@ -36,6 +36,10 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
 
 export function createWorkerServer(coordinator: TaskCoordinator): Server {
   return createServer(async (req, res) => {
+    if (req.method === 'GET' && req.url === '/health') {
+      sendJson(res, 200, { status: 'ok' });
+      return;
+    }
     if (!authorized(req)) {
       sendJson(res, 401, { error: 'Требуется Bearer токен' });
       return;

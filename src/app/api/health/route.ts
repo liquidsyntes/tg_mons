@@ -4,9 +4,13 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await prisma.$queryRaw`SELECT 1`;
+
+    if (new URL(req.url, 'http://localhost').searchParams.get('scope') === 'web') {
+      return NextResponse.json({ status: 'ok', scope: 'web' }, { status: 200 });
+    }
 
     const [lastJob, oldestActiveChannel] = await Promise.all([
       prisma.syncJob.findFirst({ orderBy: { startedAt: 'desc' } }),
