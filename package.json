@@ -9,8 +9,8 @@
     "build": "prisma generate && next build",
     "start": "next start -p 4000",
     "lint": "eslint src",
-    "worker": "npx tsx src/worker/index.ts",
-    "worker:local": "npx tsx src/worker/index.ts --local --no-cron",
+    "worker": "tsx src/worker/index.ts",
+    "worker:local": "tsx src/worker/index.ts --local --no-cron",
     "auth": "npx tsx src/worker/auth.ts",
     "auth:local": "npx tsx src/worker/auth.ts --local",
     "auth:local:qr": "npx tsx src/worker/auth.ts --local --qr",
@@ -33,6 +33,7 @@
     "next": "^15.5.29",
     "node-cron": "^4.6.0",
     "openid-client": "^6.8.8",
+    "prisma": "^6.19.3",
     "react": "^19.0.0",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.0.0",
@@ -40,7 +41,8 @@
     "recharts": "^2.15.1",
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.0.2",
-    "telegram": "npm:teleproto@1.229.0"
+    "telegram": "npm:teleproto@1.229.0",
+    "tsx": "^4.19.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
@@ -56,9 +58,7 @@
     "eslint-config-next": "^15.5.29",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.3",
-    "prisma": "^6.19.3",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "vitest": "^4.1.12"
   },

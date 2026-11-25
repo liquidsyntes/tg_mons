@@ -1,17 +1,36 @@
-FROM node:22-alpine
+FROM node:22-alpine AS dev
 
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci
+RUN npm ci && npx prisma generate
 
-# Generate Prisma client
-RUN npx prisma generate
+CMD ["npm", "run", "worker"]
 
-# Copy source code
-COPY . .
+FROM dev AS prod-deps
+
+RUN npm prune --omit=dev && npx prisma generate && npm cache clean --force
+
+FROM node:22-alpine AS runner
+
+WORKDIR /app
 
 ENV NODE_ENV=production
+
+RUN chown node:node /app
+COPY --from=prod-deps --chown=node:node /app/package*.json ./
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /app/prisma ./prisma
+COPY --chown=node:node tsconfig.json ./
+COPY --chown=node:node scripts ./scripts
+COPY --chown=node:node src/worker ./src/worker
+COPY --chown=node:node src/lib ./src/lib
+
+USER node
+
+EXPOSE 4001
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:' + (process.env.WORKER_INTERNAL_PORT || 4001) + '/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
 CMD ["npm", "run", "worker"]

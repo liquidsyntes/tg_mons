@@ -1,6 +1,9 @@
 services:
   web:
-    # Используем тот же образ, но переопределяем команду на dev
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      target: dev
     command: npm run dev
     environment:
       - NODE_ENV=development
@@ -13,6 +16,10 @@ services:
       - /app/.next
 
   worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+      target: dev
     command: npx tsx watch src/worker/index.ts --local
     environment:
       - NODE_ENV=development
