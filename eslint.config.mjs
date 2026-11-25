@@ -12,7 +12,7 @@ export default [
   {
     rules: {
       '@next/next/no-img-element': 'off',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'error',
     },
   },
 ];
